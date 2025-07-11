@@ -374,7 +374,6 @@ lemma iterated_deriv_eq_zero_iff_order_eq_n :
         exact iterated_deriv hf (n + 1)
 
 
-
 lemma iterated_deriv_eq_zero_imp_n_leq_order : ∀ (n : ℕ) z₀ (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀)
   (ho : analyticOrderAt f z₀ ≠ ⊤),
   (∀ k < n, (deriv^[k] f) z₀ = 0) → n ≤ analyticOrderAt f z₀ := by
