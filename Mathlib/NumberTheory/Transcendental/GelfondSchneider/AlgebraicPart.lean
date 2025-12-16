@@ -138,35 +138,35 @@ lemma house_gt_one_of_isIntegral {α : K} (hα : IsIntegral ℤ α) (hα0 : α �
       intros H
       apply hα0
       injection H
-    apply exists_conjugate_abs_gt_one (K := K) hα_int_0
+    apply _root_.exists_conjugate_abs_gt_one (K := K) hα_int_0
   rw [house_eq_sup']
   have h_le_sup := Finset.le_sup' (fun φ : K →+* ℂ ↦ ‖φ α‖₊) (Finset.mem_univ σ)
   exact le_trans hσ h_le_sup
 
 lemma house_alg_int_leq_pow (α : K) (n m : ℕ) (h : n ≤ m) (hα0 : α ≠ 0) (H : IsIntegral ℤ α) :
   house α ^ n ≤ house α ^ m :=
-Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨house_gt_one_of_isIntegral H hα0, h⟩)
+Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨_root_.house_gt_one_of_isIntegral H hα0, h⟩)
 
 lemma house_alg_int_leq_pow' (α : K) (n m : Int) (h_exp : n ≤ m)
     (hα0 : α ≠ 0) (h_int : IsIntegral ℤ α) :
   house α ^ n ≤ house α ^ m := by
-  have h_base : 1 ≤ house α := house_gt_one_of_isIntegral h_int hα0
+  have h_base : 1 ≤ house α := _root_.house_gt_one_of_isIntegral h_int hα0
   exact zpow_le_zpow_right₀ h_base h_exp
 
 lemma house_alg_int_leq_pow_real (α : K) (r s : ℝ) (h_exp : r ≤ s)
     (hα0 : α ≠ 0) (h_int : IsIntegral ℤ α) :
   house α ^ r ≤ house α ^ s := by
-  have h_base : 1 ≤ house α := house_gt_one_of_isIntegral h_int hα0
+  have h_base : 1 ≤ house α := _root_.house_gt_one_of_isIntegral h_int hα0
   exact Real.rpow_le_rpow_of_exponent_le h_base h_exp
 
 lemma house_leq_pow_pow (α : K) (n : ℕ) (hn : n ≠ 0) (hα0 : α ≠ 0)
   (H : IsIntegral ℤ α) : house α ≤ house α ^ n :=
-le_self_pow₀ (house_gt_one_of_isIntegral H hα0) hn
+le_self_pow₀ (_root_.house_gt_one_of_isIntegral H hα0) hn
 
 lemma house_leq_one_pow (α : K) (n : ℕ) (hn : n ≠ 0) (hα0 : α ≠ 0)
   (H : IsIntegral ℤ α) :
   1 ≤ house α ^ n :=
-(house_gt_one_of_isIntegral H hα0).trans (house_leq_pow_pow α n hn hα0 H)
+(_root_.house_gt_one_of_isIntegral H hα0).trans (_root_.house_leq_pow_pow α n hn hα0 H)
 
 lemma rho_norm_le_house_rho (α : K) :
     ‖((canonicalEmbedding K) α)‖ ≤ house (α) := by
@@ -183,7 +183,7 @@ lemma house_prod_le (s : Finset K) :
   refine Finset.induction_on (s := s) ?_ ?_
   · simp [house]
   · intro a s ha ih
-    simp [Finset.prod_insert ha]
+    simp only [Finset.prod_insert ha]
     calc
       house (a * ∏ x ∈ s, x)
         ≤ house a * house (∏ x ∈ s, x) := house_mul_le a _
@@ -226,7 +226,7 @@ lemma alg_int_emb_norm (α : K) (σ : K →+* ℂ) : ‖σ α‖ ≤ house (α) 
 lemma test (α : K) (σ : K →+* ℂ) : σ.toRatAlgHom α = σ α := by
    {simp only [RingHom.toRatAlgHom_apply]}
 
-lemma norm_le_house_norm (α : K) (σ : K →+* ℂ) [DecidableEq (K →+* ℂ)] :
+lemma norm_le_house_norm (α : K) (σ : K →+* ℂ) :
   ‖Algebra.norm ℚ (α)‖ ≤ ‖σ α‖ * (house (α)) ^ (Module.finrank ℚ K -1) := by
   have hcard := NumberField.Embeddings.card K ℂ
   have := abs_norm_eq_prod_embeddings_norm α
@@ -253,7 +253,7 @@ lemma norm_le_house_norm (α : K) (σ : K →+* ℂ) [DecidableEq (K →+* ℂ)]
             _  ≤ house (α) := ?_
       · unfold i'
         simp only [AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
-      · apply alg_int_emb_norm
+      · apply _root_.alg_int_emb_norm
     · exact norm_nonneg (σ α)
   · congr
     simp only [prod_const, Finset.mem_univ, card_erase_of_mem, card_univ, AlgHom.card]

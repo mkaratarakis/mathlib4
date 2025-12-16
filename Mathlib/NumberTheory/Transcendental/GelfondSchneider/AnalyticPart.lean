@@ -140,8 +140,7 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
                   nth_rw 3 [← pow_one (z - z₀)]
                   rw [← pow_add]
                   rw [Nat.sub_add_cancel hn]
-
-                simp [this, add_comm]
+                simp only [this, add_comm]
                 have : ↑n * (z - z₀) ^ (n - 1) = (z - z₀) ^ (n - 1) * ↑n  := by
                    exact Nat.cast_comm n ((z - z₀) ^ (n - 1))
                 rw [this, mul_assoc]
@@ -156,12 +155,10 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
                   simp_all only [gt_iff_lt, ne_eq, smul_eq_mul]
                   apply this
                   simp_all only
-
                 simp_all only [gt_iff_lt, ne_eq, smul_eq_mul]
                 obtain ⟨left, right⟩ := Hz
                 apply hgN
                 simp_all only
-
           simp only [nsmul_eq_mul, smul_eq_mul]
           rw [← mul_add] at Hderiv
           rw [← Hderiv]
@@ -285,7 +282,6 @@ lemma order_deriv_top : ∀ z₀ (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀),
         · refine IsOpen.mem_nhds ?_ hx
           · exact Metric.isOpen_ball
         · exact fun z a ↦ Eq.symm (Complex.ext (congrArg re (hf' a)) (congrArg im (hf' a)))
-
       rw [← derivWithin_of_mem_nhds]
       · rw [← hf'']
         simp only [derivWithin_fun_const, Pi.zero_apply, r]
@@ -324,7 +320,7 @@ lemma deriv_n_neg_1_then_order_gt_zero (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
         simp only [horder] at hnn
         have : n = n'' + 1 := by
           norm_cast at hnn
-          simp at hnn
+          simp only [add_tsub_cancel_right] at hnn
           rw [← hnn]
           exact (Nat.sub_eq_iff_eq_add hn).mp rfl
         rw [this]
@@ -332,7 +328,6 @@ lemma deriv_n_neg_1_then_order_gt_zero (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
 
 lemma change_deriv (R : ℂ → ℂ) (z: ℂ) :
   deriv^[k] (deriv R) z = deriv (deriv^[k] R) z := by
-
           have : deriv^[k] (deriv R) z = deriv^[k+1] R z := by simp only [Function.iterate_succ,
             Function.comp_apply]
           have : deriv (deriv^[k] R) z = deriv^[k+1] R z := by
@@ -345,7 +340,6 @@ lemma change_deriv (R : ℂ → ℂ) (z: ℂ) :
               rw [← iteratedDeriv_succ]
               rw [this]
               simp only [Function.iterate_succ, Function.comp_apply]
-
           rw [this, ← this]
           exact id (Eq.symm this)
 
@@ -399,15 +393,10 @@ lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
                 · exact AnalyticAt.deriv (hR₂ z)
         · intros z
           have derivOfderivk : ∀ z, deriv (fun z => (z - z₀)^(r - k) *
-
             (r.factorial / (r - k).factorial * R₁ z + (z - z₀) * R₂ z)) z =
-
              ↑(r - k) * (z - z₀) ^ (r - k - 1) *
-
               (↑r.factorial / ↑(r - k).factorial * R₁ z + (z - z₀) * R₂ z) +
-
             (z - z₀) ^ (r - k) * (↑r.factorial / ↑(r - k).factorial *
-
            deriv R₁ z + (R₂ z + (z - z₀) * deriv R₂ z)) := by
                 intros z
                 rw [deriv_fun_mul]
@@ -418,7 +407,6 @@ lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
                   DifferentiableAt.fun_sub, deriv_fun_pow, deriv_fun_sub, deriv_id'',
                   deriv_const', sub_zero, mul_one, deriv_div_const, zero_div, zero_mul, zero_add,
                   one_mul]
-
                 · simp only [differentiableAt_fun_id, differentiableAt_const,
                   DifferentiableAt.fun_sub]
                 · exact AnalyticAt.differentiableAt (hR₂ z)
@@ -441,8 +429,6 @@ lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
                     · simp only [differentiableAt_fun_id, differentiableAt_const,
                       DifferentiableAt.fun_sub]
                     · exact AnalyticAt.differentiableAt (hR₂ z)
-
-
           conv => enter [1,1]; ext z; rw [hR1 z]
           rw [derivOfderivk];clear derivOfderivk
           rw [mul_add]
@@ -508,7 +494,6 @@ lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
               · simp only [ne_eq, Nat.cast_eq_zero]
                 grind
             · grind
-
           rw [this]
           unfold R2
           simp only [add_assoc]
@@ -550,7 +535,7 @@ lemma iterated_deriv_eq_zero_iff_order_eq_n :
         specialize hz 0 (by omega)
         obtain ⟨r, hr⟩ := (WithTop.ne_top_iff_exists).mp hfin
         specialize this r hr.symm
-        simp at hz
+        simp only [Function.iterate_zero, id_eq] at hz
         have r0 : r > 0 := by
           suffices analyticOrderAt f z₀ > 0 by
             suffices @WithTop.some ℕ r > 0 by exact ENat.coe_lt_coe.mp this
@@ -575,7 +560,8 @@ lemma iterated_deriv_eq_zero_iff_order_eq_n :
         rw[analyticOrderAt_ne_zero] at this
         exact this.2
       · have := order_geq_k_then_deriv_n_neg_1 f hf (n+1) (n+1) ho.symm (by omega) (by omega)
-        simp at this
+        simp only [Function.iterate_succ, Function.comp_apply, tsub_self,
+          CharP.cast_eq_zero] at this
         rw[AnalyticAt.analyticOrderAt_eq_zero] at this
         assumption
         have (k : ℕ) : deriv^[k] (deriv f) = deriv^[k+1] f := rfl
@@ -625,7 +611,6 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
       have hball' : EMetric.ball z r'' ⊆ U := by
         simp_all only [ENNReal.some_eq_coe,
         Metric.emetric_ball_nnreal, NNReal.coe_mk, r'']
-
       obtain ⟨renn,hr⟩:= H
       use min (renn) r''
       obtain ⟨r_le,r_pos,hs⟩ := hr
@@ -650,7 +635,6 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
         · have : z + y ∈ EMetric.ball (z + 0) (min renn r'') := by
             apply shift_ball
             exact a
-
           have : z + y ∈ EMetric.ball z (min renn r'') := by
             simp_all only [ENNReal.some_eq_coe,
             Metric.emetric_ball_nnreal, NNReal.coe_mk,
@@ -660,7 +644,6 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
               card_univ, Fintype.card_fin, smul_eq_mul,
               lt_inf_iff, enorm_lt_coe, add_zero, edist_lt_coe, and_self,
               r'']
-
           have : z + y ∈ EMetric.ball z r'' := by
             rename_i this_1
             simp_all only [ENNReal.some_eq_coe,
@@ -674,7 +657,6 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
             obtain ⟨left, right⟩ := a
             obtain ⟨left_1, right_1⟩ := this_1
             exact right
-
           have : z + y ∈ U := by
             rename_i this_1 this_2
             simp_all only [ENNReal.some_eq_coe,
@@ -690,7 +672,6 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
             obtain ⟨left_1, right_1⟩ := this_1
             apply hball
             simp_all only [Metric.mem_ball, dist_self_add_left]
-
           aesop
         · simp_all only [ENNReal.some_eq_coe,
           Metric.emetric_ball_nnreal, NNReal.coe_mk,
@@ -765,7 +746,7 @@ lemma AnalyticOnSubset (f : ℂ → ℂ) (U V : Set ℂ) :
     exact fun a a_1 x a_2 ↦ AnalyticWithinAt.mono (a_1 x (a a_2)) a
 
 lemma exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
-    [DecidableEq γ] (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
+     (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
   ∃ x ∈ s, ∃ y, y = f x ∧ ∀ x' ∈ s, y ≤ f x' := by
   let y := s.image f |>.min' (image_nonempty.mpr Hs)
   have : y ∈ Finset.image f s := min'_mem (image f s) (image_nonempty.mpr Hs)
