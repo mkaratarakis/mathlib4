@@ -41,7 +41,7 @@ variable {S : Type*} [CommRing S] {f : R →+* S} {I J : Ideal S}
 
 variable {p : Ideal R} {P : Ideal S}
 
-/-- If there is an injective map `R/p → S/P` such that following diagram commutes:
+/-- If there is an injective map `R/p → S/P` such that the following diagram commutes:
 ```
 R   → S
 ↓     ↓
@@ -59,7 +59,7 @@ theorem comap_eq_of_scalar_tower_quotient [Algebra R S] [Algebra (R ⧸ p) (S �
   · intro hx
     exact (injective_iff_map_eq_zero (algebraMap (R ⧸ p) (S ⧸ P))).mp h _ hx
   · intro hx
-    rw [hx, RingHom.map_zero]
+    rw [hx, map_zero]
 
 variable [Algebra R S]
 
@@ -133,6 +133,8 @@ instance top_liesOver_top : (⊤ : Ideal B).LiesOver (⊤ : Ideal A) where
 theorem eq_top_iff_of_liesOver [P.LiesOver p] : P = ⊤ ↔ p = ⊤ := by
   rw [P.over_def p]
   exact comap_eq_top_iff.symm
+
+lemma ne_top_iff_of_liesOver [P.LiesOver p] : P ≠ ⊤ ↔ p ≠ ⊤ := (eq_top_iff_of_liesOver ..).ne
 
 variable {P}
 
@@ -272,12 +274,12 @@ instance instFaithfulSMul : FaithfulSMul (A ⧸ p) (B ⧸ P) := by
   rw [faithfulSMul_iff_algebraMap_injective]
   rintro ⟨a⟩ ⟨b⟩ hab
   apply Quotient.eq.mpr ((mem_of_liesOver P p (a - b)).mpr _)
-  rw [RingHom.map_sub]
+  rw [map_sub]
   exact Quotient.eq.mp hab
 
 variable {p} in
-theorem nontrivial_of_liesOver_of_ne_top (hp : p ≠ ⊤) : Nontrivial (B ⧸ P) :=
-  Quotient.nontrivial ((eq_top_iff_of_liesOver P p).mp.mt hp)
+theorem nontrivial_of_liesOver_of_ne_top (hp : p ≠ ⊤) : Nontrivial (B ⧸ P) := by
+  rwa [Quotient.nontrivial_iff, ne_top_iff_of_liesOver _ p]
 
 theorem nontrivial_of_liesOver_of_isPrime [hp : p.IsPrime] : Nontrivial (B ⧸ P) :=
   nontrivial_of_liesOver_of_ne_top P hp.ne_top
@@ -326,8 +328,7 @@ def stabilizerHom : MulAction.stabilizer G P →* ((B ⧸ P) ≃ₐ[A ⧸ p] (B 
 lemma ker_stabilizerHom :
     (stabilizerHom P p G).ker = (P.toAddSubgroup.inertia G).subgroupOf _ := by
   ext σ
-  simp [DFunLike.ext_iff, mk_surjective.forall, Quotient.eq,
-    Subgroup.mem_subgroupOf, Subgroup.smul_def]
+  simp [DFunLike.ext_iff, mk_surjective.forall, Quotient.eq]
 
 theorem map_ker_stabilizer_subtype :
     (stabilizerHom P p G).ker.map (Subgroup.subtype _) = P.toAddSubgroup.inertia G := by
