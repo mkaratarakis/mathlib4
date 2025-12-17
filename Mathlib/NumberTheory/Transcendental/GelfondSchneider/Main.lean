@@ -493,23 +493,22 @@ lemma b_sum_neq_0 : ↑q + q • h7.β' ≠ 0 := by
   exact h7.habc.2.1
 
 lemma one_leq_house_c₁β : 1 ≤ house (h7.c₁ • h7.β') := by
-  apply _root_.house_gt_one_of_isIntegral
+  apply one_le_house_of_isIntegral
   · exact h7.isIntegral_c₁β
   simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
   rw [← ne_eq, ne_eq]
   exact ⟨h7.c₁neq0, h7.alpha'_beta'_gamma'_ne_zero.2.1⟩
 
 lemma one_leq_house_c₁α : 1 ≤ house (h7.c₁ • h7.α') := by
-  apply _root_.house_gt_one_of_isIntegral
+  apply one_le_house_of_isIntegral
   · exact h7.isIntegral_c₁α
   exact h7.c₁αneq0
 
 lemma house_bound_c₁α : house (h7.c₁ • h7.α') ^ (a q t * h7.l q u)
   ≤ house (h7.c₁ • h7.α')^(h7.m * q) := by
-    apply _root_.house_alg_int_leq_pow
+    apply Bound.pow_le_pow_right_of_le_one_or_one_le
+      (Or.inl ⟨one_le_house_of_isIntegral (h7.isIntegral_c₁α) h7.c₁αneq0, ?_⟩)
     · rw [mul_comm h7.m q]; exact h7.al_leq_mq q u t
-    · exact h7.c₁αneq0
-    · exact h7.isIntegral_c₁α
 
 lemma isInt_β_bound : IsIntegral ℤ (h7.c₁ • (↑q + q • h7.β')) := by
   simp only [nsmul_eq_mul, smul_add]
@@ -532,7 +531,7 @@ lemma isInt_β_bound_low (q : ℕ) (t : Fin (q * q)) :
 
 lemma bound_c₁β (q : ℕ) (hq0 : 0 < q) :
   1 ≤ house ((h7.c₁ • (q + q • h7.β'))) := by
-  apply _root_.house_gt_one_of_isIntegral
+  apply one_le_house_of_isIntegral
   · exact h7.isInt_β_bound q
   simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
   constructor
@@ -540,7 +539,7 @@ lemma bound_c₁β (q : ℕ) (hq0 : 0 < q) :
   · rw [← ne_eq]; apply h7.b_sum_neq_0 q hq0
 
 lemma one_leq_house_c₁γ : 1 ≤ house (h7.c₁ • h7.γ') := by
-  apply _root_.house_gt_one_of_isIntegral
+  apply one_le_house_of_isIntegral
   · exact h7.isIntegral_c₁γ
   simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
   constructor
@@ -2524,7 +2523,7 @@ lemma c1rho_neq_0 : h7.c1ρ q hq0 h2mq ≠ 0 := by
     exact h2
 
 lemma house_geq_1 : 1 ≤ house (h7.c1ρ q hq0 h2mq : h7.K) := by
-  apply _root_.house_gt_one_of_isIntegral
+  apply one_le_house_of_isIntegral
   exact RingOfIntegers.isIntegral_coe (h7.c1ρ q hq0 h2mq)
   have := one_leq_c1rho h7 q hq0 h2mq
   simp only [ne_eq, FaithfulSMul.algebraMap_eq_zero_iff]
@@ -2785,14 +2784,18 @@ lemma one_leq_c₇ : 1 ≤ h7.c₇ := by
   unfold c₇
   simp only [abs_mul_abs_self]
   have hc: 0 ≤ h7.c₁ := by exact zero_leq_c₁ h7
+  have  house_num_mul_int (α : h7.K) (c' : ℤ) (hc : 0 ≤ c') :
+    house ((c' : h7.K) * α) = |(c' : ℝ)| * house (α) := by
+        lift c' to ℕ using hc
+        simpa using house_nat_mul α c'
   have :=house_num_mul_int (c':=h7.c₁) (α := h7.γ') hc
-  rw [Real.norm_eq_abs] at this
+  --rw [Real.norm_eq_abs] at this
   rw [← this]
   rw [← mul_assoc]
   rw [← mul_assoc]
   rw [mul_assoc (↑h7.c₁ * (h7.c₁:ℝ)) |↑h7.c₁| (house h7.α')]
-  have :=house_num_mul_int (c':=h7.c₁) (α := h7.α') hc
-  rw [Real.norm_eq_abs] at this
+  have := house_num_mul_int (c':=h7.c₁) (α := h7.α') hc
+  --rw [Real.norm_eq_abs] at this
   rw [← this]
   calc _ ≤ (↑h7.c₁ * ↑h7.c₁ * house (↑h7.c₁ * h7.α') * house (↑h7.c₁ * h7.γ')) := ?_
        _ ≤ (↑h7.c₁ * ↑h7.c₁ * house (↑h7.c₁ * h7.α') * house (↑h7.c₁ * h7.γ')) ^ h7.m := ?_
@@ -2802,11 +2805,11 @@ lemma one_leq_c₇ : 1 ≤ h7.c₇ := by
         · norm_cast; exact one_leq_c₁ h7
         · norm_cast; exact one_leq_c₁ h7
       · rw [← smul_eq_mul]
-        refine _root_.house_gt_one_of_isIntegral ?_ ?_
+        refine one_le_house_of_isIntegral ?_ ?_
         · exact mod_cast h7.isIntegral_c₁α
         · exact mod_cast h7.c₁αneq0
     · rw [← smul_eq_mul]
-      refine _root_.house_gt_one_of_isIntegral ?_ ?_
+      refine one_le_house_of_isIntegral ?_ ?_
       · exact mod_cast h7.isIntegral_c₁γ
       · exact mod_cast h7.c₁cneq0
   · nth_rw 1 [← pow_one (a :=↑h7.c₁ * ↑h7.c₁ *
@@ -2818,11 +2821,11 @@ lemma one_leq_c₇ : 1 ≤ h7.c₇ := by
           · norm_cast; exact one_leq_c₁ h7
           · norm_cast; exact one_leq_c₁ h7
         · rw [← smul_eq_mul]
-          refine _root_.house_gt_one_of_isIntegral ?_ ?_
+          refine one_le_house_of_isIntegral ?_ ?_
           · exact mod_cast h7.isIntegral_c₁α
           · exact mod_cast h7.c₁αneq0
       · rw [← smul_eq_mul]
-        refine _root_.house_gt_one_of_isIntegral ?_ ?_
+        refine one_le_house_of_isIntegral ?_ ?_
         · exact mod_cast h7.isIntegral_c₁γ
         · exact mod_cast h7.c₁cneq0
     · unfold m
@@ -2950,9 +2953,14 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
   · rw [mul_sum]
     apply Finset.sum_congr rfl
     intros i hi
+    have  house_num_mul_int (α : h7.K) (c' : ℤ) (hc : 0 ≤ c') :
+    house ((c' : h7.K) * α) = |(c' : ℝ)| * house (α) := by
+        lift c' to ℕ using hc
+        simpa using house_nat_mul α c'
     rw [house_num_mul_int
     (α := ((algebraMap (𝓞 h7.K) h7.K)
     (h7.η q hq0 h2mq i) * h7.sys_coe_r q hq0 i h2mq))]
+    · simp only [Real.norm_eq_abs]
     · exact zero_leq_c1rho h7 q hq0 h2mq
   · apply Finset.sum_congr rfl
     intros t ht
@@ -4743,7 +4751,7 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
     apply Finset.sum_le_sum
     intros i hi
     simp only [norm_pos_iff, ne_eq, exp_ne_zero, not_false_eq_true, mul_le_mul_iff_left₀]
-    apply _root_.alg_int_emb_norm
+    apply norm_embedding_le_house
   · apply sum_le_sum
     intros i hi
     apply mul_le_mul
@@ -4793,16 +4801,15 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
         · simp only [norm_nonneg]
         · apply mul_nonneg
           · refine Left.add_nonneg ?_ ?_
-            · simp only [norm_natCast, Nat.cast_nonneg]
+            · simp only [RCLike.norm_natCast, Nat.cast_nonneg]
             · simp only [norm_nonneg]
           · simp only [norm_nonneg]
       · apply mul_le_mul
         · apply mul_le_mul
           · refine add_le_add ?_ ?_
-            · simp only [norm_natCast]
-              simp only [Int.norm_natCast, Nat.cast_le]
+            · simp only [RCLike.norm_natCast, _root_.norm_natCast, Nat.cast_le]
               exact a_le_q q i
-            · simp only [Complex.norm_mul, norm_natCast]
+            · simp only [Complex.norm_mul, _root_.norm_natCast]
               apply mul_le_mul
               · simp only [Nat.cast_le]
                 exact b_le_q q i
@@ -4826,7 +4833,7 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
           · refine add_le_add ?_ ?_
             · simp only [le_refl]
             · simp only [Complex.norm_mul,
-                norm_natCast, Int.norm_natCast, le_refl]
+                _root_.norm_natCast, le_refl]
           · simp only [le_refl]
           · simp only [norm_nonneg]
           · refine Left.add_nonneg ?_ ?_
@@ -5066,7 +5073,6 @@ lemma abs_R :(q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
             ((h7.r q hq0 h2mq : ℝ) ^ (((h7.r q hq0 h2mq : ℝ) + 1) / 2)))
             * h7.c₉ ^ (h7.r q hq0 h2mq + q : ℝ) := by
               rw [mul_assoc]
-
       rw [hmul]; clear hmul
       apply mul_le_mul
       · simp only [Real.rpow_natCast, le_refl]
@@ -6011,7 +6017,7 @@ lemma use6and8 :
        _ = ((h7.c₁₄)^(h7.r q hq0 h2mq: ℝ)) * (↑(h7.r q hq0 h2mq: ℝ))^(
          ((-(h7.r q hq0 h2mq : ℝ))/2) + 3 * (h7.h)/ 2) := ?_
 
-  · have := _root_.norm_le_house_norm (K := h7.K) (α := (h7.rho q hq0 h2mq)) h7.σ
+  · have := norm_norm_le_norm_mul_house_pow (K := h7.K) (α := (h7.rho q hq0 h2mq)) h7.σ
     rw [← rho_eq_ρᵣ]
     unfold h
     simp only [← Real.rpow_natCast] at *
