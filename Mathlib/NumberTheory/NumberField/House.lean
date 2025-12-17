@@ -52,137 +52,60 @@ theorem house_nonneg (α : K) : 0 ≤ house α := norm_nonneg _
 theorem house_mul_le (α β : K) : house (α * β) ≤ house α * house β := by
   simp only [house, map_mul]; apply norm_mul_le
 
+lemma house_prod_le (s : Finset K) : house (∏ x ∈ s, x) ≤ ∏ x ∈ s, house x := by
+  simpa [house, map_prod] using Finset.norm_prod_le _ _
+
 theorem house_add_le (α β : K) : house (α + β) ≤ house α + house β := by
   simp only [house, map_add]; apply norm_add_le
 
 theorem house_pow_le (α : K) (i : ℕ) : house (α^i) ≤ house α ^ i := by
-  unfold house
-  simp only [map_pow]
-  apply norm_pow_le ((canonicalEmbedding K) α)
+  simpa only [house, map_pow] using norm_pow_le ((canonicalEmbedding K) α) i
 
-theorem house_rpow_le (α : K) (i : ℕ) : house (α^i) ≤ house α ^ (i : ℝ) := by
-  unfold house
-  simp only [map_pow]
-  simp only [Real.rpow_natCast]
-  apply norm_pow_le ((canonicalEmbedding K) α)
-
-theorem house_rpow_le' (α : K) (i : ℕ) : house (α^(i : ℤ)) ≤ house α ^ (i : ℝ) := by
-  unfold house
-  simp only [zpow_natCast, map_pow, Real.rpow_natCast]
-  apply norm_pow_le ((canonicalEmbedding K) α)
-
-theorem house_num_mul (α : K) (c : ℕ) :
-    house ((c : K)* α) = norm (c : ℝ) * house (α) := by
-  simp only [Real.norm_natCast]
-  rw [house_eq_sup'];rw [house_eq_sup']
-  simp only [map_mul, map_natCast, nnnorm_mul, Complex.nnnorm_natCast]
-  symm
+theorem house_nat_mul (α : K) (c : ℕ) :
+    house (c * α) = c * house α := by
+  rw [house_eq_sup', house_eq_sup', Finset.sup'_eq_sup, Finset.sup'_eq_sup]
   norm_cast
-  rw [Finset.sup'_eq_sup]
-  rw [Finset.sup'_eq_sup]
-  apply NNReal.mul_finset_sup
-
-theorem house_num_mul_int (α : K) (c' : ℤ) (hc : 0 ≤ c') :
-    house ((c' : K)* α) = norm (c' : ℝ) * house (α) := by
-  have t := Int.toNat_of_nonneg hc
-  rw [← t]
-  have := house_num_mul α (c:= ↑c'.toNat)
-  norm_cast
+  simp [NNReal.mul_finset_sup]
 
 @[simp] theorem house_intCast (x : ℤ) : house (x : K) = |x| := by
   simp only [house, map_intCast, Pi.intCast_def, pi_norm_const, Complex.norm_intCast, Int.cast_abs]
 
-/-- Let α be a non-zero algebraic integer. Then α has a conjugate α(i) with |α(i)| ≥ 1. -/
-lemma exists_conjugate_abs_gt_one {α : 𝓞 K} (hα0 : α ≠ 0) :
-    ∃ σ : K →+* ℂ, 1 ≤ norm (σ α) := by
-  have h_exists_w : ∃ w : InfinitePlace K, 1 ≤ w α := by
-    by_contra h_neg; push_neg at h_neg
-    let w₀ := (inferInstance : Nonempty (InfinitePlace K)).some
-    have h_ge_one : 1 ≤ w₀ α :=
-      NumberField.InfinitePlace.one_le_of_lt_one hα0 (fun z _ => h_neg z)
-    linarith [h_neg w₀, h_ge_one]
-  rcases h_exists_w with ⟨w, hw⟩
+/-- Let `α` be a non-zero algebraic integer. Then `α` has a conjugate `σ α` with `‖σ α‖ ≥ 1`. -/
+lemma exists_conjugate_one_le_norm {α : 𝓞 K} (hα0 : α ≠ 0) :
+    ∃ σ : K →+* ℂ, 1 ≤ ‖σ α‖ := by
+  obtain ⟨w, hw⟩ : ∃ w : InfinitePlace K, 1 ≤ w α := by
+    by_contra! h_neg
+    let w₀ := Classical.arbitrary (InfinitePlace K)
+    have h_ge_one : 1 ≤ w₀ α := InfinitePlace.one_le_of_lt_one hα0 (fun z _ ↦ h_neg z)
+    exact (h_neg w₀).not_ge h_ge_one
   use w.embedding
-  rw [← InfinitePlace.norm_embedding_eq] at hw
-  exact hw
+  rwa [InfinitePlace.norm_embedding_eq]
 
-lemma house_gt_one_of_isIntegral {α : K} (hα : IsIntegral ℤ α) (hα0 : α ≠ 0) :
+lemma norm_embedding_le_house (α : K) (σ : K →+* ℂ) : ‖σ α‖ ≤ house α := by
+  rw [house_eq_sup']
+  exact Finset.le_sup' (f := (‖· α‖₊)) (Finset.mem_univ σ)
+
+lemma one_le_house_of_isIntegral {α : K} (hα : IsIntegral ℤ α) (hα0 : α ≠ 0) :
     1 ≤ house α := by
   have ⟨σ, hσ⟩ : ∃ σ : K →+* ℂ, 1 ≤ ‖σ α‖ := by
-    let a : 𝓞 K := ⟨α, hα⟩
-    have hα_int_0 : a ≠ 0 := by
-      intros H
-      apply hα0
-      injection H
-    apply exists_conjugate_abs_gt_one (K := K) hα_int_0
-  rw [house_eq_sup']
-  have h_le_sup := Finset.le_sup' (fun φ : K →+* ℂ ↦ ‖φ α‖₊) (Finset.mem_univ σ)
-  exact le_trans hσ h_le_sup
+    apply exists_conjugate_one_le_norm (K := K) (α := ⟨α, hα⟩)
+    simpa [RingOfIntegers.ext_iff]
+  apply hσ.trans (norm_embedding_le_house α σ)
 
-lemma house_alg_int_leq_pow (α : K) (n m : ℕ) (h : n ≤ m) (hα0 : α ≠ 0) (H : IsIntegral ℤ α) :
-  house α ^ n ≤ house α ^ m :=
-Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨house_gt_one_of_isIntegral H hα0, h⟩)
-
-lemma house_alg_int_leq_pow' (α : K) (n m : Int) (H : n ≤ m) (hα : α ≠ 0) (h_int : IsIntegral ℤ α) :
-    house α ^ n ≤ house α ^ m :=
-  zpow_le_zpow_right₀ (house_gt_one_of_isIntegral h_int hα) H
-
-lemma house_alg_int_leq_pow_real (α : K) (r s : ℝ) (h : r ≤ s) (hα0 : α ≠ 0) (hI : IsIntegral ℤ α) :
-    house α ^ r ≤ house α ^ s :=
-  Real.rpow_le_rpow_of_exponent_le (house_gt_one_of_isIntegral hI hα0) h
-
-lemma house_leq_pow_pow (α : K) (n : ℕ) (hn : n ≠ 0) (hα0 : α ≠ 0)
-  (H : IsIntegral ℤ α) : house α ≤ house α ^ n :=
-le_self_pow₀ (house_gt_one_of_isIntegral H hα0) hn
-
-lemma house_leq_one_pow (α : K) (n : ℕ) (hn : n ≠ 0) (hα0 : α ≠ 0)
-  (H : IsIntegral ℤ α) :
-  1 ≤ house α ^ n :=
-(house_gt_one_of_isIntegral H hα0).trans (house_leq_pow_pow α n hn hα0 H)
-
-lemma house_prod_le (s : Finset K) :
-  house (∏ x ∈ s, x) ≤ ∏ x ∈ s, house x := by
+lemma norm_norm_le_norm_mul_house_pow (α : K) (σ : K →+* ℂ) :
+    ‖Algebra.norm ℚ α‖ ≤ ‖σ α‖ * house α ^ (Module.finrank ℚ K - 1) := by
   classical
-  simpa [house, map_prod] using
-    (Finset.norm_prod_le s fun x => (canonicalEmbedding K) x)
-
-lemma alg_int_emb_norm (α : K) (σ : K →+* ℂ) : ‖σ α‖ ≤ house (α) := by
-  rw [house_eq_sup', Finset.sup'_eq_sup]
-  exact Finset.le_sup (f:= fun φ => ‖φ α‖₊ ) (b := σ) (s:=Finset.univ) (Finset.mem_univ σ)
-
-lemma norm_le_house_norm (α : K) (σ : K →+* ℂ) :
-  ‖Algebra.norm ℚ (α)‖ ≤ ‖σ α‖ * (house (α)) ^ (Module.finrank ℚ K -1) := by
-  classical
-  calc _ = ‖∏ σ : K →ₐ[ℚ] ℂ, σ (α)‖ := ?_
-       _ = ‖(σ α) * ∏ σ ∈ (Finset.univ.erase σ.toRatAlgHom), σ α‖ := ?_
-       _ ≤ ‖σ α‖ * ∏ σ ∈ (Finset.univ.erase σ.toRatAlgHom), ‖σ α‖ := ?_
-       _ ≤ ‖σ α‖ * ∏ σ ∈ (Finset.univ.erase σ.toRatAlgHom), house (α) := ?_
-       _ = ‖σ α‖ * (house (α)) ^ (Module.finrank ℚ K -1) := ?_
-  · rw [← Algebra.norm_eq_prod_embeddings]
-    simp only [eq_ratCast, Complex.norm_ratCast]
-    congr
-  · have hmem : σ.toRatAlgHom ∈ (Finset.univ : Finset (K →ₐ[ℚ] ℂ)) := Finset.mem_univ _
-    have H := (Finset.mul_prod_erase (Finset.univ : Finset (K →ₐ[ℚ] ℂ))
-      (fun τ => τ α) hmem).symm
-    rw [H]
-    simp only [RingHom.toRatAlgHom_apply, Complex.norm_mul, norm_prod]
+  set σ' := σ.toRatAlgHom
+  calc _ = ‖∏ τ : K →ₐ[ℚ] ℂ, τ α‖ := ?_
+       _ = ‖(σ' α) * ∏ τ ∈ univ.erase σ', τ α‖ := by rw [mul_prod_erase univ (· α) (mem_univ σ')]
+       _ ≤ ‖σ' α‖ * ∏ τ ∈ univ.erase σ', ‖τ α‖ := ?_
+       _ ≤ ‖σ' α‖ * ∏ τ ∈ univ.erase σ', house α := by gcongr; apply norm_embedding_le_house
+       _ = ‖σ' α‖ * house α ^ (Module.finrank ℚ K - 1) := by simp
+  · rw [← Algebra.norm_eq_prod_embeddings, ← Rat.norm_cast_real,
+      Real.norm_eq_abs, eq_ratCast, Complex.norm_ratCast]
   · rw [Complex.norm_mul]
-    apply mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
-    · exact Finset.norm_prod_le (Finset.univ.erase σ.toRatAlgHom) fun i ↦ i α
-  · apply mul_le_mul_of_nonneg_left ?_ (norm_nonneg (σ α))
-    refine prod_le_prod ?_ ?_
-    · intros i hi
-      simp only [Finset.mem_erase] at hi
-      exact norm_nonneg (i α)
-    · intros i hi
-      let i' : K →+* ℂ := i.toRingHom
-      calc  _  =  ‖i' α‖ := ?_
-            _  ≤ house (α) := ?_
-      · unfold i'
-        simp only [AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
-      · apply alg_int_emb_norm
-  · congr
-    simp only [prod_const, Finset.mem_univ, card_erase_of_mem, card_univ, AlgHom.card]
+    gcongr
+    exact norm_prod_le (univ.erase σ') (· α)
 
 end
 
