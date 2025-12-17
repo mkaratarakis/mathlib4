@@ -128,9 +128,17 @@ lemma c₁_neq_zero : h7.c₁ ≠ 0 :=
 lemma one_leq_abs_c₁ : 1 ≤ |↑h7.c₁| := by
   refine Int.one_le_abs (c₁_neq_zero h7)
 
+lemma IsIntegral_assoc (K : Type) [Field K]
+{x y : ℤ} (z : ℤ) (α : K) (ha : IsIntegral ℤ (z • α)) :
+  IsIntegral ℤ ((x * y * z : ℤ) • α) := by
+  have : ((x * y * z : ℤ) • α) = (x * y) • (z • α) := by
+    simp only [Int.cast_mul, zsmul_eq_mul, mul_assoc (↑x * ↑y : K) z α]
+  conv => enter [2]; rw [this]
+  apply IsIntegral.smul _ ha
+
 lemma isIntegral_c₁α : IsIntegral ℤ (h7.c₁ • h7.α') := by
   have h := IsIntegral_assoc (x := c' h7.γ') (y := c' h7.β') h7.K (c' h7.α') h7.α'
-    (c'_IsIntegral h7.α')
+    ((c'_both h7.α').2.2)
   conv => enter [2]; rw [c₁, mul_comm, mul_comm (c' h7.α') (c' h7.β'), ← mul_assoc]
   rcases abs_choice (c' h7.γ' * c' h7.β' * c' h7.α')
   · rename_i H1; rw [H1]; exact h
@@ -138,7 +146,7 @@ lemma isIntegral_c₁α : IsIntegral ℤ (h7.c₁ • h7.α') := by
 
 lemma isIntegral_c₁β : IsIntegral ℤ (h7.c₁ • h7.β') := by
   have h := IsIntegral_assoc (x := c' h7.γ') (y := c' h7.α') h7.K (c' h7.β') h7.β'
-    (c'_IsIntegral h7.β')
+    ((c'_both h7.β').2.2)
   rw [c₁, mul_comm, ← mul_assoc]
   rcases abs_choice (c' h7.γ' * c' h7.α' * c' h7.β')
   · rename_i H1; rw [H1]; exact h
@@ -146,7 +154,7 @@ lemma isIntegral_c₁β : IsIntegral ℤ (h7.c₁ • h7.β') := by
 
 lemma isIntegral_c₁γ : IsIntegral ℤ (h7.c₁ • h7.γ') := by
   have h := IsIntegral_assoc (x := c' h7.α') (y := c' h7.β') h7.K (c' h7.γ') h7.γ'
-    (c'_IsIntegral h7.γ')
+    ((c'_both h7.γ').2.2)
   rw [c₁]
   rcases abs_choice (c' h7.α' * c' h7.β' * c' h7.γ')
   · rename_i H1; rw [H1]; exact h
@@ -174,13 +182,13 @@ def k : ℕ := (finProdFinEquiv.symm.toFun u).2
 def l : ℕ := (finProdFinEquiv.symm.toFun u).1 + 1
 
 lemma b_le_q : b q t ≤ q :=
-  bar' (finProdFinEquiv.symm.toFun t).2
+  ((finProdFinEquiv.symm.toFun t).2).isLt
 
 lemma l_le_m : h7.l q u ≤ h7.m :=
-  bar' (finProdFinEquiv.symm.toFun u).1
+  ((finProdFinEquiv.symm.toFun u).1).isLt
 
 lemma a_le_q : a q t ≤ q :=
-  bar' (finProdFinEquiv.symm.toFun t).1
+  ((finProdFinEquiv.symm.toFun t).1).isLt
 
 lemma k_le_n_sub1 : (h7.k q u : ℤ) ≤ (h7.n q - 1 : ℤ) := by
   rw [sub_eq_add_neg]
@@ -188,7 +196,7 @@ lemma k_le_n_sub1 : (h7.k q u : ℤ) ≤ (h7.n q - 1 : ℤ) := by
     simp only [Int.reduceNeg, le_add_neg_iff_add_le, imp_self]
   apply this
   norm_cast
-  exact bar' (finProdFinEquiv.symm.toFun u).2
+  exact ((finProdFinEquiv.symm.toFun u).2).isLt
 
 lemma al_leq_mq : a q t * h7.l q u ≤ q * h7.m := by
   apply mul_le_mul (a_le_q q t) (h7.l_le_m q u) (zero_le _) (zero_le _)
@@ -202,6 +210,9 @@ abbrev c_coeffs0 (q : ℕ)
 (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :=
   h7.c₁^(h7.k q u : ℕ) * h7.c₁^ (a q t * h7.l q u) * h7.c₁^(b q t * h7.l q u)
 
+lemma IsIntegral.Cast (K : Type) [Field K] (a : ℤ) : IsIntegral ℤ (a : K) :=
+  map_isIntegral_int (algebraMap ℤ K) (Algebra.IsIntegral.isIntegral _)
+
 lemma c₁ac (u : h7.K) (n k a l : ℕ) (hnk : a * l ≤ n * k)
     (H : IsIntegral ℤ (↑h7.c₁ * u)) :
     IsIntegral ℤ (h7.c₁ ^ (n * k) • u ^ (a *l)) := by
@@ -212,6 +223,10 @@ lemma c₁ac (u : h7.K) (n k a l : ℕ) (hnk : a * l ≤ n * k)
   apply IsIntegral.mul
   · apply IsIntegral.pow (IsIntegral.Cast h7.K h7.c₁) _
   rw [← mul_pow]; exact IsIntegral.pow H _
+
+lemma IsIntegral.Nat (K : Type) [Field K] (a : ℕ) : IsIntegral ℤ (a : K) := by
+  have : (a : K) = ((a : ℤ) : K) := by simp only [Int.cast_natCast]
+  rw [this]; apply IsIntegral.Cast
 
 lemma c₁b (n : ℕ) :
     1 ≤ n → (k : ℕ) → k ≤ n - 1 → (a : ℕ) → 1 ≤ a → (b : ℕ) → 1 ≤ b →
@@ -345,6 +360,9 @@ lemma c₁IsInt (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :
   IsIntegral ℤ (h7.c_coeffs q • h7.sys_coe q u t) := by
   unfold c_coeffs
   unfold sys_coe
+  have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
+   ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+     simp only [zsmul_eq_mul, Int.cast_mul]; ring
   rw [triple_comm h7.K
     (h7.c₁^(h7.n q - 1) : ℤ)
     (h7.c₁^(h7.m * q) : ℤ)
@@ -712,12 +730,12 @@ lemma house_add_mul_leq :
   · rw [house_intCast]; rw [house_intCast]; rw [house_intCast]; rw [mul_assoc]
   · refine add_le_add
       (mul_le_mul (le_refl _)
-        (mod_cast bar' (finProdFinEquiv.symm.toFun t).1)
+        (mod_cast ((finProdFinEquiv.symm.toFun t).1).isLt)
         (Int.cast_nonneg (Int.zero_le_ofNat (a q t)))
         (Int.cast_nonneg  (abs_nonneg (h7.c₁)))) ?_
     · rw [mul_assoc, mul_assoc]
       apply mul_le_mul (Preorder.le_refl _)
-      · apply mul_le_mul (mod_cast bar' (finProdFinEquiv.symm.toFun t).2) (le_refl _)
+      · apply mul_le_mul (mod_cast ((finProdFinEquiv.symm.toFun t).2).isLt) (le_refl _)
           (house_nonneg _) ?_
         · simp only [Nat.abs_cast, Int.cast_natCast, Nat.cast_nonneg]
       · apply mul_nonneg
@@ -794,8 +812,10 @@ lemma c_coeffspow' :
       (h7.c₁ : ℤ) ^ (h7.m * q - ((b q t * h7.l q u)))) •
   ((h7.c₁) ^ (h7.k q u ) * (h7.c₁ ) ^ (a q t * h7.l q u) *
     (h7.c₁) ^ (b q t * h7.l q u )) := by
-  have := triple_comm_int
-  rw [this]
+  have triple_comm_int (a b c : ℤ) (x y z : ℤ) :
+   ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+     simp only [zsmul_eq_mul, Int.cast_mul]; ring
+  rw [triple_comm_int]
   congr
   · simp only [zsmul_eq_mul, Int.cast_pow]
     simp only [Int.cast_eq]
@@ -804,7 +824,7 @@ lemma c_coeffspow' :
       rw [add_comm]
       refine add_tsub_cancel_of_le ?_
       refine Nat.le_sub_of_add_le ?_
-      exact bar' (finProdFinEquiv.symm.toFun u).2
+      exact (finProdFinEquiv.symm.toFun u).2.isLt
     rw [this]
   · simp only [smul_eq_mul]
     rw [← pow_add]
@@ -900,6 +920,9 @@ lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
 
     · unfold c_coeffs
       rw [h7.c_coeffspow' q u t, smul_assoc]
+      have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
+         ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+        simp only [zsmul_eq_mul, Int.cast_mul]; ring
       rw [triple_comm h7.K (h7.c₁^(h7.k q u))
         (h7.c₁^(a q t * h7.l q u)) (h7.c₁^(b q t * h7.l q u))
         (((a q t) + b q t • h7.β')^(h7.k q u))
@@ -937,30 +960,30 @@ lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
       · apply mul_le_mul
         · apply mul_le_mul
           · rfl
-          · apply _root_.house_alg_int_leq_pow
-            · refine (Nat.le_sub_iff_add_le' ?_).mpr ?_
-              · apply one_le_n h7 q hq0 h2mq
-              · rw [add_comm]; exact bar' (finProdFinEquiv.symm.toFun u).2
+          · apply Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral ?_ ?_, ?_⟩)
+            · apply isInt_β_bound_low
             · intros H
               rw [zsmul_eq_mul] at H
               simp only [mul_eq_zero, Int.cast_eq_zero] at H
               cases' H with h1 h2
               · apply h7.c₁_neq_zero; exact h1
               · apply h7.β'_neq_zero q t 1; rw [pow_one]; exact h2
-            · apply isInt_β_bound_low
+            · refine (Nat.le_sub_iff_add_le' ?_).mpr ?_
+              · apply one_le_n h7 q hq0 h2mq
+              · rw [add_comm]; exact (finProdFinEquiv.symm.toFun u).2.isLt
           · apply pow_nonneg; apply house_nonneg
           · apply house_nonneg
-        · apply _root_.house_alg_int_leq_pow
-          · rw [mul_comm h7.m q]; apply al_leq_mq h7 q u t
-          · exact h7.c₁αneq0
+        · apply Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral ?_ ?_, ?_⟩)
           · exact h7.isIntegral_c₁α
+          · exact h7.c₁αneq0
+          · rw [mul_comm h7.m q]; apply al_leq_mq h7 q u t
         · apply pow_nonneg; apply house_nonneg
         · apply mul_nonneg ((house_nonneg _))
           · apply pow_nonneg; apply house_nonneg
-      · apply _root_.house_alg_int_leq_pow
-        · rw [mul_comm h7.m q]; apply bl_leq_mq h7 q u t
-        · exact h7.c₁cneq0
+      · apply Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral ?_ ?_, ?_⟩)
         · exact h7.isIntegral_c₁γ
+        · exact h7.c₁cneq0
+        · rw [mul_comm h7.m q]; apply bl_leq_mq h7 q u t
       · apply pow_nonneg; apply house_nonneg
       · apply mul_nonneg
         · apply mul_nonneg; apply house_nonneg; apply pow_nonneg; apply house_nonneg
@@ -978,8 +1001,10 @@ lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
           · simp only [Int.cast_abs, Int.cast_mul, Int.cast_pow, abs_nonneg]
         · calc _ ≤ house (h7.c₁ • h7.α') ^ (h7.m * (2 * (h7.m * h7.n q))) := ?_
                _ ≤ (↑|h7.c₁| * house h7.α') ^ (h7.m * (2 * (h7.m * h7.n q))) := ?_
-          · refine
-            _root_.house_alg_int_leq_pow (h7.c₁ • h7.α') (h7.m * q)
+          · have house_alg_int_leq_pow (α : h7.K) (n m : ℕ)
+                (h : n ≤ m) (hα0 : α ≠ 0) (H : IsIntegral ℤ α) : house α ^ n ≤ house α ^ m :=
+                 Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral H hα0, h⟩)
+            refine house_alg_int_leq_pow (h7.c₁ • h7.α') (h7.m * q)
               (h7.m * (2 * (h7.m * h7.n q))) ?_ ?_ ?_
             · apply mul_le_mul
               · apply Preorder.le_refl
@@ -1008,8 +1033,11 @@ lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
                 · exact house_nonneg h7.β'
       · calc _ ≤ house (h7.c₁ • h7.γ') ^ (h7.m * (2 * (h7.m * h7.n q))) := ?_
              _ ≤ (↑|h7.c₁| * house h7.γ') ^ (h7.m * (2 * (h7.m * h7.n q))) := ?_
-        · refine
-            _root_.house_alg_int_leq_pow (h7.c₁ • h7.γ') (h7.m * q)
+        · have house_alg_int_leq_pow (α : h7.K) (n m : ℕ)
+                (h : n ≤ m) (hα0 : α ≠ 0) (H : IsIntegral ℤ α) : house α ^ n ≤ house α ^ m :=
+                 Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral H hα0, h⟩)
+          refine
+            house_alg_int_leq_pow (h7.c₁ • h7.γ') (h7.m * q)
               (h7.m * (2 * (h7.m * h7.n q))) ?_ ?_ ?_
           · apply mul_le_mul
             · apply Preorder.le_refl
@@ -1049,7 +1077,10 @@ lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
       simp only [Nat.abs_cast, Int.cast_natCast]
       simp only [Int.cast_abs, Int.cast_pow]
       simp only [Int.cast_abs, Int.cast_pow]
-    · have := triple_comm ℝ
+    · have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
+          ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+        simp only [zsmul_eq_mul, Int.cast_mul]; ring
+      have := triple_comm ℝ
        |(h7.c₁^(h7.n q - 1) : ℤ)|
        |(h7.c₁^(h7.m * (2 * (h7.m * h7.n q))) : ℤ)|
        |(h7.c₁^(h7.m * (2 * (h7.m * h7.n q))) : ℤ)|
@@ -2295,6 +2326,9 @@ lemma ρ_is_int :
     · exact RingOfIntegers.isIntegral_coe ((h7.η q hq0 h2mq) x)
     · rw [mul_comm]
       rw [← zsmul_eq_mul]
+      have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
+         ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+        simp only [zsmul_eq_mul, Int.cast_mul]; ring
       have := triple_comm h7.K
         (h7.c₁^(h7.r q hq0 h2mq) : ℤ)
         (h7.c₁^(h7.m * q) : ℤ)
@@ -2333,8 +2367,8 @@ lemma ρ_is_int :
         · apply h7.c₁ac
           · rw [mul_comm]
             apply Nat.mul_le_mul
-            · exact bar' (h7.l₀' q hq0 h2mq)
-            · exact bar' (finProdFinEquiv.symm.toFun x).1
+            · exact (h7.l₀' q hq0 h2mq).isLt
+            · exact (finProdFinEquiv.symm.toFun x).1.isLt
           · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
       · have : h7.c₁ ^ (h7.m * q - ((b q x) * (h7.l₀' q hq0 h2mq + 1))) *
            (h7.c₁ ^ ((b q x) * (h7.l₀' q hq0 h2mq + 1))) =
@@ -2342,10 +2376,10 @@ lemma ρ_is_int :
           rw [← pow_add,Nat.sub_add_cancel]
           nth_rw 1 [mul_comm]
           apply mul_le_mul
-          · exact bar' (h7.l₀' q hq0 h2mq)
+          · exact (h7.l₀' q hq0 h2mq).isLt
           · change (b q x) ≤ q
             have : ↑(finProdFinEquiv.symm.toFun x).2 ≤ q := Fin.is_le'
-            exact bar' (finProdFinEquiv.symm.toFun x).2
+            exact (finProdFinEquiv.symm.toFun x).2.isLt
           · simp only [zero_le]
           · simp only [zero_le]
         rw [← this]
@@ -2368,6 +2402,9 @@ lemma ρ_is_int :
     · exact RingOfIntegers.isIntegral_coe ((h7.η q hq0 h2mq) x)
     · rw [mul_comm]
       rw [← zsmul_eq_mul]
+      have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
+         ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+        simp only [zsmul_eq_mul, Int.cast_mul]; ring
       have H := triple_comm h7.K
         (h7.c₁^(h7.r q hq0 h2mq))
         (h7.c₁^(h7.m * q) : ℤ)
@@ -2405,16 +2442,16 @@ lemma ρ_is_int :
         · apply h7.c₁ac
           · rw [mul_comm]
             apply Nat.mul_le_mul
-            exact bar' (h7.l₀' q hq0 h2mq)
-            exact bar' (finProdFinEquiv.symm.toFun x).1
+            exact (h7.l₀' q hq0 h2mq).isLt
+            exact (finProdFinEquiv.symm.toFun x).1.isLt
           · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
       · have : h7.c₁ ^ (h7.m * q - (b q x * (h7.l₀' q hq0 h2mq + 1))) *
            (h7.c₁ ^ ((b q x) * (h7.l₀' q hq0 h2mq + 1))) = (h7.c₁ ^ ((h7.m * q))) := by
           rw [← pow_add, Nat.sub_add_cancel]
           nth_rw 1 [mul_comm]
           apply mul_le_mul
-          · exact bar' (h7.l₀' q hq0 h2mq)
-          · exact bar' (finProdFinEquiv.symm.toFun x).2
+          · exact (h7.l₀' q hq0 h2mq).isLt
+          · exact (finProdFinEquiv.symm.toFun x).2.isLt
           · simp only [zero_le]
           · simp only [zero_le]
         rw [← this]
@@ -2839,7 +2876,9 @@ lemma c_coeffspow_r :
   (h7.c₁) ^ (a q t * (↑(h7.l₀' q hq0 h2mq) + 1)) *
   (h7.c₁) ^ (b q t * (↑(h7.l₀' q hq0 h2mq) + 1)) := by
     rw [← one_mul (h7.c₁ ^ (a q t * (↑(h7.l₀' q hq0 h2mq : ℕ) + 1)))]
-    have :=  triple_comm_int
+    have triple_comm_int (a b c : ℤ) (x y z : ℤ) :
+      ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
+     simp only [zsmul_eq_mul, Int.cast_mul]; ring
     simp only [mul_assoc]
     rw [ smul_mul_assoc
           (h7.c₁ ^ h7.r q hq0 h2mq *
@@ -2850,7 +2889,7 @@ lemma c_coeffspow_r :
     rw [Int.mul_assoc 1 (h7.c₁ ^ (a q t * (↑(h7.l₀' q hq0 h2mq) + 1)))
           (h7.c₁ ^ (b q t * (↑(h7.l₀' q hq0 h2mq) + 1)))]
     simp only [← mul_assoc]
-    rw [this]
+    rw [triple_comm_int]
     congr
     · simp only [Int.zsmul_eq_mul, mul_one]
     · simp only [smul_eq_mul]
@@ -2861,7 +2900,7 @@ lemma c_coeffspow_r :
         refine add_tsub_cancel_of_le ?_
         rw [mul_comm h7.m]
         apply mul_le_mul (a_le_q q t) ?_ (zero_le _) (zero_le _)
-        · exact bar' (h7.l₀' q hq0 h2mq)
+        · exact (h7.l₀' q hq0 h2mq).isLt
       rw [this]
     · simp only [smul_eq_mul]
       rw [← pow_add]
@@ -2871,7 +2910,7 @@ lemma c_coeffspow_r :
         refine add_tsub_cancel_of_le ?_
         rw [mul_comm h7.m]
         apply mul_le_mul (b_le_q q t) ?_ (zero_le _) (zero_le _)
-        · exact bar' (h7.l₀' q hq0 h2mq)
+        · exact (h7.l₀' q hq0 h2mq).isLt
       rw [this]
 
 
@@ -3057,34 +3096,32 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
                 positivity
               · exact rneq0 h7 q hq0 h2mq
             · simp only [Int.cast_abs, Nat.abs_cast, Int.cast_natCast, le_refl]
-
           · apply mul_le_mul
             · simp only [smul_eq_mul, zsmul_eq_mul]
               rw [← mul_pow]
               trans
               apply house_pow_le _ _
-              apply _root_.house_alg_int_leq_pow
-              · rw [mul_comm h7.m  q]
-                apply mul_le_mul (a_le_q q t) ?_ (zero_le _) (zero_le _)
-                · exact bar' (h7.l₀' q hq0 h2mq)
-              · rw [← smul_eq_mul]
-                exact mod_cast h7.c₁αneq0
+              apply Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral ?_ ?_, ?_⟩)
               · rw [← smul_eq_mul]
                 exact mod_cast h7.isIntegral_c₁α
+              · rw [← smul_eq_mul]
+                exact mod_cast h7.c₁αneq0
+              · rw [mul_comm h7.m  q]
+                apply mul_le_mul (a_le_q q t) ?_ (zero_le _) (zero_le _)
+                · exact (h7.l₀' q hq0 h2mq).isLt
             · simp only [smul_eq_mul, zsmul_eq_mul]
               rw [← mul_pow]
               trans
               apply house_pow_le _ _
-              apply _root_.house_alg_int_leq_pow
-              · rw [mul_comm h7.m  q]
-                apply mul_le_mul (b_le_q q t) ?_ (zero_le _) (zero_le _)
-                · exact bar' (h7.l₀' q hq0 h2mq)
-              · rw [← smul_eq_mul]
-                exact mod_cast h7.c₁cneq0
+              apply Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨one_le_house_of_isIntegral ?_ ?_, ?_⟩)
               · rw [← smul_eq_mul]
                 exact mod_cast h7.isIntegral_c₁γ
-            · unfold house
-              positivity
+              · rw [← smul_eq_mul]
+                exact mod_cast h7.c₁cneq0
+              · rw [mul_comm h7.m  q]
+                apply mul_le_mul (b_le_q q t) ?_ (zero_le _) (zero_le _)
+                · exact (h7.l₀' q hq0 h2mq).isLt
+            · apply house_nonneg
             · unfold house
               positivity
           · unfold house
@@ -4513,7 +4550,7 @@ lemma hcauchy :
       simp only [Metric.mem_ball, dist_zero_right]
 
       have H1 : (h7.l₀' q hq0 h2mq + 1: ℝ) ≤ h7.m := by
-        have:= bar' ((h7.l₀' q hq0 h2mq))
+        have:= ((h7.l₀' q hq0 h2mq)).isLt
         norm_cast
 
       have H2 : 1 < (↑h7.m * (1 + ↑(h7.r q hq0 h2mq) / ↑q)) := by
@@ -4647,7 +4684,7 @@ lemma S_eq_SR_on_circle :
     have : norm z ≤ h7.m := by
       rw [hk']
       norm_cast
-      apply bar'
+      apply Fin.isLt
 
     simp only [mem_sphere_iff_norm, sub_zero] at hz
     rw [hz] at this
@@ -5166,7 +5203,7 @@ lemma norm_sub_l0_lower_bound_on_sphere :
        _ ≤ ‖z‖ - ‖(h7.l₀' q hq0 h2mq : ℂ) + 1‖ := by
          have hlm : (h7.l₀' q hq0 h2mq : ℝ) + 1 ≤ h7.m := by
            norm_cast
-           apply bar'
+           apply Fin.isLt
          simp only [mem_sphere_iff_norm, sub_zero] at hz
          rw [hz]
          simp only [tsub_le_iff_right, ge_iff_le]
@@ -5203,16 +5240,13 @@ lemma norm_z_minus_km_lower_bound_on_sphere (km : Fin (h7.m)) :
       rw [sub_eq_add_neg]
       simp only [neg_add_rev, neg_neg, add_neg_cancel_comm_assoc, RCLike.norm_natCast]
       norm_cast
-      apply bar'
+      apply Fin.isLt
   _ ≤ ‖z - ((km : ℂ) + 1)‖ := by
     simp [norm_sub_norm_le z ((km : ℂ) + 1)]
-
-
 
 lemma prod_norm_bound : ∏ km ∈ ( {(h7.l₀' q hq0 h2mq : ℕ)}),
         ‖(h7.l₀' q hq0 h2mq : ℂ) - (km : ℂ)‖ ≤ (h7.m : ℝ) := by
     simp only [Finset.prod_singleton, sub_self, norm_zero, Nat.cast_nonneg]
-
 
 lemma prod_bound (f : ι → ℝ) (s: Finset ι)
   (C : ℝ) (hC : ∀ x ∈ s, 0 ≤ f x)  (h : ∀ x ∈ s, f x ≤ C) :
