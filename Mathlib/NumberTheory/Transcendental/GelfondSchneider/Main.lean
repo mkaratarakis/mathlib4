@@ -56,6 +56,7 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
    Matrix Set Polynomial Finset IntermediateField Complex AnalyticAt
 
 noncomputable section
+
 /--
 This structure encapsulates all the foundational data and hypotheses for the proof.
 -/
