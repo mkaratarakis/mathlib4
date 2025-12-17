@@ -120,14 +120,11 @@ lemma one_leq_c₁ : 1 ≤ h7.c₁ := by
     (c'_neq0 h7.β')) (c'_neq0 h7.γ'))
   exact Int.one_le_abs h
 
-lemma zero_leq_c₁ : 0 ≤ h7.c₁ :=
-  le_trans Int.one_nonneg h7.one_leq_c₁
-
 lemma c₁_neq_zero : h7.c₁ ≠ 0 :=
   Ne.symm (Int.ne_of_lt h7.one_leq_c₁)
 
 lemma one_leq_abs_c₁ : 1 ≤ |↑h7.c₁| := by
-  refine Int.one_le_abs (c₁_neq_zero h7)
+  refine Int.one_le_abs (Ne.symm (Int.ne_of_lt h7.one_leq_c₁))
 
 lemma IsIntegral_assoc (K : Type) [Field K]
 {x y : ℤ} (z : ℤ) (α : K) (ha : IsIntegral ℤ (z • α)) :
@@ -2779,11 +2776,11 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
     simp only [Int.cast_pow, Int.cast_abs, abs_pow]
     unfold h
     simp only [le_refl]
-    · exact mod_cast zero_leq_c₁ h7
+    · exact mod_cast (le_trans Int.one_nonneg (h7.one_leq_c₁))
     · rw [lt_iff_le_and_ne]
       constructor
       ·
-        exact mod_cast zero_leq_c₁ h7
+        exact mod_cast (le_trans Int.one_nonneg (h7.one_leq_c₁))
       · simp only [ne_eq]
         intros H
         apply c₁_neq_zero h7
@@ -2796,9 +2793,9 @@ lemma crho_abs_eq : |h7.c₁ ^ h7.r q hq0 h2mq * h7.c₁ ^ (2 * h7.m * q)| =
     rw [abs_eq_self]
     apply mul_nonneg
     · apply pow_nonneg
-      exact zero_leq_c₁ h7
+      exact le_trans Int.one_nonneg h7.one_leq_c₁
     · apply pow_nonneg
-      exact zero_leq_c₁ h7
+      exact le_trans Int.one_nonneg h7.one_leq_c₁
 
 def c₆ : ℝ := (|↑h7.c₁| * (1 + house h7.β'))
 
@@ -2821,7 +2818,7 @@ def c₇ : ℝ := ((((|↑h7.c₁| * |↑h7.c₁| *
 lemma one_leq_c₇ : 1 ≤ h7.c₇ := by
   unfold c₇
   simp only [abs_mul_abs_self]
-  have hc: 0 ≤ h7.c₁ := by exact zero_leq_c₁ h7
+  have hc: 0 ≤ h7.c₁ := by exact le_trans Int.one_nonneg h7.one_leq_c₁
   have  house_num_mul_int (α : h7.K) (c' : ℤ) (hc : 0 ≤ c') :
     house ((c' : h7.K) * α) = |(c' : ℝ)| * house (α) := by
         lift c' to ℕ using hc
