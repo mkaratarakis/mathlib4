@@ -1655,6 +1655,17 @@ open Differentiable Complex
 abbrev R : ℂ → ℂ := fun x => ∑ t, (canonicalEmbedding h7.K)
   ((algebraMap (𝓞 h7.K) h7.K) ((h7.η q hq0 h2mq) t)) h7.σ * exp (h7.ρ q t * x)
 
+
+lemma cexp_mul : deriv (fun x => cexp (c * x)) x = c * cexp (c * x) := by
+  change deriv (fun x => exp ((fun x => c * x) x)) x = c * exp (c * x)
+  rw [deriv_cexp]
+  · rw [deriv_fun_mul]
+    · simp only [deriv_const', zero_mul, deriv_id'', mul_one, zero_add]
+      exact CommMonoid.mul_comm (cexp (c * x)) c
+    · exact differentiableAt_const c
+    · exact differentiableAt_fun_id
+  · apply mul <| differentiable_const _; exact differentiable_fun_id
+
 def iteratedDeriv_of_R (k' : ℕ) : deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
     fun x => ∑ t, (h7.σ ((h7.η q hq0 h2mq) t)) * exp (h7.ρ q t * x) * (h7.ρ q t)^k' := by
   induction' k' with k' hk

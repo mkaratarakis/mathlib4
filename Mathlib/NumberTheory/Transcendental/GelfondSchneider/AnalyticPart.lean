@@ -32,15 +32,6 @@ open BigOperators Module.Free Fintype
 
 open Differentiable AnalyticAt
 
-lemma cexp_mul : deriv (fun x => cexp (c * x)) x = c * cexp (c * x) := by
-  change deriv (fun x => exp ((fun x => c * x) x)) x = c * exp (c * x)
-  rw [deriv_cexp]
-  · rw [deriv_fun_mul]
-    · simp only [deriv_const', zero_mul, deriv_id'', mul_one, zero_add]
-      exact CommMonoid.mul_comm (cexp (c * x)) c
-    · exact differentiableAt_const c
-    · exact differentiableAt_fun_id
-  · apply mul <| differentiable_const _; exact differentiable_fun_id
 
 theorem zero_if_order_inf : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
   (∀ z, f z = 0) → analyticOrderAt f z₀ = ⊤ := by
