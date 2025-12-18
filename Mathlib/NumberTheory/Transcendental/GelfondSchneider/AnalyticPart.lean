@@ -30,16 +30,6 @@ set_option linter.style.longFile 0
 open BigOperators Module.Free Fintype Matrix Set Polynomial
   Finset Complex Differentiable AnalyticAt
 
-lemma unfilter {A f} (p : A → Prop) :
-  (∀ᶠ z in f, p z) ↔ ∃ U ∈ f, ∀ z ∈ U, p z := by
-    constructor
-    · intro h; use {x | p x}; exact ⟨h, by aesop⟩
-    · intro h
-      rcases h with ⟨U, ⟨hU, hUp⟩⟩
-      exact Filter.mem_of_superset hU hUp
-
---#find_home unfilter
-
 lemma exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
      (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
   ∃ x ∈ s, ∃ y, y = f x ∧ ∀ x' ∈ s, y ≤ f x' := by
@@ -53,34 +43,7 @@ lemma exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
   · intros x' hx'
     apply Finset.min'_le (image f s) (f x') (mem_image_of_mem _ hx')
 
---#find_home exists_mem_finset_min'
-
------------------------------------------------------------------------------------------
-lemma cexp_mul : deriv (fun x => cexp (c * x)) x = c * cexp (c * x) := by
-  change deriv (fun x => exp ((fun x => c * x) x)) x = c * exp (c * x)
-  rw [deriv_cexp]
-  · rw [deriv_fun_mul]
-    · simp only [deriv_const', zero_mul, deriv_id'', mul_one, zero_add]
-      exact CommMonoid.mul_comm (cexp (c * x)) c
-    · exact differentiableAt_const c
-    · exact differentiableAt_fun_id
-  · apply mul <| differentiable_const _; exact differentiable_fun_id
-
---#find_home cexp_mul
-
-lemma analytic_iter_deriv (k : ℕ) (f : ℂ → ℂ) z (hf : AnalyticAt ℂ f z) :
-  AnalyticAt ℂ (iteratedDeriv k f) z := by
-  rw [← Eq.symm iteratedDeriv_eq_iterate]
-  exact AnalyticAt.iterated_deriv hf k
-
---#find_home analytic_iter_deriv
-
-lemma AnalyticOnSubset (f : ℂ → ℂ) (U V : Set ℂ) :
-    U ⊆ V → AnalyticOn ℂ f V → AnalyticOn ℂ f U := by
-    unfold AnalyticOn
-    exact fun a a_1 x a_2 ↦ AnalyticWithinAt.mono (a_1 x (a a_2)) a
-
---#find_home AnalyticOnSubset
+--#find_homee exists_mem_finset_min'
 
 lemma AnalyticOnEq (f g : ℂ → ℂ) (U : Set ℂ) :
   (∀ z ∈ U, f z = g z) → AnalyticOn ℂ f U → AnalyticOn ℂ g U := by
@@ -104,17 +67,9 @@ lemma AnalyticOnEq (f g : ℂ → ℂ) (U : Set ℂ) :
       have := this Hxy
       rwa [← Heq _ Hxy]
 
---#find_home AnalyticOnEq
-
-
+--#find_homee AnalyticOnEq
 
 -------------------------------------------------------------------------------------
-
-
-
-
-
-
 
 theorem zero_if_order_inf : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
   (∀ z, f z = 0) → analyticOrderAt f z₀ = ⊤ := by
@@ -126,7 +81,7 @@ theorem zero_if_order_inf : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, Analyti
     · intros x
       exact h0 x
 
---#find_home zero_if_order_inf
+--#find_homee zero_if_order_inf
 
 theorem order_inf_if_zero : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
  analyticOrderAt f z = ⊤ → (∀ z, f z = 0) := by
@@ -144,16 +99,40 @@ theorem order_inf_if_zero : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, Analyti
   · exact trivial
   · exact analyticAt_const
 
---#find_home order_inf_if_zero
+--#find_homee order_inf_if_zero
 
 lemma zero_iff_order_inf : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
   (∀ z, f z = 0) ↔ analyticOrderAt f z = ⊤ := by
   intros f z hf
   constructor
+  have zero_if_order_inf : ∀ {z₀} (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
+  (∀ z, f z = 0) → analyticOrderAt f z₀ = ⊤ := by
+    intros z₀ f z hf h0
+    rw [analyticOrderAt_eq_top]
+    refine (AnalyticAt.frequently_eq_iff_eventually_eq (hf z₀) ?_).mp ?_
+    · exact analyticAt_const
+    · refine Filter.Frequently.of_forall ?_
+      · intros x
+        exact h0 x
   · exact zero_if_order_inf f z hf
-  · exact order_inf_if_zero f z hf
+  · have order_inf_if_zero : ∀ (f : ℂ → ℂ) (z : ℂ) (hf : ∀ z, AnalyticAt ℂ f z),
+      analyticOrderAt f z = ⊤ → (∀ z, f z = 0) := by
+      intros f z hf hr
+      have := @analyticOrderAt_eq_top ℂ _ _ _ _ f z
+      rw [this] at hr
+      rw [← AnalyticAt.frequently_eq_iff_eventually_eq (hf z)] at hr
+      have hfon : AnalyticOnNhd ℂ f univ := by
+        unfold AnalyticOnNhd
+        intros x hx
+        simp_all only
+      have :=  AnalyticOnNhd.eqOn_zero_of_preconnected_of_frequently_eq_zero (hfon) ?_ ?_ hr
+      · exact fun z ↦ this trivial
+      · exact isPreconnected_univ
+      · exact trivial
+      · exact analyticAt_const
+    exact order_inf_if_zero f z hf
 
---#find_home zero_iff_order_inf
+--#find_homee zero_iff_order_inf
 
 -- lemma: if the order of f is n > 0, then the order of the *single* derivative of f is n - 1
 lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt ℂ f z₀) (n : ℕ) :
@@ -178,7 +157,7 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
         intro a
         subst a
         simp_all only [lt_self_iff_false]
-      · rw [unfilter] at *
+      · rw [Filter.eventually_iff_exists_mem] at *
         rcases hexp with ⟨Ug, hU, hUf⟩
         have := AnalyticAt.exists_mem_nhds_analyticOnNhd hg
         obtain ⟨Ur, ⟨hgz,hgN⟩⟩ := this
@@ -205,7 +184,6 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
                    exact Nat.cast_comm n ((z - z₀) ^ (n - 1))
                 rw [this, mul_assoc]
                 ring
-                --exact Mathlib.Tactic.Ring.mul_pf_left (z - z₀) (n - 1) rfl
               · aesop
               · apply AnalyticAt.differentiableAt
                 simp only [interior_inter, mem_inter_iff] at Hz
@@ -225,7 +203,7 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
           have hL : f =ᶠ[nhds z] (fun z => (fun z ↦ (z - z₀) ^ n • g z) z) := by
             unfold Filter.EventuallyEq
             simp only [smul_eq_mul]
-            rw [unfilter]
+            rw [Filter.eventually_iff_exists_mem]
             use interior (Ug ∩ Ur)
             constructor
             · rw [IsOpen.mem_nhds_iff]
@@ -243,7 +221,7 @@ lemma order_gt_zero_then_deriv_n_neg_1 (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
           rw [this]
     · exact AnalyticAt.deriv hf
 
---#find_home order_gt_zero_then_deriv_n_neg_1
+--#find_homee order_gt_zero_then_deriv_n_neg_1
 
 lemma order_geq_k_then_deriv_n_neg_1 (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀) (k n : ℕ)  :
    n = analyticOrderAt f z₀ → n > 0 → k ≤ n → analyticOrderAt (deriv^[k] f) z₀ = (n - k : ℕ) := by
@@ -269,7 +247,7 @@ lemma order_geq_k_then_deriv_n_neg_1 (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z�
       congr
       rw [Function.iterate_succ', Function.comp_apply]
 
---#find_home order_geq_k_then_deriv_n_neg_1
+--#find_homee order_geq_k_then_deriv_n_neg_1
 
 lemma order_deriv_top : ∀ z₀ (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀), f z₀ = 0 →
     ((analyticOrderAt (deriv f) z₀) = ⊤ ↔ analyticOrderAt f z₀ = ⊤) := by
@@ -340,7 +318,7 @@ lemma order_deriv_top : ∀ z₀ (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀),
         derivWithin f (Metric.ball z₀ r) x := by
         apply Filter.EventuallyEq.derivWithin_eq_of_nhds
         unfold Filter.EventuallyEq
-        rw [unfilter]
+        rw [Filter.eventually_iff_exists_mem]
         use Metric.ball z₀ r
         constructor
         · refine IsOpen.mem_nhds ?_ hx
@@ -354,7 +332,7 @@ lemma order_deriv_top : ∀ z₀ (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀),
         simp_all only [Metric.mem_ball, dist_self, gt_iff_lt, lt_inf_iff, implies_true, r]
         simp only [Metric.isOpen_ball]
 
---#find_home order_deriv_top
+--#find_homee order_deriv_top
 
 lemma deriv_n_neg_1_then_order_gt_zero (f : ℂ → ℂ) z₀ (hf : AnalyticAt ℂ f z₀) (n : ℕ) :
   f z₀ = 0 → analyticOrderAt (deriv f) z₀ = (n - 1 : ℕ)
@@ -391,7 +369,7 @@ lemma deriv_n_neg_1_then_order_gt_zero (f : ℂ → ℂ) z₀ (hf : AnalyticAt �
         rw [this]
         exact Hn'
 
---#find_home deriv_n_neg_1_then_order_gt_zero
+--#find_homee deriv_n_neg_1_then_order_gt_zero
 
 lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
   (hf : ∀ z : ℂ, AnalyticAt ℂ R z) (hf1 : ∀ z : ℂ, AnalyticAt ℂ R₁ z)
@@ -563,7 +541,7 @@ lemma existrprime (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
           unfold R2
           simp only [add_assoc]
 
---#find_home existrprime
+--#find_homee existrprime
 
 lemma iterated_deriv_eq_zero_iff_order_eq_n :
   ∀ z₀ n (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀) (ho : analyticOrderAt f z₀ ≠ ⊤),
@@ -634,7 +612,7 @@ lemma iterated_deriv_eq_zero_iff_order_eq_n :
         rw[this]
         exact iterated_deriv hf (n + 1)
 
---#find_home iterated_deriv_eq_zero_iff_order_eq_n
+--#find_homee iterated_deriv_eq_zero_iff_order_eq_n
 
 lemma iterated_deriv_eq_zero_if_order_eq_n z₀ (n : ℕ) (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀) :
     analyticOrderAt f z₀ = n → (∀ k < n, deriv^[k] f z₀ = 0) ∧ (deriv^[n] f z₀ ≠ 0) := by
@@ -644,7 +622,7 @@ lemma iterated_deriv_eq_zero_if_order_eq_n z₀ (n : ℕ) (f : ℂ → ℂ) (hf 
   · exact hf
   · simp_all only [ne_eq, ENat.coe_ne_top, not_false_eq_true]
 
---#find_home iterated_deriv_eq_zero_if_order_eq_n
+--#find_homee iterated_deriv_eq_zero_if_order_eq_n
 
 lemma iterated_deriv_eq_zero_imp_n_leq_order : ∀ (n : ℕ) z₀
   (f : ℂ → ℂ) (hf : AnalyticAt ℂ f z₀)
@@ -663,13 +641,13 @@ lemma iterated_deriv_eq_zero_imp_n_leq_order : ∀ (n : ℕ) z₀
     · rcases Hm with ⟨_, h'⟩
       cases (h' (hkn m h))
 
---#find_home iterated_deriv_eq_zero_imp_n_leq_order
+--#find_homee iterated_deriv_eq_zero_imp_n_leq_order
 
 lemma shift_ball (x y z : ℂ) (renn : ENNReal) :
   x ∈ EMetric.ball y renn → z + x ∈ EMetric.ball (z + y) renn := by
     simp only [EMetric.mem_ball, edist_add_left, imp_self]
 
---#find_home shift_ball
+--#find_homee shift_ball
 
 lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
   (p : FormalMultilinearSeries ℂ ℂ ℂ) (U : Set ℂ) (z : ℂ) (hU : U ∈ nhds z) :
@@ -758,7 +736,7 @@ lemma HasFPowerSeriesWithout (f : ℂ → ℂ)
       use renn
       exact HasFPowerSeriesOnBall.hasFPowerSeriesWithinOnBall hr
 
---#find_home HasFPowerSeriesWithout
+--#find_homee HasFPowerSeriesWithout
 
 lemma AnalyticOnAt (f: ℂ → ℂ) (z : ℂ) (U : Set ℂ) (hU : U ∈ nhds z) :
   AnalyticOn ℂ f U → AnalyticAt ℂ f z := by
@@ -772,7 +750,7 @@ lemma AnalyticOnAt (f: ℂ → ℂ) (z : ℂ) (U : Set ℂ) (hU : U ∈ nhds z) 
     use p
     exact (HasFPowerSeriesWithout f p U z hU).mp hp
 
---#find_home AnalyticOnAt
+--#find_homee AnalyticOnAt
 
 
 lemma AnalyticAtEq (f g : ℂ → ℂ) (U : Set ℂ) (z : ℂ) :
@@ -782,10 +760,10 @@ lemma AnalyticAtEq (f g : ℂ → ℂ) (U : Set ℂ) (z : ℂ) :
     have := AnalyticAt.congr Hf (g:=g)
     apply this
     unfold Filter.EventuallyEq
-    rw [unfilter]
+    rw [Filter.eventually_iff_exists_mem]
     use U
 
---#find_home AnalyticAtEq
+--#find_homee AnalyticAtEq
 
 
 lemma AnalyticOnEquiv (f g : ℂ → ℂ) (U : Set ℂ) :
@@ -797,4 +775,4 @@ lemma AnalyticOnEquiv (f g : ℂ → ℂ) (U : Set ℂ) :
   intro z a
   simp_all only)
 
---#find_home AnalyticOnEquiv
+--#find_homee AnalyticOnEquiv

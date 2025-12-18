@@ -3636,7 +3636,7 @@ lemma exists_R'_at_l'_plus_one (l' : Fin (h7.m))  :
 
   let R' (z : ℂ) := ((z - (l' + 1))^(o - h7.r q hq0 h2mq)) * R'' z
   use R'
-  rw [unfilter] at hfilter
+  rw [Filter.eventually_iff_exists_mem] at hfilter
   obtain ⟨U, ⟨hU, hU_prop⟩⟩ := hfilter
   have := AnalyticAt.exists_mem_nhds_analyticOnNhd horder
   obtain ⟨U2, hU2, hU2prop⟩ := this
