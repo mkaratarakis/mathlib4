@@ -8,6 +8,7 @@ module
 
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AlgebraicPart
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AnalyticPart
+public import Mathlib.Tactic
 
 /-!
 # Hilbert's Seventh Problem (Gelfond–Schneider Theorem)
@@ -3776,10 +3777,10 @@ lemma R'R_analytic (l' : Fin (h7.m)) :
     unfold R'R
     simp only
     refine AnalyticOn.mul ?_ ?_
-    · apply AnalyticOnSubset _ _ univ
-      simp only [Set.subset_univ]
+    · apply AnalyticOn.mono
       have := h7.anever q hq0 h2mq
       apply analyticOn_univ.mpr fun x a ↦ this x
+      simp only [Set.subset_univ]
     · apply AnalyticOn.fun_zpow ?_
       intros z hz
       simp only [mem_setOf_eq] at hz
@@ -3954,18 +3955,18 @@ lemma SR_analytic_S.U : AnalyticOn ℂ (h7.SR q hq0 h2mq) (S.U h7) := by
   · apply AnalyticOn.mul ?_ ?_
     · apply AnalyticOn.mul ?_ ?_
       · have := h7.anever q hq0 h2mq
-        exact
-          AnalyticOnSubset (h7.R q hq0 h2mq) (S.U h7)
-            (fun ⦃a⦄ ↦ True) (fun ⦃a⦄ a ↦ trivial) (analyticOn_univ.mpr fun x a ↦ this x)
+        apply AnalyticOn.mono (f:=(h7.R q hq0 h2mq)) (s:=(S.U h7))
+        apply analyticOn_univ.mpr fun x a ↦ this x
+        simp only [Set.subset_univ]
       · exact analyticOn_const
     · apply AnalyticOn.fun_zpow
-      · apply AnalyticOnSubset
-        · have : (S.U h7) ⊆ Set.univ := by exact fun ⦃a⦄ a ↦ trivial
-          exact this
+      · apply AnalyticOn.mono
         · refine analyticOn_univ_iff_differentiable.mpr ?_
           refine (fun_sub_iff_left ?_).mpr ?_
           simp only [differentiable_const]
           simp only [differentiable_fun_id]
+        · have : (S.U h7) ⊆ Set.univ := by exact fun ⦃a⦄ a ↦ trivial
+          exact this
       · intros z hz
         dsimp [S.U, ks] at hz
         simp only [coe_image, coe_range, mem_compl_iff,
@@ -4244,13 +4245,13 @@ lemma SRl_is_analytic_at_ball_of_radius_one (l' : Fin (h7.m)) (hl : l' ≠ h7.l�
         · exact AnalyticOnNhd.analyticOn fun x a ↦ this l' x
         · exact analyticOn_const
       · apply AnalyticOn.fun_zpow
-        · apply AnalyticOnSubset
-          · have : (Metric.ball ((l' : ℂ) + 1) 1) ⊆ Set.univ := by exact fun ⦃a⦄ a ↦ trivial
-            exact this
+        · apply AnalyticOn.mono
           · refine analyticOn_univ_iff_differentiable.mpr ?_
             refine (fun_sub_iff_left ?_).mpr ?_
             simp only [differentiable_const]
             simp only [differentiable_fun_id]
+          · have : (Metric.ball ((l' : ℂ) + 1) 1) ⊆ Set.univ := by exact fun ⦃a⦄ a ↦ trivial
+            exact this
         · intros z hz
           simp only [Metric.mem_ball] at hz
           apply sub_ne_zero_of_ne
@@ -4341,6 +4342,11 @@ lemma SRl0_is_analytic_at_ball_of_radius_one  :
       rw [Hdist] at hx
       simp only [dist_self, zero_lt_one] at hx
       exact hul0 Hdist
+
+lemma AnalyticAtEq (f g : ℂ → ℂ) (U : Set ℂ) (z : ℂ) :
+  (hU : U ∈ nhds z) → z ∈ U → (∀ z ∈ U, f z = g z) → AnalyticAt ℂ f z → AnalyticAt ℂ g z := by
+    intros hU _ hfg hf
+    exact hf.congr (Filter.eventually_of_mem hU hfg)
 
 lemma holS :
   --∀ x ∈ Metric.ball 0 (m K *(1 + (r/q))) \ (l₀ : ℂ),
@@ -4630,7 +4636,9 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
     ((h7.r q hq0 h2mq).factorial/((h7.r q hq0 h2mq)-(h7.r q hq0 h2mq)).factorial * R₁ z +
        (z - ( l₀' h7 q hq0 h2mq + 1))* R₂ z)) := by
     apply existrprime (z₀ := l₀' h7 q hq0 h2mq + 1)
-       (R h7 q hq0 h2mq) R₁ HAE HR1 hR₁ (r := r h7 q hq0 h2mq)
+       (R h7 q hq0 h2mq) R₁
+        --HAE
+        HR1 hR₁ (r := r h7 q hq0 h2mq)
        (k := r h7 q hq0 h2mq) hr
   simp only [tsub_self, pow_zero, Nat.factorial_zero,
   Nat.cast_one, div_one, one_mul] at this
