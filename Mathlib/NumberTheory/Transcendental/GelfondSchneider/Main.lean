@@ -1921,7 +1921,6 @@ lemma iteratedDeriv_vanishes (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
   simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow, map_intCast, zpow_neg, zpow_natCast,
     Nat.cast_add, Nat.cast_one]
 
-
 lemma R_analyt_at_point (point : ℂ) : AnalyticAt ℂ (h7.R q hq0 h2mq) point := by
   apply Differentiable.analyticAt
   unfold R
@@ -1953,7 +1952,7 @@ lemma order_neq_top : ∀ (l' : Fin (h7.m)),
   exact h7.anever q hq0 h2mq z
 
 lemma order_neq_top_min_one : ∀ z : ℂ,
-  analyticOrderAt (h7.R q hq0 h2mq) z ≠ ⊤ := by
+    analyticOrderAt (h7.R q hq0 h2mq) z ≠ ⊤ := by
   intros l' H
   rw [← zero_iff_order_inf] at H
   apply h7.R_nonzero
@@ -1993,6 +1992,11 @@ lemma exists_min_order_at :
      refine Fin.pos_iff_nonempty.mp ?_
      exact h7.hm
   let f : (Fin (h7.m)) → ℕ∞ := fun x => (analyticOrderAt (h7.R q hq0 h2mq) (x + 1))
+  have  exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
+    (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
+    ∃ x ∈ s, ∃ y, y = f x ∧ ∀ x' ∈ s, y ≤ f x' := by
+      obtain ⟨x, hxs, hx⟩ := s.exists_min_image f Hs
+      exact ⟨x, hxs, f x, rfl, hx⟩
   have := exists_mem_finset_min' s f Hs
   obtain ⟨x, hx, ⟨r, h1, h2⟩⟩ := this
   use x
@@ -2005,8 +2009,6 @@ lemma exists_min_order_at :
         exact h2 x hx
 
 abbrev l₀' : Fin (h7.m) := (exists_min_order_at h7 q hq0 h2mq).choose
-
---def l₀ : ℂ := (h7.l₀' q hq0 h2mq) + 1
 
 abbrev l₀_prop :=
   (exists_min_order_at h7 q hq0 h2mq).choose_spec.2
@@ -2054,14 +2056,14 @@ lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]
   obtain ⟨l₀, y, r, h1, h2⟩ :=
     (h7.exists_min_order_at q hq0 h2mq)
   have hA1 := h7.R_analyt_at_point q hq0 h2mq (h7.l₀' q hq0 h2mq + 1)
-  exact ((iterated_deriv_eq_zero_if_order_eq_n (h7.l₀' q hq0 h2mq + 1) (h7.r q hq0 h2mq)
+  exact ((analyticOrderAt_eq_nat_imp_iteratedDeriv_eq_zero (h7.l₀' q hq0 h2mq + 1) (h7.r q hq0 h2mq)
    (h7.R q hq0 h2mq) hA1) Hrprop).2
 
 lemma order_geq_n_foo (l' : Fin (h7.m)) :
   (∀ k', k' < h7.n q → deriv^[k'] (h7.R q hq0 h2mq) (l' + 1) = 0)
    → h7.n q ≤ analyticOrderAt (h7.R q hq0 h2mq) (l' + 1) := by
   intros H
-  apply iterated_deriv_eq_zero_imp_n_leq_order
+  apply le_analyticOrderAt_iff_iteratedDeriv_eq_zero
   · exact h7.anever q hq0 h2mq (l' + 1)
   · apply order_neq_top h7 q hq0 h2mq l'
   exact H
@@ -3684,7 +3686,7 @@ lemma exists_R'_at_l'_plus_one (l' : Fin (h7.m))  :
             · apply Differentiable.fun_pow
               · simp only [differentiable_fun_id,
                  differentiable_const, Differentiable.fun_sub]
-          · refine AnalyticOnAt R'' x ?_ ?_ ?_
+          · refine AnalyticOn.analyticAt  R'' x ?_ ?_ ?_
             · exact U''
             · --refine IsOpen.mem_nhds ?_ hx2
               rw [IsOpen.mem_nhds_iff]
@@ -3787,6 +3789,44 @@ lemma R'R_analytic (l' : Fin (h7.m)) :
       exact sub_ne_zero_of_ne hz
       apply AnalyticOn.sub analyticOn_id analyticOn_const
 
+
+lemma analyticOn_congr {𝕜 : Type u_1} {E : Type u_2} {F : Type u_3} [NontriviallyNormedField 𝕜]
+  [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+  [NormedAddCommGroup F] [NormedSpace 𝕜 F] {f g : E → F} {s : Set E}
+  (hf : AnalyticOn 𝕜 f s) (hs : EqOn f g s) : AnalyticOn 𝕜 f s ↔ AnalyticOn 𝕜 g s := by
+  constructor
+  · intro hf
+    exact hf.congr (hs.symm)
+  · intro hg
+    exact hg.congr hs
+
+lemma AnalyticOnEq (f g : ℂ → ℂ) (U : Set ℂ) :
+  (∀ z ∈ U, f z = g z) → AnalyticOn ℂ f U → AnalyticOn ℂ g U := by
+    intros Heq HA
+    intro x Hx
+    obtain ⟨p, renn, H⟩ := HA x Hx
+    use p, renn
+    constructor
+    · exact H.r_le
+    · exact H.r_pos
+    · have : ∀ {y : ℂ}, x + y ∈ insert x U →
+      y ∈ EMetric.ball 0 renn → HasSum (fun n ↦ (p n) fun x ↦ y) (f (x + y)) := H.hasSum
+      unfold HasSum at this ⊢
+      have Hinsert : insert x U = U := by simp_all [Set.insert_eq_of_mem]
+      rw [Hinsert] at this ⊢
+      intros y Hxy
+      have := this Hxy
+      rwa [← Heq _ Hxy]
+
+
+lemma AnalyticOnEquiv (f g : ℂ → ℂ) (U : Set ℂ) :
+  (∀ z ∈ U, f z = g z) → (AnalyticOn ℂ f U ↔ AnalyticOn ℂ g U) := by
+  intro Heq
+  constructor
+  · exact AnalyticOnEq f g U Heq
+  · exact AnalyticOnEq g f U fun z hz ↦ (Heq z hz).symm
+
+
 lemma R'analytic (l' : Fin (h7.m)) :
   let R' := R' h7 q hq0 h2mq l'
   ∀ z : ℂ, AnalyticAt ℂ R' z := by
@@ -3794,14 +3834,14 @@ lemma R'analytic (l' : Fin (h7.m)) :
     intros R' z
     by_cases H : z = l' + 1
     · have R'prop := (R'prop h7 q hq0 h2mq l')
-      apply AnalyticOnAt _ _ U _
+      apply AnalyticOn.analyticAt  _ _ U _
       have := R'_eq_R'U
         h7 q hq0 h2mq l'
       rw [AnalyticOnEquiv _ _ U this]
       exact R'prop.2.2.2
       rw [H]
       exact R'prop.1
-    · apply AnalyticOnAt _ _ {z : ℂ | z ≠ l' + 1} _
+    · apply AnalyticOn.analyticAt  _ _ {z : ℂ | z ≠ l' + 1} _
       have := R'_eq_R'R h7 q hq0 h2mq l'
       rw [AnalyticOnEquiv _ _ {z : ℂ | z ≠ l' + 1} this]
       apply R'R_analytic
@@ -4000,7 +4040,7 @@ lemma SR_analytic_S.U : AnalyticOn ℂ (h7.SR q hq0 h2mq) (S.U h7) := by
 
 lemma SR_Analytic : ∀ z, z ∈ S.U h7 → AnalyticAt ℂ (h7.SR q hq0 h2mq) z := by
   intros z hz
-  apply AnalyticOnAt
+  apply AnalyticOn.analyticAt
   · apply S.U_nhds h7 z
     exact hz
   · exact SR_analytic_S.U h7 q hq0 h2mq
@@ -4407,7 +4447,7 @@ lemma holS :
         exact HS1
 
 
-    · apply AnalyticOnAt (f:= h7.SRl0 q hq0 h2mq)
+    · apply AnalyticOn.analyticAt (f:= h7.SRl0 q hq0 h2mq)
       · change (Metric.ball (↑↑(h7.l₀' q hq0 h2mq) + 1) 1) ∈ nhds z
         rw [Hzl0]
         apply Metric.ball_mem_nhds
@@ -4493,7 +4533,7 @@ lemma holS :
         rw [HS] at HS1
         exact HS1
 
-    · apply AnalyticOnAt (f:= h7.SRl q hq0 h2mq l')
+    · apply AnalyticOn.analyticAt (f:= h7.SRl q hq0 h2mq l')
       · change (Metric.ball (↑↑(l') + 1) 1) ∈ nhds z
         rw [hl']
         apply Metric.ball_mem_nhds
@@ -4627,7 +4667,6 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
     intros z
     rw [h7.R'onC]
 
-
   have hr : h7.r q hq0 h2mq ≤ h7.r q hq0 h2mq := by rfl
   have :
    ∃ R₂ : ℂ → ℂ, (∀ z : ℂ, AnalyticAt ℂ R₂ z) ∧
@@ -4635,7 +4674,7 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
    (z - ( l₀' h7 q hq0 h2mq + 1))^((h7.r q hq0 h2mq)-(h7.r q hq0 h2mq)) *
     ((h7.r q hq0 h2mq).factorial/((h7.r q hq0 h2mq)-(h7.r q hq0 h2mq)).factorial * R₁ z +
        (z - ( l₀' h7 q hq0 h2mq + 1))* R₂ z)) := by
-    apply existrprime (z₀ := l₀' h7 q hq0 h2mq + 1)
+    apply iterated_deriv_mul_pow_sub_of_analytic (z₀ := l₀' h7 q hq0 h2mq + 1)
        (R h7 q hq0 h2mq) R₁
         --HAE
         HR1 hR₁ (r := r h7 q hq0 h2mq)
@@ -4717,10 +4756,6 @@ lemma S_eq_SR_on_circle :
     · simp only [zero_le_one]
     · simp only [Nat.cast_pos];exact hm h7
   · rfl
-
-
-
-
 
 
 
@@ -6186,9 +6221,6 @@ lemma c15_geg_1 : 1 ≤ h7.c₁₅ := by
       refine one_le_pow₀ ?_
       simp_all only [Int.cast_abs, le_add_iff_nonneg_left, abs_nonneg]
       )
-
-
-
 
 
 theorem norm_pos_rho  :
