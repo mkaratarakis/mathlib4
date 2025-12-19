@@ -217,10 +217,9 @@ lemma analyticOrderAt_deriv_eq_top_iff_of_eq_zero : ∀ z₀ (f : ℂ → ℂ)
         · simp_all only [Metric.mem_ball, dist_self, gt_iff_lt, lt_inf_iff, r]
           simp only [Metric.isOpen_ball]
 
-lemma analyticOrderAt_eq_succ_iff_deriv_order_eq_pred
-   (f : ℂ → ℂ) z₀ (hf : AnalyticAt ℂ f z₀) (n : ℕ) :
-  f z₀ = 0 → analyticOrderAt (deriv f) z₀ = (n - 1 : ℕ)
-    → n > 0 → analyticOrderAt f z₀ = n := by
+lemma analyticOrderAt_eq_succ_iff_deriv_order_eq_pred (f : ℂ → ℂ) z₀
+    (hf : AnalyticAt ℂ f z₀) (n : ℕ) :
+  f z₀ = 0 → analyticOrderAt (deriv f) z₀ = (n - 1 : ℕ) → n > 0 → analyticOrderAt f z₀ = n := by
     intros hzero horder hn
     have : ∃ m, analyticOrderAt f z₀ = m := by simp
     obtain ⟨m, Hn'⟩ := this
@@ -252,8 +251,7 @@ lemma analyticOrderAt_eq_succ_iff_deriv_order_eq_pred
         exact Hn'
 
 lemma iterated_deriv_mul_pow_sub_of_analytic (r : ℕ) (z₀ : ℂ) (R R₁ : ℂ → ℂ)
-   (hf1 : ∀ z : ℂ, AnalyticAt ℂ R₁ z)
-  (hR₁ : ∀ z, R z  = (z - z₀)^r * R₁ z) :
+   (hf1 : ∀ z : ℂ, AnalyticAt ℂ R₁ z) (hR₁ : ∀ z, R z  = (z - z₀)^r * R₁ z) :
   --(hf : ∀ z : ℂ, AnalyticAt ℂ R z) →
   ∀ k ≤ r ,
     ∃ R₂ : ℂ → ℂ, (∀ z : ℂ, AnalyticAt ℂ R₂ z) ∧ ∀ z, deriv^[k] R z =
@@ -438,22 +436,14 @@ lemma analyticOrderAt_eq_nat_iff_iteratedDeriv_eq_zero :
     constructor
     · intros H
       obtain ⟨hz, hnz⟩:= H
-      have hfzero : f z₀ = 0 := by
-        specialize hz 0 (Nat.zero_lt_succ n)
-        exact hz
       have IH' := IH (deriv f) (AnalyticAt.deriv hf) ?_
       · suffices analyticOrderAt (deriv f) z₀ = (n : ℕ) by
-          refine analyticOrderAt_eq_succ_iff_deriv_order_eq_pred f z₀ hf (n + 1) hfzero this ?_
+          refine analyticOrderAt_eq_succ_iff_deriv_order_eq_pred f z₀ hf
+            (n + 1) (hz 0 (by omega)) this ?_
           simp
         rw[← IH']
         constructor
-        · have (k : ℕ) : deriv^[k] (deriv f) = deriv^[k+1] f := rfl
-          intro k hk
-          rw[this k]
-          specialize hz (k+1)
-          have : k+1 < n+1 := by omega
-          specialize hz this
-          exact hz
+        · intros k hk; exact hz (k + 1) (by omega)
         · exact hnz
       · have := analyticOrderAt_deriv_of_pos f  z₀ hf
         specialize hz 0 (by omega)
@@ -468,7 +458,7 @@ lemma analyticOrderAt_eq_nat_iff_iteratedDeriv_eq_zero :
           have := analyticOrderAt_ne_zero.mpr ⟨hf, hz⟩
           exact pos_of_ne_zero this
         specialize this r0
-        rw[this]
+        rw [this]
         exact ENat.coe_ne_top (r - 1)
     · intros ho
       constructor
@@ -485,7 +475,7 @@ lemma analyticOrderAt_eq_nat_iff_iteratedDeriv_eq_zero :
       · have := analyticOrderAt_iterated_deriv f hf (n+1) (n+1) ho.symm (by omega) (by omega)
         simp only [Function.iterate_succ, Function.comp_apply, tsub_self,
           CharP.cast_eq_zero] at this
-        rw[AnalyticAt.analyticOrderAt_eq_zero] at this
+        rw [AnalyticAt.analyticOrderAt_eq_zero] at this
         · assumption
         · exact iterated_deriv hf (n + 1)
 
@@ -505,15 +495,12 @@ lemma le_analyticOrderAt_iff_iteratedDeriv_eq_zero : ∀ (n : ℕ) z₀
     rw [Hm]
     rw [← analyticOrderAt_eq_nat_iff_iteratedDeriv_eq_zero z₀ m f hf ho] at Hm
     rw [ENat.coe_le_coe]
-    cases le_or_gt n m
-    · rename_i h
-      exact h
-    · rename_i h
-      rcases Hm with ⟨_, h'⟩
-      cases (h' (hkn m h))
+    by_contra h
+    push_neg at h
+    exact Hm.2 (hkn m h)
 
-lemma hasFPowerSeriesWithinAt_nhds_iff (f : ℂ → ℂ)
-  (p : FormalMultilinearSeries ℂ ℂ ℂ) (U : Set ℂ) (z : ℂ) (hU : U ∈ nhds z) :
+lemma hasFPowerSeriesWithinAt_nhds_iff (f : ℂ → ℂ) (p : FormalMultilinearSeries ℂ ℂ ℂ)
+    (U : Set ℂ) (z : ℂ) (hU : U ∈ nhds z) :
   HasFPowerSeriesWithinAt f p U z ↔ HasFPowerSeriesAt f p z := by
     simp only [HasFPowerSeriesWithinAt, HasFPowerSeriesAt]
     constructor
