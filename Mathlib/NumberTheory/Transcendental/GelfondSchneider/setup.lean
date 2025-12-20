@@ -8,7 +8,6 @@ module
 public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.NumberTheory.NumberField.Basic
 public import Mathlib.NumberTheory.NumberField.House
-public import Mathlib.NumberTheory.NumberField.InfinitePlace.Embedding
 public import Mathlib.Tactic
 
 /-!
@@ -78,14 +77,18 @@ lemma getElemsInNF (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
     ∃ (α' β' γ' : K), α = σ α' ∧ β = σ β' ∧ γ = σ γ' := by
   have  hab := adjoin.mono ℚ {α, β} {α, β, γ}
     fun x hxab => by
-      rcases hxab with ⟨hxa, hxb⟩; left;
-      simp only
+      rcases hxab with ⟨hxa, hxb⟩
+      ·  left;
+         simp only
       rename_i h
       simp only [mem_singleton_iff] at h
       subst h
       simp_all only [mem_insert_iff, mem_singleton_iff, true_or, or_true]
   have hac := adjoin.mono ℚ {α, γ} {α, β, γ}
-    fun x hx => by rcases hx with ⟨hsf, hff⟩; left; rfl ; rename_i h; aesop;
+    fun x hx => by
+    rcases hx with ⟨hsf, hff⟩;
+    · left; rfl ;
+    · rename_i h; aesop;
   use adjoin ℚ {α, β, γ}
   constructor
   use isNumberField_adjoin_alg_numbers α β γ hα hβ hγ
