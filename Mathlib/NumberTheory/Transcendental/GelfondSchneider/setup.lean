@@ -43,19 +43,15 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
 
 noncomputable section
 
-lemma exists_int_smul_isIntegral {K : Type*} [Field K] [NumberField K] (α : K) :
-  ∃ k : ℤ, k ≠ 0 ∧ IsIntegral ℤ (k • α) := by
-  obtain ⟨y, hy, hf⟩ := exists_integral_multiples ℤ ℚ (L := K) {α}
-  refine ⟨y, hy, hf α (mem_singleton_self _)⟩
 
-def c'_both {K : Type*} [Field K] [NumberField K] (α : K) :
-   {c : ℤ | c ≠ 0 ∧ IsIntegral ℤ (c • α)} :=
-  ⟨(exists_int_smul_isIntegral α).choose, (exists_int_smul_isIntegral α).choose_spec⟩
-
-lemma adjoin_le_adjoin_more (α β : ℂ) (_ : IsAlgebraic ℚ α) (_ : IsAlgebraic ℚ β) :
+lemma adjoin_simple_le_adjoin_insert (α β : ℂ) (_ : IsAlgebraic ℚ α) (_ : IsAlgebraic ℚ β) :
   (adjoin _ {α} ≤ adjoin ℚ {α, β}) ∧ (adjoin _ {β} ≤ adjoin ℚ {α, β}) :=
   ⟨by apply adjoin.mono; intros x hx; left; exact hx,
    by apply adjoin.mono; intros x hx; right; exact hx⟩
+
+/-!
+Suppose that `α, β, γ` lie in an algebraic field `K` with degree `h`.
+-/
 
 lemma isNumberField_adjoin_alg_numbers (α β γ : ℂ)
   (hα : IsAlgebraic ℚ α) (hβ : IsAlgebraic ℚ β) (hγ : IsAlgebraic ℚ γ) :
@@ -70,7 +66,7 @@ lemma isNumberField_adjoin_alg_numbers (α β γ : ℂ)
     simp_rw [mem_singleton_iff.1 hc, isAlgebraic_iff_isIntegral.1 hγ]
     )}
 
-lemma getElemsInNF (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
+lemma exists_common_field_of_isAlgebraic (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
     (hβ : IsAlgebraic ℚ β) (hγ : IsAlgebraic ℚ γ) :
       ∃ (K : Type) (_ : Field K) (_ : NumberField K)
       (σ : K →+* ℂ) (_ : DecidableEq (K →+* ℂ)),
@@ -98,21 +94,19 @@ lemma getElemsInNF (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
   simp only [exists_and_left, exists_and_right, RingHom.coe_mk, MonoidHom.coe_mk,
     OneHom.coe_mk, Subtype.exists, exists_prop, exists_eq_right']
   exact ⟨adjoin_simple_le_iff.1 fun _ hx =>
-     hab ((adjoin_le_adjoin_more α β hα hβ).1 hx),
+     hab ((adjoin_simple_le_adjoin_insert  α β hα hβ).1 hx),
     adjoin_simple_le_iff.1 fun _ hx =>  hab (by
     apply adjoin.mono; intros x hx;
     · right; exact hx;
     · exact hx),
     adjoin_simple_le_iff.1 fun _ hx =>
-    hac ((adjoin_le_adjoin_more α γ hα hγ).2 hx)⟩
+    hac ((adjoin_simple_le_adjoin_insert α γ hα hγ).2 hx)⟩
 
-variable {K} [Field K] [NumberField K]
-
-abbrev c' [Field K] [NumberField K] (α : K) : ℤ := (c'_both α : ℤ)
-
-lemma c'_neq0 (α : K) : (c'_both α : ℤ) ≠ 0 := (c'_both α).2.1
-
-
+/-!
+Let `α` and `β` be algebraic numbers with `α ≠ 0, 1` and `β` irrational.
+We prove that `αᵇ` is transcendental by contradiction.
+Suppose `γ = αᵇ = e^(β log α)` is also algebraic.
+-/
 
 /--
 This structure encapsulates all the foundational data and hypotheses for the proof.
@@ -139,19 +133,19 @@ variable (h7 : Setup)
 
 open Setup
 
-lemma alpha_cpow_beta_ne_zero : h7.α ^ h7.β ≠ 0 :=
+lemma α_cpow_β_ne_zero : h7.α ^ h7.β ≠ 0 :=
   fun H => h7.htriv.1 ((cpow_eq_zero_iff h7.α h7.β).mp H).1
 
 lemma beta_ne_zero : h7.β ≠ 0 :=
   fun H => h7.hirr 0 1 (by simpa [div_one] using H)
 
-lemma alpha'_beta'_gamma'_ne_zero : h7.α' ≠ 0 ∧ h7.β' ≠ 0 ∧ h7.γ' ≠ 0 := by
-  constructor
-  · intro H
-    exact h7.htriv.1 (h7.habc.1 ▸ H ▸ RingHom.map_zero h7.σ)
-  · constructor
-    · intro H; exact h7.beta_ne_zero (h7.habc.2.1 ▸ H ▸ RingHom.map_zero h7.σ)
-    · intro H; exact h7.alpha_cpow_beta_ne_zero (h7.habc.2.2 ▸ H ▸ RingHom.map_zero h7.σ)
+lemma alpha'_ne_zero : h7.α' ≠ 0 := by
+  intro H
+  exact h7.htriv.1 (h7.habc.1 ▸ H ▸ RingHom.map_zero h7.σ)
+
+lemma gamma'_ne_zero : h7.γ' ≠ 0 := by
+  intro H
+  exact h7.α_cpow_β_ne_zero (h7.habc.2.2 ▸ H ▸ RingHom.map_zero h7.σ)
 
 lemma alpha'_ne_one : h7.α' ≠ 1 := by
   intro H
@@ -159,29 +153,60 @@ lemma alpha'_ne_one : h7.α' ≠ 1 := by
   rw [← h7.habc.1, map_one] at H
   exact h7.htriv.2 H
 
-lemma beta'_ne_zero : h7.β' ≠ 0 := h7.alpha'_beta'_gamma'_ne_zero.2.1
+lemma beta'_ne_zero : h7.β' ≠ 0 := by
+  intro H
+  exact h7.beta_ne_zero (h7.habc.2.1 ▸ H ▸ RingHom.map_zero h7.σ)
 
 open Complex
 
-lemma log_zero_zero : log h7.α ≠ 0 := by
+lemma log_alpha_ne_zero : log h7.α ≠ 0 := by
   intro H
   have := congr_arg exp H
   rw [exp_log, exp_zero] at this
-  · apply h7.htriv.2 this
+  · exact h7.htriv.2 this
   · exact h7.htriv.1
 
-def c₁ : ℤ := abs (c' h7.α' * c' h7.β' * c' h7.γ')
 
-lemma one_leq_c₁ : 1 ≤ h7.c₁ := by
-  have h := (mul_ne_zero (mul_ne_zero (c'_neq0 h7.α')
-    (c'_neq0 h7.β')) (c'_neq0 h7.γ'))
+/-!
+Let `m = 2h + 2, n = q² / 2m`
+where `q² = t` is a square of a natural number and is a multiple of `2m`.
+-/
+
+variable {K} [Field K] [NumberField K]
+
+lemma exists_int_smul_isIntegral {K : Type*} [Field K] [NumberField K] (α : K) :
+  ∃ k : ℤ, k ≠ 0 ∧ IsIntegral ℤ (k • α) := by
+  obtain ⟨y, hy, hf⟩ := exists_integral_multiples ℤ ℚ (L := K) {α}
+  refine ⟨y, hy, hf α (mem_singleton_self _)⟩
+
+/--
+A choice of a non-zero integer `c₀` such that `c₀ • α` is an algebraic integer.
+-/
+def c₀ {K : Type*} [Field K] [NumberField K] (α : K) :
+  {c : ℤ // c ≠ 0 ∧ IsIntegral ℤ (c • α)} :=
+  ⟨(exists_int_smul_isIntegral α).choose, (exists_int_smul_isIntegral α).choose_spec⟩
+
+/-- A choice of a non-zero integer `c₀` such that `c • α` is an algebraic integer.
+See `c₀`. -/
+abbrev c₀Coeff {K : Type*} [Field K] [NumberField K] (α : K) : ℤ :=
+  (c₀ α : ℤ)
+
+lemma c₀Coeff_ne_zero (α : K) : c₀Coeff α ≠ 0 :=
+  (c₀ α).2.1
+
+def c₁ : ℤ :=
+  abs (c₀Coeff h7.α' * c₀Coeff h7.β' * c₀Coeff h7.γ')
+
+lemma one_le_c₁ : 1 ≤ h7.c₁ := by
+  have h := (mul_ne_zero (mul_ne_zero (c₀Coeff_ne_zero h7.α')
+    (c₀Coeff_ne_zero h7.β')) (c₀Coeff_ne_zero h7.γ'))
   exact Int.one_le_abs h
 
 lemma c₁_neq_zero : h7.c₁ ≠ 0 :=
-  Ne.symm (Int.ne_of_lt h7.one_leq_c₁)
+  Ne.symm (Int.ne_of_lt h7.one_le_c₁)
 
 lemma one_leq_abs_c₁ : 1 ≤ |↑h7.c₁| := by
-  refine Int.one_le_abs (Ne.symm (Int.ne_of_lt h7.one_leq_c₁))
+  refine Int.one_le_abs (Ne.symm (Int.ne_of_lt h7.one_le_c₁))
 
 lemma IsIntegral_assoc (K : Type) [Field K]
 {x y : ℤ} (z : ℤ) (α : K) (ha : IsIntegral ℤ (z • α)) :
@@ -191,26 +216,52 @@ lemma IsIntegral_assoc (K : Type) [Field K]
   conv => enter [2]; rw [this]
   apply IsIntegral.smul _ ha
 
-lemma isIntegral_c₁α : IsIntegral ℤ (h7.c₁ • h7.α') := by
-  have h := IsIntegral_assoc (x := c' h7.γ') (y := c' h7.β') h7.K (c' h7.α') h7.α'
-    ((c'_both h7.α').2.2)
-  conv => enter [2]; rw [c₁, mul_comm, mul_comm (c' h7.α') (c' h7.β'), ← mul_assoc]
-  rcases abs_choice (c' h7.γ' * c' h7.β' * c' h7.α')
+lemma isIntegral_c₁_smul_alpha' : IsIntegral ℤ (h7.c₁ • h7.α') := by
+  have h := IsIntegral_assoc (x := c₀Coeff h7.γ')
+    (y := c₀Coeff h7.β') h7.K (c₀Coeff h7.α') h7.α'
+    ((c₀ h7.α').2.2)
+  conv => enter [2]; rw [c₁, mul_comm, mul_comm (c₀Coeff h7.α')
+    (c₀Coeff h7.β'), ← mul_assoc]
+  rcases abs_choice (c₀Coeff h7.γ' * c₀Coeff h7.β' * c₀Coeff h7.α')
   · rename_i H1; rw [H1]; exact h
   · rename_i H2; rw [H2]; rw [← IsIntegral.neg_iff, neg_smul, neg_neg]; exact h
 
-lemma isIntegral_c₁β : IsIntegral ℤ (h7.c₁ • h7.β') := by
-  have h := IsIntegral_assoc (x := c' h7.γ') (y := c' h7.α') h7.K (c' h7.β') h7.β'
-    ((c'_both h7.β').2.2)
+lemma isIntegral_c₁_smul_beta' : IsIntegral ℤ (h7.c₁ • h7.β') := by
+  have h := IsIntegral_assoc (x := c₀Coeff h7.γ')
+    (y := c₀Coeff h7.α') h7.K (c₀Coeff h7.β') h7.β'
+    ((c₀ h7.β').2.2)
   rw [c₁, mul_comm, ← mul_assoc]
-  rcases abs_choice (c' h7.γ' * c' h7.α' * c' h7.β')
+  rcases abs_choice (c₀Coeff h7.γ' * c₀Coeff h7.α' * c₀Coeff h7.β')
   · rename_i H1; rw [H1]; exact h
   · rename_i H2; rw [H2]; rw [← IsIntegral.neg_iff, neg_smul, neg_neg]; exact h
 
-lemma isIntegral_c₁γ : IsIntegral ℤ (h7.c₁ • h7.γ') := by
-  have h := IsIntegral_assoc (x := c' h7.α') (y := c' h7.β') h7.K (c' h7.γ') h7.γ'
-    ((c'_both h7.γ').2.2)
+lemma isIntegral_c₁_smul_gamma' : IsIntegral ℤ (h7.c₁ • h7.γ') := by
+  have h := IsIntegral_assoc (x := c₀Coeff h7.α')
+    (y := c₀Coeff h7.β') h7.K (c₀Coeff h7.γ') h7.γ'
+    ((c₀ h7.γ').2.2)
   rw [c₁]
-  rcases abs_choice (c' h7.α' * c' h7.β' * c' h7.γ')
+  rcases abs_choice (c₀Coeff h7.α' * c₀Coeff h7.β' * c₀Coeff h7.γ')
   · rename_i H1; rw [H1]; exact h
   · rename_i H2; rw [H2]; rw [← IsIntegral.neg_iff, neg_smul, neg_neg]; exact h
+
+
+/-!
+Also, let `ρ₁, ρ₂, …, ρₜ` represent the `t` numbers
+  `(a + bβ) log α,  1 ≤ a ≤ q, 1 ≤ b ≤ q.`
+
+We introduce the integral function
+  `R(x) = η₁ e^(ρ₁ x) + … + ηₜ e^(ρₜ x)`
+where the coefficients `η₁, …, ηₜ` are determined by the following conditions.
+
+We solve the system of `mn` homogeneous linear equations
+  `(log α)⁻ᵏ R⁽ᵏ⁾(l) = 0,  0 ≤ k ≤ n - 1, 1 ≤ l ≤ m`
+in the `t = 2mn` unknowns `η₁, …, ηₜ`. The coefficients are in `K` and
+  `(log α)⁻ᵏ {(a + bβ) log α}ᵏ e^(l(a + bβ) log α) = (a + bβ)ᵏ αᵃˡ γᵇˡ`
+for `1 ≤ l ≤ m, 1 ≤ a, b ≤ q, 0 ≤ k ≤ n - 1`.
+
+Let `c₁, c₂, …` be natural numbers independent of `n`. There exists `c₁` such that
+`c₁ α, c₁ β, c₁ γ` are integers in `K`. Multiplying the system by
+`c₁ⁿ⁻¹ c₁ᵐᵠ c₁ᵐᵠ = c₁ⁿ⁻¹⁺²ᵐᵠ ≤ c₁ᵗ` ensures the coefficients are integers in `K`.
+-/
+
+end Setup
