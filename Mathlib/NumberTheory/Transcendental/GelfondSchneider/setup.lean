@@ -172,6 +172,15 @@ Let `m = 2h + 2, n = q² / 2m`
 where `q² = t` is a square of a natural number and is a multiple of `2m`.
 -/
 
+
+
+
+
+
+
+
+
+
 variable {K} [Field K] [NumberField K]
 
 lemma exists_int_smul_isIntegral {K : Type*} [Field K] [NumberField K] (α : K) :
