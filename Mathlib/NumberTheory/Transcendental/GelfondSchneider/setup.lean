@@ -11,7 +11,6 @@ public import Mathlib.NumberTheory.NumberField.House
 public import Mathlib.NumberTheory.NumberField.InfinitePlace.Embedding
 public import Mathlib.Tactic
 
-
 /-!
 # Hilbert's Seventh Problem (Gelfond–Schneider Theorem)
 The goal of this file is to formalize a proof of the **Gelfond–Schneider Theorem**, which solves
