@@ -16,12 +16,6 @@ Gelfond–Schneider theorem.
 -/
 @[expose] public section
 
-set_option autoImplicit true
-set_option linter.style.multiGoal false
-set_option linter.style.cases false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars true
-
 open BigOperators Module.Free Fintype NumberField FiniteDimensional
   Matrix Set Polynomial Finset IntermediateField Complex
 
@@ -86,7 +80,7 @@ lemma getElemsInNF (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
     adjoin_simple_le_iff.1 fun _ hx =>
     hac ((adjoin_le_adjoin_more α γ hα hγ).2 hx)⟩
 
-variable [Field K] [NumberField K]
+variable {K} [Field K] [NumberField K]
 
 abbrev c' [Field K] [NumberField K] (α : K) : ℤ := (c'_both α : ℤ)
 
