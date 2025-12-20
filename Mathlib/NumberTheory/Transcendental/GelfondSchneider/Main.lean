@@ -348,10 +348,6 @@ lemma sq_le_two_mn : q^2 ≤ 2 * h7.m * h7.n q := by
   refine Nat.le_sqrt'.mpr ?_
   nth_rw 1 [← h2mq]
 
-include h2mq in
-lemma q_le_two_mn : q ≤ 2 * h7.m * h7.n q :=
-  le_trans (Nat.le_pow (Nat.zero_lt_two)) ((sq_le_two_mn h7 q h2mq))
-
 abbrev c_coeffs (q : ℕ) := h7.c₁^(h7.n q - 1) * h7.c₁^(h7.m * q) * h7.c₁^(h7.m * q)
 
 open Nat in include hq0 h2mq in
@@ -769,11 +765,9 @@ lemma q_eq_n_etc : ↑q ^ ((h7.n q) - 1) ≤
     · positivity
     · positivity
 
-lemma sq_n : (Real.sqrt (h7.n q))^((h7.n q : ℝ)-1) =
-   (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1)/2) := by
-  nth_rw 1 [Real.sqrt_eq_rpow, ← Real.rpow_mul, mul_comm, mul_div]
-  · simp only [mul_one]
-  · simp only [Nat.cast_nonneg]
+include h2mq in
+lemma q_le_two_mn : q ≤ 2 * h7.m * h7.n q :=
+  le_trans (Nat.le_pow (Nat.zero_lt_two)) ((sq_le_two_mn h7 q h2mq))
 
 include h2mq in
 lemma pow_c₂ : h7.m * q - a q t * h7.l q u ≤ h7.m * (2 * (h7.m * h7.n q)) := by
@@ -841,6 +835,12 @@ lemma c_coeffspow' :
       rw [mul_comm h7.m]
       exact bl_leq_mq h7 q u t
     rw [this]
+
+lemma sq_n : (Real.sqrt (h7.n q))^((h7.n q : ℝ)-1) =
+   (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1)/2) := by
+  nth_rw 1 [Real.sqrt_eq_rpow, ← Real.rpow_mul, mul_comm, mul_div]
+  · simp only [mul_one]
+  · simp only [Nat.cast_nonneg]
 
 include hq0 h2mq in
 lemma hAkl : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
