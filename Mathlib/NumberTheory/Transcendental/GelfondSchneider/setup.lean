@@ -21,14 +21,14 @@ open BigOperators Module.Free Fintype NumberField FiniteDimensional
 
 noncomputable section
 
-lemma ExistsAlgInt {K : Type*} [Field K] [NumberField K] (α : K) :
+lemma exists_int_smul_isIntegral {K : Type*} [Field K] [NumberField K] (α : K) :
   ∃ k : ℤ, k ≠ 0 ∧ IsIntegral ℤ (k • α) := by
   obtain ⟨y, hy, hf⟩ := exists_integral_multiples ℤ ℚ (L := K) {α}
   refine ⟨y, hy, hf α (mem_singleton_self _)⟩
 
 def c'_both {K : Type*} [Field K] [NumberField K] (α : K) :
    {c : ℤ | c ≠ 0 ∧ IsIntegral ℤ (c • α)} :=
-  ⟨(ExistsAlgInt α).choose, (ExistsAlgInt α).choose_spec⟩
+  ⟨(exists_int_smul_isIntegral α).choose, (exists_int_smul_isIntegral α).choose_spec⟩
 
 lemma adjoin_le_adjoin_more (α β : ℂ) (_ : IsAlgebraic ℚ α) (_ : IsAlgebraic ℚ β) :
   (adjoin _ {α} ≤ adjoin ℚ {α, β}) ∧ (adjoin _ {β} ≤ adjoin ℚ {α, β}) :=
