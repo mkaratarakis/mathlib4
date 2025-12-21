@@ -88,31 +88,29 @@ lemma alpha_cpow_beta_ne_zero : h7.α ^ h7.β ≠ 0 :=
 
 lemma beta_ne_zero : h7.β ≠ 0 :=
   fun H => h7.hirr 0 1 (by simpa [div_one] using H)
-  lemma alpha'_beta'_gamma'_ne_zero : h7.α' ≠ 0 ∧ h7.β' ≠ 0 ∧ h7.γ' ≠ 0 := by
-    refine ⟨?_, ?_, ?_⟩ <;> intro H
-    · exact h7.htriv.1 (by simp [h7.habc.1, H, RingHom.map_zero h7.σ])
-    · exact h7.beta_ne_zero (by simp [h7.habc.2.1, H,RingHom.map_zero h7.σ])
-    · exact h7.alpha_cpow_beta_ne_zero (by simp [h7.habc.2.2, H, RingHom.map_zero h7.σ])
 
-lemma alpha'_ne_one : h7.α' ≠ 1 := by
-  intro H
-  exact h7.htriv.2 <| by
-    simpa [h7.habc.1, map_one] using congrArg h7.σ H
+lemma alpha'_beta'_gamma'_ne_zero : h7.α' ≠ 0 ∧ h7.β' ≠ 0 ∧ h7.γ' ≠ 0 := by
+  refine ⟨?_, ?_, ?_⟩ <;> intro H
+  · exact h7.htriv.1 (by simp [h7.habc.1, H, RingHom.map_zero h7.σ])
+  · exact h7.beta_ne_zero (by simp [h7.habc.2.1, H, RingHom.map_zero h7.σ])
+  · exact h7.alpha_cpow_beta_ne_zero (by simp [h7.habc.2.2, H, RingHom.map_zero h7.σ])
+
+lemma alpha'_ne_one : h7.α' ≠ 1 :=
+  fun h => h7.htriv.2 <| by simpa [h7.habc.1, map_one] using congrArg h7.σ h
 
 lemma beta'_ne_zero : h7.β' ≠ 0 := h7.alpha'_beta'_gamma'_ne_zero.2.1
 
 open Complex
 
 lemma log_zero_zero : log h7.α ≠ 0 :=
-  fun h => h7.htriv.2 <| by
-    simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h
+  mt (fun h => by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
 
 def c₁ : ℤ := abs (c' h7.α' * c' h7.β' * c' h7.γ')
 
 lemma one_leq_c₁ : 1 ≤ h7.c₁ := by
   simpa [c₁] using
-    Int.one_le_abs
-      (mul_ne_zero (mul_ne_zero (c'_neq0 h7.α') (c'_neq0 h7.β')) (c'_neq0 h7.γ'))
+    Int.one_le_abs <|
+      mul_ne_zero (mul_ne_zero (c'_neq0 h7.α') (c'_neq0 h7.β')) (c'_neq0 h7.γ')
 
 lemma c₁_neq_zero : h7.c₁ ≠ 0 :=
   Ne.symm (Int.ne_of_lt h7.one_leq_c₁)
@@ -123,8 +121,7 @@ lemma one_leq_abs_c₁ : 1 ≤ |↑h7.c₁| := by
 lemma IsIntegral_assoc (K : Type) [Field K]
   {x y : ℤ} (z : ℤ) (α : K) (ha : IsIntegral ℤ (z • α)) :
   IsIntegral ℤ ((x * y * z : ℤ) • α) := by
-  simpa [Int.cast_mul, zsmul_eq_mul, mul_assoc] using
-    IsIntegral.smul (x * y) ha
+  simpa [Int.cast_mul, zsmul_eq_mul, mul_assoc] using IsIntegral.smul (x * y) ha
 
 lemma isIntegral_c₁α : IsIntegral ℤ (h7.c₁ • h7.α') := by
   have h := IsIntegral_assoc (x := c' h7.γ') (y := c' h7.β') h7.K (c' h7.α') h7.α'
