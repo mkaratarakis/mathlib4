@@ -422,9 +422,10 @@ lemma sum_b
    (i1 i2 j1 j2 : ℕ) (Heq : ¬i2 = j2) : i1 + i2 • h7.β ≠ j1 + j2 • h7.β := by
       intros H
       have hb := h7.hirr (i1 - j1) (j2 - i2)
-      apply hb
+      apply (h7.hirr (i1 - j1) (j2 - i2))
       have h1 : i1 + i2 • h7.β = j1 + j2 • h7.β  ↔
-        (i1 + i2 • h7.β) - (j1 + j2 • h7.β) = 0 := Iff.symm sub_eq_zero
+        (i1 + i2 • h7.β) - (j1 + j2 • h7.β) = 0 :=
+          (sub_eq_zero (a := (i1 + i2 • h7.β : ℂ)) (b := (j1 + j2 • h7.β : ℂ))).symm
       rw [h1] at H
       have h2 : ↑i1 + ↑i2 • h7.β - (↑j1 + ↑j2 • h7.β) = 0 ↔
          ↑i1 + i2 • h7.β - ↑j1 - ↑j2 • h7.β = 0 := by
@@ -435,56 +436,37 @@ lemma sum_b
           ↑i1 - ↑j1 + ↑i2 • h7.β - ↑j2 • h7.β = 0 := by
         ring_nf
       rw [h3] at H
-      have hij2 : i2 ≠ j2 := by
-        by_contra HC
-        apply Heq
-        exact HC
       have h4 : ↑i1 - ↑j1 + ↑i2 • h7.β - ↑j2 • h7.β = 0 ↔
         ↑i1 - ↑j1 + (i2 - ↑j2 : ℂ) • h7.β = 0 := by
         rw [sub_eq_add_neg]
         simp only [nsmul_eq_mul]
-        rw [← neg_mul, add_assoc, ← add_mul]
-        simp only [smul_eq_mul]
-        rw [← sub_eq_add_neg]
+        rw [← neg_mul, add_assoc, ← add_mul, smul_eq_mul, ← sub_eq_add_neg]
       rw [h4] at H
-      have h5 : ↑i1 - ↑j1 + (i2 - ↑j2 : ℂ) • h7.β =0 ↔
-       ↑i1 - ↑j1 = - ((i2 - ↑j2 : ℂ) • h7.β) := by
-        rw [add_eq_zero_iff_eq_neg]
-      rw [h5] at H
+      rw [add_eq_zero_iff_eq_neg] at H
       have h6 : ↑i1 - ↑j1 = - ((i2 - ↑j2 : ℂ) • h7.β) ↔
           ↑i1 - ↑j1 = (↑j2 - ↑i2 : ℂ) • h7.β := by
         refine Eq.congr_right ?_
         simp only [smul_eq_mul]
-        rw [← neg_mul]
-        simp only [neg_sub]
+        rw [← neg_mul, neg_sub]
       rw [h6] at H
-      have h7 : ↑i1 - ↑j1 = (↑j2 - ↑i2 : ℂ) • h7.β ↔
-         (↑i1 - ↑j1) /(↑j2 - ↑i2 : ℂ) = h7.β := by
-        simp only [smul_eq_mul]
-        rw [div_eq_iff, mul_comm]
-        intros HC
-        apply hij2
-        rw [sub_eq_zero] at HC
-        simp only [Nat.cast_inj] at HC
-        exact HC.symm
+      have h7 :
+          (↑i1 - ↑j1 : ℂ) = (↑j2 - ↑i2 : ℂ) • h7.β ↔
+        (↑i1 - ↑j1) / (↑j2 - ↑i2 : ℂ) = h7.β := by
+        simpa [smul_eq_mul, mul_comm] using
+          (div_eq_iff (sub_ne_zero.2 (mod_cast (by intro h; exact Heq h.symm)))).symm
       rw [h7] at H
       rw [H.symm]
       simp only [Int.cast_sub, Int.cast_natCast]
 
 include hq0 in
 lemma b_sum_neq_0 : ↑q + q • h7.β' ≠ 0 := by
-  have qneq0 : q ≠ 0 := Nat.ne_zero_of_lt hq0
-  have hirr' : ∀ (i j : ℤ), h7.σ h7.β' ≠ h7.σ (↑i / ↑j) := by
-    intros i j
-    simp only [map_div₀, map_intCast, ne_eq]
-    intros H
-    rw [← h7.habc.2.1] at H
+  have hirr' : ∀ i j : ℤ, h7.σ h7.β' ≠ h7.σ (↑i / ↑j) := by
+    intro i j h
     apply h7.hirr i j
-    exact H
+    simpa [h7.habc.2.1, map_div₀] using h
   simp only [map_div₀, map_intCast, ne_eq] at hirr'
-  have := h7.sum_b q q 0 0 qneq0
-  simp only [nsmul_eq_mul] at this
-  simp only [CharP.cast_eq_zero, zero_mul, add_zero] at this
+  have := h7.sum_b q q 0 0 (Nat.ne_zero_of_lt hq0)
+  simp only [nsmul_eq_mul, CharP.cast_eq_zero, zero_mul, add_zero] at this
   intros H
   apply this
   apply_fun h7.σ at H
@@ -492,6 +474,8 @@ lemma b_sum_neq_0 : ↑q + q • h7.β' ≠ 0 := by
   rw [← H]
   congr
   exact h7.habc.2.1
+
+#exit
 
 lemma one_leq_house_c₁β : 1 ≤ house (h7.c₁ • h7.β') := by
   apply one_le_house_of_isIntegral
