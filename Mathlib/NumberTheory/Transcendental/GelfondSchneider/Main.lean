@@ -4408,10 +4408,8 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
     ((h7.r q hq0 h2mq).factorial/((h7.r q hq0 h2mq)-(h7.r q hq0 h2mq)).factorial * R₁ z +
        (z - ( l₀' h7 q hq0 h2mq + 1))* R₂ z)) := by
     apply iterated_deriv_mul_pow_sub_of_analytic (z₀ := l₀' h7 q hq0 h2mq + 1)
-       (R h7 q hq0 h2mq) R₁
         --HAE
-        HR1 hR₁ (r := r h7 q hq0 h2mq)
-       (k := r h7 q hq0 h2mq) hr
+        HR1 hR₁ (r := r h7 q hq0 h2mq) (k := r h7 q hq0 h2mq) hr
   simp only [tsub_self, pow_zero, Nat.factorial_zero,
   Nat.cast_one, div_one, one_mul] at this
   have := this
@@ -4451,12 +4449,10 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
       ↑↑(h7.l₀' q hq0 h2mq) ≠ x := by
         intros x hx
         grind only [= mem_sdiff, = Finset.mem_singleton]
-
     have := this x hx
     intros HC
     rw [sub_eq_zero] at HC
     norm_cast at HC
-
 
 lemma S_eq_SR_on_circle :
   ∀ (z : ℂ) (hz : z ∈ Metric.sphere 0
@@ -4486,9 +4482,6 @@ lemma S_eq_SR_on_circle :
     · simp only [zero_le_one]
     · simp only [Nat.cast_pos];exact hm h7
   · rfl
-
-
-
 
 
 def c₉ : ℝ := Real.exp (|1 + ‖h7.β‖| *  ‖Complex.log h7.α‖ * (↑h7.m : ℝ))
