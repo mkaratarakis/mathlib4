@@ -459,65 +459,44 @@ lemma sum_b
       simp only [Int.cast_sub, Int.cast_natCast]
 
 include hq0 in
-lemma b_sum_neq_0 : ↑q + q • h7.β' ≠ 0 := by
-  have hirr' : ∀ i j : ℤ, h7.σ h7.β' ≠ h7.σ (↑i / ↑j) := by
-    intro i j h
-    apply h7.hirr i j
-    simpa [h7.habc.2.1, map_div₀] using h
-  simp only [map_div₀, map_intCast, ne_eq] at hirr'
-  have := h7.sum_b q q 0 0 (Nat.ne_zero_of_lt hq0)
-  simp only [nsmul_eq_mul, CharP.cast_eq_zero, zero_mul, add_zero] at this
-  intros H
-  apply this
-  apply_fun h7.σ at H
-  simp only [nsmul_eq_mul, map_add, map_natCast, map_mul, map_zero] at H
-  rw [← H]
-  congr
-  exact h7.habc.2.1
-
-#exit
+lemma b_sum_neq_0 : (↑q : h7.K) + q • h7.β' ≠ 0 := by
+  intro H
+  have hqC : (q : ℂ) ≠ 0 := mod_cast (Nat.ne_zero_of_lt hq0)
+  have hEq : (q : ℂ) + (q : ℂ) * h7.β = 0 := by
+    simpa [nsmul_eq_mul, map_add, map_mul, map_natCast, ← h7.habc.2.1] using (congrArg h7.σ H)
+  exact h7.hirr (-1) 1 (by simpa [div_one] using
+    ((eq_neg_of_add_eq_zero_right ((mul_eq_zero.mp (by grind)).resolve_left (hqC)))))
 
 lemma one_leq_house_c₁β : 1 ≤ house (h7.c₁ • h7.β') := by
-  apply one_le_house_of_isIntegral
-  · exact h7.isIntegral_c₁β
-  simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
-  rw [← ne_eq, ne_eq]
-  exact ⟨h7.c₁neq0, h7.alpha'_beta'_gamma'_ne_zero.2.1⟩
+  refine one_le_house_of_isIntegral h7.isIntegral_c₁β ?_
+  have hc : ((h7.c₁ : ℤ) : h7.K) ≠ 0 := mod_cast h7.c₁neq0
+  simpa [zsmul_eq_mul] using mul_ne_zero hc h7.alpha'_beta'_gamma'_ne_zero.2.1
 
-lemma one_leq_house_c₁α : 1 ≤ house (h7.c₁ • h7.α') := by
-  apply one_le_house_of_isIntegral
-  · exact h7.isIntegral_c₁α
-  exact h7.c₁αneq0
+lemma one_leq_house_c₁α : 1 ≤ house (h7.c₁ • h7.α') :=
+  one_le_house_of_isIntegral (h7.isIntegral_c₁α) h7.c₁αneq0
 
-lemma house_bound_c₁α : house (h7.c₁ • h7.α') ^ (a q t * h7.l q u)
-  ≤ house (h7.c₁ • h7.α')^(h7.m * q) := by
-    apply Bound.pow_le_pow_right_of_le_one_or_one_le
-      (Or.inl ⟨one_le_house_of_isIntegral (h7.isIntegral_c₁α) h7.c₁αneq0, ?_⟩)
-    · rw [mul_comm h7.m q]; exact h7.al_leq_mq q u t
+lemma house_bound_c₁α :
+  house (h7.c₁ • h7.α') ^ (a q t * h7.l q u) ≤ house (h7.c₁ • h7.α') ^ (h7.m * q) := by
+  refine Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨h7.one_leq_house_c₁α, ?_⟩)
+  simpa [mul_comm] using h7.al_leq_mq q u t
 
 lemma isInt_β_bound : IsIntegral ℤ (h7.c₁ • (↑q + q • h7.β')) := by
-  simp only [nsmul_eq_mul, smul_add]
-  apply IsIntegral.add
-  · rw [zsmul_eq_mul]
-    apply IsIntegral.mul (IsIntegral.Cast h7.K h7.c₁) (IsIntegral.Nat h7.K q)
-  · rw [zsmul_eq_mul, ← mul_assoc]; nth_rw 2 [mul_comm]; rw [mul_assoc]
-    apply IsIntegral.mul (IsIntegral.Nat h7.K q)
-    rw [← zsmul_eq_mul]
-    exact h7.isIntegral_c₁β
+  simpa [smul_add, zsmul_eq_mul, nsmul_eq_mul, mul_assoc, mul_left_comm, mul_comm] using
+    (IsIntegral.add
+      ((IsIntegral.Cast h7.K h7.c₁).mul (IsIntegral.Nat h7.K q))
+      ((IsIntegral.Nat h7.K q).mul h7.isIntegral_c₁β))
 
 lemma isInt_β_bound_low (q : ℕ) (t : Fin (q * q)) :
-    IsIntegral ℤ (h7.c₁ • (↑(a q t) + b q t • h7.β')) := by
-  simp only [nsmul_eq_mul, smul_add, zsmul_eq_mul]
-  apply IsIntegral.add
-  · apply IsIntegral.mul (IsIntegral.Cast h7.K h7.c₁) (IsIntegral.Nat h7.K (a q t))
-  · rw [← mul_assoc]; nth_rw 2 [mul_comm]; rw [mul_assoc]
-    apply IsIntegral.mul (IsIntegral.Nat h7.K (b q t)) ?_
-    · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁β
+  IsIntegral ℤ (h7.c₁ • (↑(a q t) + b q t • h7.β')) := by
+  simpa [smul_add, zsmul_eq_mul, nsmul_eq_mul, mul_add,
+  mul_assoc, mul_comm, mul_left_comm, add_assoc, add_comm, add_left_comm] using
+  (IsIntegral.add
+    ((IsIntegral.Cast h7.K h7.c₁).mul (IsIntegral.Nat h7.K (a q t)))
+    ((IsIntegral.Nat h7.K (b q t)).mul h7.isIntegral_c₁β))
 
 lemma bound_c₁β (q : ℕ) (hq0 : 0 < q) :
   1 ≤ house ((h7.c₁ • (q + q • h7.β'))) := by
-  apply one_le_house_of_isIntegral
-  · exact h7.isInt_β_bound q
+  apply one_le_house_of_isIntegral (h7.isInt_β_bound q)
   simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
   constructor
   · rw [← ne_eq]; exact h7.c₁neq0
