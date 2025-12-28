@@ -2453,12 +2453,10 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
       · refine pow_le_pow_right₀ ?_ ?_
         · exact one_leq_abs_c₁ h7
         · simp only [mul_assoc]
-          refine Nat.mul_le_mul ?_ ?_
-          · simp only [le_refl]
+          refine Nat.mul_le_mul (le_refl _) ?_
           · rw [q_eq_2sqrtmn h7 q h2mq]
             simp only [add_le_add_iff_left, Nat.ofNat_pos, mul_le_mul_iff_right₀]
-            refine Nat.mul_le_mul ?_ ?_
-            · simp only [le_refl]
+            refine Nat.mul_le_mul (le_refl _) ?_
             · trans
               · have : q ≤ q^2 := by
                  refine Nat.le_pow ?_
@@ -2468,8 +2466,7 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
       · simp only [mul_assoc]
         refine pow_le_pow_right₀ ?_ ?_
         · exact one_leq_abs_c₁ h7
-        · refine Nat.mul_le_mul ?_ ?_
-          · simp only [le_refl]
+        · refine Nat.mul_le_mul (le_refl _) ?_
           · rw [q_eq_2sqrtmn h7 q h2mq]
             simp only [add_le_add_iff_left]
             have : 2 * (h7.m * (2 * h7.m * h7.n q))=
@@ -2486,11 +2483,9 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
         · exact one_leq_abs_c₁ h7
         · simp only [add_le_add_iff_left]
           simp only [mul_assoc]
-          refine Nat.mul_le_mul ?_ ?_
-          · simp only [le_refl]
+          refine Nat.mul_le_mul (le_refl _) ?_
           · simp only [Nat.ofNat_pos, mul_le_mul_iff_right₀]
-            refine Nat.mul_le_mul ?_ ?_
-            · simp only [le_refl]
+            refine Nat.mul_le_mul (le_refl _) ?_
             · exact n_leq_r h7 q hq0 h2mq
       · refine pow_lt_pow_left₀ ?_ ?_ ?_
         · simp only [lt_add_iff_pos_right, zero_lt_one]
@@ -2505,7 +2500,6 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
               symm ;apply Nat.pos_iff_ne_zero.mp
               dsimp [h]
               exact Module.finrank_pos
-
             apply this
             exact h1.symm
           · apply rneq0 h7 q hq0 h2mq
@@ -2735,8 +2729,7 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
     · simp only [norm_nonneg]
   · unfold rho
     simp only [le_refl]
-  · apply mul_le_mul
-    · simp only [le_refl]
+  · apply mul_le_mul (le_refl _)
     · exact
       house_sum_le_sum_house Finset.univ fun i ↦
         (algebraMap (𝓞 h7.K) h7.K) (h7.η q hq0 h2mq i)
@@ -2785,8 +2778,7 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
     intros t ht
     · trans
       · apply house_mul_le
-      · refine mul_le_mul_of_nonneg ?_ ?_ ?_ ?_
-        · simp only [le_refl]
+      · refine mul_le_mul_of_nonneg (le_refl _) ?_ ?_ ?_
         · trans
           apply house_mul_le
           · refine mul_le_mul_of_nonneg (le_refl _) ?_ ?_ ?_
@@ -3197,11 +3189,7 @@ lemma eq6b : (q*q) * ((((h7.c₄ ^ (h7.n q : ℝ) *
               · exact one_leq_c₇ h7
               · trans
                 apply h7.q_le_two_mn q h2mq
-                apply mul_le_mul
-                · simp only [le_refl]
-                · exact n_leq_r h7 q hq0 h2mq
-                · positivity
-                · positivity
+                apply mul_le_mul (le_refl _) (n_leq_r h7 q hq0 h2mq) (by positivity) (by positivity)
             · unfold c₇ house; positivity
             · unfold c₆ house; positivity
           · unfold c₇ c₆ house; positivity
@@ -4363,8 +4351,7 @@ lemma S_eq_SR_on_circle :
     apply absurd (this)
     simp only [not_le]
     nth_rw 1 [← mul_one (a:=(h7.m:ℝ))]
-    apply mul_lt_mul'
-    · simp only [le_refl]
+    apply mul_lt_mul' (le_refl _)
     · simp only [lt_add_iff_pos_right]
       refine div_pos ?_ ?_
       · simp only [Nat.cast_pos]; exact r_qt_0 h7 q hq0 h2mq
@@ -5558,15 +5545,8 @@ lemma eq8 : norm (ρᵣ h7 q hq0 h2mq) ≤ (h7.c₁₃) ^ (h7.r q hq0 h2mq : ℝ
 
 def c₁₄ : ℝ := (h7.c₈^((h7.h-1)) * h7.c₁₃)
 
-lemma c14_nonneg : 1 ≤ h7.c₁₄ := by
-  unfold c₁₄
-  have : 1 ≤ h7.c₆ := h7.one_leq_c₆
-  have : 1 ≤ h7.c₇ := h7.one_leq_c₇
-  have := h7.one_leq_c₄
-  have h1 := h7.c8_geq_one
-  have := h7.one_le_c13
-  refine one_le_mul_of_one_le_of_one_le ?_ (this)
-  (expose_names; exact one_le_pow₀ h1)
+lemma c14_nonneg : 1 ≤ h7.c₁₄ :=
+  one_le_mul_of_one_le_of_one_le (one_le_pow₀ h7.c8_geq_one) h7.one_le_c13
 
 include u t in
 lemma use6and8 :
