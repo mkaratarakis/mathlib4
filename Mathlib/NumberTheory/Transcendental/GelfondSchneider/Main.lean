@@ -5937,7 +5937,6 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
             · simp only [tsub_le_iff_right, sub_add_cancel]
               rw [mul_comm]
               norm_cast
-
           · rw [sub_eq_neg_add]
             rw [mul_add]
             simp only [mul_neg, le_neg_add_iff_add_le]
