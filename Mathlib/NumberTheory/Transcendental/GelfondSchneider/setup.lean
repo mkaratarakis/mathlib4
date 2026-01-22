@@ -105,7 +105,7 @@ lemma exists_common_field_of_isAlgebraic (α β γ : ℂ) (hα : IsAlgebraic ℚ
 /-!
 Let `α` and `β` be algebraic numbers with `α ≠ 0, 1` and `β` irrational.
 We prove that `αᵇ` is transcendental by contradiction.
-Suppose `γ = αᵇ = e^(β log α)` is also algebraic.
+Suppose `γ = αᵇ` is also algebraic.
 -/
 
 /--
@@ -172,15 +172,6 @@ Let `m = 2h + 2, n = q² / 2m`
 where `q² = t` is a square of a natural number and is a multiple of `2m`.
 -/
 
-
-
-
-
-
-
-
-
-
 variable {K} [Field K] [NumberField K]
 
 lemma exists_int_smul_isIntegral {K : Type*} [Field K] [NumberField K] (α : K) :
@@ -203,8 +194,7 @@ abbrev c₀Coeff {K : Type*} [Field K] [NumberField K] (α : K) : ℤ :=
 lemma c₀Coeff_ne_zero (α : K) : c₀Coeff α ≠ 0 :=
   (c₀ α).2.1
 
-def c₁ : ℤ :=
-  abs (c₀Coeff h7.α' * c₀Coeff h7.β' * c₀Coeff h7.γ')
+def c₁ : ℤ := abs (c₀Coeff h7.α' * c₀Coeff h7.β' * c₀Coeff h7.γ')
 
 lemma one_le_c₁ : 1 ≤ h7.c₁ := by
   have h := (mul_ne_zero (mul_ne_zero (c₀Coeff_ne_zero h7.α')
@@ -255,19 +245,22 @@ lemma isIntegral_c₁_smul_gamma' : IsIntegral ℤ (h7.c₁ • h7.γ') := by
 
 
 /-!
-Also, let `ρ₁, ρ₂, …, ρₜ` represent the `t` numbers
-  `(a + bβ) log α,  1 ≤ a ≤ q, 1 ≤ b ≤ q.`
+Also, let `ρ₁, ρ₂, …, ρₜ` represent the `t` numbers `(a + bβ) log α,  1 ≤ a ≤ q, 1 ≤ b ≤ q.`
+-/
 
+/-!
 We introduce the integral function
   `R(x) = η₁ e^(ρ₁ x) + … + ηₜ e^(ρₜ x)`
-where the coefficients `η₁, …, ηₜ` are determined by the following conditions.
+where the coefficients `η₁, …, ηₜ` are determined by the following conditions.-/
 
+/-!
 We solve the system of `mn` homogeneous linear equations
   `(log α)⁻ᵏ R⁽ᵏ⁾(l) = 0,  0 ≤ k ≤ n - 1, 1 ≤ l ≤ m`
 in the `t = 2mn` unknowns `η₁, …, ηₜ`. The coefficients are in `K` and
   `(log α)⁻ᵏ {(a + bβ) log α}ᵏ e^(l(a + bβ) log α) = (a + bβ)ᵏ αᵃˡ γᵇˡ`
-for `1 ≤ l ≤ m, 1 ≤ a, b ≤ q, 0 ≤ k ≤ n - 1`.
+for `1 ≤ l ≤ m, 1 ≤ a, b ≤ q, 0 ≤ k ≤ n - 1`. -/
 
+/-!
 Let `c₁, c₂, …` be natural numbers independent of `n`. There exists `c₁` such that
 `c₁ α, c₁ β, c₁ γ` are integers in `K`. Multiplying the system by
 `c₁ⁿ⁻¹ c₁ᵐᵠ c₁ᵐᵠ = c₁ⁿ⁻¹⁺²ᵐᵠ ≤ c₁ᵗ` ensures the coefficients are integers in `K`.
