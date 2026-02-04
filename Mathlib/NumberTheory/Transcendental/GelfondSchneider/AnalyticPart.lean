@@ -19,15 +19,12 @@ open Set AnalyticAt AnalyticOnNhd
 
 universe u₁ u₂ u₃
 
-lemma analyticOn_congr {𝕜 : Type u₁} {E : Type u₂} {F : Type u₃} [NontriviallyNormedField 𝕜]
-  [NormedAddCommGroup E] [NormedSpace 𝕜 E] [NormedAddCommGroup F] [NormedSpace 𝕜 F]
-   {f g : E → F} {s : Set E} (_ : AnalyticOn 𝕜 f s) (hs : EqOn f g s) :
-     AnalyticOn 𝕜 f s ↔ AnalyticOn 𝕜 g s := by
-  constructor
-  · intro hf
-    exact hf.congr (hs.symm)
-  · intro hg
-    exact hg.congr hs
+lemma analyticOn_congr {𝕜 E F G : Type*} {f g : E → F} {s : Set E}
+  (hs : EqOn f g s)
+  [NontriviallyNormedField 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+  [NormedAddCommGroup F] [NormedSpace 𝕜 F] [NormedAddCommGroup G] [NormedSpace 𝕜 G] :
+   AnalyticOn 𝕜 f s ↔ AnalyticOn 𝕜 g s :=
+  ⟨fun h ↦ h.congr hs.symm, fun h ↦ h.congr hs⟩
 
 lemma zero_iff_order_inf : ∀ (f : ℂ → ℂ) (z : ℂ) (_ : ∀ z, AnalyticAt ℂ f z),
   (∀ z, f z = 0) ↔ analyticOrderAt f z = ⊤ := by
@@ -404,7 +401,7 @@ lemma hasFPowerSeriesWithinAt_nhds_iff (f : ℂ → ℂ) (p : FormalMultilinearS
       rw [Metric.mem_nhds_iff] at hU
       obtain ⟨r', hr', hball⟩:= hU
       let r'' : ENNReal := Option.some ⟨r', by linarith⟩
-      have hball' : EMetric.ball z r'' ⊆ U := by aesop
+      have hball' : Metric.eball z r'' ⊆ U := by aesop
       obtain ⟨renn, hr⟩:= H
       use min (renn) r''
       obtain ⟨r_le, r_pos, hs⟩ := hr
@@ -414,13 +411,13 @@ lemma hasFPowerSeriesWithinAt_nhds_iff (f : ℂ → ℂ) (p : FormalMultilinearS
       · intros y a
         apply hs
         · have shift_ball (x y z : ℂ) (renn : ENNReal) :
-            x ∈ EMetric.ball y renn → z + x ∈ EMetric.ball (z + y) renn := by
-              simp only [EMetric.mem_ball, edist_add_left, imp_self]
-          have : z + y ∈ EMetric.ball (z + 0) (min renn r'') := by
+            x ∈ Metric.eball y renn → z + x ∈ Metric.eball (z + y) renn := by
+              simp only [Metric.mem_eball, edist_add_left, imp_self]
+          have : z + y ∈ Metric.eball (z + 0) (min renn r'') := by
             apply shift_ball
             exact a
-          have : z + y ∈ EMetric.ball z (min renn r'') := by aesop
-          have : z + y ∈ EMetric.ball z r'' := by aesop
+          have : z + y ∈ Metric.eball z (min renn r'') := by aesop
+          have : z + y ∈ Metric.eball z r'' := by aesop
           have : z + y ∈ U := by aesop
           aesop
         · aesop
