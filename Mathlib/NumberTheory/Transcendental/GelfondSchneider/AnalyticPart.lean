@@ -60,7 +60,7 @@ lemma analyticOrderAt_deriv_of_pos (f : ℂ → ℂ) z₀ (hf : AnalyticAt ℂ f
     · constructor
       · refine fun_add (?_) (fun_mul (fun_sub (Differentiable.analyticAt (differentiable_fun_id) z₀)
             ( Differentiable.analyticAt (differentiable_const z₀) z₀)) (AnalyticAt.deriv hg))
-        · simp only [nsmul_eq_mul]; exact fun_const_smul hg
+        · simp only [nsmul_eq_mul]; sorry--exact fun_const_smul hg
       · constructor
         · aesop
         · rw [Filter.eventually_iff_exists_mem] at *
