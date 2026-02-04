@@ -1365,6 +1365,9 @@ lemma fromlemma82_bound :
     · apply Real.rpow_nonneg; simp only [Nat.cast_nonneg]
 
 
+
+
+
 lemma decompose_ij (i j : Fin (q * q)) : i = j ↔
   (finProdFinEquiv.symm.1 i).1 = (finProdFinEquiv.symm.1 j).1 ∧
     ((finProdFinEquiv.symm.1 i).2 : Fin q) = (finProdFinEquiv.symm.1 j).2 := by
@@ -1725,17 +1728,18 @@ lemma anever : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by
 
 lemma order_neq_top : ∀ (l' : Fin (h7.m)), analyticOrderAt (h7.R q hq0 h2mq) (l' + 1) ≠ ⊤ := by
   intros l' H
-  rw [← zero_iff_order_inf] at H
+  rw [analyticOrderAt_eq_top_iff_eq_zero] at H
   · apply h7.R_nonzero q hq0 h2mq (by aesop)
   exact (fun z ↦ h7.anever q hq0 h2mq z)
 
 lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z ≠ ⊤ := by
   intros l' H
-  rw [← zero_iff_order_inf] at H
+  rw [analyticOrderAt_eq_top_iff_eq_zero] at H
   · apply h7.R_nonzero
     · rw [funext_iff]
       intros z
-      exact H z
+      rw [funext_iff] at H
+      apply H z
   intros z
   exact h7.anever q hq0 h2mq z
 
@@ -1821,8 +1825,7 @@ lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]
   obtain ⟨l₀, y, r, h1, h2⟩ :=
     (h7.exists_min_order_at q hq0 h2mq)
   have hA1 := h7.R_analyt_at_point q hq0 h2mq (h7.l₀' q hq0 h2mq + 1)
-  exact ((analyticOrderAt_eq_nat_imp_iteratedDeriv_eq_zero (h7.l₀' q hq0 h2mq + 1) (h7.r q hq0 h2mq)
-   (h7.R q hq0 h2mq) hA1) Hrprop).2
+  grind [analyticOrderAt_eq_nat_imp_iteratedDeriv_eq_zero hA1]
 
 lemma order_geq_n_foo (l' : Fin (h7.m)) :
   (∀ k', k' < h7.n q → deriv^[k'] (h7.R q hq0 h2mq) (l' + 1) = 0)
@@ -3433,32 +3436,26 @@ lemma R'analytic (l' : Fin (h7.m)) :
   ∀ z : ℂ, AnalyticAt ℂ (R' h7 q hq0 h2mq l') z := by
     intros z
     by_cases H : z = l' + 1
-
     · have R'prop := (R'prop h7 q hq0 h2mq l')
       apply AnalyticOn.analyticAt _ _ (h7.U q hq0 h2mq l') ?_
-      · have hs : EqOn (R'U h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') (h7.U q hq0 h2mq l') := by {
-        have := (R'_eq_R'U h7 q hq0 h2mq l')
-        simp only at this
-        intros z' hz'
-        subst H
-        simp_all only
-        }
-        have := analyticOn_congr (R'prop.2.2.2) hs
-        rw [← this]
-        exact R'prop.2.2.2
+      ·
+        have hs :
+            EqOn (R'U h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') (h7.U q hq0 h2mq l') := by
+          have := (R'_eq_R'U h7 q hq0 h2mq l')
+          simp only at this
+          intro z' hz'
+          subst H
+          simp_all only
+        exact (analyticOn_congr hs).1 R'prop.2.2.2
       rw [H]
       · exact R'prop.1
-
     · apply AnalyticOn.analyticAt  _ _ {z : ℂ | z ≠ l' + 1} _
-      have hs : EqOn (R'R h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') {z : ℂ | z ≠ l' + 1} := by {
+      have hs : EqOn (R'R h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') {z : ℂ | z ≠ l' + 1} := by
         have := R'_eq_R'R h7 q hq0 h2mq l'
         simp only at this
         intros z' hz'
         aesop
-        }
-      have := analyticOn_congr (R'R_analytic h7 q hq0 h2mq l') hs
-      rw [← this]
-      exact R'R_analytic h7 q hq0 h2mq l'
+      exact (analyticOn_congr hs).1 (R'R_analytic h7 q hq0 h2mq l')
       apply IsOpen.mem_nhds isOpen_ne
       simp only [ne_eq, mem_setOf_eq, H, not_false_eq_true]
 
