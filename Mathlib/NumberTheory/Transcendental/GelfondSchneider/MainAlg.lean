@@ -6,8 +6,6 @@ Authors: Michail Karatarakis
 
 module
 
---public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AlgebraicPart
-public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AnalyticPart
 public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.NumberTheory.NumberField.Basic
 public import Mathlib.NumberTheory.NumberField.House

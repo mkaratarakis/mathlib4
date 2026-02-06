@@ -38,7 +38,8 @@ lemma c9_gt_1 : 1 ≤ h7.c₉ := by
   apply Real.one_le_exp
   positivity
 
-variable {z : ℂ} {l₀ : ℝ} (hz : (z : ℂ) ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq / q))))
+variable {z : ℂ} {l₀ : ℝ} (hz : (z : ℂ)
+    ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq / q))))
   (hl0 : (l₀ : ℝ) < (h7.m : ℝ) * (1 + h7.r q hq0 h2mq / q))
 
 include hz in

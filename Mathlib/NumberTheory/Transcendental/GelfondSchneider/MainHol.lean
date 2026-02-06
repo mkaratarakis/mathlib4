@@ -1,4 +1,3 @@
-
 /-
 Copyright (c) 2025 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
@@ -7,7 +6,7 @@ Authors: Michail Karatarakis
 
 module
 
-public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainOrder
+public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAnalytic
 
 @[expose] public section
 
