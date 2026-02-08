@@ -44,12 +44,6 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
 
 noncomputable section
 
-
-lemma adjoin_simple_le_adjoin_insert (α β : ℂ) (_ : IsAlgebraic ℚ α) (_ : IsAlgebraic ℚ β) :
-  (adjoin _ {α} ≤ adjoin ℚ {α, β}) ∧ (adjoin _ {β} ≤ adjoin ℚ {α, β}) :=
-  ⟨by apply adjoin.mono; intros x hx; left; exact hx,
-   by apply adjoin.mono; intros x hx; right; exact hx⟩
-
 /-!
 Suppose that `α, β, γ` lie in an algebraic field `K` with degree `h`.
 -/
@@ -67,11 +61,14 @@ lemma isNumberField_adjoin_alg_numbers (α β γ : ℂ)
     simp_rw [mem_singleton_iff.1 hc, isAlgebraic_iff_isIntegral.1 hγ]
     )}
 
-lemma exists_common_field_of_isAlgebraic (α β γ : ℂ) (hα : IsAlgebraic ℚ α)
-    (hβ : IsAlgebraic ℚ β) (hγ : IsAlgebraic ℚ γ) :
-      ∃ (K : Type) (_ : Field K) (_ : NumberField K)
-      (σ : K →+* ℂ) (_ : DecidableEq (K →+* ℂ)),
-    ∃ (α' β' γ' : K), α = σ α' ∧ β = σ β' ∧ γ = σ γ' := by
+lemma adjoin_simple_le_adjoin_insert (α β : ℂ) (_ : IsAlgebraic ℚ α) (_ : IsAlgebraic ℚ β) :
+  (adjoin _ {α} ≤ adjoin ℚ {α, β}) ∧ (adjoin _ {β} ≤ adjoin ℚ {α, β}) :=
+  ⟨by apply adjoin.mono; intros x hx; left; exact hx,
+   by apply adjoin.mono; intros x hx; right; exact hx⟩
+
+lemma exists_common_field_of_isAlgebraic (α β γ : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgebraic ℚ β)
+    (hγ : IsAlgebraic ℚ γ) : ∃ (K : Type) (_ : Field K) (_ : NumberField K) (σ : K →+* ℂ)
+    (_ : DecidableEq (K →+* ℂ)), ∃ (α' β' γ' : K), α = σ α' ∧ β = σ β' ∧ γ = σ γ' := by
   have  hab := adjoin.mono ℚ {α, β} {α, β, γ}
     fun x hxab => by
       rcases hxab with ⟨hxa, hxb⟩
