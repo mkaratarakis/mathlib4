@@ -16,8 +16,7 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
 
 noncomputable section
 
-variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q)
-(u : Fin (h7.m * h7.n q))
+variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
 namespace Setup
@@ -93,14 +92,12 @@ lemma exists_R'_at_l'_plus_one (l' : Fin (h7.m))  :
             · apply Differentiable.fun_pow
               · simp only [differentiable_fun_id,
                  differentiable_const, Differentiable.fun_sub]
-          · refine AnalyticOn.analyticAt  R'' x ?_ ?_ ?_
-            · exact U''
-            · --refine IsOpen.mem_nhds ?_ hx2
-              rw [IsOpen.mem_nhds_iff]
+          · apply AnalyticOn.analyticAt (𝕜  := ℂ) (f:= R'') (z := x) (s:=U'') ?_
+            rw [IsOpen.analyticOn_iff_analyticOnNhd]
+            · exact fun x a ↦ hU2prop x (hU'' a)
+            · exact hU''prop1
+            · rw [IsOpen.mem_nhds_iff]
               · exact hx2
-              · exact hU''prop1--refine isOpen_iff_forall_mem_open.mpr ?_
-            · rw [IsOpen.analyticOn_iff_analyticOnNhd]
-              · exact fun x a ↦ hU2prop x (hU'' a)
               · exact hU''prop1
   · exact hA
 
@@ -196,8 +193,8 @@ lemma R'analytic (l' : Fin (h7.m)) :
     intros z
     by_cases H : z = l' + 1
     · have R'prop := (R'prop h7 q hq0 h2mq l')
-      apply AnalyticOn.analyticAt _ _ (h7.U q hq0 h2mq l') ?_
-      ·
+      have hAnalyticOn :
+          AnalyticOn ℂ (R' h7 q hq0 h2mq l') (h7.U q hq0 h2mq l') := by
         have hs :
             EqOn (R'U h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') (h7.U q hq0 h2mq l') := by
           have := (R'_eq_R'U h7 q hq0 h2mq l')
@@ -206,17 +203,34 @@ lemma R'analytic (l' : Fin (h7.m)) :
           subst H
           simp_all only
         exact (analyticOn_congr hs).1 R'prop.2.2.2
-      rw [H]
-      · exact R'prop.1
-    · apply AnalyticOn.analyticAt  _ _ {z : ℂ | z ≠ l' + 1} _
-      have hs : EqOn (R'R h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') {z : ℂ | z ≠ l' + 1} := by
-        have := R'_eq_R'R h7 q hq0 h2mq l'
-        simp only at this
-        intros z' hz'
-        aesop
-      exact (analyticOn_congr hs).1 (R'R_analytic h7 q hq0 h2mq l')
-      apply IsOpen.mem_nhds isOpen_ne
-      simp only [ne_eq, mem_setOf_eq, H, not_false_eq_true]
+      have hU : (h7.U q hq0 h2mq l') ∈ nhds z := by
+        simpa [H] using R'prop.1
+      exact
+        AnalyticOn.analyticAt (f := R' h7 q hq0 h2mq l') (z := z) (s := h7.U q hq0 h2mq l')
+          hAnalyticOn (hU := hU)
+    ·
+      have hAnalyticOn :
+          AnalyticOn ℂ (R' h7 q hq0 h2mq l') {z : ℂ | z ≠ l' + 1} := by
+        have hs :
+            EqOn (R'R h7 q hq0 h2mq l') (R' h7 q hq0 h2mq l') {z : ℂ | z ≠ l' + 1} := by
+          have := R'_eq_R'R h7 q hq0 h2mq l'
+          simp only at this
+          intros z' hz'
+          aesop
+        exact (analyticOn_congr hs).1 (R'R_analytic h7 q hq0 h2mq l')
+      have hU : ({z : ℂ | z ≠ l' + 1} : Set ℂ) ∈ nhds z := by
+        refine IsOpen.mem_nhds isOpen_ne ?_
+        simpa [Set.mem_setOf_eq] using H
+      exact
+        AnalyticOn.analyticAt (f := R' h7 q hq0 h2mq l') (z := z) (s := {z : ℂ | z ≠ l' + 1})
+          hAnalyticOn (hU := hU)
+      -- have := R'_eq_R'R h7 q hq0 h2mq l'
+      --   simp only at this
+      --   intros z' hz'
+      --   aesop
+      -- exact (analyticOn_congr hs).1 (R'R_analytic h7 q hq0 h2mq l')
+      -- apply IsOpen.mem_nhds isOpen_ne
+      -- simp only [ne_eq, mem_setOf_eq, H, not_false_eq_true]
 
 lemma R'onC (l' : Fin (h7.m)) :
   let R' := R' h7 q hq0 h2mq l'
@@ -401,7 +415,7 @@ lemma SR_analytic_S.U : AnalyticOn ℂ (h7.SR q hq0 h2mq) (S.U h7) := by
       exact id (Eq.symm H)
 
 lemma SR_Analytic (z : ℂ) (hz : z ∈ S.U h7) : AnalyticAt ℂ (h7.SR q hq0 h2mq) z :=
-  AnalyticOn.analyticAt (f:=(h7.SR q hq0 h2mq)) (z:=z) (U:=S.U h7)
+  AnalyticOn.analyticAt (f:=(h7.SR q hq0 h2mq)) (z:=z) (s:=S.U h7)
     (SR_analytic_S.U h7 q hq0 h2mq) (hU:= S.U_nhds h7 z hz)
 
 def SRl0 : ℂ → ℂ := fun z =>
@@ -992,19 +1006,15 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
   have HAE : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by
     intros z
     exact anever h7 q hq0 h2mq z
-
   let R₁ : ℂ → ℂ := R' h7 q hq0 h2mq ((h7.l₀' q hq0 h2mq))
-
   have HR1 : ∀ (z : ℂ), AnalyticAt ℂ R₁ z := by
     unfold R₁
     intros z
     apply R'analytic h7 q hq0 h2mq (h7.l₀' q hq0 h2mq) z
-
   have hR₁ : ∀ (z : ℂ), (h7.R q hq0 h2mq) z =
     ((z - (h7.l₀' q hq0 h2mq + 1)) ^ (h7.r q hq0 h2mq)) * (R₁ z) := by
     intros z
     rw [h7.R'onC]
-
   have hr : h7.r q hq0 h2mq ≤ h7.r q hq0 h2mq := by rfl
   have :
    ∃ R₂ : ℂ → ℂ, (∀ z : ℂ, AnalyticAt ℂ R₂ z) ∧
@@ -1027,8 +1037,7 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
   dsimp [S]
   simp only [add_left_inj, Nat.cast_inj, exists_apply_eq_apply', ↓reduceDIte]
   dsimp
-  ·
-    unfold SRl0
+  · unfold SRl0
     simp only [add_sub_add_right_eq_sub]
     rw [mul_comm   ↑(h7.r q hq0 h2mq).factorial
       (h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq) (↑↑(h7.l₀' q hq0 h2mq) + 1))]
@@ -1040,8 +1049,7 @@ def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
     nth_rw 2 [← mul_one (a:= h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)
       ((h7.l₀' q hq0 h2mq : ℂ) + 1) * ↑(h7.r q hq0 h2mq).factorial)]
     congr
-    have H1 :  ∏ x ∈ Finset.range h7.m \ {↑(h7.l₀' q hq0 h2mq)}, 1=
-     (1 : ℂ) := by
+    have H1 :  ∏ x ∈ Finset.range h7.m \ {↑(h7.l₀' q hq0 h2mq)}, 1 = (1 : ℂ) := by
       simp only [prod_const_one]
     congr
     rw [← H1]

@@ -36,7 +36,7 @@ open Module.Free Module canonicalEmbedding Matrix Finset
 attribute [local instance] Matrix.seminormedAddCommGroup
 
 /-- The house of an algebraic number as the norm of its image by the canonical embedding. -/
-def house (α : K) : ℝ := ‖canonicalEmbedding K α‖
+abbrev house (α : K) : ℝ := ‖canonicalEmbedding K α‖
 
 /-- The house is the largest of the modulus of the conjugates of an algebraic number. -/
 theorem house_eq_sup' (α : K) :

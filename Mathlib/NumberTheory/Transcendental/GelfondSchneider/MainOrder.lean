@@ -199,7 +199,9 @@ lemma ηvec_eq_zero (hVecMulEq0 : (h7.V q).vecMul
     (h7.vandermonde_det_ne_zero q) hVecMulEq0
 
 lemma hbound_sigma : h7.η q hq0 h2mq ≠ 0 :=
-  ((applylemma82 h7 q hq0 h2mq).choose_spec.1)
+  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq) (hM_neq0 h7 q hq0 h2mq)
+  (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _) (fun u t ↦ hAkl h7 q hq0 u t h2mq)
+  (Fintype.card_fin _)).choose_spec.1)
 
 lemma R_nonzero : h7.R q hq0 h2mq ≠ 0 := by
   by_contra H
@@ -341,7 +343,9 @@ lemma deriv_sum_blah_zero :
   h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
   deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) = 0 := by
       rw [deriv_sum_blah]
-      have hMt0 := (applylemma82 h7 q hq0 h2mq).choose_spec.2.1
+      have hMt0 := (NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
+        (hM_neq0 h7 q hq0 h2mq) (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
+        (fun u t ↦ hAkl h7 q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.2.1
       simp only [ne_eq, Nat.cast_mul, Real.rpow_natCast, map_eq_zero,
         FaithfulSMul.algebraMap_eq_zero_iff] at *
       unfold η

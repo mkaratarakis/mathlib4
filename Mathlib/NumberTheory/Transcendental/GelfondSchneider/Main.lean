@@ -1,12 +1,11 @@
 /-
-Copyright (c) 2025 Michail Karatarakis. All rights reserved.
+Copyright (c) 2026 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
 
 module
 
---public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AlgebraicPart
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AnalyticPart
 public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.NumberTheory.NumberField.Basic
@@ -15,7 +14,7 @@ public import Mathlib.Tactic
 
 /-!
 # Hilbert's Seventh Problem (Gelfond–Schneider Theorem)
-The goal of this file is to formalize a proof of the **Gelfond–Schneider Theorem**, which solves
+The goal of this file is to formalize a proof of the Gelfond–Schneider Theorem, which solves
 Hilbert’s Seventh Problem: namely, that for algebraic numbers `α ≠ 0, 1` and irrational algebraic
 `β`, the number `α ^ β` is transcendental.
 
@@ -26,32 +25,15 @@ Hilbert’s Seventh Problem: namely, that for algebraic numbers `α ≠ 0, 1` an
 ## Implementation details
 We follow the proof in Keng’s *Introduction to Number Theory*, Chapter 17, Section 5, p.488 - 493.
 
-The structure of the proof is as follows:
-
-* The argument proceeds by **contradiction**. The core of the proof is
-  an **auxiliary function lemma**, where we construct a nonzero integer linear
-  combination of exponential functions that vanishes to high order at several algebraic
-  points.
+The proof of the argument proceeds by contradiction. The core of the proof is an auxiliary function
+lemma, where we construct a nonzero integer linear combination of exponential functions that
+vanishes to high order at several algebraic points.
 
 ## References
 Loo-Keng Hua, Introduction to Number Theory, Springer, 1982. Chapter XII (§13).
 A. O. Gelfond (1934), *Sur le septième Problème de Hilbert
 T. Schneider (1935), *Transzendenzuntersuchungen periodischer Funktionen*
 -/
-
--- set_option autoImplicit true
--- set_option linter.style.longFile 0
--- set_option linter.unusedTactic false
--- set_option linter.style.multiGoal false
--- set_option linter.style.longLine true
--- set_option linter.unusedSectionVars false
--- set_option linter.style.cdot false
--- set_option linter.unusedVariables false
--- set_option linter.style.longLine false
--- set_option linter.style.cases false
--- set_option linter.style.induction false
--- set_option linter.style.emptyLine false
--- set_option linter.unusedDecidableInType false
 
 @[expose] public section
 

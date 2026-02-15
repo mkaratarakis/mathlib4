@@ -25,10 +25,6 @@ variable {f g : 𝕜 → E} {s : Set 𝕜} [NontriviallyNormedField 𝕜] [Norme
   [NormedSpace 𝕜 E] [NormedAddCommGroup F] [NormedSpace 𝕜 F] [NormedAddCommGroup G]
   [NormedSpace 𝕜 G] {x : E}
 
-lemma analyticOn_congr (hs : EqOn f g s) :
-   AnalyticOn 𝕜 f s ↔ AnalyticOn 𝕜 g s :=
-  ⟨fun h ↦ h.congr hs.symm, fun h ↦ h.congr hs⟩
-
 lemma analyticOrderAt_eq_top_iff_eq_zero [PreconnectedSpace 𝕜] {f : 𝕜 → E} (z : 𝕜)
     (hf : ∀ z₀, AnalyticAt 𝕜 f z₀) : analyticOrderAt f z = ⊤ ↔ f = 0 := by
   refine analyticOrderAt_eq_top.trans ⟨fun h ↦ eqOn_univ .. |>.mp ?_, by simp +contextual⟩
@@ -222,21 +218,3 @@ lemma le_analyticOrderAt_iff_iteratedDeriv_eq_zero {f : ℂ → ℂ} {z₀ : ℂ
   rw [← Hm, ENat.coe_le_coe]
   by_contra! h
   exact ((analyticOrderAt_eq_nat_iff_iteratedDeriv_eq_zero (n := m) f hf).mpr (Hm.symm)).2 (hkn m h)
-
-lemma hasFPowerSeriesWithinAt_nhds_iff (f : E → F) (p : FormalMultilinearSeries 𝕜 E F) {U : Set E}
-    (hU : U ∈ nhds x) :
-    HasFPowerSeriesWithinAt f p U x ↔ HasFPowerSeriesAt f p x := by
-  refine ⟨fun ⟨renn, r_le, r_pos, hs⟩ ↦ ?_,
-    fun ⟨r, hr⟩ ↦ ⟨r, HasFPowerSeriesOnBall.hasFPowerSeriesWithinOnBall hr⟩⟩
-  · have hzmem := mem_of_mem_nhds hU
-    rw [Metric.mem_nhds_iff] at hU
-    obtain ⟨r', hr', hball⟩ := hU
-    use min renn (Option.some ⟨r', by linarith⟩)
-    refine ⟨by aesop, by aesop, fun hy s ↦ hs (U := s) (y := _) (by aesop) (by aesop)⟩
-
-lemma AnalyticOn.analyticAt (f : ℂ → ℂ) (z : ℂ) (U : Set ℂ) (hU : U ∈ nhds z) :
-  AnalyticOn ℂ f U → AnalyticAt ℂ f z := by
-  intros HA
-  obtain ⟨p, hp⟩ := (HA z (mem_of_mem_nhds hU))
-  use p
-  exact (hasFPowerSeriesWithinAt_nhds_iff f p hU).mp hp

@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 
 module
 
+--public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAnalytic
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainHol
 
 @[expose] public section
@@ -15,9 +16,8 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
 
 noncomputable section
 
-variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q)
-(u : Fin (h7.m * h7.n q))
- (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
+variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
+  (t : Fin (q * q)) (h2mq : 2 * h7.m ∣ q ^ 2)
 
 namespace Setup
 
@@ -37,6 +37,8 @@ lemma c9_gt_1 : 1 ≤ h7.c₉ := by
   unfold c₉
   apply Real.one_le_exp
   positivity
+
+variable [DecidableEq (h7.K →+* ℂ)]
 
 variable {z : ℂ} {l₀ : ℝ} (hz : (z : ℂ)
     ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq / q))))
@@ -69,28 +71,18 @@ lemma q_frac : ((↑q + ↑(h7.r q hq0 h2mq)) / ↑q : ℝ ) =
   simp_all only [lt_self_iff_false]
 
 include hz in
-lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
-   (q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
-    (h7.r q hq0 h2mq) ^ (((h7.r q hq0 h2mq : ℝ ) + 1) / 2))
-      * (h7.c₉) ^ (h7.r q hq0 h2mq + q : ℝ)) := by
-
+lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤ (q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
+    (h7.r q hq0 h2mq) ^ (((h7.r q hq0 h2mq : ℝ ) + 1) / 2)) *
+    (h7.c₉) ^ (h7.r q hq0 h2mq + q : ℝ)) := by
   calc _ ≤ ∑ t, ((house ((((algebraMap (𝓞 h7.K) h7.K)
              ((h7.η q hq0 h2mq) t))))) * ‖cexp (h7.ρ q t * z)‖) := ?_
-
-       _ ≤ ∑ t : Fin (q*q), (h7.c₄ ^ (h7.n q : ℝ))
-         * (h7.n q : ℝ) ^ (((h7.n q : ℝ) + 1) / 2)
-        * Real.exp ‖(h7.ρ q t * z)‖ := ?_
-
-       _ ≤ ∑ t : Fin (q*q), (h7.c₄ ^ (h7.n q : ℝ)) *
-       (h7.n q : ℝ) ^ (((h7.n q : ℝ) + 1) / 2) *
-         Real.exp (norm ((q : ℝ) * (1 + norm h7.β) *
-          ‖Complex.log h7.α‖ * (h7.m : ℝ) *
-         ((1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))) := ?_
-
-       _ ≤ (q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
-       (h7.r q hq0 h2mq) ^ (((h7.r q hq0 h2mq : ℝ ) + 1) / 2))
-         * (h7.c₉) ^ (h7.r q hq0 h2mq + q : ℝ)) := ?_
-
+       _ ≤ ∑ t : Fin (q*q), (h7.c₄ ^ (h7.n q : ℝ)) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) + 1) / 2)
+           * Real.exp ‖(h7.ρ q t * z)‖ := ?_
+       _ ≤ ∑ t : Fin (q*q), (h7.c₄ ^ (h7.n q : ℝ)) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) + 1) / 2) *
+           Real.exp (norm ((q : ℝ) * (1 + norm h7.β) * ‖Complex.log h7.α‖ * (h7.m : ℝ) *
+           ((1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))) := ?_
+       _ ≤ (q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) * (h7.r q hq0 h2mq) ^
+           (((h7.r q hq0 h2mq : ℝ ) + 1) / 2)) * (h7.c₉) ^ (h7.r q hq0 h2mq + q : ℝ)) := ?_
   · unfold R
     simp only [canonicalEmbedding.apply_at]
     trans
@@ -108,7 +100,7 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
     · apply Complex.norm_exp_le_exp_norm
     · simp only [norm_nonneg]
     · apply mul_nonneg
-      · simp only [Real.rpow_natCast]; apply pow_nonneg; apply h7.zero_leq_c₄
+      · simp only [Real.rpow_natCast]; apply pow_nonneg; apply h7.zero_le_c₄
       · positivity
   · apply sum_le_sum
     intros i hi
@@ -215,7 +207,7 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
     · apply mul_nonneg
       · simp only [Real.rpow_natCast]
         apply pow_nonneg
-        exact h7.zero_leq_c₄
+        exact h7.zero_le_c₄
       · apply Real.rpow_nonneg
         simp only [Nat.cast_nonneg]
   · simp only [sum_const, card_univ, Fintype.card_fin, nsmul_eq_mul, Nat.cast_mul]
@@ -226,12 +218,12 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
         · simp only [Real.rpow_natCast]
           refine Bound.pow_le_pow_right_of_le_one_or_one_le ?_
           left
-          exact ⟨one_leq_c₄ h7, n_leq_r h7 q hq0 h2mq⟩
+          exact ⟨one_le_c₄ h7, n_le_r h7 q hq0 h2mq⟩
         · calc _ ≤ (h7.r q hq0 h2mq : ℝ) ^ (((h7.n q : ℝ) + 1) / 2) := ?_
                _ ≤ (h7.r q hq0 h2mq : ℝ) ^ (((h7.r q hq0 h2mq :ℝ) + 1) / 2) := ?_
           · apply Real.rpow_le_rpow
             · simp only [Nat.cast_nonneg]
-            · simp only [Nat.cast_le]; exact n_leq_r h7 q hq0 h2mq
+            · simp only [Nat.cast_le]; exact n_le_r h7 q hq0 h2mq
             · refine div_nonneg ?_ ?_
               · norm_cast
                 simp only [le_add_iff_nonneg_left, zero_le]
@@ -240,13 +232,13 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
             · simp only [Nat.one_le_cast]
               trans
               apply h7.one_le_n q hq0 h2mq
-              exact n_leq_r h7 q hq0 h2mq
+              exact n_le_r h7 q hq0 h2mq
             · refine (div_le_div_iff_of_pos_right ?_).mpr ?_
               · simp only [Nat.ofNat_pos]
               · simp only [add_le_add_iff_right, Nat.cast_le]
-                exact n_leq_r h7 q hq0 h2mq
+                exact n_le_r h7 q hq0 h2mq
         · apply Real.rpow_nonneg; simp only [Nat.cast_nonneg]
-        · apply Real.rpow_nonneg; exact zero_leq_c₄ h7
+        · apply Real.rpow_nonneg; exact zero_le_c₄ h7
       ·
         rw [Real.rpow_def_of_pos (x:= h7.c₉)]
         · calc _ ≤ Real.exp (
@@ -324,14 +316,14 @@ lemma abs_Rb : norm ((h7.R q hq0 h2mq) z) ≤
       · positivity
       · apply mul_nonneg
         apply Real.rpow_nonneg
-        exact zero_leq_c₄ h7
+        exact zero_le_c₄ h7
         apply Real.rpow_nonneg
         · positivity
     · simp only [Real.rpow_natCast, norm_mul, Real.norm_eq_abs]
       apply mul_nonneg
       · apply mul_nonneg
         · apply pow_nonneg
-          exact zero_leq_c₄ h7
+          exact zero_le_c₄ h7
         · positivity
       · apply Real.exp_nonneg
     · positivity
@@ -341,7 +333,7 @@ def c₁₀ : ℝ := (2*h7.m* h7.c₄* h7.c₉* h7.c₉^(2*h7.m : ℝ))
 lemma c10_nonneg : 0 ≤ h7.c₁₀ := by
   unfold c₁₀
   apply mul_nonneg
-  · apply mul_nonneg (mul_nonneg (by positivity) (zero_leq_c₄ h7)) (c9_nonneg h7)
+  · apply mul_nonneg (mul_nonneg (by positivity) (zero_le_c₄ h7)) (c9_nonneg h7)
   · apply Real.rpow_nonneg; exact c9_nonneg h7
 
 lemma one_le_c10 : 1 ≤ h7.c₁₀ := by
@@ -356,7 +348,7 @@ lemma one_le_c10 : 1 ≤ h7.c₁₀ := by
           · refine Left.add_nonneg ?_ ?_
             · simp only [zero_le_one]
             · simp only [Nat.ofNat_pos, mul_nonneg_iff_of_pos_left, Nat.cast_nonneg]
-        · exact one_leq_c₄ h7
+        · exact one_le_c₄ h7
       · simp only [Nat.one_le_cast]; apply h7.one_le_m
     · simp only [Nat.one_le_ofNat]
   · exact c9_pos h7
@@ -379,7 +371,7 @@ lemma abs_R :(q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
       · apply mul_nonneg
         · apply mul_nonneg
           · apply Real.rpow_nonneg
-            · exact zero_leq_c₄ h7
+            · exact zero_le_c₄ h7
           · positivity
         · apply Real.rpow_nonneg
           · exact c9_nonneg h7
@@ -422,7 +414,7 @@ lemma abs_R :(q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
                 apply h7.q_le_two_mn q h2mq
                 apply mul_le_mul
                 · simp only [le_refl]
-                · exact n_leq_r h7 q hq0 h2mq
+                · exact n_le_r h7 q hq0 h2mq
                 · positivity
                 · positivity
               · exact c9_nonneg h7
@@ -454,10 +446,10 @@ lemma abs_R :(q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
           · apply Real.rpow_nonneg
             · exact c9_nonneg h7
         · apply Real.rpow_nonneg
-          · exact zero_leq_c₄ h7
+          · exact zero_le_c₄ h7
       · apply mul_nonneg
         · apply Real.rpow_nonneg
-          · exact zero_leq_c₄ h7
+          · exact zero_le_c₄ h7
         · apply mul_nonneg
           · apply mul_nonneg
             · simp only [Nat.cast_nonneg]
@@ -467,15 +459,15 @@ lemma abs_R :(q * q) * ((h7.c₄ ^ (h7.r q hq0 h2mq : ℝ) *
             · exact c9_nonneg h7
       · positivity
       · positivity
-      · exact zero_leq_c₄ h7
+      · exact zero_le_c₄ h7
       · apply mul_nonneg
         · positivity
-        · exact zero_leq_c₄ h7
+        · exact zero_le_c₄ h7
       · exact c9_nonneg h7
       · apply mul_nonneg
         · apply mul_nonneg
           ·  positivity
-          · exact zero_leq_c₄ h7
+          · exact zero_le_c₄ h7
         · exact c9_nonneg h7
       · apply Real.rpow_nonneg
         exact c9_nonneg h7
@@ -879,7 +871,7 @@ lemma S_norm_bound : ∀ (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2
             · apply mul_le_mul
               · simp only [le_refl]
               · simp only [Nat.cast_nonneg, Real.sqrt_le_sqrt_iff, Nat.cast_le]
-                exact n_leq_r h7 q hq0 h2mq
+                exact n_le_r h7 q hq0 h2mq
               · positivity
               · positivity
             · positivity
@@ -1150,7 +1142,7 @@ lemma eq8 : norm (ρᵣ h7 q hq0 h2mq) ≤ (h7.c₁₃) ^ (h7.r q hq0 h2mq : ℝ
               · norm_cast
                 trans
                 apply h7.q_le_two_mn q h2mq
-                apply mul_le_mul (le_refl _) (n_leq_r h7 q hq0 h2mq) (by positivity) (by positivity)
+                apply mul_le_mul (le_refl _) (n_le_r h7 q hq0 h2mq) (by positivity) (by positivity)
             · ring_nf
               rw [mul_inv_cancel₀]
               simp only [one_mul]
@@ -1465,7 +1457,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
 
   let u : Fin (h7.m * h7.n q) := ⟨0, by
     apply mul_pos; exact hm h7; unfold n;
-    apply Nat.div_pos (qsqrt_leq_2m h7 q hq0 h2mq) ?_
+    apply Nat.div_pos (qsqrt_le_2m h7 q hq0 h2mq) ?_
     · simp only [Nat.ofNat_pos, mul_pos_iff_of_pos_left]
       exact hm h7⟩
 
@@ -1474,7 +1466,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
   have use5 := use5 h7 q hq0 u t h2mq
 
   have hnr : (h7.n q : ℝ) ≤ (h7.r q hq0 h2mq : ℝ) :=
-    mod_cast n_leq_r h7 q hq0 h2mq
+    mod_cast n_le_r h7 q hq0 h2mq
 
   have H1 : (2*h7.m) * (6* h7.h) ≤ q := by
     unfold q
@@ -1560,13 +1552,13 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
   have H5 : 6* h7.h ≤ h7.r q hq0 h2mq := by
     trans
     apply H3
-    exact (n_leq_r h7 q hq0 h2mq)
+    exact (n_le_r h7 q hq0 h2mq)
 
   have H6 : (h7.c₁₅)^4 ≤ h7.r q hq0 h2mq := by
     trans
     apply H4
     simp only [Nat.cast_le]
-    exact n_leq_r h7 q hq0 h2mq
+    exact n_le_r h7 q hq0 h2mq
 
   apply absurd
   · apply use5
