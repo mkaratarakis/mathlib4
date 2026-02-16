@@ -18,12 +18,6 @@ noncomputable section
 variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
--- `a, b, k, l` are values that depend on the context variables `t` and `u`.
-def a : ℕ := (finProdFinEquiv.symm.toFun t).1 + 1
-def b : ℕ := (finProdFinEquiv.symm.toFun t).2 + 1
-def k : ℕ := (finProdFinEquiv.symm.toFun u).2
-def l : ℕ := (finProdFinEquiv.symm.toFun u).1 + 1
-
 lemma decompose_ij (i j : Fin (q * q)) : i = j ↔
   (finProdFinEquiv.symm.1 i).1 = (finProdFinEquiv.symm.1 j).1 ∧
     ((finProdFinEquiv.symm.1 i).2 : Fin q) = (finProdFinEquiv.symm.1 j).2 := by
@@ -40,8 +34,6 @@ lemma decompose_ij (i j : Fin (q * q)) : i = j ↔
     assumption
 
 namespace Setup
-
-def ρ : ℂ := (a q t + (b q t • h7.β)) * Complex.log h7.α
 
 omit [DecidableEq (h7.K →+* ℂ)] in
 lemma hdist : ∀ (i j : Fin (q * q)), i ≠ j → ρ h7 q i ≠ ρ h7 q j := by
@@ -199,7 +191,7 @@ lemma ηvec_eq_zero (hVecMulEq0 : (h7.V q).vecMul
     (h7.vandermonde_det_ne_zero q) hVecMulEq0
 
 lemma hbound_sigma : h7.η q hq0 h2mq ≠ 0 :=
-  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq) (hM_neq0 h7 q hq0 h2mq)
+  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq) (hM_ne_zero h7 q hq0 h2mq)
   (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _) (fun u t ↦ hAkl h7 q hq0 u t h2mq)
   (Fintype.card_fin _)).choose_spec.1)
 
@@ -344,7 +336,7 @@ lemma deriv_sum_blah_zero :
   deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) = 0 := by
       rw [deriv_sum_blah]
       have hMt0 := (NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
-        (hM_neq0 h7 q hq0 h2mq) (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
+        (hM_ne_zero h7 q hq0 h2mq) (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
         (fun u t ↦ hAkl h7 q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.2.1
       simp only [ne_eq, Nat.cast_mul, Real.rpow_natCast, map_eq_zero,
         FaithfulSMul.algebraMap_eq_zero_iff] at *
@@ -370,9 +362,9 @@ lemma iteratedDeriv_vanishes (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
         map_intCast, zpow_neg, zpow_natCast,
         mul_eq_zero, pow_eq_zero_iff', Int.cast_eq_zero, ne_eq, not_or, inv_eq_zero] at H
       rcases H with ⟨h1, h2⟩
-      · apply h7.c₁neq0; assumption
-      ·  apply h7.c₁neq0; rename_i h2; exact h2.1
-      · apply h7.c₁neq0; rename_i h2; exact h2.1
+      · apply h7.c₁_ne_zero; assumption
+      ·  apply h7.c₁_ne_zero; rename_i h2; exact h2.1
+      · apply h7.c₁_ne_zero; rename_i h2; exact h2.1
       ·  apply h7.log_zero_zero; rename_i h2; exact h2.1
   rw [this]
   rw [mul_zero]
