@@ -357,15 +357,15 @@ lemma sq_le_two_mn : q ^ 2 ≤ 2 * h7.m * h7.n q := by
 
 abbrev c_coeffs (q : ℕ) := h7.c₁ ^ (h7.n q - 1) * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q)
 
+@[simp]
+lemma zsmul_triple_comm {K : Type*} [Field K] (a b c : ℤ) (x y z : K) :
+    ((a * b) * c) • ((x * y) * z) = a • x * b • y * c • z := by
+  simp [zsmul_eq_mul]; ring
+
 open Nat in include hq0 h2mq in
 lemma c₁IsInt (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :
     IsIntegral ℤ (h7.c_coeffs q • h7.sys_coe q u t) := by
-  have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
-     ((a * b) * c) • ((x * y) * z) = a•x * b•y * c•z := by
-    simp only [zsmul_eq_mul, Int.cast_mul]; ring
-  rw [triple_comm h7.K (h7.c₁ ^ (h7.n q - 1) : ℤ) (h7.c₁ ^ (h7.m * q) : ℤ)
-      (h7.c₁ ^ (h7.m * q) : ℤ) (((a q t) + b q t • h7.β') ^ (h7.k q u)) (h7.α' ^ (a q t * h7.l q u))
-      (h7.γ' ^ (b q t * h7.l q u))]
+  simp only [zsmul_triple_comm]
   rw [mul_assoc]
   apply IsIntegral.mul ?_ (IsIntegral.mul (h7.c1a q hq0 u t) (h7.c1c q hq0 u t))
   · exact h7.c₁b (h7.n q) (h7.one_le_n q hq0 h2mq) (h7.k q u)
@@ -654,7 +654,7 @@ lemma foo : |↑q| ^ (h7.n q - 1) * ((1 + house h7.β') ^ (h7.n q - 1) * (house 
                   · simp only [le_sup_right]
 
 /-! Moreover, the absolute value of the conjugates of the various coefficients is at most
-  `c₂^n (q + q * |β|)^(n - 1) * |α|^(m q) * |γ|^(m q) ≤ c₃^n * n^((n - 1) / 2)`.
+  `c₂^n (q + q * |β|) ^ (n - 1) * |α| ^ (m q) * |γ| ^ (m q) ≤ c₃^n * n^((n - 1) / 2)`.
 -/
 include hq0 h2mq in
 lemma hAkl : house ((algebraMap (𝓞 h7.K) h7.K) ((h7.A q) hq0 h2mq u t)) ≤
@@ -706,16 +706,9 @@ lemma hAkl : house ((algebraMap (𝓞 h7.K) h7.K) ((h7.A q) hq0 h2mq u t)) ≤
          _ ≤ ↑(h7.c₂) ^ (h7.n q) * (↑|↑q| ^ ((h7.n q ) - 1) * (1 + house h7.β') ^ (h7.n q - 1) *
              house h7.α' ^ (h7.m * (2 * (h7.m * h7.n q))) *
              house h7.γ' ^ (h7.m * (2 * (h7.m * h7.n q)))) := ?_
-         _ ≤ (h7.c₃)^(h7.n q : ℝ) * ((sqrt (h7.n q))^((h7.n q : ℝ)- 1)) := ?_
-         _ ≤ (h7.c₃ ^ (h7.n q: ℝ) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1) / 2)) := ?_
-    · rw [c_coeffs, h7.c_coeffspow' q u t, smul_assoc]
-      have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
-         ((a * b) * c) • ((x * y)* z) = a • x * b • y * c • z := by
-        simp only [zsmul_eq_mul, Int.cast_mul]; ring
-      rw [triple_comm h7.K (h7.c₁^(h7.k q u)) (h7.c₁^(a q t * h7.l q u)) (h7.c₁^(b q t * h7.l q u))
-          (((a q t) + b q t • h7.β')^(h7.k q u))
-          (h7.α' ^ (a q t * h7.l q u)) (h7.γ' ^ (b q t * h7.l q u))]
-      simp only [nsmul_eq_mul, zsmul_eq_mul, Int.cast_pow, Int.cast_mul, smul_eq_mul,mul_assoc]
+         _ ≤ h7.c₃ ^ (h7.n q : ℝ) * ((sqrt (h7.n q)) ^ ((h7.n q : ℝ)- 1)) := ?_
+         _ ≤ (h7.c₃ ^ (h7.n q : ℝ) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1) / 2)) := ?_
+    · rw [c_coeffs, h7.c_coeffspow' q u t, smul_assoc]; simp; grind
     · simp only [nsmul_eq_mul, zsmul_eq_mul, Int.cast_pow,mul_assoc]
       apply le_trans (house_mul_le _ _) (mul_le_mul (by rfl) ?_ (house_nonneg _) (house_nonneg _))
       · rw [← mul_assoc,← mul_assoc,← mul_assoc]
@@ -786,9 +779,7 @@ lemma hAkl : house ((algebraMap (𝓞 h7.K) h7.K) ((h7.A q) hq0 h2mq u t)) ≤
           · simp only [house_intCast, Int.cast_abs, le_refl]
     · rw [zsmul_eq_mul, zsmul_eq_mul, zsmul_eq_mul, mul_pow, mul_pow, mul_pow, mul_pow, mul_pow,
          abs_pow, abs_pow]; congr; all_goals simp
-    · have triple_comm {K : Type} [Field K] (a b c : ℤ) (x y z : K) : ((a * b) * c) • ((x * y) * z)
-         = a • x * b • y * c • z := by grind
-      have := triple_comm |(h7.c₁ ^ (h7.n q - 1) : ℤ)|
+    · have := zsmul_triple_comm |(h7.c₁ ^ (h7.n q - 1) : ℤ)|
          |(h7.c₁ ^ (h7.m * (2 * (h7.m * h7.n q))) : ℤ)|
          |(h7.c₁ ^ (h7.m * (2 * (h7.m * h7.n q))) : ℤ)|
          ((↑|↑q| * (1 + house (h7.β'))) ^ (h7.n q - 1))
