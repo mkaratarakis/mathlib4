@@ -133,6 +133,7 @@ private theorem c_nonneg : 0 ≤ c K := by
   rw [c]
   positivity
 
+set_option backward.isDefEq.respectTransparency false in
 set_option backward.privateInPublic true in
 set_option backward.privateInPublic.warn false in
 theorem basis_repr_norm_le_const_mul_house (α : 𝓞 K) (i : K →+* ℂ) :
@@ -184,6 +185,7 @@ private def asiegel : Matrix (α × (K →+* ℂ)) (β × (K →+* ℂ)) ℤ := 
 
 variable (ha : a ≠ 0)
 
+set_option backward.isDefEq.respectTransparency false in
 include ha in
 private theorem asiegel_ne_0 : asiegel K a ≠ 0 := by
   simp +unfoldPartialApp only [asiegel, a']
@@ -208,6 +210,7 @@ variable {p q : ℕ} (h0p : 0 < p) (hpq : p < q) (x : β × (K →+* ℂ) → �
 /-- `ξ` is the product of `x (l, r)` and the `r`-th basis element of the newBasis of `K`. -/
 private def ξ : β → 𝓞 K := fun l => ∑ r : K →+* ℂ, x (l, r) * (newBasis K r)
 
+set_option backward.isDefEq.respectTransparency false in
 include hxl in
 private theorem ξ_ne_0 : ξ K x ≠ 0 := by
   intro H
@@ -218,6 +221,7 @@ private theorem ξ_ne_0 : ξ K x ≠ 0 := by
   simp only [zsmul_eq_mul, Fintype.linearIndependent_iff] at hblin
   exact hblin (fun r ↦ x (l, r)) (H _) r
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem lin_1 (l k r) : a k l * (newBasis K) r =
     ∑ u, (a' K a k l r u) * (newBasis K) u := by
   simp only [Basis.sum_repr (newBasis K) (a k l * (newBasis K) r), a', ← zsmul_eq_mul]
@@ -354,6 +358,7 @@ private theorem house_le_bound : ∀ l, house (ξ K x l).1 ≤ (c₁ K) *
       apply (le_trans zero_le_one (le_max_left ..))
   · rw [mul_comm (q : ℝ) (c₁ K)]; rfl
 
+set_option backward.isDefEq.respectTransparency false in
 set_option backward.privateInPublic true in
 set_option backward.privateInPublic.warn false in
 include hpq h0p cardα cardβ ha habs in
