@@ -68,7 +68,7 @@ lemma exists_min_order_at :
   have Hs : s.Nonempty := by
      refine univ_nonempty_iff.mpr ?_
      refine Fin.pos_iff_nonempty.mp ?_
-     exact h7.hm
+     exact (Nat.zero_lt_succ (2 * h7.h + 1))
   let f : (Fin (h7.m)) → ℕ∞ := fun x => (analyticOrderAt (h7.R q hq0 h2mq) (x + 1))
   have  exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
     (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
@@ -160,7 +160,7 @@ lemma r_ne_zero : h7.r q hq0 h2mq ≠ 0 := by
   have : 0 < h7.n q := by
     unfold n; simp only [Nat.div_pos_iff, Nat.ofNat_pos,
     mul_pos_iff_of_pos_left]
-    refine ⟨Nat.zero_lt_succ (2 * h7.h + 1), qsqrt_le_2m h7 q hq0 h2mq⟩
+    refine ⟨Nat.zero_lt_succ (2 * h7.h + 1), Nat.le_of_dvd (Nat.pow_pos hq0) h2mq⟩
   aesop
 
 lemma r_qt_0 : 0 < h7.r q hq0 h2mq :=
@@ -206,7 +206,9 @@ lemma sys_coe_bar_r :
       simp only [zpow_neg, zpow_natCast]
       refine Complex.mul_inv_cancel ?_
       by_contra! H
-      apply h7.log_zero_zero
+      have : Complex.log h7.α ≠ 0 :=
+         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
+      apply this
       simp only [pow_eq_zero_iff', ne_eq] at H
       apply H.1
     rw [this]; clear this
@@ -328,7 +330,9 @@ lemma ρᵣ_nonzero : ρᵣ h7 q hq0 h2mq ≠ 0 := by
     pow_eq_zero_iff', ne_eq, not_or, not_and, Decidable.not_not]
   refine ⟨fun hlog => ?_, h7.exists_nonzero_iteratedFDeriv q hq0 h2mq⟩
   · by_contra H
-    apply h7.log_zero_zero hlog
+    have : Complex.log h7.α ≠ 0 :=
+      mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
+    apply this; exact hlog
 
 lemma rho_nonzero : rho h7 q hq0 h2mq ≠ 0 := by
   intros H
@@ -1130,7 +1134,7 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
               · rw [← smul_eq_mul]
                 exact mod_cast h7.isIntegral_c₁γ
               · rw [← smul_eq_mul]
-                exact mod_cast h7.c₁c_neq_zero
+                exact mod_cast h7.c₁c_ne_zero
               · rw [mul_comm h7.m  q]
                 apply mul_le_mul (b_le_q q t) ?_ (zero_le _) (zero_le _)
                 · exact (h7.l₀' q hq0 h2mq).isLt

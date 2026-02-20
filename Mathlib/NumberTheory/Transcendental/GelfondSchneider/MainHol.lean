@@ -962,7 +962,7 @@ lemma hcauchy :
 
       have H2 : 1 < (↑h7.m * (1 + ↑(h7.r q hq0 h2mq) / ↑q)) := by
         refine Nat.one_lt_mul_iff.mpr ?_
-        · refine ⟨hm h7, ?_⟩
+        · refine ⟨Nat.zero_lt_succ (2 * h7.h + 1), ?_⟩
           · constructor
             simp only [add_pos_iff, zero_lt_one, Nat.div_pos_iff, true_or]
             left
@@ -979,7 +979,7 @@ lemma hcauchy :
         · simp only [Nat.cast_pos];exact r_qt_0 h7 q hq0 h2mq
         · simp only [Nat.cast_pos];exact hq0
       · simp only [zero_le_one]
-      · simp only [Nat.cast_pos];exact hm h7
+      · simp only [Nat.cast_pos];exact Nat.zero_lt_succ (2 * h7.h + 1)
 
     exact this
   · intros x hx
@@ -1092,7 +1092,7 @@ lemma S_eq_SR_on_circle :
       · simp only [Nat.cast_pos]; exact r_qt_0 h7 q hq0 h2mq
       · simp only [Nat.cast_pos]; exact hq0
     · simp only [zero_le_one]
-    · simp only [Nat.cast_pos];exact hm h7
+    · simp only [Nat.cast_pos];exact Nat.zero_lt_succ (2 * h7.h + 1)
   · rfl
 
 end Setup

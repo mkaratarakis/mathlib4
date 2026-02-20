@@ -110,7 +110,8 @@ lemma hdist : ∀ (i j : Fin (q * q)), i ≠ j → ρ h7 q i ≠ ρ h7 q j := by
       rw [h7] at H
       rw [H.symm]
       simp only [Int.cast_sub, Int.cast_natCast]
-  · exact h7.log_zero_zero
+  · exact mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
+
 
 abbrev V := vandermonde (fun t => h7.ρ q t)
 
@@ -191,8 +192,11 @@ lemma ηvec_eq_zero (hVecMulEq0 : (h7.V q).vecMul
     (h7.vandermonde_det_ne_zero q) hVecMulEq0
 
 lemma hbound_sigma : h7.η q hq0 h2mq ≠ 0 :=
-  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq) (hM_ne_zero h7 q hq0 h2mq)
-  (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _) (fun u t ↦ hAkl h7 q hq0 u t h2mq)
+  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
+  (hM_ne_zero h7 q hq0 h2mq)
+  (mul_pos ((Nat.zero_lt_succ (2 * h7.h + 1))) (h7.one_le_n q hq0 h2mq)) (h7.hmn q hq0 h2mq)
+  (Fintype.card_fin _)
+  (fun u t ↦ hAkl h7 q hq0 u t h2mq)
   (Fintype.card_fin _)).choose_spec.1)
 
 lemma R_nonzero : h7.R q hq0 h2mq ≠ 0 := by
@@ -235,7 +239,9 @@ lemma sys_coe_bar :
        simp only [zpow_neg, zpow_natCast]
        refine Complex.mul_inv_cancel ?_
        by_contra H
-       apply h7.log_zero_zero
+       have : Complex.log h7.α ≠ 0 :=
+         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
+       apply this
        simp only [pow_eq_zero_iff', ne_eq] at H
        apply H.1
      rw [this]
@@ -336,7 +342,8 @@ lemma deriv_sum_blah_zero :
   deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) = 0 := by
       rw [deriv_sum_blah]
       have hMt0 := (NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
-        (hM_ne_zero h7 q hq0 h2mq) (h7.h0m q hq0 h2mq) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
+        (hM_ne_zero h7 q hq0 h2mq) (mul_pos ((Nat.zero_lt_succ (2 * h7.h + 1)))
+        (h7.one_le_n q hq0 h2mq)) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
         (fun u t ↦ hAkl h7 q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.2.1
       simp only [ne_eq, Nat.cast_mul, Real.rpow_natCast, map_eq_zero,
         FaithfulSMul.algebraMap_eq_zero_iff] at *
@@ -365,7 +372,9 @@ lemma iteratedDeriv_vanishes (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
       · apply h7.c₁_ne_zero; assumption
       ·  apply h7.c₁_ne_zero; rename_i h2; exact h2.1
       · apply h7.c₁_ne_zero; rename_i h2; exact h2.1
-      ·  apply h7.log_zero_zero; rename_i h2; exact h2.1
+      · have : Complex.log h7.α ≠ 0 :=
+         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
+        apply this; rename_i h2; exact h2.1
   rw [this]
   rw [mul_zero]
   rw [mul_assoc]

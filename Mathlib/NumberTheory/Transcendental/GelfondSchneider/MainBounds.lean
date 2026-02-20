@@ -608,10 +608,10 @@ lemma abs_denom : norm (((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h
             refine ⟨?_,?_⟩
             · rw [← ne_eq]
               exact Ne.symm (Nat.zero_ne_add_one (2 * h7.h + 1))
-            · simp_rw [h7.rneq0]; simp only [not_false_eq_true]
+            · simp_rw [h7.r_ne_zero]; simp only [not_false_eq_true]
           · have : 0 < (q : ℝ) := by exact mod_cast hq0
             exact Ne.symm (ne_of_lt this)
-      · refine (pow_le_pow_iff_left₀ (by positivity) (by positivity) (rneq0 h7 q hq0 h2mq)).mpr ?_
+      · refine (pow_le_pow_iff_left₀ (by positivity) (by positivity) (r_ne_zero h7 q hq0 h2mq)).mpr ?_
         · apply h7.norm_z_minus_km_lower_bound_on_sphere q hq0 h2mq hz
     · rw [norm_prod]
   · apply mul_le_mul
@@ -626,7 +626,7 @@ lemma abs_denom : norm (((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h
       · intros x hx
         simp only [norm_pow]
         rw [div_eq_mul_inv]
-        refine (pow_le_pow_iff_left₀ ?_ ?_ (rneq0 h7 q hq0 h2mq)).mpr ?_
+        refine (pow_le_pow_iff_left₀ ?_ ?_ (r_ne_zero h7 q hq0 h2mq)).mpr ?_
         · positivity
         · positivity
         · simp only [Complex.norm_mul]
@@ -694,7 +694,7 @@ lemma abs_denom : norm (((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h
         refine (pow_le_pow_iff_left₀ ?_ ?_ ?_).mpr ?_
         · positivity
         · positivity
-        · exact rneq0 h7 q hq0 h2mq
+        · exact r_ne_zero h7 q hq0 h2mq
         · simp only [mem_sdiff, Finset.mem_range, Finset.mem_singleton] at hx
           have : ‖(h7.l₀' q hq0 h2mq: ℂ) + 1 - (↑x + 1)‖  ≤ (h7.m : ℝ) := by
             simp only [add_sub_add_right_eq_sub]
@@ -757,7 +757,7 @@ lemma abs_denom : norm (((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h
       · refine (div_le_div_iff_of_pos_left ?_ ?_ ?_).mpr ?_
         · simp only [Nat.cast_pos]; exact hq0
         · apply mul_pos
-          · simp only [Nat.cast_pos];exact hm h7
+          · simp only [Nat.cast_pos];exact Nat.zero_lt_succ (2 * h7.h + 1)
           · simp only [Nat.cast_pos];exact r_qt_0 h7 q hq0 h2mq
         · simp only [Nat.cast_pos];exact r_qt_0 h7 q hq0 h2mq
         · norm_cast
@@ -1004,7 +1004,7 @@ lemma hf : ∀ z ∈ Metric.sphere 0 (h7.m * (1 + ↑(h7.r q hq0 h2mq : ℝ) / �
                 simp only [ne_eq, Nat.add_eq_zero_iff, mul_eq_zero,
                  OfNat.ofNat_ne_zero, false_or,
                   and_false, not_false_eq_true]
-              · simp_rw [h7.rneq0]; simp only [not_false_eq_true]
+              · simp_rw [h7.r_ne_zero]; simp only [not_false_eq_true]
             · have : 0 < (q : ℝ) := by exact mod_cast hq0
               exact Ne.symm (ne_of_lt this)
         apply h7.norm_sub_l0_lower_bound_on_sphere q hq0 h2mq hz
@@ -1154,10 +1154,10 @@ lemma eq8 : norm (ρᵣ h7 q hq0 h2mq) ≤ (h7.c₁₃) ^ (h7.r q hq0 h2mq : ℝ
                 · simp only [Nat.one_le_ofNat]
               · simp only [Nat.one_le_cast]
                 exact one_le_r h7 q hq0 h2mq
-              · simp only [ne_eq, Nat.cast_eq_zero]; exact rneq0 h7 q hq0 h2mq
+              · simp only [ne_eq, Nat.cast_eq_zero]; exact r_ne_zero h7 q hq0 h2mq
               · simp only [ne_eq, Nat.cast_eq_zero]
                 exact Nat.ne_zero_of_lt (h7.one_le_m)
-            · simp only [ne_eq, Nat.cast_eq_zero];exact rneq0 h7 q hq0 h2mq
+            · simp only [ne_eq, Nat.cast_eq_zero];exact r_ne_zero h7 q hq0 h2mq
             · simp only [ne_eq, Nat.cast_eq_zero]
               exact Nat.ne_zero_of_lt hq0
         · apply mul_nonneg
@@ -1438,7 +1438,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
   have hq0 : 0 < q := by
     unfold q
     simp only [CanonicallyOrderedAdd.mul_pos, Nat.ofNat_pos, Nat.ceil_pos,true_and]
-    refine ⟨hm h7, ?_⟩
+    refine ⟨Nat.zero_lt_succ (2 * h7.h + 1), ?_⟩
     refine ⟨?_, ?_⟩
     · unfold h; exact Module.finrank_pos
     · apply pow_pos
@@ -1456,10 +1456,10 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
       exact Nat.dvd_mul_right h7.m (2 * (6 * (h7.h * ⌈h7.c₁₅ ^ 4⌉₊)))
 
   let u : Fin (h7.m * h7.n q) := ⟨0, by
-    apply mul_pos; exact hm h7; unfold n;
+    apply mul_pos; exact Nat.zero_lt_succ (2 * h7.h + 1); unfold n;
     apply Nat.div_pos (qsqrt_le_2m h7 q hq0 h2mq) ?_
     · simp only [Nat.ofNat_pos, mul_pos_iff_of_pos_left]
-      exact hm h7⟩
+      exact Nat.zero_lt_succ (2 * h7.h + 1)⟩
 
   let t : Fin (q * q) := ⟨0, by apply mul_pos; exact hq0; exact hq0⟩
 
@@ -1507,7 +1507,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
       · have : 0 < h7.h := by
           unfold h; exact Module.finrank_pos
         unfold h at *
-        apply mul_pos (by aesop) (hm h7)
+        apply mul_pos (by aesop) (Nat.zero_lt_succ (2 * h7.h + 1))
       · rw [mul_comm, Nat.pow_two]
         apply Nat.le_mul_self
     · unfold n q
@@ -1520,7 +1520,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
     · have : 0 < h7.h := by
         unfold h; exact Module.finrank_pos
       unfold h at *
-      apply mul_pos (by aesop) (hm h7)
+      apply mul_pos (by aesop) (Nat.zero_lt_succ (2 * h7.h + 1))
     · rw [mul_comm, mul_pow]
       apply mul_le_mul
       · rw [Nat.pow_two]; apply Nat.le_mul_self
