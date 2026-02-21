@@ -196,35 +196,37 @@ lemma isIntegral_c₁γ : IsIntegral ℤ (h7.c₁ • h7.γ') := by
 def h : ℕ := Module.finrank ℚ h7.K
 
 /-!
-Let `m = 2h + 2`, and `n = q ^ 2 / (2 * h7.m)`, where $q^2 = t $ is a square of a natural number
-and is a multiple of $2m.$ Following the reference text, we define parameters `m` and `n` dependent
-on the degree `h = [K : ℚ]` and a free parameter `q`.  -/
+Let `m = 2h + 2`, and `n = q^ 2 / (2 * h7.m)`, where $q^2 = t $ is a square of a natural number
+and is a multiple of $2m.$  -/
 
+/- A parameter `m` dependent on the degree `h = [K : ℚ]`. -/
 def m : ℕ := 2 * h7.h + 2
 
 lemma one_le_m : 1 ≤ h7.m := Nat.succ_le_succ (Nat.zero_le (2 * h7.h + 1))
 
-def n (q : ℕ) : ℕ := q ^ 2 / (2 * h7.m)
+variable (q : ℕ) (hq0 : 0 < q)
+
+/- A parameter `n` dependent on a free parameter `q`. -/
+def n : ℕ := q ^ 2 / (2 * h7.m)
 
 
-variable (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q)) (t : Fin (q * q))
-
-/- Also, let `ρ₁, ρ₂, …, ρₜ` represent the `t` numbers
-  `(a + bβ) log α,  1 ≤ a ≤ q, 1 ≤ b ≤ q.`-/
+variable (u : Fin (h7.m * h7.n q)) (t : Fin (q * q))
 
 -- `a, b, k, l` are values that depend on the context variables `t` and `u`.
-def a : ℕ := (finProdFinEquiv.symm.toFun t).1 + 1
-def b : ℕ := (finProdFinEquiv.symm.toFun t).2 + 1
-def k : ℕ := (finProdFinEquiv.symm.toFun u).2
-def l : ℕ := (finProdFinEquiv.symm.toFun u).1 + 1
 
+/- A variable `a` that satisfies `1 ≤ a ≤ q`. -/
+def a : ℕ := (finProdFinEquiv.symm.toFun t).1 + 1
+
+/- A variable `b` that satisfies `1 ≤ b ≤ q`. -/
+def b : ℕ := (finProdFinEquiv.symm.toFun t).2 + 1
+
+/-- Also, let `ρ₁, ρ₂, …, ρₜ` represent the `t` numbers
+  `(a + bβ) log α,  1 ≤ a ≤ q, 1 ≤ b ≤ q.` -/
 def ρ : ℂ := (a q t + (b q t • h7.β)) * Complex.log h7.α
 
-lemma b_le_q : b q t ≤ q := ((finProdFinEquiv.symm.toFun t).2).isLt
-
-lemma l_le_m : h7.l q u ≤ h7.m := ((finProdFinEquiv.symm.toFun u).1).isLt
-
 lemma a_le_q : a q t ≤ q := ((finProdFinEquiv.symm.toFun t).1).isLt
+
+lemma b_le_q : b q t ≤ q := ((finProdFinEquiv.symm.toFun t).2).isLt
 
 /-!
 We introduce the integral function
@@ -244,6 +246,13 @@ Let `c₁, c₂, …` be natural numbers independent of `n`. There exists `c₁`
 `c₁ α, c₁ β, c₁ γ` are integers in `K`. Multiplying the system by
 `c₁ⁿ⁻¹ c₁ᵐᵠ c₁ᵐᵠ = c₁^{n-1+2mq} ≤ c₁^n` ensures the coefficients are integers in `K`.
 -/
+/- A variable `k` that satisfies 0 ≤ k ≤ n - 1-/
+def k : ℕ := (finProdFinEquiv.symm.toFun u).2
+
+/- A variable `l` that satisfies 1 ≤ l ≤ m -/
+def l : ℕ := (finProdFinEquiv.symm.toFun u).1 + 1
+
+lemma l_le_m : h7.l q u ≤ h7.m := ((finProdFinEquiv.symm.toFun u).1).isLt
 
 abbrev c_coeffs0 (q : ℕ) (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :=
   h7.c₁ ^ (h7.k q u : ℕ) * h7.c₁ ^ (a q t * h7.l q u) * h7.c₁ ^ (b q t * h7.l q u)
@@ -283,32 +292,26 @@ lemma c₁b (n : ℕ) (_ : 1 ≤ n) (k : ℕ) (hkn : k ≤ n - 1) (a : ℕ) (_ :
   exact isIntegral_c₁β h7
 
 lemma c1a0 : IsIntegral ℤ (h7.c₁ ^ (a q t * h7.l q u) • (h7.α' ^ (a q t * h7.l q u))) := by
-  apply h7.c₁ac h7.α' (a q t) (h7.l q u) (a q t) (h7.l q u) ?_ ?_
-  · rw [mul_comm]
-  · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
+  apply h7.c₁ac h7.α' (a q t) (h7.l q u) (a q t) (h7.l q u) (by rfl) (by grind [h7.isIntegral_c₁α])
 
 lemma c1c0 : IsIntegral ℤ (h7.c₁ ^ (b q t * h7.l q u) • (h7.γ'^ (b q t * (h7.l q u)))) := by
-  apply h7.c₁ac h7.γ' (b q t) (h7.l q u) (b q t) (h7.l q u) ?_ ?_
-  · rw [mul_comm]
-  · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁γ
+  apply h7.c₁ac h7.γ' (b q t) (h7.l q u) (b q t) (h7.l q u) (by rfl) (by grind [h7.isIntegral_c₁γ])
 
 open Nat in include hq0 in
 lemma c1a : IsIntegral ℤ (h7.c₁^(h7.m * q) • (h7.α' ^ (a q t * h7.l q u))) := by
-  refine h7.c₁ac h7.α' (h7.m) q (a q t) (h7.l q u) ?_ ?_
+  refine h7.c₁ac h7.α' (h7.m) q (a q t) (h7.l q u) ?_ (by grind [h7.isIntegral_c₁α])
   · rw [mul_comm]
     exact Nat.mul_le_mul (add_le_of_le_sub (le_of_ble_eq_true rfl)
       (le_sub_one_of_lt (finProdFinEquiv.symm.1 u).1.isLt))
       (add_le_of_le_sub hq0 (le_sub_one_of_lt ((finProdFinEquiv.symm.1 t).1).isLt))
-  · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
 
 open Nat in include hq0 in
 lemma c1c : IsIntegral ℤ (h7.c₁ ^ (h7.m * q) • (h7.γ'^ (b q t * h7.l q u))) := by
-  refine h7.c₁ac h7.γ' (h7.m) q (b q t) (h7.l q u) ?_ ?_
+  refine h7.c₁ac h7.γ' (h7.m) q (b q t) (h7.l q u) ?_ (by grind [h7.isIntegral_c₁γ])
   · rw [mul_comm]
     exact Nat.mul_le_mul (add_le_of_le_sub (le_of_ble_eq_true rfl)
       (le_sub_one_of_lt (finProdFinEquiv.symm.1 u).1.isLt)) (add_le_of_le_sub hq0 (le_sub_one_of_lt
         (finProdFinEquiv.symm.1 t).2.isLt))
-  · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁γ
 
 abbrev sys_coe : h7.K :=
   (a q t + b q t • h7.β') ^ (h7.k q u) * h7.α' ^ (a q t * h7.l q u) * h7.γ' ^ (b q t * h7.l q u)
@@ -338,8 +341,8 @@ lemma one_le_n : 1 ≤ h7.n q := by
   simpa [n] using
     (Nat.one_le_div_iff (by positivity [h7.one_le_m])).2 (Nat.le_of_dvd (Nat.pow_pos hq0) h2mq)
 
-include hq0 h2mq in
-lemma n_neq_zero : h7.n q ≠ 0 := Nat.ne_zero_of_lt (h7.one_le_n q hq0 h2mq)
+-- include hq0 h2mq in
+-- lemma n_neq_zero : h7.n q ≠ 0 := Nat.ne_zero_of_lt (h7.one_le_n q hq0 h2mq)
 
 include hq0 h2mq in
 lemma qsqrt_le_2m : 2 * h7.m ≤ q ^ 2 := Nat.le_of_dvd (Nat.pow_pos hq0) h2mq
@@ -365,9 +368,8 @@ lemma zsmul_triple_comm {K : Type*} [Field K] (a b c : ℤ) (x y z : K) :
 open Nat in include hq0 h2mq in
 lemma c₁IsInt (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :
     IsIntegral ℤ (h7.c_coeffs q • h7.sys_coe q u t) := by
-  simp only [zsmul_triple_comm]
-  rw [mul_assoc]
-  apply IsIntegral.mul ?_ (IsIntegral.mul (h7.c1a q hq0 u t) (h7.c1c q hq0 u t))
+  rw [zsmul_triple_comm, mul_assoc]
+  refine IsIntegral.mul ?_ (IsIntegral.mul (h7.c1a q hq0 u t) (h7.c1c q hq0 u t))
   · exact h7.c₁b (h7.n q) (h7.one_le_n q hq0 h2mq) (h7.k q u)
       (le_sub_one_of_lt (finProdFinEquiv.symm.1 u).2.isLt)
       (a q t) (le_add_left 1 (finProdFinEquiv.symm.1 t).1)
@@ -376,12 +378,10 @@ lemma c₁IsInt (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :
 lemma c₁_ne_zero : h7.c₁ ≠ 0 := Ne.symm (Int.ne_of_lt h7.one_le_c₁)
 
 lemma c₁α_ne_zero : h7.c₁ • h7.α' ≠ 0 := by
-  simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
-  refine ⟨Ne.symm (Int.ne_of_lt h7.one_le_c₁), (h7.alpha'_beta'_gamma'_ne_zero).1⟩
+  simpa using ⟨Ne.symm (Int.ne_of_lt h7.one_le_c₁), (h7.alpha'_beta'_gamma'_ne_zero).1⟩
 
 lemma c₁c_ne_zero : h7.c₁ • h7.γ' ≠ 0 := by
-  simp only [zsmul_eq_mul, ne_eq, mul_eq_zero, Int.cast_eq_zero, not_or]
-  refine ⟨Ne.symm (Int.ne_of_lt h7.one_le_c₁), (h7.alpha'_beta'_gamma'_ne_zero).2.2⟩
+  simpa using ⟨Ne.symm (Int.ne_of_lt h7.one_le_c₁), (h7.alpha'_beta'_gamma'_ne_zero).2.2⟩
 
 lemma c_coeffs_neq_zero : h7.c_coeffs q ≠ 0 :=
     mul_ne_zero (mul_ne_zero (pow_ne_zero _ (Ne.symm (Int.ne_of_lt h7.one_le_c₁)))
@@ -478,7 +478,7 @@ lemma hM_ne_zero : h7.A q hq0 h2mq ≠ 0 := by
     apply (h7.alpha'_beta'_gamma'_ne_zero).2.2
     exact H2.1
 
-def c₂ : ℤ := (|h7.c₁| ^ (((1 + 2*h7.m * (↑2*h7.m))) + (1 + 2*h7.m * (↑2*h7.m))))
+def c₂ : ℤ := (|h7.c₁| ^ (((1 + 2 * h7.m * (2 * h7.m))) + (1 + 2 * h7.m * (2 * h7.m))))
 
 lemma one_le_c₂ : 1 ≤ h7.c₂ := by
   apply le_trans (Int.cast_one_le_of_pos (h7.one_le_abs_c₁))
@@ -487,8 +487,8 @@ lemma one_le_c₂ : 1 ≤ h7.c₂ := by
   exact Nat.le_add_left 1 ((1 + 2 * h7.m * (2 * h7.m)).add (Nat.add 1
     (((2 * h7.m).mul (Nat.mul 2 (2 * h7.h + 1) + 1)).add (Nat.mul 2 (2 * h7.h + 1) + 1))))
 
-def c₃ : ℝ := h7.c₂ * (1 + house h7.β')* sqrt (2 * h7.m) *
-  (max 1 (((house h7.α' ^ (2 * h7.m ^ 2)) * house h7.γ' ^(2 * h7.m ^2))))
+def c₃ : ℝ := h7.c₂ * (1 + house h7.β') * sqrt (2 * h7.m) *
+  (max 1 (((house h7.α' ^ (2 * h7.m ^ 2)) * house h7.γ' ^(2 * h7.m ^ 2))))
 
 lemma one_le_c₃ : 1 ≤ h7.c₃ := by
   trans
@@ -499,17 +499,17 @@ lemma one_le_c₃ : 1 ≤ h7.c₃ := by
     · have h1 : 1 ≤ (1 + house h7.β') := by
         simp only [le_add_iff_nonneg_right]; apply house_nonneg
       have h2 : 1 ≤ (max 1 ((house h7.α' ^ (2 * h7.m ^ 2) *
-        house h7.γ' ^ (2 * h7.m ^ 2)) ^ 2 * ↑(h7.m))) := le_max_left _ _
-      have h3 : 1 ≤ ((sqrt ((2*h7.m)))) := by
+        house h7.γ' ^ (2 * h7.m ^ 2)) ^ 2 * h7.m)) := le_max_left _ _
+      have h3 : 1 ≤ ((sqrt ((2 * h7.m)))) := by
          rw [one_le_sqrt]
          apply le_trans (mod_cast Nat.zero_lt_succ (2 * h7.h + 1))
            (le_mul_of_one_le_left (by simp) (one_le_two))
       calc 1 ≤ (1 + house h7.β') := h1
-           _ ≤ (1 + house h7.β') * (sqrt ((2*h7.m))) := by
+           _ ≤ (1 + house h7.β') * (sqrt (2 * h7.m)) := by
             nth_rw 1 [← mul_one (a := (1 + house h7.β'))]
             apply mul_le_mul (Preorder.le_refl (1 + house h7.β')) (h3)
               (zero_le_one' ℝ) (zero_le_one.trans h1)
-      nth_rw 1 [← mul_one (a := (1 + house h7.β') * (sqrt ((2*h7.m))))]
+      nth_rw 1 [← mul_one (a := (1 + house h7.β') * (sqrt (2 * h7.m)))]
       simp only [Nat.cast_mul, Nat.cast_ofNat, mul_assoc]
       apply mul_le_mul (le_refl _) ?_ (by grind) (by grind)
       · apply mul_le_mul (le_refl _) (by grind) (by positivity) (by positivity)
@@ -540,19 +540,18 @@ lemma house_add_mul_le :
         · simp only [Nat.abs_cast, Int.cast_natCast, Nat.cast_nonneg]
   · rw [mul_add]; simp only [Int.cast_abs, mul_one]
 
-lemma c₃_pow : h7.c₃ ^ ↑(h7.n q : ℝ) = h7.c₂ ^ ↑(h7.n q) * ((1 + house (h7.β'))^ ↑(h7.n q)) *
-    (sqrt ((2*h7.m)) ^ ↑(h7.n q)) * (max 1 ((house (h7.α') ^ (2*h7.m^2)) * house (h7.γ') ^
-    (2*h7.m^2)))^ ↑(h7.n q) := by
+lemma c₃_pow : h7.c₃ ^ ↑(h7.n q : ℝ) = h7.c₂ ^ ↑(h7.n q) * ((1 + house (h7.β')) ^ ↑(h7.n q)) *
+    (sqrt ((2 * h7.m)) ^ ↑(h7.n q)) * (max 1 ((house (h7.α') ^ (2 * h7.m ^ 2)) * house (h7.γ') ^
+    (2*h7.m^ 2)))^ ↑(h7.n q) := by
   simp only [c₃, rpow_natCast]; rw [mul_pow, mul_pow, mul_pow]
 
 include h2mq in
-lemma q_eq_n_etc : q ^ ((h7.n q) - 1) ≤ (sqrt (2 * h7.m) ^ ((h7.n q) - 1)) * (sqrt (h7.n q)) ^
-  ((h7.n q) - 1) := by
+lemma q_eq_n_etc : q ^ (h7.n q - 1) ≤ (sqrt (2 * h7.m) ^ (h7.n q - 1)) * (sqrt (h7.n q)) ^
+    (h7.n q - 1) := by
   rw [← mul_pow]
   refine pow_le_pow_left₀ (by positivity) ?_ (h7.n q - 1)
   have hq : (q : ℝ) ≤ sqrt (2 * h7.m * h7.n q) := by
-    refine (le_sqrt (by positivity) (by positivity)).2 ?_
-    exact_mod_cast h7.sq_le_two_mn q h2mq
+    refine (le_sqrt (by positivity) (by positivity)).2 (mod_cast h7.sq_le_two_mn q h2mq)
   simpa [mul_assoc, sqrt_mul] using hq
 
 include h2mq in
@@ -596,62 +595,51 @@ lemma c_coeffspow' : ((h7.c₁ : ℤ) ^ (h7.n q - 1) * (h7.c₁ : ℤ) ^ (h7.m *
   grind
 
 include h2mq hq0 in
-lemma foo : |↑q| ^ (h7.n q - 1) * ((1 + house h7.β') ^ (h7.n q - 1) * (house h7.α' ^ (h7.m * (2 *
-    (h7.m * h7.n q))) * house h7.γ' ^ (h7.m * (2 * (h7.m * h7.n q))))) ≤ (1 + house h7.β') ^ h7.n q
-    * (√(2 * ↑h7.m) ^ h7.n q * (max 1 (house h7.α' ^ (2 * h7.m ^ 2) * house h7.γ' ^ (2 * h7.m ^ 2))
-    ^ h7.n q * √↑(h7.n q) ^ (↑(h7.n q : ℝ) - 1))) := by
-        calc _ ≤ (sqrt (2 * h7.m) ^ (h7.n q -1))* (sqrt (h7.n q)) ^ ((h7.n q) -1) *
+lemma abs_q_pow_mul_house_le_c₃_pow : |↑q| ^ (h7.n q - 1) * ((1 + house h7.β') ^ (h7.n q - 1) *
+    (house h7.α' ^ (h7.m * (2 * (h7.m * h7.n q))) * house h7.γ' ^ (h7.m * (2 * (h7.m * h7.n q))))) ≤
+    (1 + house h7.β') ^ h7.n q * (√(2 * ↑h7.m) ^ h7.n q * (max 1 (house h7.α' ^ (2 * h7.m ^ 2) *
+    house h7.γ' ^ (2 * h7.m ^ 2)) ^ h7.n q * √↑(h7.n q) ^ (↑(h7.n q : ℝ) - 1))) := by
+  calc _ ≤ (sqrt (2 * h7.m) ^ (h7.n q -1))* (sqrt (h7.n q)) ^ ((h7.n q) -1) *
                  ((1 + house h7.β') ^ (h7.n q - 1) * (house h7.α' ^ (h7.m * (2 * (h7.m * h7.n q))) *
                  house h7.γ' ^ (h7.m * (2 * (h7.m * h7.n q))))) := ?_
-             _ ≤ (sqrt (2 * h7.m) ^ (h7.n q -1)) * ((1 + house h7.β') ^ (h7.n q - 1) *
+       _ ≤ (sqrt (2 * h7.m) ^ (h7.n q -1)) * ((1 + house h7.β') ^ (h7.n q - 1) *
                  (house h7.α' ^ (h7.m * (2 * (h7.m * h7.n q))) * house h7.γ' ^
                  (h7.m * (2 * (h7.m * h7.n q))))) * sqrt (h7.n q) ^ (((h7.n q) : ℝ) - 1) := ?_
-             _ ≤ √(2 * ↑(h7.m)) ^ (h7.n q - 1) * ((1 + house h7.β') ^ (h7.n q - 1) * (house h7.α' ^
-                 (h7.m * 2 * h7.m * h7.n q) * house h7.γ' ^ (h7.m * 2 * h7.m * h7.n q))) *
-                 (sqrt (h7.n q)) ^ (((h7.n q) : ℝ) -1) := ?_
-             _ ≤ √(2 * ↑(h7.m)) ^ ((h7.n q)) * ((1 + house h7.β') ^ ((h7.n q)) * (house h7.α' ^
+       _ ≤ √(2 * ↑(h7.m)) ^ ((h7.n q)) * ((1 + house h7.β') ^ ((h7.n q)) * (house h7.α' ^
                  (h7.m * 2 * h7.m)) ^ (h7.n q) * (house h7.γ' ^ (h7.m * 2 * h7.m)) ^ (h7.n q)) *
                  (sqrt (h7.n q )) ^ (((h7.n q) : ℝ)-1) := ?_
-        · apply mul_le_mul (by simpa using (h7.q_eq_n_etc q h2mq)) (by rfl) (by positivity)
+  · apply mul_le_mul (by simpa using (h7.q_eq_n_etc q h2mq)) (by rfl) (by positivity)
             (by positivity)
-        · have hsqrt : (sqrt (h7.n q) ^ (h7.n q - 1)) = (sqrt (h7.n q) ^ ((h7.n q : ℝ) - 1)) := by
+  · have hsqrt : (sqrt (h7.n q) ^ (h7.n q - 1)) = (sqrt (h7.n q) ^ ((h7.n q : ℝ) - 1)) := by
             simpa [(Nat.cast_sub (h7.one_le_n q hq0 h2mq))] using
             (rpow_natCast (x := sqrt (h7.n q)) (n := h7.n q - 1)).symm
-          refine le_of_eq ?_
-          simp [hsqrt]
-          ac_rfl
-        · simp [mul_assoc]
-        · simp only [mul_assoc]
-          apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
-          · refine Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ?_)
-            refine ⟨?_, by simp⟩
-            have hm1 : (1 : ℝ) ≤ (h7.m : ℝ) := by exact_mod_cast h7.one_le_m
-            have : (1 : ℝ) ≤ (2 : ℝ) * (h7.m : ℝ) := by nlinarith
-            simpa [Nat.cast_mul, Nat.cast_ofNat] using (one_le_sqrt).2 this
-          · apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
-            · refine Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ?_)
-              refine ⟨?_, Nat.sub_le _ _⟩
-              simp [le_add_iff_nonneg_right]
-            · apply mul_le_mul (by simp [pow_mul]) (by simp [pow_mul]) (by positivity)
+    refine le_of_eq ?_; simp [hsqrt]; ac_rfl
+  · simp only [mul_assoc]
+    apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
+    · refine Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl ⟨?_, by simp⟩)
+      have hm1 : (1 : ℝ) ≤ (h7.m : ℝ) := by exact_mod_cast h7.one_le_m
+      have : (1 : ℝ) ≤ (2 : ℝ) * (h7.m : ℝ) := by nlinarith
+      simpa [Nat.cast_mul, Nat.cast_ofNat] using (one_le_sqrt).2 this
+    · apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
+      · refine Bound.pow_le_pow_right_of_le_one_or_one_le (Or.inl (by simp))
+      · apply mul_le_mul (by simp [pow_mul]) (by simp [pow_mul]) (by positivity)
                 (pow_nonneg (pow_nonneg (house_nonneg _) _) _)
-        · nth_rw 2 [← mul_assoc]
-          rw [mul_comm  ((1 + house h7.β') ^ (h7.n q)) (((sqrt ((2*h7.m)))) ^ (h7.n q))]
-          simp only [mul_assoc]
-          apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
-          · refine pow_le_pow_left₀ (sqrt_nonneg _) (by rfl) (h7.n q)
-          · apply mul_le_mul (by rfl) ?_ (by positivity) (by positivity)
-            · simp only [← mul_assoc]
-              apply mul_le_mul ?_ (by rfl) (by positivity) (by positivity)
-              · rw [← mul_pow]
-                refine pow_le_pow_left₀ (by positivity) ?_ (h7.n q)
-                · have : ((h7.m * 2) * h7.m) = (2 * h7.m^2) := by
-                    rw [mul_comm, ← mul_assoc, pow_two, mul_comm]
-                  rw [this]; clear this
-                  calc _ ≤ ((house h7.α' ^ (2 * h7.m ^ 2) * house h7.γ' ^ (2 * h7.m ^ 2))) := ?_
-                       _ ≤ max 1 ((house h7.α' ^ (2 * h7.m^ 2) *
-                           house h7.γ' ^ (2 * h7.m ^ 2))) := ?_
-                  · apply Preorder.le_refl
-                  · simp only [le_sup_right]
+  · nth_rw 2 [← mul_assoc]
+    rw [mul_comm  ((1 + house h7.β') ^ (h7.n q)) (((sqrt ((2*h7.m)))) ^ (h7.n q))]
+    simp only [mul_assoc]
+    apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
+    · refine pow_le_pow_left₀ (sqrt_nonneg _) (by rfl) (h7.n q)
+    · apply mul_le_mul (by rfl) ?_ (by positivity) (by positivity)
+      · simp only [← mul_assoc]
+        apply mul_le_mul ?_ (by rfl) (by positivity) (by positivity)
+        · rw [← mul_pow]
+          refine pow_le_pow_left₀ (by positivity) ?_ (h7.n q)
+          · have : ((h7.m * 2) * h7.m) = (2 * h7.m ^ 2) := by grind
+            rw [this]; clear this
+            calc _ ≤ house h7.α' ^ (2 * h7.m ^ 2) * house h7.γ' ^ (2 * h7.m ^ 2) := ?_
+                 _ ≤ max 1 ((house h7.α' ^ (2 * h7.m ^ 2) * house h7.γ' ^ (2 * h7.m ^ 2))) := ?_
+            · apply Preorder.le_refl
+            · simp only [le_sup_right]
 
 /-! Moreover, the absolute value of the conjugates of the various coefficients is at most
   `c₂^n (q + q * |β|) ^ (n - 1) * |α| ^ (m q) * |γ| ^ (m q) ≤ c₃^n * n^((n - 1) / 2)`.
@@ -809,7 +797,7 @@ lemma hAkl : house ((algebraMap (𝓞 h7.K) h7.K) ((h7.A q) hq0 h2mq u t)) ≤
       · simp only [Nat.abs_cast, le_refl]
       · apply pow_nonneg; exact mod_cast (le_trans Int.one_nonneg (h7.one_le_c₂))
     · simp_rw [h7.c₃_pow q, mul_assoc]
-      apply mul_le_mul (by rfl) (h7.foo q hq0 h2mq) (by positivity) ?_
+      apply mul_le_mul (by rfl) (h7.abs_q_pow_mul_house_le_c₃_pow q hq0 h2mq) (by positivity) ?_
       · apply pow_nonneg; norm_cast; apply le_trans Int.one_nonneg (h7.one_le_c₂)
     · rw [le_iff_eq_or_lt]; left;
       have : sqrt (h7.n q) ^ ((h7.n q : ℝ) - 1) = (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1) / 2) := by
