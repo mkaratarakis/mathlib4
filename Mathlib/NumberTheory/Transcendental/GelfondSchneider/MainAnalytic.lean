@@ -70,16 +70,10 @@ lemma exists_min_order_at :
      refine Fin.pos_iff_nonempty.mp ?_
      exact (Nat.zero_lt_succ (2 * h7.h + 1))
   let f : (Fin (h7.m)) → ℕ∞ := fun x => (analyticOrderAt (h7.R q hq0 h2mq) (x + 1))
-  have  exists_mem_finset_min' {γ : Type _} {β : Type _} [LinearOrder γ]
-    (s : Finset β) (f : β → γ) (Hs : s.Nonempty) :
-    ∃ x ∈ s, ∃ y, y = f x ∧ ∀ x' ∈ s, y ≤ f x' := by
-      obtain ⟨x, hxs, hx⟩ := s.exists_min_image f Hs
-      exact ⟨x, hxs, f x, rfl, hx⟩
-  have := exists_mem_finset_min' s f Hs
-  obtain ⟨x, hx, ⟨r, h1, h2⟩⟩ := this
+  have := Finset.exists_min_image s f Hs
+  obtain ⟨x, hx, h1⟩ := this
   use x
-  refine ⟨hx, ?_⟩
-  · constructor; refine ⟨id (Eq.symm h1), fun x hx ↦ h2 x hx⟩
+  refine ⟨hx, by aesop⟩
 
 abbrev l₀' : Fin (h7.m) := (exists_min_order_at h7 q hq0 h2mq).choose
 
