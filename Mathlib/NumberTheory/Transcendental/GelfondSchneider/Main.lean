@@ -2024,7 +2024,7 @@ lemma cρ_ne_zero : h7.cρ q hq0 h2mq ≠ 0 := by
   all_goals apply pow_ne_zero _ (h7.c₁neq0)
 
 omit [DecidableEq (h7.K →+* ℂ)] in
-lemma c₁bρ (a b n : ℕ) : 1 ≤ n → h7.k q u ≤ n - 1 → 1 ≤ (a : ℕ) → 1 ≤ (b : ℕ) →
+lemma isIntegral_c₁_smul_pow (a b n : ℕ) : 1 ≤ n → h7.k q u ≤ n - 1 → 1 ≤ (a : ℕ) → 1 ≤ (b : ℕ) →
   IsIntegral ℤ (h7.c₁^(n - 1) • (a + b • h7.β') ^ (h7.k q u)) := by
   intros hn hkn ha hb
   have : h7.c₁^(n - 1) = h7.c₁ ^ (n - 1 - (h7.k q u)) * h7.c₁^(h7.k q u) := by
