@@ -69,7 +69,7 @@ lemma order_neq_top : ∀ (l' : Fin (h7.m)), analyticOrderAt (h7.R q hq0 h2mq) (
   intros l' H
   rw [analyticOrderAt_eq_top_iff_eq_zero] at H
   · apply h7.R_ne_zero q hq0 h2mq (by aesop)
-  exact (fun z ↦ h7.anever q hq0 h2mq z)
+  fun_prop
 
 lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z ≠ ⊤ := by
   intros l' H
@@ -80,7 +80,7 @@ lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z �
       rw [funext_iff] at H
       apply H z
   intros z
-  exact h7.anever q hq0 h2mq z
+  fun_prop
 
 lemma Rorder_exists (z : ℂ) :
     ∃ r, (analyticOrderAt (h7.R q hq0 h2mq) z) = some r := by
@@ -126,7 +126,7 @@ lemma order_geq_n_foo (l' : Fin (h7.m)) :
    → h7.n q ≤ analyticOrderAt (h7.R q hq0 h2mq) (l' + 1) := by
   intros H
   apply le_analyticOrderAt_iff_iteratedDeriv_eq_zero
-  · exact h7.anever q hq0 h2mq (l' + 1)
+  · fun_prop
   · apply order_neq_top h7 q hq0 h2mq l'
   exact H
 
@@ -289,7 +289,7 @@ def deriv_R_k_eval_at_l0' :
   cexp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) * (h7.ρ q t) ^ (h7.r q hq0 h2mq) := by
   rw [iteratedDeriv_R]
 
-lemma systemCoeffs_foo_r :
+lemma systemCoeffs_deriv_r :
  (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
  (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) =
  ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
@@ -307,7 +307,7 @@ def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.systemCoeffs_r q hq0 
 
 def rho_eq_ρᵣ : h7.σ (rho h7 q hq0 h2mq) = ρᵣ h7 q hq0 h2mq := by
   unfold rho ρᵣ
-  rw [systemCoeffs_foo_r]
+  rw [systemCoeffs_deriv_r]
   simp only [map_sum, map_mul, nsmul_eq_mul, map_pow, map_add, map_natCast]
 
 lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]

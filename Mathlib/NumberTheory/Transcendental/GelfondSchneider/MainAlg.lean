@@ -9,7 +9,6 @@ module
 public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.NumberTheory.NumberField.House
 
-
 /-!
 # Hilbert's Seventh Problem (Gelfond–Schneider Theorem)
 The goal of this file is to formalize a proof of the **Gelfond–Schneider Theorem**, which solves

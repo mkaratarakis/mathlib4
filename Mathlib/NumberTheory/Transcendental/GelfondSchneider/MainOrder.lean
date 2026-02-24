@@ -285,7 +285,7 @@ lemma systemCoeffs_bar :
       exact h7.htriv.1
 
 include hq0 h2mq in
-lemma systemCoeffs_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
+lemma systemCoeffs_deriv :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u) =
      ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs q u t) := by
   rw [iteratedDeriv_R, mul_sum, Finset.sum_congr rfl]
@@ -302,7 +302,7 @@ lemma systemCoeffs_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
 lemma coeffs_mulVec_A_eq : h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
     deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) =
     h7.σ ((h7.A q *ᵥ (h7.η q hq0 h2mq)) u) := by
-  rw [systemCoeffs_foo h7 q hq0 u h2mq]
+  rw [systemCoeffs_deriv h7 q hq0 u h2mq]
   unfold Matrix.mulVec dotProduct
   simp only [← map_mul, ← map_sum]
   congr 1

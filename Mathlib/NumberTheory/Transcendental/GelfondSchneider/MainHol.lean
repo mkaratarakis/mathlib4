@@ -99,7 +99,7 @@ lemma exists_R'_at_l'_plus_one (l' : Fin (h7.m))  :
             · rw [IsOpen.mem_nhds_iff]
               · exact hx2
               · exact hU''prop1
-  · exact hA
+  · fun_prop
 
 def R'U (l' : Fin (h7.m)) : ℂ → ℂ := (exists_R'_at_l'_plus_one h7 q hq0 h2mq l').choose
 
