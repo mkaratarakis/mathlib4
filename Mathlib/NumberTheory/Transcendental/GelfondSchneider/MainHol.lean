@@ -996,9 +996,9 @@ lemma hcauchy :
 -- one of R1 is R'
 
 -- (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))
---#check sys_coe_bar
+--#check systemCoeffs_bar
 
-def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
+def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
   Complex.log (h7.α) ^ (-(h7.r q hq0 h2mq : ℤ)) *
    (h7.S q hq0 h2mq) (↑↑(h7.l₀' q hq0 h2mq) + 1) := by
   dsimp [ρᵣ]

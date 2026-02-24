@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2025 Michail Karatarakis. All rights reserved.
+Copyright (c) 2026 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
@@ -8,6 +8,17 @@ module
 
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainOrder
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AnalyticPart
+
+/-! The goal of this file is to establish the critical lower bound for the proof of the
+Gelfond-Schneider Theorem. Having constructed an auxiliary exponential polynomial
+`R(x)` that vanishes to high order at specific points, we now isolate the first non-vanishing
+derivative of `R(x)` and use its algebraic properties to bound it away from zero.
+
+## Main Objective
+
+To derive a contradiction, we need two opposing bounds on the size of the derivatives of `R(x)`.
+This file is entirely dedicated to constructing the lower bound.
+-/
 
 @[expose] public section
 
@@ -147,11 +158,11 @@ lemma r_ne_zero : h7.r q hq0 h2mq ≠ 0 := by
 
 def cρ : ℤ := abs (h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁^(2*h7.m * q))
 
-abbrev sys_coe_r : h7.K := (a q t + b q t • h7.β')^(h7.r q hq0 h2mq) *
+abbrev systemCoeffs_r : h7.K := (a q t + b q t • h7.β')^(h7.r q hq0 h2mq) *
  h7.α' ^(a q t * (h7.l₀' q hq0 h2mq + 1)) * h7.γ' ^(b q t * (h7.l₀' q hq0 h2mq + 1))
 
-lemma sys_coe_ne_zero_r : h7.sys_coe_r q hq0 t h2mq ≠ 0 := by
-  unfold sys_coe_r
+lemma systemCoeffs_ne_zero_r : h7.systemCoeffs_r q hq0 t h2mq ≠ 0 := by
+  unfold systemCoeffs_r
   intros H
   simp only [mul_eq_zero, pow_eq_zero_iff'] at H
   cases H with
@@ -171,10 +182,10 @@ lemma sys_coe_ne_zero_r : h7.sys_coe_r q hq0 t h2mq ≠ 0 := by
 def ρᵣ : ℂ := (Complex.log h7.α)^(-(h7.r q hq0 h2mq) : ℤ) *
  deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
 
-lemma sys_coe_bar_r :
+lemma systemCoeffs_bar_r :
   exp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) *
   h7.ρ q t ^ (h7.r q hq0 h2mq : ℕ) *
-  Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.sys_coe_r q hq0 t h2mq) := by
+  Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
     nth_rw 2 [ρ]
     rw [mul_pow, mul_assoc, mul_assoc]
     have : (Complex.log h7.α ^ (h7.r q hq0 h2mq : ℕ) *
@@ -189,7 +200,7 @@ lemma sys_coe_bar_r :
       apply H.1
     rw [this]; clear this
     rw [mul_one]
-    unfold sys_coe_r
+    unfold systemCoeffs_r
     rw [mul_comm]
     change _ = h7.σ ((↑(a q t) + b q t • h7.β') ^ (h7.r q hq0 h2mq : ℕ)
       * (h7.α' ^ (a q t * (h7.l₀' q hq0 h2mq + 1))) * (h7.γ' ^ (b q t * (h7.l₀' q hq0 h2mq + 1))))
@@ -278,10 +289,10 @@ def deriv_R_k_eval_at_l0' :
   cexp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) * (h7.ρ q t) ^ (h7.r q hq0 h2mq) := by
   rw [iteratedDeriv_R]
 
-lemma sys_coe_foo_r :
+lemma systemCoeffs_foo_r :
  (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
  (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) =
- ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.sys_coe_r q hq0 t h2mq) := by
+ ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
   rw [h7.deriv_R_k_eval_at_l0' q hq0 h2mq, mul_sum, Finset.sum_congr rfl]
   intros t ht
   rw [mul_assoc, mul_comm, mul_assoc]
@@ -289,14 +300,14 @@ lemma sys_coe_foo_r :
   simp only [mul_eq_mul_left_iff, map_eq_zero,
     FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := sys_coe_bar_r h7 q hq0 t h2mq
+  have := systemCoeffs_bar_r h7 q hq0 t h2mq
   rw [← this]
 
-def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.sys_coe_r q hq0 t h2mq)
+def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.systemCoeffs_r q hq0 t h2mq)
 
 def rho_eq_ρᵣ : h7.σ (rho h7 q hq0 h2mq) = ρᵣ h7 q hq0 h2mq := by
   unfold rho ρᵣ
-  rw [sys_coe_foo_r]
+  rw [systemCoeffs_foo_r]
   simp only [map_sum, map_mul, nsmul_eq_mul, map_pow, map_add, map_natCast]
 
 lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]
@@ -327,7 +338,7 @@ This number lies in $K,$ and ${c_1}^{r+2mq}\rho$ is an integer in $K$
 
 lemma ρ_is_int :
   IsIntegral ℤ (h7.cρ q hq0 h2mq • rho h7 q hq0 h2mq) := by
-  unfold rho cρ sys_coe_r
+  unfold rho cρ systemCoeffs_r
   have : h7.c₁ ^ (2 * h7.m * q) = h7.c₁ ^ (h7.m * q)
   * h7.c₁ ^ (h7.m * q) := by
       rw [← pow_add]; ring

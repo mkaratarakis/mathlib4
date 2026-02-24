@@ -106,13 +106,13 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
   calc _ ≤ norm (h7.cρ q hq0 h2mq : ℝ) * house (rho h7 q hq0 h2mq) := ?_
        _ ≤ (norm (h7.cρ q hq0 h2mq : ℝ))  *
           house (∑ t, ( ((algebraMap (𝓞 h7.K) h7.K) ((h7.η q hq0 h2mq) t)) *
-        ((h7.sys_coe_r q hq0 t h2mq)))) := ?_
+        ((h7.systemCoeffs_r q hq0 t h2mq)))) := ?_
        _ ≤ (norm (h7.cρ q hq0 h2mq : ℝ)) *
          ∑ t, house ( ((algebraMap (𝓞 h7.K) h7.K) ((h7.η q hq0 h2mq) t)) *
-       ((h7.sys_coe_r q hq0 t h2mq))) := ?_
+       ((h7.systemCoeffs_r q hq0 t h2mq))) := ?_
        _ = (∑ t, house ((h7.cρ q hq0 h2mq) *
          (algebraMap (𝓞 h7.K) h7.K ((h7.η q hq0 h2mq) t) *
-          h7.sys_coe_r q hq0 t h2mq))) := ?_
+          h7.systemCoeffs_r q hq0 t h2mq))) := ?_
        _ = ∑ t, house ((algebraMap (𝓞 h7.K) h7.K) (h7.η q hq0 h2mq t) *
         (↑h7.c₁ ^ (h7.m * q - a q t * (↑(h7.l₀' q hq0 h2mq) + 1)) *
           (↑h7.c₁ ^ (h7.m * q - b q t * (↑(h7.l₀' q hq0 h2mq) + 1)) *
@@ -159,10 +159,10 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
     · exact
       house_sum_le_sum_house Finset.univ fun i ↦
         (algebraMap (𝓞 h7.K) h7.K) (h7.η q hq0 h2mq i)
-        * h7.sys_coe_r q hq0 i h2mq
+        * h7.systemCoeffs_r q hq0 i h2mq
     · exact
       house_nonneg (∑ t, (algebraMap (𝓞 h7.K) h7.K)
-        (h7.η q hq0 h2mq t) * h7.sys_coe_r q hq0 t h2mq)
+        (h7.η q hq0 h2mq t) * h7.systemCoeffs_r q hq0 t h2mq)
     · exact norm_nonneg (h7.cρ q hq0 h2mq)
   · rw [mul_sum]
     apply Finset.sum_congr rfl
@@ -173,15 +173,15 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
         simpa using house_nat_mul α c'
     rw [house_num_mul_int
     (α := ((algebraMap (𝓞 h7.K) h7.K)
-    (h7.η q hq0 h2mq i) * h7.sys_coe_r q hq0 i h2mq))]
+    (h7.η q hq0 h2mq i) * h7.systemCoeffs_r q hq0 i h2mq))]
     · simp only [Real.norm_eq_abs]
     · exact zero_le_c1rho h7 q hq0 h2mq
   · apply Finset.sum_congr rfl
     intros t ht
     rw [Algebra.left_comm (↑(h7.cρ q hq0 h2mq))
-      (h7.η q hq0 h2mq t) (h7.sys_coe_r q hq0 t h2mq)]
+      (h7.η q hq0 h2mq t) (h7.systemCoeffs_r q hq0 t h2mq)]
     simp only [← zsmul_eq_mul]
-    unfold sys_coe_r
+    unfold systemCoeffs_r
     unfold cρ
     rw [crho_abs_eq]
     have : h7.c₁ ^ (2 * h7.m * q) = h7.c₁ ^ (h7.m * q)

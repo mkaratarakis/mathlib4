@@ -8,6 +8,32 @@ module
 
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAlg
 
+/-!
+# Gelfond-Schneider Theorem: Matrix Coefficient Bounds and Siegel's Lemma
+
+This file is the second component in the formalization of the Gelfond–Schneider Theorem
+  (Hilbert's Seventh Problem), establishing the transcendence of `α ^ β`.
+
+## Main results
+Following the construction of the algebraic setup and linear system matrix in `MainAlg.lean`,
+this file establishes strict analytical bounds on the coefficients of the matrix `A` and
+applies Siegel's Lemma to guarantee a small, non-trivial integer solution.
+
+Specifically, we prove:
+1. `house_matrixA_le`**: The maximum absolute value of the conjugates (the "house") of the
+  entries of `A` is strictly bounded by `c₃^n * n^((n - 1) / 2)`.
+2. `η`**: The existence of a non-trivial vector of algebraic integers `η₁ ... η_t` in the kernel
+  of `A`.
+3. `house_eta_le_c₄_pow`**: An explicit upper bound on the house of the solution vector `η`,
+  showing `‖ηₖ‖ ≤ c₄ⁿ * n^((n + 1) / 2)`.
+
+These bounded coefficients `η` will be used in subsequent files to explicitly construct the
+auxiliary integer function `R(x)`.
+
+## References
+* Loo-Keng Hua, Introduction to Number Theory, Springer, 1982. Chapter 17.9.
+-/
+
 @[expose] public section
 
 open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
@@ -21,8 +47,9 @@ variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q)) (t : Fin
 namespace Setup
 
 
-/-! In this file we bound the coefficients of the auxiliary function `R`;
-     `‖ηₖ‖ ≤ c₄ⁿ * n^((n - 1) / 2)`, for `1 ≤ k ≤ t`.
+/-!
+In this file we bound the house of the coefficients of the auxiliary function `R`;
+  `‖ηₖ‖ ≤ c₄ⁿ * n^((n - 1) / 2)`, for `1 ≤ k ≤ t`.
 -/
 
 open Real
@@ -185,7 +212,7 @@ lemma house_add_mul_le :
 include hq0 h2mq in
 lemma house_matrixA_le : house ((algebraMap (𝓞 h7.K) h7.K) ((h7.A q) u t)) ≤
     (h7.c₃ ^ (h7.n q : ℝ) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1) / 2))  := by
-  simp only [A, sys_coe, RingOfIntegers.restrict, RingOfIntegers.map_mk]
+  simp only [A, systemCoeffs, RingOfIntegers.restrict, RingOfIntegers.map_mk]
   calc _ = house (((h7.c₁ ^ (h7.n q - 1 - h7.k q u) * h7.c₁ ^ (h7.m * q - a q t * h7.l q u) *
            h7.c₁ ^ (h7.m * q - b q t * h7.l q u)) • (h7.c₁ ^ h7.k q u * h7.c₁ ^ (a q t * h7.l q u) *
            h7.c₁ ^ (b q t * h7.l q u))) • ((↑(a q t) + b q t • h7.β') ^ h7.k q u * h7.α' ^
@@ -373,7 +400,8 @@ abbrev η : Fin (q * q) → 𝓞 h7.K := (house.exists_ne_zero_int_vec_house_le 
 solution vector `η`. -/
 def c₄ : ℝ := (max 1 ((house.c₁ h7.K) * house.c₁ h7.K * 2 * h7.m)) * h7.c₃
 
-/-! `‖ηₖ‖ ≤ c₄ⁿ * n^((n - 1) / 2)`, for `1 ≤ k ≤ t`.
+/-!
+`‖ηₖ‖ ≤ c₄ⁿ * n^((n - 1) / 2)`, for `1 ≤ k ≤ t`.
 -/
 open house in
 include hq0 h2mq in

@@ -346,7 +346,7 @@ lemma c1c : IsIntegral ℤ (h7.c₁ ^ (h7.m * q) • (h7.γ'^ (b q t * h7.l q u 
         (finProdFinEquiv.symm.1 t).2.isLt))
   · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁γ
 
-abbrev sys_coe : h7.K := (a q t + b q t • h7.β')^(h7.k q u) *
+abbrev systemCoeffs : h7.K := (a q t + b q t • h7.β')^(h7.k q u) *
 h7.α' ^(a q t * h7.l q u) * h7.γ' ^((b q t) * h7.l q u)
 
 variable (h2mq : 2 * h7.m ∣ q ^ 2)
@@ -406,9 +406,9 @@ abbrev c_coeffs (q : ℕ) := h7.c₁^(h7.n q - 1) * h7.c₁^(h7.m * q) * h7.c₁
 
 open Nat in include hq0 h2mq in
 lemma c₁IsInt (u : Fin (h7.m * h7.n q)) (t : Fin (q * q)) :
-  IsIntegral ℤ (h7.c_coeffs q • h7.sys_coe q u t) := by
+  IsIntegral ℤ (h7.c_coeffs q • h7.systemCoeffs q u t) := by
   unfold c_coeffs
-  unfold sys_coe
+  unfold systemCoeffs
   have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
    ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
      simp only [zsmul_eq_mul, Int.cast_mul]; ring
@@ -567,8 +567,8 @@ lemma one_leq_house_c₁γ : 1 ≤ house (h7.c₁ • h7.γ') := by
   refine ⟨h7.c₁neq0, (h7.alpha'_beta'_gamma'_ne_zero).2.2⟩
 
 --include u t in
-lemma sys_coe_ne_zero : h7.sys_coe q u t ≠ 0 := by
-  unfold sys_coe
+lemma systemCoeffs_ne_zero : h7.systemCoeffs q u t ≠ 0 := by
+  unfold systemCoeffs
   rw [mul_assoc]
   apply mul_ne_zero
     (mod_cast β'_ne_zero h7 q t (h7.k q u))
@@ -809,7 +809,7 @@ include hq0 h2mq in
 lemma house_matrixA_le : --∀ (k : Fin (h7.m * h7.n q)) (l : Fin (q * q)),
   house ((algebraMap (𝓞 h7.K) h7.K) ((A h7 q) hq0 h2mq u t)) ≤
       (h7.c₃ ^ (h7.n q : ℝ) * (h7.n q : ℝ) ^ (((h7.n q : ℝ) - 1) / 2))  := by
-    unfold A sys_coe
+    unfold A systemCoeffs
     simp only [RingOfIntegers.restrict, RingOfIntegers.map_mk]
     --have:= Real.rpow_natCast (x:=↑(h7.n q : ℝ)) (n:= (((h7.n q) - 1) / 2))
     calc
@@ -1542,9 +1542,9 @@ lemma R_ne_zero : h7.R q hq0 h2mq ≠ 0 := by
 variable (hγ : h7.α ^ h7.β = h7.σ h7.γ')
 
 omit [DecidableEq (h7.K →+* ℂ)] in
-lemma sys_coe_bar :
+lemma systemCoeffs_bar :
   Complex.exp (h7.ρ q t * h7.l q u) * (h7.ρ q t ^ (h7.k q u : ℕ) *
-  Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = h7.σ (h7.sys_coe q u t) := by
+  Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = h7.σ (h7.systemCoeffs q u t) := by
   calc
       _ = cexp (h7.ρ q t * h7.l q u) *
           (((↑(a q t) + ↑(b q t) • h7.β) *
@@ -1556,7 +1556,7 @@ lemma sys_coe_bar :
           * Complex.log h7.α ^ (-(h7.k q u) : ℤ))) := ?_
       _ = cexp (h7.ρ q t * h7.l q u) *
       ( (↑(a q t) + ↑(b q t) • h7.β)^ (h7.k q u : ℕ)) := ?_
-      _ = h7.σ (h7.sys_coe q u t) := ?_
+      _ = h7.σ (h7.systemCoeffs q u t) := ?_
   · nth_rw 2 [ρ]
   · rw [mul_pow]
     rw [mul_assoc]
@@ -1570,7 +1570,7 @@ lemma sys_coe_bar :
        apply H.1
      rw [this]
      rw [mul_one]
-  · unfold sys_coe
+  · unfold systemCoeffs
     have h1 : h7.σ ((↑(a q t)+ ↑(b q t) • h7.β') ^ ((h7.k q u) : ℕ)) =
       (↑(a q t) + ↑(b q t) * h7.β) ^ ((h7.k q u) : ℕ) := by
       simp only [nsmul_eq_mul, map_pow, map_add, map_natCast, map_mul]
@@ -1623,15 +1623,15 @@ lemma sys_coe_bar :
       exact h7.htriv.1
 
 include hq0 h2mq in
-lemma sys_coe_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
+lemma systemCoeffs_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u) =
-     ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.sys_coe q u t) := by
+     ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs q u t) := by
   rw [iteratedDeriv_of_R, mul_sum, Finset.sum_congr rfl]
   intros t ht
   rw [mul_assoc, mul_comm, mul_assoc]
   simp only [mul_eq_mul_left_iff, map_eq_zero, FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := sys_coe_bar h7 q u t
+  have := systemCoeffs_bar h7 q u t
   unfold l at this
   rw [mul_assoc]
   unfold l
@@ -1641,7 +1641,7 @@ lemma deriv_sum_blah :
   h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
   deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) =
     h7.σ ((h7.A q hq0 h2mq *ᵥ (h7.η q hq0 h2mq)) u) := by
-    have := sys_coe_foo h7 q hq0 u h2mq
+    have := systemCoeffs_foo h7 q hq0 u h2mq
     rw [this]
     unfold Matrix.mulVec
     unfold dotProduct
@@ -1852,11 +1852,11 @@ lemma one_le_r : 1 ≤  h7.r q hq0 h2mq :=
 
 def cρ : ℤ := abs (h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁^(2*h7.m * q))
 
-abbrev sys_coe_r : h7.K := (a q t + b q t • h7.β')^(h7.r q hq0 h2mq) *
+abbrev systemCoeffs_r : h7.K := (a q t + b q t • h7.β')^(h7.r q hq0 h2mq) *
  h7.α' ^(a q t * (h7.l₀' q hq0 h2mq + 1)) * h7.γ' ^(b q t * (h7.l₀' q hq0 h2mq + 1))
 
-lemma sys_coe_ne_zero_r : h7.sys_coe_r q hq0 t h2mq ≠ 0 := by
-  unfold sys_coe_r
+lemma systemCoeffs_ne_zero_r : h7.systemCoeffs_r q hq0 t h2mq ≠ 0 := by
+  unfold systemCoeffs_r
   intros H
   simp only [mul_eq_zero, pow_eq_zero_iff'] at H
   cases H with
@@ -1876,10 +1876,10 @@ lemma sys_coe_ne_zero_r : h7.sys_coe_r q hq0 t h2mq ≠ 0 := by
 def ρᵣ : ℂ := (Complex.log h7.α)^(-(h7.r q hq0 h2mq) : ℤ) *
  deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
 
-lemma sys_coe_bar_r :
+lemma systemCoeffs_bar_r :
   exp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) *
   h7.ρ q t ^ (h7.r q hq0 h2mq : ℕ) *
-  Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.sys_coe_r q hq0 t h2mq) := by
+  Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
     nth_rw 2 [ρ]
     rw [mul_pow, mul_assoc, mul_assoc]
     have : (Complex.log h7.α ^ (h7.r q hq0 h2mq : ℕ) *
@@ -1892,7 +1892,7 @@ lemma sys_coe_bar_r :
       apply H.1
     rw [this]; clear this
     rw [mul_one]
-    unfold sys_coe_r
+    unfold systemCoeffs_r
     rw [mul_comm]
     change _ = h7.σ ((↑(a q t) + b q t • h7.β') ^ (h7.r q hq0 h2mq : ℕ)
       * (h7.α' ^ (a q t * (h7.l₀' q hq0 h2mq + 1))) * (h7.γ' ^ (b q t * (h7.l₀' q hq0 h2mq + 1))))
@@ -1981,10 +1981,10 @@ def deriv_R_k_eval_at_l0' :
   cexp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) * (h7.ρ q t) ^ (h7.r q hq0 h2mq) := by
   rw [iteratedDeriv_of_R]
 
-lemma sys_coe_foo_r :
+lemma systemCoeffs_foo_r :
  (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
  (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) =
- ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.sys_coe_r q hq0 t h2mq) := by
+ ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
   rw [h7.deriv_R_k_eval_at_l0' q hq0 h2mq, mul_sum, Finset.sum_congr rfl]
   intros t ht
   rw [mul_assoc, mul_comm, mul_assoc]
@@ -1992,15 +1992,15 @@ lemma sys_coe_foo_r :
   simp only [mul_eq_mul_left_iff, map_eq_zero,
     FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := sys_coe_bar_r h7 q hq0 t h2mq
+  have := systemCoeffs_bar_r h7 q hq0 t h2mq
   rw [← this]
 
 
-def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.sys_coe_r q hq0 t h2mq)
+def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.systemCoeffs_r q hq0 t h2mq)
 
 def rho_eq_ρᵣ : h7.σ (rho h7 q hq0 h2mq) = ρᵣ h7 q hq0 h2mq := by
   unfold rho ρᵣ
-  rw [sys_coe_foo_r]
+  rw [systemCoeffs_foo_r]
   simp only [map_sum, map_mul, nsmul_eq_mul, map_pow, map_add, map_natCast]
 
 lemma ρᵣ_nonzero : ρᵣ h7 q hq0 h2mq ≠ 0 := by
@@ -2047,7 +2047,7 @@ lemma isIntegral_c₁_smul_pow (a b n : ℕ) : 1 ≤ n → h7.k q u ≤ n - 1 �
 
 lemma ρ_is_int :
   IsIntegral ℤ (h7.cρ q hq0 h2mq • rho h7 q hq0 h2mq) := by
-  unfold rho cρ sys_coe_r
+  unfold rho cρ systemCoeffs_r
   have : h7.c₁ ^ (2 * h7.m * q) = h7.c₁ ^ (h7.m * q)
   * h7.c₁ ^ (h7.m * q) := by
       rw [← pow_add]; ring
@@ -2619,15 +2619,15 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
 
        _ ≤ (norm (h7.cρ q hq0 h2mq : ℝ))  *
           house (∑ t, ( ((algebraMap (𝓞 h7.K) h7.K) ((h7.η q hq0 h2mq) t)) *
-        ((h7.sys_coe_r q hq0 t h2mq)))) := ?_
+        ((h7.systemCoeffs_r q hq0 t h2mq)))) := ?_
 
        _ ≤ (norm (h7.cρ q hq0 h2mq : ℝ)) *
          ∑ t, house ( ((algebraMap (𝓞 h7.K) h7.K) ((h7.η q hq0 h2mq) t)) *
-       ((h7.sys_coe_r q hq0 t h2mq))) := ?_
+       ((h7.systemCoeffs_r q hq0 t h2mq))) := ?_
 
        _ = (∑ t, house ((h7.cρ q hq0 h2mq) *
          (algebraMap (𝓞 h7.K) h7.K ((h7.η q hq0 h2mq) t) *
-          h7.sys_coe_r q hq0 t h2mq))) := ?_
+          h7.systemCoeffs_r q hq0 t h2mq))) := ?_
 
        _ = ∑ t, house ((algebraMap (𝓞 h7.K) h7.K) (h7.η q hq0 h2mq t) *
         (↑h7.c₁ ^ (h7.m * q - a q t * (↑(h7.l₀' q hq0 h2mq) + 1)) *
@@ -2680,10 +2680,10 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
     · exact
       house_sum_le_sum_house Finset.univ fun i ↦
         (algebraMap (𝓞 h7.K) h7.K) (h7.η q hq0 h2mq i)
-        * h7.sys_coe_r q hq0 i h2mq
+        * h7.systemCoeffs_r q hq0 i h2mq
     · exact
       house_nonneg (∑ t, (algebraMap (𝓞 h7.K) h7.K)
-        (h7.η q hq0 h2mq t) * h7.sys_coe_r q hq0 t h2mq)
+        (h7.η q hq0 h2mq t) * h7.systemCoeffs_r q hq0 t h2mq)
     · exact norm_nonneg (h7.cρ q hq0 h2mq)
   · rw [mul_sum]
     apply Finset.sum_congr rfl
@@ -2694,15 +2694,15 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
         simpa using house_nat_mul α c'
     rw [house_num_mul_int
     (α := ((algebraMap (𝓞 h7.K) h7.K)
-    (h7.η q hq0 h2mq i) * h7.sys_coe_r q hq0 i h2mq))]
+    (h7.η q hq0 h2mq i) * h7.systemCoeffs_r q hq0 i h2mq))]
     · simp only [Real.norm_eq_abs]
     · exact zero_leq_c1rho h7 q hq0 h2mq
   · apply Finset.sum_congr rfl
     intros t ht
     rw [Algebra.left_comm (↑(h7.cρ q hq0 h2mq))
-      (h7.η q hq0 h2mq t) (h7.sys_coe_r q hq0 t h2mq)]
+      (h7.η q hq0 h2mq t) (h7.systemCoeffs_r q hq0 t h2mq)]
     simp only [← zsmul_eq_mul]
-    unfold sys_coe_r
+    unfold systemCoeffs_r
     unfold cρ
     rw [crho_abs_eq]
     have : h7.c₁ ^ (2 * h7.m * q) = h7.c₁ ^ (h7.m * q)
@@ -4201,9 +4201,9 @@ lemma hcauchy :
 -- one of R1 is R'
 
 -- (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))
---#check sys_coe_bar
+--#check systemCoeffs_bar
 
-def sys_coeff_foo_S : ρᵣ h7 q hq0 h2mq =
+def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
   Complex.log (h7.α) ^ (-(h7.r q hq0 h2mq : ℤ)) *
    (h7.S q hq0 h2mq) (↑↑(h7.l₀' q hq0 h2mq) + 1) := by
   dsimp [ρᵣ]
@@ -5249,7 +5249,7 @@ lemma eq7 (l' : Fin (h7.m)) :
        _ = (Complex.log (h7.α)) ^ (-(h7.r q hq0 h2mq) : ℤ) * ((2 * ↑Real.pi * I)⁻¹ *
     (∮ z in C(0, h7.m * (1 + (h7.r q hq0 h2mq) / q)),
      (z - (h7.l₀' q hq0 h2mq + 1))⁻¹ * (h7.S q hq0 h2mq) z)) := ?_
-  · apply sys_coeff_foo_S h7 q hq0 h2mq
+  · apply systemCoeffsff_foo_S h7 q hq0 h2mq
   · have := h7.hcauchy q hq0 h2mq
     rw [this]
 

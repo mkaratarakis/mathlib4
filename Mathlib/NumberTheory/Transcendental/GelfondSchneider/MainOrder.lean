@@ -198,9 +198,9 @@ lemma R_ne_zero : h7.R q hq0 h2mq ≠ 0 := by
 variable (hγ : h7.α ^ h7.β = h7.σ h7.γ')
 
 omit [DecidableEq (h7.K →+* ℂ)] in
-lemma sys_coe_bar :
+lemma systemCoeffs_bar :
   Complex.exp (h7.ρ q t * h7.l q u) * (h7.ρ q t ^ (h7.k q u : ℕ) *
-  Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = h7.σ (h7.sys_coe q u t) := by
+  Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = h7.σ (h7.systemCoeffs q u t) := by
   calc
       _ = cexp (h7.ρ q t * h7.l q u) *
           (((↑(a q t) + ↑(b q t) • h7.β) *
@@ -212,14 +212,14 @@ lemma sys_coe_bar :
           * Complex.log h7.α ^ (-(h7.k q u) : ℤ))) := ?_
       _ = cexp (h7.ρ q t * h7.l q u) *
       ( (↑(a q t) + ↑(b q t) • h7.β)^ (h7.k q u : ℕ)) := ?_
-      _ = h7.σ (h7.sys_coe q u t) := ?_
+      _ = h7.σ (h7.systemCoeffs q u t) := ?_
   · nth_rw 2 [ρ]
   · rw [mul_pow]
     rw [mul_assoc]
   ·  have h_log_ne : Complex.log h7.α ≠ 0 :=
       mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg Complex.exp h) h7.htriv.2
      aesop
-  · unfold sys_coe
+  · unfold systemCoeffs
     have h1 : h7.σ ((↑(a q t)+ ↑(b q t) • h7.β') ^ ((h7.k q u) : ℕ)) =
       (↑(a q t) + ↑(b q t) * h7.β) ^ ((h7.k q u) : ℕ) := by
       simp only [nsmul_eq_mul, map_pow, map_add, map_natCast, map_mul, h7.habc.2.1]
@@ -271,15 +271,15 @@ lemma sys_coe_bar :
       exact h7.htriv.1
 
 include hq0 h2mq in
-lemma sys_coe_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
+lemma systemCoeffs_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u) =
-     ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.sys_coe q u t) := by
+     ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs q u t) := by
   rw [iteratedDeriv_R, mul_sum, Finset.sum_congr rfl]
   intros t ht
   rw [mul_assoc, mul_comm, mul_assoc]
   simp only [mul_eq_mul_left_iff, map_eq_zero, FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := sys_coe_bar h7 q u t
+  have := systemCoeffs_bar h7 q u t
   unfold l at this
   rw [mul_assoc]
   unfold l
@@ -288,7 +288,7 @@ lemma sys_coe_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
 lemma coeffs_mulVec_A_eq : h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
     deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) =
     h7.σ ((h7.A q *ᵥ (h7.η q hq0 h2mq)) u) := by
-  rw [sys_coe_foo h7 q hq0 u h2mq]
+  rw [systemCoeffs_foo h7 q hq0 u h2mq]
   unfold Matrix.mulVec dotProduct
   simp only [← map_mul, ← map_sum]
   congr 1

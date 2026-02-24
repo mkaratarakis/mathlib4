@@ -957,7 +957,7 @@ lemma eq7 (l' : Fin (h7.m)) :
        _ = (Complex.log (h7.α)) ^ (-(h7.r q hq0 h2mq) : ℤ) * ((2 * ↑Real.pi * I)⁻¹ *
     (∮ z in C(0, h7.m * (1 + (h7.r q hq0 h2mq) / q)),
      (z - (h7.l₀' q hq0 h2mq + 1))⁻¹ * (h7.S q hq0 h2mq) z)) := ?_
-  · apply sys_coeff_foo_S h7 q hq0 h2mq
+  · apply systemCoeffsff_foo_S h7 q hq0 h2mq
   · have := h7.hcauchy q hq0 h2mq
     rw [this]
 

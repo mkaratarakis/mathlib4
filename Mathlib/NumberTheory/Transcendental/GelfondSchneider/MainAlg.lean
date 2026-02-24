@@ -27,6 +27,14 @@ The argument proceeds by contradiction. The core of the proof is an auxiliary fu
 we construct a nonzero integer linear combination of exponential functions that vanishes to high
 order at several algebraic points.
 
+This specific file handles the foundational algebraic setup:
+1. Constructing a common number field `K` of degree `h` containing `α, β, γ`.
+2. Defining the structural parameters `m = 2h + 2` and `n = q^2 / (2m)`.
+3. Establishing the common denominator scaling factor `c₁` such that `c₁α`, `c₁β`, and `c₁γ`
+   are all algebraic integers in `K`.
+4. Formulating the homogeneous linear system matrix `A` with scaled entries residing strictly
+   in the ring of integers `𝓞 K`, ready for Siegel's Lemma.
+
 ## References
 Loo-Keng Hua, Introduction to Number Theory, Springer, 1982. Chapter XII (§13).
 A. O. Gelfond (1934), *Sur le septième Problème de Hilbert
@@ -245,7 +253,7 @@ def l : ℕ := (finProdFinEquiv.symm.toFun u).1 + 1
 
 /-- The core algebraic coefficient appearing in the evaluation of the `k`-th derivative
 of the auxiliary function at point `l`. Evaluates to `(a + bβ')^k * α'^(al) * γ'^(bl)`. -/
-abbrev sys_coe : h7.K :=
+abbrev systemCoeffs : h7.K :=
   (a q t + b q t • h7.β') ^ (h7.k q u) * h7.α' ^ (a q t * h7.l q u) * h7.γ' ^ (b q t * h7.l q u)
 
 variable (h2mq : 2 * h7.m ∣ q ^ 2)
@@ -326,7 +334,7 @@ lemma zsmul_mul_mul_distrib {K : Type*} [Field K] (a b c : ℤ) (x y z : K) :
   simp [zsmul_eq_mul]; ring
 
 open Nat in
-lemma c₁IsInt : IsIntegral ℤ (h7.c_coeffs q • h7.sys_coe q u t) := by
+lemma c₁IsInt : IsIntegral ℤ (h7.c_coeffs q • h7.systemCoeffs q u t) := by
   rw [zsmul_mul_mul_distrib, mul_assoc]
   refine IsIntegral.mul ?_
     (IsIntegral.mul (h7.isIntegral_c₁_pow_smul_α'_pow' q u t)
