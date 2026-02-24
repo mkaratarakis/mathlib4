@@ -5,8 +5,8 @@ Authors: Michail Karatarakis
 -/
 
 module
-
-public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAnalytic
+public import Mathlib.Tactic
+public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAnalyticBounds
 
 @[expose] public section
 

@@ -6,7 +6,8 @@ Authors: Michail Karatarakis
 
 module
 
-public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAlg
+public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAlgSetup
+public import Mathlib.Analysis.Analytic.Order
 
 @[expose] public section
 
@@ -18,27 +19,31 @@ noncomputable section
 variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
-lemma decompose_ij (i j : Fin (q * q)) : i = j ↔
-  (finProdFinEquiv.symm.1 i).1 = (finProdFinEquiv.symm.1 j).1 ∧
+/-
+Since the numbers `ρ₁, ..., ρₜ` are distinct, the function `R(x)`
+is not identically zero. For suppose otherwise, then on expanding the right
+hand side of (1) we have `η₁ρ₁ + η₂ρ₂ᵏ + ... + ηₜρₜᵏ = 0`, a contradiction.
+
+Thus, we see from (2) that
+
+  `R(x) = a_{n,ℓ}(x - ℓ)ⁿ + a_{n+1,ℓ}(x - ℓ)ⁿ⁺¹ + ⋯,    1 ≤ ℓ ≤ m,`
+
+where `a_{n,ℓ}, a_{n+1,ℓ}, ...` are not all zero. Hence, there must be a natural
+number `r` such that `R⁽ᵏ⁾(ℓ) = 0, 0 ≤ k ≤ r - 1, 1 ≤ ℓ ≤ m`. But for
+`1 ≤ ℓ₀ ≤ m` we have `R⁽ʳ⁾(ℓ₀) ≠ 0` so that we see from (3) that `r ≥ n`.
+-/
+
+lemma eq_iff_finProdFinEquiv_symm_ext (i j : Fin (q * q)) : i = j ↔
+    (finProdFinEquiv.symm.1 i).1 = (finProdFinEquiv.symm.1 j).1 ∧
     ((finProdFinEquiv.symm.1 i).2 : Fin q) = (finProdFinEquiv.symm.1 j).2 := by
-  apply Iff.intro
-  · intro H; rw [H]; constructor <;> rfl
-  · intro H
-    rcases H with ⟨H1, H2⟩
-    have : finProdFinEquiv.symm.1 i = finProdFinEquiv.symm.1 j := by
-      rw [← Prod.eta (finProdFinEquiv.symm.toFun i), H1]
-      rw [← Prod.eta (finProdFinEquiv.symm.toFun j), H2]
-    clear H1 H2
-    have := congr_arg finProdFinEquiv.toFun this
-    simp only [Equiv.toFun_as_coe, EmbeddingLike.apply_eq_iff_eq] at this
-    assumption
+  rw [← Prod.ext_iff, Equiv.toFun_as_coe, EmbeddingLike.apply_eq_iff_eq]
 
 namespace Setup
 
 omit [DecidableEq (h7.K →+* ℂ)] in
 lemma hdist : ∀ (i j : Fin (q * q)), i ≠ j → ρ h7 q i ≠ ρ h7 q j := by
   intros i j hij
-  rw [ne_eq, decompose_ij q] at hij
+  rw [ne_eq, eq_iff_finProdFinEquiv_symm_ext q] at hij
   rw [not_and'] at hij
   unfold ρ
   simp only [not_or, ne_eq, mul_eq_mul_right_iff, not_or]
@@ -112,7 +117,6 @@ lemma hdist : ∀ (i j : Fin (q * q)), i ≠ j → ρ h7 q i ≠ ρ h7 q j := by
       simp only [Int.cast_sub, Int.cast_natCast]
   · exact mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
 
-
 abbrev V := vandermonde (fun t => h7.ρ q t)
 
 omit [DecidableEq (h7.K →+* ℂ)] in
@@ -137,7 +141,7 @@ lemma cexp_mul (c x : ℂ) : deriv (fun x => cexp (c * x)) x = c * cexp (c * x) 
     · fun_prop
   · fun_prop
 
-def iteratedDeriv_of_R (k' : ℕ) : deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
+def iteratedDeriv_R (k' : ℕ) : deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
     fun x => ∑ t, (h7.σ ((h7.η q hq0 h2mq) t)) * exp (h7.ρ q t * x) * (h7.ρ q t)^k' := by
   induction k' with
   | zero => simp only [pow_zero, mul_one]; rfl
@@ -158,60 +162,38 @@ def iteratedDeriv_of_R (k' : ℕ) : deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
     · intros i hi
       apply mul (by fun_prop) (differentiable_const (h7.ρ q i ^ k))
 
-lemma iteratedDeriv_of_R_is_zero (hR : h7.R q hq0 h2mq = 0) :
+lemma iteratedDeriv_R_eq_zero (hR : h7.R q hq0 h2mq = 0) :
   ∀ z k', deriv^[k'] (fun z => h7.R q hq0 h2mq z) z = 0 := by
-intros z k'
-rw [hR]
-simp only [Pi.zero_apply]
-rw [← iteratedDeriv_eq_iterate, iteratedDeriv]
-aesop
+  intros z k'
+  rw [hR, ← iteratedDeriv_eq_iterate, iteratedDeriv]
+  simp
 
-lemma vecMul_of_R_zero (hR : h7.R q hq0 h2mq = 0) :
-  (h7.V q).vecMul (fun t => h7.σ ((h7.η q hq0 h2mq) t)) = 0 := by
-  unfold V
-  rw [funext_iff]
-  intros k
-  simp only [Pi.zero_apply]
-  have deriv_eq : ∀ k', deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
-    fun x => ∑ t, (h7.σ (h7.η q hq0 h2mq t)) *
-    exp (h7.ρ q t * x) * (h7.ρ q t)^k' := by
-      intros k'
-      exact h7.iteratedDeriv_of_R q hq0 h2mq k'
-  have deriv_eq_0 : ∀ k', deriv^[k'] (fun x => h7.R q hq0 h2mq x) 0 = 0 := by
-    intros k'
-    apply iteratedDeriv_of_R_is_zero (hR:= hR)
-  rw [← deriv_eq_0 k, deriv_eq]
-  simp only [mul_zero, exp_zero, mul_one]
-  unfold vecMul dotProduct vandermonde
-  simp only [of_apply]
+lemma vecMul_V_eq_zero (hR : h7.R q hq0 h2mq = 0) :
+    (h7.V q).vecMul (fun t => h7.σ ((h7.η q hq0 h2mq) t)) = 0 := by
+  ext k
+  have hk : deriv^[k] (fun x => h7.R q hq0 h2mq x) 0 = 0 := by
+    apply h7.iteratedDeriv_R_eq_zero (hR := hR)
+  rw [h7.iteratedDeriv_R q hq0 h2mq k] at hk
+  unfold V vecMul dotProduct vandermonde
+  simpa [of_apply] using hk
 
-lemma ηvec_eq_zero (hVecMulEq0 : (h7.V q).vecMul
-  (fun t => h7.σ ((h7.η q hq0 h2mq) t)) = 0) :
+lemma ηvec_eq_zero (hVecMulEq0 : (h7.V q).vecMul (fun t => h7.σ ((h7.η q hq0 h2mq) t)) = 0) :
     (fun t => h7.σ ((h7.η q hq0 h2mq) t )) = 0 := by
   apply eq_zero_of_vecMul_eq_zero
     (h7.vandermonde_det_ne_zero q) hVecMulEq0
 
 lemma hbound_sigma : h7.η q hq0 h2mq ≠ 0 :=
-  ((NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
-  (hM_ne_zero h7 q hq0 h2mq)
-  (mul_pos ((Nat.zero_lt_succ (2 * h7.h + 1))) (h7.one_le_n q hq0 h2mq)) (h7.hmn q hq0 h2mq)
-  (Fintype.card_fin _)
-  (fun u t ↦ hAkl h7 q hq0 u t h2mq)
-  (Fintype.card_fin _)).choose_spec.1)
+  (house.exists_ne_zero_int_vec_house_le h7.K (h7.A q)
+  (h7.hM_ne_zero q hq0 h2mq) (mul_pos (Nat.zero_lt_succ (2 * h7.h + 1))
+  (h7.one_le_n q hq0 h2mq)) (h7.m_mul_n_lt_q_mul_q q hq0 h2mq) (Fintype.card_fin _)
+  (fun u t ↦ h7.house_matrixA_le q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.1
 
-lemma R_nonzero : h7.R q hq0 h2mq ≠ 0 := by
-  by_contra H
-  have HC := (ηvec_eq_zero h7 q hq0 h2mq)
-    (vecMul_of_R_zero h7 q hq0 h2mq H)
-  simp only at HC
+lemma R_ne_zero : h7.R q hq0 h2mq ≠ 0 := by
+  intro H
+  have HC := ηvec_eq_zero h7 q hq0 h2mq (vecMul_V_eq_zero h7 q hq0 h2mq H)
   apply hbound_sigma h7 q hq0 h2mq
-  rw [funext_iff] at HC
-  simp only [Pi.zero_apply, map_eq_zero, FaithfulSMul.algebraMap_eq_zero_iff] at HC
-  unfold η at *
   ext t
-  specialize HC t
-  simp only [ne_eq, Pi.zero_apply, map_zero, FaithfulSMul.algebraMap_eq_zero_iff]
-  exact HC
+  simpa [η, FaithfulSMul.algebraMap_eq_zero_iff] using congr_fun HC t
 
 variable (hγ : h7.α ^ h7.β = h7.σ h7.γ')
 
@@ -234,23 +216,13 @@ lemma sys_coe_bar :
   · nth_rw 2 [ρ]
   · rw [mul_pow]
     rw [mul_assoc]
-  ·  have  : (Complex.log h7.α ^ (h7.k q u) *
-         Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = 1 := by
-       simp only [zpow_neg, zpow_natCast]
-       refine Complex.mul_inv_cancel ?_
-       by_contra H
-       have : Complex.log h7.α ≠ 0 :=
-         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
-       apply this
-       simp only [pow_eq_zero_iff', ne_eq] at H
-       apply H.1
-     rw [this]
-     rw [mul_one]
+  ·  have h_log_ne : Complex.log h7.α ≠ 0 :=
+      mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg Complex.exp h) h7.htriv.2
+     aesop
   · unfold sys_coe
     have h1 : h7.σ ((↑(a q t)+ ↑(b q t) • h7.β') ^ ((h7.k q u) : ℕ)) =
       (↑(a q t) + ↑(b q t) * h7.β) ^ ((h7.k q u) : ℕ) := by
-      simp only [nsmul_eq_mul, map_pow, map_add, map_natCast, map_mul]
-      rw [h7.habc.2.1]
+      simp only [nsmul_eq_mul, map_pow, map_add, map_natCast, map_mul, h7.habc.2.1]
     rw [map_mul]
     rw [map_mul]
     unfold a b k at *
@@ -302,7 +274,7 @@ include hq0 h2mq in
 lemma sys_coe_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u) =
      ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.sys_coe q u t) := by
-  rw [iteratedDeriv_of_R, mul_sum, Finset.sum_congr rfl]
+  rw [iteratedDeriv_R, mul_sum, Finset.sum_congr rfl]
   intros t ht
   rw [mul_assoc, mul_comm, mul_assoc]
   simp only [mul_eq_mul_left_iff, map_eq_zero, FaithfulSMul.algebraMap_eq_zero_iff]
@@ -313,76 +285,71 @@ lemma sys_coe_foo :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
   unfold l
   exact this
 
-lemma deriv_sum_blah :
-  h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
-  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) =
-    h7.σ ((h7.A q hq0 h2mq *ᵥ (h7.η q hq0 h2mq)) u) := by
-    have := sys_coe_foo h7 q hq0 u h2mq
-    rw [this]
-    unfold Matrix.mulVec
-    unfold dotProduct
-    simp only [← map_mul, ← map_sum]
-    congr
-    simp only [map_sum, map_mul]
-    rw [mul_sum]
-    rw [Finset.sum_congr rfl]
-    intros x hx
-    simp (config :=  {unfoldPartialApp := true} ) only [A]
-    simp only [RingOfIntegers.restrict, zsmul_eq_mul, RingOfIntegers.map_mk]
-    simp only [Int.cast_mul, Int.cast_pow]
-    simp only [mul_assoc]
-    rw [mul_comm  (a:= (↑(h7.η q hq0 h2mq x)))
-    (b:=
-          ((↑(a q x) + b q x • h7.β') ^ h7.k q u *
-           (h7.α' ^ (a q x * h7.l q u) * h7.γ' ^ (b q x * h7.l q u))))]
-    simp only [mul_assoc]
+lemma coeffs_mulVec_A_eq : h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
+    deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) =
+    h7.σ ((h7.A q *ᵥ (h7.η q hq0 h2mq)) u) := by
+  rw [sys_coe_foo h7 q hq0 u h2mq]
+  unfold Matrix.mulVec dotProduct
+  simp only [← map_mul, ← map_sum]
+  congr 1
+  rw [Finset.mul_sum]
+  simp only [Int.cast_mul, Int.cast_pow, map_sum, map_mul]
+  apply Finset.sum_congr rfl
+  intros x hx
+  simp only [A, RingOfIntegers.restrict, zsmul_eq_mul, RingOfIntegers.map_mk]
+  push_cast
+  ring
 
-lemma deriv_sum_blah_zero :
-  h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
-  deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) = 0 := by
-      rw [deriv_sum_blah]
-      have hMt0 := (NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q hq0 h2mq)
-        (hM_ne_zero h7 q hq0 h2mq) (mul_pos ((Nat.zero_lt_succ (2 * h7.h + 1)))
-        (h7.one_le_n q hq0 h2mq)) (h7.hmn q hq0 h2mq) (Fintype.card_fin _)
-        (fun u t ↦ hAkl h7 q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.2.1
-      simp only [ne_eq, Nat.cast_mul, Real.rpow_natCast, map_eq_zero,
-        FaithfulSMul.algebraMap_eq_zero_iff] at *
-      unfold η
-      simp_all only [ne_eq, Nat.cast_mul, Real.rpow_natCast, Pi.zero_apply]
+lemma coeffs_mul_deriv_eq_zero : h7.σ (h7.c_coeffs q) * ((Complex.log h7.α)^ (-(h7.k q u) : ℤ) *
+    deriv^[h7.k q u] (h7.R q hq0 h2mq) (h7.l q u)) = 0 := by
+  rw [coeffs_mulVec_A_eq]
+  have hMt0 := (NumberField.house.exists_ne_zero_int_vec_house_le h7.K (h7.A q)
+    (hM_ne_zero h7 q hq0 h2mq) (mul_pos ((Nat.zero_lt_succ (2 * h7.h + 1)))
+    (h7.one_le_n q hq0 h2mq)) (h7.m_mul_n_lt_q_mul_q q hq0 h2mq) (Fintype.card_fin _)
+    (fun u t ↦ house_matrixA_le h7 q hq0 u t h2mq) (Fintype.card_fin _)).choose_spec.2.1
+  simp [η, FaithfulSMul.algebraMap_eq_zero_iff]
+  aesop
 
-lemma iteratedDeriv_vanishes (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
-  deriv^[k] (h7.R q hq0 h2mq) (l' + 1) = 0 := by
-  let u : Fin (h7.m * h7.n q) := (finProdFinEquiv.toFun ⟨l',k⟩)
-  have h1 := deriv_sum_blah_zero h7 q hq0 u h2mq
-  unfold Setup.k at *
-  unfold Setup.l at *
-  unfold u at *
-  simp only [Equiv.toFun_as_coe,
-    Equiv.symm_apply_apply] at *
-  have : (h7.σ (h7.c_coeffs q) *
-   (Complex.log h7.α)^(-k : ℤ)) * deriv^[k] (h7.R q hq0 h2mq) (l'+1) =
-    (h7.σ (h7.c_coeffs q) *
-    (Complex.log h7.α)^(-k : ℤ)) * 0 → deriv^[k] (h7.R q hq0 h2mq) (l' + 1) = 0 := by
-      apply mul_left_cancel₀
-      by_contra H
-      simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow,
-        map_intCast, zpow_neg, zpow_natCast,
-        mul_eq_zero, pow_eq_zero_iff', Int.cast_eq_zero, ne_eq, not_or, inv_eq_zero] at H
-      rcases H with ⟨h1, h2⟩
-      · apply h7.c₁_ne_zero; assumption
-      ·  apply h7.c₁_ne_zero; rename_i h2; exact h2.1
-      · apply h7.c₁_ne_zero; rename_i h2; exact h2.1
-      · have : Complex.log h7.α ≠ 0 :=
-         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
-        apply this; rename_i h2; exact h2.1
-  rw [this]
-  rw [mul_zero]
-  rw [mul_assoc]
-  simp only [mul_assoc] at *
-  rw [← h1]
-  simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow, map_intCast, zpow_neg, zpow_natCast,
-    Nat.cast_add, Nat.cast_one]
+lemma R_analyt_at_point (point : ℂ) : AnalyticAt ℂ (h7.R q hq0 h2mq) point := by
+  fun_prop
 
+lemma anever : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by
+  fun_prop
+
+/-!After defining the auxiliary function R we consider the
+first nonzero derivative at an integer ℓ₀.
+
+  `(log α)⁻ʳ R⁽ʳ⁾(ℓ₀) = ρ`.
+
+where r is the smallest integer such that `R⁽ʳ⁾(ℓ₀) ≠ 0`.-/
+
+lemma exists_min_analyticOrderAt :
+  let s : Finset (Fin (h7.m)) := Finset.univ
+  ∃ l₀' ∈ s, (∃ y, (analyticOrderAt (h7.R q hq0 h2mq) (l₀' + 1)) = y ∧
+   (∀ (l' : Fin (h7.m)), l' ∈ s → y ≤ (analyticOrderAt (h7.R q hq0 h2mq) (l' + 1)))) := by
+  intros s
+  have Hs : s.Nonempty := by
+     refine univ_nonempty_iff.mpr ?_
+     refine Fin.pos_iff_nonempty.mp ?_
+     exact (Nat.zero_lt_succ (2 * h7.h + 1))
+  let f : (Fin (h7.m)) → ℕ∞ := fun x => (analyticOrderAt (h7.R q hq0 h2mq) (x + 1))
+  have := Finset.exists_min_image s f Hs
+  obtain ⟨x, hx, h1⟩ := this
+  use x
+  refine ⟨hx, by aesop⟩
+
+abbrev l₀' : Fin (h7.m) := (exists_min_analyticOrderAt h7 q hq0 h2mq).choose
+
+abbrev l₀_prop := (exists_min_analyticOrderAt h7 q hq0 h2mq).choose_spec.2
+
+abbrev r' := (l₀_prop h7 q hq0 h2mq).choose
+
+abbrev r'_prop :
+  let s : Finset (Fin (h7.m)) := Finset.univ
+  analyticOrderAt (h7.R q hq0 h2mq) ↑↑(h7.l₀' q hq0 h2mq + 1 : ℂ) =
+    h7.r' q hq0 h2mq ∧
+    ∀ l' ∈ s, h7.r' q hq0 h2mq ≤ analyticOrderAt (h7.R q hq0 h2mq) (↑↑l' +1) := by
+  exact (h7.l₀_prop q hq0 h2mq).choose_spec
 
 end Setup
 end
