@@ -100,7 +100,7 @@ lemma R_order_eq (z) : (analyticOrderAt (h7.R q hq0 h2mq) z) = h7.R_order q hq0 
 
 lemma r_exists : ∃ r, r' h7 q hq0 h2mq = some r := by
   have H := order_neq_top_min_one h7 q hq0 h2mq (l₀' h7 q hq0 h2mq + 1)
-  have : r' h7 q hq0 h2mq ≠ ⊤ := by rw [(r'_prop h7 q hq0 h2mq).1] at H; exact H
+  have : r' h7 q hq0 h2mq ≠ ⊤ := by rw [(r'_spec h7 q hq0 h2mq).1] at H; exact H
   revert this
   cases r' h7 q hq0 h2mq with
   | top => grind
@@ -117,7 +117,7 @@ abbrev r_prop :
   ∀ l' ∈ s, h7.r q hq0 h2mq ≤ analyticOrderAt (h7.R q hq0 h2mq) (↑↑l' + 1) := by
   intros s
   rw [← h7.r_spec q hq0 h2mq]
-  apply h7.r'_prop q hq0 h2mq
+  apply h7.r'_spec q hq0 h2mq
 
 lemma r_div_q_geq_0 : 0 ≤ (h7.r q hq0 h2mq) / q := by simp_all only [zero_le]
 
@@ -182,7 +182,7 @@ lemma systemCoeffs_ne_zero_r : h7.systemCoeffs_r q hq0 t h2mq ≠ 0 := by
 def ρᵣ : ℂ := (Complex.log h7.α)^(-(h7.r q hq0 h2mq) : ℤ) *
  deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
 
-lemma systemCoeffs_bar_r :
+lemma systemCoeffs_map_eq_exp_mul_r :
   exp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) *
   h7.ρ q t ^ (h7.r q hq0 h2mq : ℕ) *
   Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
@@ -300,7 +300,7 @@ lemma systemCoeffs_deriv_r :
   simp only [mul_eq_mul_left_iff, map_eq_zero,
     FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := systemCoeffs_bar_r h7 q hq0 t h2mq
+  have := systemCoeffs_map_eq_exp_mul_r h7 q hq0 t h2mq
   rw [← this]
 
 def rho := ∑ t : Fin (q * q), (h7.η q hq0 h2mq t) * (h7.systemCoeffs_r q hq0 t h2mq)
@@ -313,9 +313,8 @@ def rho_eq_ρᵣ : h7.σ (rho h7 q hq0 h2mq) = ρᵣ h7 q hq0 h2mq := by
 lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]
  (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) ≠ 0 := by
   have Hrprop := (h7.r_prop q hq0 h2mq).1
-  obtain ⟨l₀, y, r, h1, h2⟩ :=
-    (h7.exists_min_analyticOrderAt q hq0 h2mq)
-  have hA1 := h7.R_analyt_at_point q hq0 h2mq (h7.l₀' q hq0 h2mq + 1)
+  obtain ⟨l₀, y, r, h1, h2⟩ := (h7.exists_min_analyticOrderAt q hq0 h2mq)
+  have hA1 : AnalyticAt ℂ (h7.R q hq0 h2mq) (↑↑(h7.l₀' q hq0 h2mq) + 1) := by fun_prop
   grind [analyticOrderAt_eq_nat_imp_iteratedDeriv_eq_zero hA1]
 
 lemma ρᵣ_nonzero : ρᵣ h7 q hq0 h2mq ≠ 0 := by

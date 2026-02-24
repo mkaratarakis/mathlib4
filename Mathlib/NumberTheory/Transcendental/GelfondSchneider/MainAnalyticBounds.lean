@@ -16,7 +16,7 @@ open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
 noncomputable section
 
 variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
- (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
+  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
 namespace Setup
 

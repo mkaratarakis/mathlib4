@@ -1542,7 +1542,7 @@ lemma R_ne_zero : h7.R q hq0 h2mq ≠ 0 := by
 variable (hγ : h7.α ^ h7.β = h7.σ h7.γ')
 
 omit [DecidableEq (h7.K →+* ℂ)] in
-lemma systemCoeffs_bar :
+lemma systemCoeffs_map_eq_exp_mul :
   Complex.exp (h7.ρ q t * h7.l q u) * (h7.ρ q t ^ (h7.k q u : ℕ) *
   Complex.log h7.α ^ (-(h7.k q u) : ℤ)) = h7.σ (h7.systemCoeffs q u t) := by
   calc
@@ -1631,7 +1631,7 @@ lemma systemCoeffs_deriv :(Complex.log h7.α)^(-(h7.k q u) : ℤ) *
   rw [mul_assoc, mul_comm, mul_assoc]
   simp only [mul_eq_mul_left_iff, map_eq_zero, FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := systemCoeffs_bar h7 q u t
+  have := systemCoeffs_map_eq_exp_mul h7 q u t
   unfold l at this
   rw [mul_assoc]
   unfold l
@@ -1769,7 +1769,7 @@ abbrev l₀_prop :=
 
 abbrev r' := (l₀_prop h7 q hq0 h2mq).choose
 
-abbrev r'_prop :
+abbrev r'_spec :
   let s : Finset (Fin (h7.m)) := Finset.univ
   analyticOrderAt (h7.R q hq0 h2mq) ↑↑(h7.l₀' q hq0 h2mq + 1 : ℂ) =
     h7.r' q hq0 h2mq ∧
@@ -1779,7 +1779,7 @@ abbrev r'_prop :
 lemma r_exists :
   ∃ r, r' h7 q hq0 h2mq = some r := by
   have H := order_neq_top_min_one h7 q hq0 h2mq (l₀' h7 q hq0 h2mq + 1)
-  have : r' h7 q hq0 h2mq ≠ ⊤ := by rw [(r'_prop h7 q hq0 h2mq).1] at H; exact H
+  have : r' h7 q hq0 h2mq ≠ ⊤ := by rw [(r'_spec h7 q hq0 h2mq).1] at H; exact H
   revert this
   cases r' h7 q hq0 h2mq with
   | top => grind
@@ -1797,7 +1797,7 @@ abbrev r_prop :
   ∀ l' ∈ s, h7.r q hq0 h2mq ≤ analyticOrderAt (h7.R q hq0 h2mq) (↑↑l' + 1) := by
   intros s
   rw [← h7.r_spec q hq0 h2mq]
-  apply h7.r'_prop q hq0 h2mq
+  apply h7.r'_spec q hq0 h2mq
 
 lemma r_div_q_geq_0 : 0 ≤ (h7.r q hq0 h2mq) / q := by simp_all only [zero_le]
 
@@ -1876,7 +1876,7 @@ lemma systemCoeffs_ne_zero_r : h7.systemCoeffs_r q hq0 t h2mq ≠ 0 := by
 def ρᵣ : ℂ := (Complex.log h7.α)^(-(h7.r q hq0 h2mq) : ℤ) *
  deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
 
-lemma systemCoeffs_bar_r :
+lemma systemCoeffs_map_eq_exp_mul_r :
   exp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) *
   h7.ρ q t ^ (h7.r q hq0 h2mq : ℕ) *
   Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
@@ -1992,7 +1992,7 @@ lemma systemCoeffs_deriv_r :
   simp only [mul_eq_mul_left_iff, map_eq_zero,
     FaithfulSMul.algebraMap_eq_zero_iff]
   left
-  have := systemCoeffs_bar_r h7 q hq0 t h2mq
+  have := systemCoeffs_map_eq_exp_mul_r h7 q hq0 t h2mq
   rw [← this]
 
 
@@ -4201,7 +4201,7 @@ lemma hcauchy :
 -- one of R1 is R'
 
 -- (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))
---#check systemCoeffs_bar
+--#check systemCoeffs_map_eq_exp_mul
 
 def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
   Complex.log (h7.α) ^ (-(h7.r q hq0 h2mq : ℤ)) *

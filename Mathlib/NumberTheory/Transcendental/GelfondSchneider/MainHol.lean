@@ -29,7 +29,7 @@ lemma exists_R'_at_l'_plus_one (l' : Fin (h7.m))  :
   ∃ (R' : ℂ → ℂ) (U : Set ℂ), (U ∈ nhds (l' + 1 : ℂ)) ∧ (l' + 1 : ℂ) ∈ U ∧
     (∀ z ∈ U, (h7.R q hq0 h2mq) z = (z - (l' + 1))^(h7.r q hq0 h2mq) * R' z) ∧
     AnalyticOn ℂ R' U  := by
-  have hA := h7.anever q hq0 h2mq (l' + 1)
+  --have hA := h7.anever q hq0 h2mq (l' + 1)
   have (z : ℂ) := h7.R_order_eq q hq0 h2mq z
   have := this (l' + 1)
   rw [AnalyticAt.analyticOrderAt_eq_natCast] at this
@@ -113,7 +113,7 @@ def R'prop (l' : Fin (h7.m)) :
    ∧ AnalyticOn ℂ (R'U h7 q hq0 h2mq l') (U h7 q hq0 h2mq l') := by
   exact (exists_R'_at_l'_plus_one h7 q hq0 h2mq l').choose_spec.choose_spec
 
-def R'R (l' : Fin (h7.m)) : ℂ → ℂ := fun z =>
+def R'R (l' : Fin (h7.m)) : ℂ → ℂ := fun z ↦
   (h7.R q hq0 h2mq) z * (z - (↑l' + 1))^(-(h7.r q hq0 h2mq) : ℤ)
 
 def R' (l' : Fin (h7.m)) : ℂ → ℂ :=
@@ -123,7 +123,7 @@ def R' (l' : Fin (h7.m)) : ℂ → ℂ :=
   letI : ∀ z, Decidable (z ∈ U) := by
     intros z
     exact Classical.propDecidable (z ∈ U)
-  fun z =>
+  fun z ↦
     if z = l' + 1 then
       R'U z
     else
@@ -180,7 +180,8 @@ lemma R'R_analytic (l' : Fin (h7.m)) :
     simp only
     refine AnalyticOn.mul ?_ ?_
     · apply AnalyticOn.mono
-      apply analyticOn_univ.mpr fun x a ↦ (h7.anever q hq0 h2mq) x
+      have : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by fun_prop
+      apply analyticOn_univ.mpr (fun x a ↦ this x)
       simp only [Set.subset_univ]
     · apply AnalyticOn.fun_zpow ?_
       intros z hz
@@ -266,7 +267,7 @@ lemma R'onC (l' : Fin (h7.m)) :
     rw [this]
     simp only [mul_one]
 
-def ks : Finset ℂ := Finset.image (fun (k': ℕ) => (k' + 1 : ℂ)) (Finset.range h7.m)
+def ks : Finset ℂ := Finset.image (fun (k': ℕ) ↦ (k' + 1 : ℂ)) (Finset.range h7.m)
 
 omit [DecidableEq (h7.K →+* ℂ)] in
 lemma z_in_ks {z : ℂ} : z ∈ (h7.ks) ↔ ∃ k': Fin (h7.m), z = k' + 1 := by
@@ -324,7 +325,7 @@ lemma S.U_is_open : IsOpen (S.U h7) := by
 
 lemma S.U_nhds :
   ∀ z, z ∈ U h7 → (S.U h7) ∈ nhds z :=
-  fun z hz => IsOpen.mem_nhds (U_is_open h7) hz
+  fun z hz ↦ IsOpen.mem_nhds (U_is_open h7) hz
 
 omit [DecidableEq (h7.K →+* ℂ)] in
 lemma zneq0 : ∀ {z : ℂ} (_ : z ∈ S.U h7) (k' : Fin (h7.m)), (z - (k' + 1 : ℂ)) ≠ 0 := by
@@ -363,7 +364,7 @@ lemma S.U_ne_of_mem' {z : ℂ} (hz : z ∈ (S.U h7)) (k' : Fin (h7.m)) : z ≠ (
   intro H
   apply hz k' k'.isLt H.symm
 
-def SR : ℂ → ℂ := fun z =>
+def SR : ℂ → ℂ := fun z ↦
   (h7.R q hq0 h2mq) z * (h7.r q hq0 h2mq).factorial *
     ((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h2mq) : ℤ)) *
     (∏ k' ∈ Finset.range (h7.m) \ {↑(h7.l₀' q hq0 h2mq)},
@@ -374,7 +375,7 @@ lemma SR_analytic_S.U : AnalyticOn ℂ (h7.SR q hq0 h2mq) (S.U h7) := by
   refine AnalyticOn.mul ?_ ?_
   · apply AnalyticOn.mul ?_ ?_
     · apply AnalyticOn.mul ?_ ?_
-      · have := h7.anever q hq0 h2mq
+      · have : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by fun_prop
         apply AnalyticOn.mono (f:=(h7.R q hq0 h2mq)) (s:=(S.U h7))
         apply analyticOn_univ.mpr fun x a ↦ this x
         simp only [Set.subset_univ]
@@ -418,12 +419,12 @@ lemma SR_Analytic (z : ℂ) (hz : z ∈ S.U h7) : AnalyticAt ℂ (h7.SR q hq0 h2
   AnalyticOn.analyticAt (f:=(h7.SR q hq0 h2mq)) (z:=z) (s:=S.U h7)
     (SR_analytic_S.U h7 q hq0 h2mq) (hU:= S.U_nhds h7 z hz)
 
-def SRl0 : ℂ → ℂ := fun z =>
+def SRl0 : ℂ → ℂ := fun z ↦
   (h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)) z * ((h7.r q hq0 h2mq).factorial)  *
     (∏ k' ∈ Finset.range (h7.m) \ {↑(h7.l₀' q hq0 h2mq)},
     (((h7.l₀' q hq0 h2mq +1) - (k' + 1)) / (z - (k' + 1 : ℂ))) ^ (h7.r q hq0 h2mq))
 
-def SRl (l' : Fin (h7.m)) : ℂ → ℂ := fun z =>
+def SRl (l' : Fin (h7.m)) : ℂ → ℂ := fun z ↦
   (h7.R' q hq0 h2mq l') z *
     (h7.r q hq0 h2mq).factorial *
     ((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h2mq) : ℤ)) *
@@ -432,7 +433,7 @@ def SRl (l' : Fin (h7.m)) : ℂ → ℂ := fun z =>
     (((h7.l₀' q hq0 h2mq + 1)- (l' + 1)) ^ (h7.r q hq0 h2mq))
 
 def S : ℂ → ℂ :=
-  fun z =>
+  fun z ↦
     if H : ∃ (k' : Fin (h7.m)), z = (k' : ℂ) + 1 then
       if z = (h7.l₀' q hq0 h2mq + 1) then
         h7.SRl0 q hq0 h2mq z
@@ -559,7 +560,7 @@ lemma SR_eq_SRl {z : ℂ} (l' : Fin (h7.m)) (hl : l' ≠ h7.l₀' q hq0 h2mq) :
     have H :=  Finset.prod_union
       (s₁:= Finset.range h7.m \ ({↑(h7.l₀' q hq0 h2mq) }∪ {↑l'}))
       (s₂:= {↑l'})
-      (f:= fun k' => ((↑↑(h7.l₀' q hq0 h2mq) + 1 -
+      (f:= fun k' ↦ ((↑↑(h7.l₀' q hq0 h2mq) + 1 -
        (↑k' + 1)) / (z - (↑k' + 1))) ^ h7.r q hq0 h2mq)
       (by aesop)
     have : Finset.range h7.m \ ({↑(h7.l₀' q hq0 h2mq) }∪ {↑l'}) ∪ {↑l'}
@@ -996,7 +997,7 @@ lemma hcauchy :
 -- one of R1 is R'
 
 -- (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ))))
---#check systemCoeffs_bar
+--#check systemCoeffs_map_eq_exp_mul
 
 def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
   Complex.log (h7.α) ^ (-(h7.r q hq0 h2mq : ℤ)) *
@@ -1005,7 +1006,7 @@ def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
   congr
   have HAE : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by
     intros z
-    exact anever h7 q hq0 h2mq z
+    fun_prop
   let R₁ : ℂ → ℂ := R' h7 q hq0 h2mq ((h7.l₀' q hq0 h2mq))
   have HR1 : ∀ (z : ℂ), AnalyticAt ℂ R₁ z := by
     unfold R₁
