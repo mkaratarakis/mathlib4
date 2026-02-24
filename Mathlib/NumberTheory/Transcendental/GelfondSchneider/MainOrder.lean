@@ -9,6 +9,17 @@ module
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAlgSetup
 public import Mathlib.Analysis.Analytic.Order
 
+/-!
+This PR is the third component in the formalization of the Gelfond-Schneider Theorem
+(Hilbert's Seventh Problem). It connects the algebraically constructed auxiliary function `R(x)`
+to its analytical properties, establishing the exact order of vanishing and the fundamental lower
+bound on the norm of its non-zero derivative evaluation.
+
+Following the argument in Loo-Keng Hua's "Introduction to Number Theory"
+Chapter 17.9, equations (4) and (5)), we define the minimal non-vanishing derivative
+order $r$ and scale the evaluation to an algebraic integer to compute its norm.
+-/
+
 @[expose] public section
 
 open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
@@ -19,18 +30,11 @@ noncomputable section
 variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
-/-
+
+/-!
 Since the numbers `ρ₁, ..., ρₜ` are distinct, the function `R(x)`
 is not identically zero. For suppose otherwise, then on expanding the right
-hand side of (1) we have `η₁ρ₁ + η₂ρ₂ᵏ + ... + ηₜρₜᵏ = 0`, a contradiction.
-
-Thus, we see from (2) that
-
-  `R(x) = a_{n,ℓ}(x - ℓ)ⁿ + a_{n+1,ℓ}(x - ℓ)ⁿ⁺¹ + ⋯,    1 ≤ ℓ ≤ m,`
-
-where `a_{n,ℓ}, a_{n+1,ℓ}, ...` are not all zero. Hence, there must be a natural
-number `r` such that `R⁽ᵏ⁾(ℓ) = 0, 0 ≤ k ≤ r - 1, 1 ≤ ℓ ≤ m`. But for
-`1 ≤ ℓ₀ ≤ m` we have `R⁽ʳ⁾(ℓ₀) ≠ 0` so that we see from (3) that `r ≥ n`.
+hand side of `R` we have `η₁ρ₁ + η₂ρ₂ᵏ + ... + ηₜρₜᵏ = 0`, a contradiction.
 -/
 
 lemma eq_iff_finProdFinEquiv_symm_ext (i j : Fin (q * q)) : i = j ↔
@@ -140,6 +144,16 @@ lemma cexp_mul (c x : ℂ) : deriv (fun x => cexp (c * x)) x = c * cexp (c * x) 
     · fun_prop
     · fun_prop
   · fun_prop
+
+/-!
+Thus, we see from (2) that
+
+  `R(x) = a_{n,ℓ}(x - ℓ)ⁿ + a_{n+1,ℓ}(x - ℓ)ⁿ⁺¹ + ⋯,    1 ≤ ℓ ≤ m,`
+
+where `a_{n,ℓ}, a_{n+1,ℓ}, ...` are not all zero. Hence, there must be a natural
+number `r` such that `R⁽ᵏ⁾(ℓ) = 0, 0 ≤ k ≤ r - 1, 1 ≤ ℓ ≤ m`. But for
+`1 ≤ ℓ₀ ≤ m` we have `R⁽ʳ⁾(ℓ₀) ≠ 0` so that we see from (3) that `r ≥ n`.
+-/
 
 def iteratedDeriv_R (k' : ℕ) : deriv^[k'] (fun x => (h7.R q hq0 h2mq) x) =
     fun x => ∑ t, (h7.σ ((h7.η q hq0 h2mq) t)) * exp (h7.ρ q t * x) * (h7.ρ q t)^k' := by
