@@ -65,6 +65,8 @@ lemma iteratedkDeriv_R_eq_zero (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
   simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow, map_intCast, zpow_neg, zpow_natCast,
     Nat.cast_add, Nat.cast_one]
 
+open AnalyticOnNhd
+
 lemma order_neq_top : ∀ (l' : Fin (h7.m)), analyticOrderAt (h7.R q hq0 h2mq) (l' + 1) ≠ ⊤ := by
   intros l' H
   rw [analyticOrderAt_eq_top_iff_eq_zero] at H

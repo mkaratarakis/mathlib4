@@ -25,12 +25,6 @@ variable {f g : 𝕜 → E} {s : Set 𝕜} [NontriviallyNormedField 𝕜] [Norme
   [NormedSpace 𝕜 E] [NormedAddCommGroup F] [NormedSpace 𝕜 F] [NormedAddCommGroup G]
   [NormedSpace 𝕜 G] {x : E}
 
-lemma analyticOrderAt_eq_top_iff_eq_zero [PreconnectedSpace 𝕜] {f : 𝕜 → E} (z : 𝕜)
-    (hf : ∀ z₀, AnalyticAt 𝕜 f z₀) : analyticOrderAt f z = ⊤ ↔ f = 0 := by
-  refine analyticOrderAt_eq_top.trans ⟨fun h ↦ eqOn_univ .. |>.mp ?_, by simp +contextual⟩
-  apply eqOn_zero_of_preconnected_of_frequently_eq_zero (fun z _ ↦ hf z) isPreconnected_univ trivial
-  exact hf z |>.frequently_eq_iff_eventually_eq analyticAt_const |>.mpr h
-
 open AnalyticAt Filter
 
 lemma analyticOrderAt_deriv_of_pos {𝕜 : Type*} {E : Type*} [NontriviallyNormedField 𝕜]
