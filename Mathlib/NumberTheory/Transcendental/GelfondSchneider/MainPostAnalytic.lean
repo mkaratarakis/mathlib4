@@ -9,7 +9,6 @@ module
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.MainAnalytic
 public import Mathlib.NumberTheory.Transcendental.GelfondSchneider.AnalyticPart
 
-
 @[expose] public section
 
 open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
@@ -20,7 +19,11 @@ noncomputable section
 variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
  (t : Fin (q * q)) [DecidableEq (h7.K →+* ℂ)] (h2mq : 2 * h7.m ∣ q ^ 2)
 
+open Set AnalyticAt AnalyticOnNhd
+
+
 namespace Setup
+
 lemma exists_nonzero_iteratedFDeriv : deriv^[h7.r q hq0 h2mq]
  (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) ≠ 0 := by
   have Hrprop := (h7.r_prop q hq0 h2mq).1
