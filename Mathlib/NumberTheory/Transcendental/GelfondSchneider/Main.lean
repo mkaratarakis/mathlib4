@@ -1708,6 +1708,8 @@ lemma R_analyt_at_point (point : ℂ) : AnalyticAt ℂ (h7.R q hq0 h2mq) point :
 lemma anever : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by
   fun_prop
 
+open AnalyticAt
+
 lemma order_neq_top : ∀ (l' : Fin (h7.m)), analyticOrderAt (h7.R q hq0 h2mq) (l' + 1) ≠ ⊤ := by
   intros l' H
   rw [analyticOrderAt_eq_top_iff_eq_zero] at H
@@ -1725,7 +1727,7 @@ lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z �
   intros z
   exact h7.anever q hq0 h2mq z
 
-lemma Rorder_exists (z : ℂ) :
+lemma exists_analyticOrderAt_R_eq_some (z : ℂ) :
   ∃ r, (analyticOrderAt (h7.R q hq0 h2mq) z) = some r := by
   have : (analyticOrderAt (h7.R q hq0 h2mq) z) ≠ ⊤ :=
     h7.order_neq_top_min_one q hq0 h2mq z
@@ -1734,12 +1736,12 @@ lemma Rorder_exists (z : ℂ) :
   | top => grind
   | coe => aesop
 
-def R_order (z : ℂ) : ℕ := (Rorder_exists h7 q hq0 h2mq z).choose
+def R_order (z : ℂ) : ℕ := (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose
 
-def R_order_prop {z : ℂ} := (Rorder_exists h7 q hq0 h2mq z).choose_spec
+def R_order_prop {z : ℂ} := (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose_spec
 
 lemma R_order_eq (z) : (analyticOrderAt (h7.R q hq0 h2mq) z) = h7.R_order q hq0 h2mq z :=
-  (Rorder_exists h7 q hq0 h2mq z).choose_spec
+  (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose_spec
 
 lemma exists_min_analyticOrderAt :
   let s : Finset (Fin (h7.m)) := Finset.univ
@@ -2223,15 +2225,15 @@ lemma one_leq_norm_c1rho : 1 ≤ norm (h7.cρ q hq0 h2mq) := by
 lemma zero_leq_c1rho : 0 ≤ ↑(h7.cρ q hq0 h2mq) :=
   Int.le_of_lt (one_leq_c1rho h7 q hq0 h2mq)
 
-lemma crho_leq_abs_crho :
+lemma cρ_leq_abs_cρ :
     (h7.cρ q hq0 h2mq) ≤ abs (h7.cρ q hq0 h2mq):= le_abs_self _
 
-lemma abs_crho_leq_norm_crho :
+lemma abs_cρ_leq_norm_cρ :
     abs (h7.cρ q hq0 h2mq) ≤ norm (h7.cρ q hq0 h2mq) := by
   simp only [Int.cast_abs]
   rfl
 
-lemma norm_crho_leq_house_crho : norm (h7.cρ q hq0 h2mq) ≤
+lemma norm_cρ_leq_house_cρ : norm (h7.cρ q hq0 h2mq) ≤
   house (h7.cρ q hq0 h2mq : h7.K) := by
   rw [house_intCast]
   simp only [Int.cast_abs]
@@ -2505,7 +2507,7 @@ lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
         exact mod_cast H
   · exact h2
 
-lemma crho_abs_eq : |h7.c₁ ^ h7.r q hq0 h2mq * h7.c₁ ^ (2 * h7.m * q)| =
+lemma cρ_abs_eq : |h7.c₁ ^ h7.r q hq0 h2mq * h7.c₁ ^ (2 * h7.m * q)| =
   h7.c₁ ^ h7.r q hq0 h2mq * h7.c₁ ^ (2 * h7.m * q) := by
     rw [abs_eq_self]
     apply mul_nonneg (pow_nonneg (le_trans Int.one_nonneg h7.one_leq_c₁) _)
@@ -2704,7 +2706,7 @@ lemma eq6a : house (rho h7 q hq0 h2mq) ≤
     simp only [← zsmul_eq_mul]
     unfold systemCoeffs_r
     unfold cρ
-    rw [crho_abs_eq]
+    rw [cρ_abs_eq]
     have : h7.c₁ ^ (2 * h7.m * q) = h7.c₁ ^ (h7.m * q)
      * h7.c₁ ^ (h7.m * q) := by
        rw [← pow_add]; ring
@@ -4278,7 +4280,7 @@ def systemCoeffsff_foo_S : ρᵣ h7 q hq0 h2mq =
     rw [sub_eq_zero] at HC
     norm_cast at HC
 
-lemma S_eq_SR_on_circle :
+lemma S_eq_restricted_on_sphere :
   ∀ (z : ℂ) (hz : z ∈ Metric.sphere 0
     (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ)))),
   h7.S q hq0 h2mq z = h7.SR q hq0 h2mq z := by
@@ -5098,7 +5100,7 @@ lemma S_norm_bound : ∀ (hz : z ∈ Metric.sphere 0 (h7.m * (1 + (h7.r q hq0 h2
     _ ≤ (h7.c₁₂)^(h7.r q hq0 h2mq : ℝ)*(h7.r q hq0 h2mq : ℝ) ^
         ((((h7.r q hq0 h2mq : ℝ)* ( ( (3 : ℝ) - (h7.m: ℝ))/2 : ℝ)) + (3 / 2 : ℝ))) := ?_
 
-  · rw [h7.S_eq_SR_on_circle q hq0 h2mq z hz]
+  · rw [h7.S_eq_restricted_on_sphere q hq0 h2mq z hz]
     unfold SR
     simp only [mul_assoc]
   · nth_rewrite 2 [mul_assoc]
@@ -5282,7 +5284,7 @@ lemma hf : ∀ z ∈ Metric.sphere 0 (h7.m * (1 + ↑(h7.r q hq0 h2mq : ℝ) / �
       intros z hz
       have hS := S_norm_bound h7 q hq0 h2mq hz
       simp only [Complex.norm_mul, norm_inv, ge_iff_le]
-      --have := h7.S_eq_SR_on_circle q hq0 h2mq z hz
+      --have := h7.S_eq_restricted_on_sphere q hq0 h2mq z hz
       --rw [← this]
       unfold Cnum
       apply mul_le_mul

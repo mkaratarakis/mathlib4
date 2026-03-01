@@ -20,85 +20,67 @@ variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
 
 namespace Setup
 
-theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgebraic ℚ β)
-  (htriv : α ≠ 0 ∧ α ≠ 1) (hirr : ∀ i j : ℤ, β ≠ i / j) :
+/-- The Gelfond-Schneider Theorem (Hilbert's Seventh Problem). -/
+theorem transcendental_cpow_of_isAlgebraic_of_irrational (α β : ℂ)
+    (hα : IsAlgebraic ℚ α) (hβ : IsAlgebraic ℚ β)
+    (htriv : α ≠ 0 ∧ α ≠ 1) (hirr : ∀ i j : ℤ, β ≠ i / j) :
     Transcendental ℚ (α ^ β) := fun hγ => by
 
   obtain ⟨K, hK, hNK, σ, hd, α', β', γ', habc⟩ :=
     exists_common_field_of_isAlgebraic α β (α^β) hα hβ hγ
-
   have h7 : Setup :=
     Setup.mk α β K σ α' β' γ' hirr htriv hα hβ habc hd
-
   haveI : DecidableEq (h7.K →+* ℂ) := h7.hd
-
-  let q : ℕ := 2 * h7.m * ((6 * h7.h) * Nat.ceil ( (h7.c₁₅)^4))
-
+  let q : ℕ := 2 * h7.m * ((6 * h7.h) * Nat.ceil (h7.c₁₅ ^ 4))
   have hq0 : 0 < q := by
-    unfold q
-    simp only [CanonicallyOrderedAdd.mul_pos, Nat.ofNat_pos, Nat.ceil_pos,true_and]
+    simp only [q, CanonicallyOrderedAdd.mul_pos, Nat.ofNat_pos, Nat.ceil_pos,true_and]
     refine ⟨Nat.zero_lt_succ (2 * h7.h + 1), ?_⟩
-    refine ⟨?_, ?_⟩
-    · unfold h; exact Module.finrank_pos
+    refine ⟨Module.finrank_pos, ?_⟩
     · apply pow_pos
-      have := h7.c15_geg_1
-      linarith
+      grind [h7.c15_geg_1]
 
   have h2mq : 2 * h7.m ∣ q ^ 2 := by
-    unfold q; rw [pow_two, mul_assoc]; exact dvd_mul_right _ _
+    rw [pow_two, mul_assoc]; exact dvd_mul_right _ _
 
   let u : Fin (h7.m * h7.n q) := ⟨0, by
-    apply mul_pos; exact Nat.zero_lt_succ (2 * h7.h + 1); unfold n;
+    apply mul_pos (Nat.zero_lt_succ (2 * h7.h + 1));
     apply Nat.div_pos (Nat.le_of_dvd (Nat.pow_pos hq0) h2mq) ?_
     · simp only [Nat.ofNat_pos, mul_pos_iff_of_pos_left]
       exact Nat.zero_lt_succ (2 * h7.h + 1)⟩
 
-  let t : Fin (q * q) := ⟨0, by apply mul_pos; exact hq0; exact hq0⟩
+  let t : Fin (q * q) := ⟨0, mul_pos hq0 hq0⟩
 
-  have use5 := use5 h7 q hq0 u t h2mq
+  -- have hnr : (h7.n q : ℝ) ≤ (h7.r q hq0 h2mq : ℝ) :=
+  --   mod_cast n_le_r h7 q hq0 h2mq
 
-  have hnr : (h7.n q : ℝ) ≤ (h7.r q hq0 h2mq : ℝ) :=
-    mod_cast n_le_r h7 q hq0 h2mq
-
-  have H1 : (2*h7.m) * (6* h7.h) ≤ q := by
+  have H1 : (2 * h7.m) * (6 * h7.h) ≤ q := by
     unfold q
     apply mul_le_mul (le_refl _) ?_ (by positivity) (by positivity)
-    · nth_rw 1 [← mul_one (a:= (6* h7.h))]
+    · nth_rw 1 [← mul_one (a := 6* h7.h)]
       apply mul_le_mul (le_refl _) ?_ (by positivity) (by positivity)
       · simp only [Nat.one_le_ceil_iff];
         apply pow_pos
-        have := h7.c15_geg_1
-        linarith
+        grind [h7.c15_geg_1]
 
-  have H2 : (2*h7.m) * (h7.c₁₅)^4 ≤ q := by
-    unfold q
-    simp only [mul_assoc]
-    simp only [Nat.cast_mul, Nat.cast_ofNat, Nat.ofNat_pos, mul_le_mul_iff_right₀]
-    apply mul_le_mul (le_refl _)
+  have H2 : (2 * h7.m) * h7.c₁₅ ^ 4 ≤ q := by
+    simp only [q, mul_assoc, Nat.cast_mul, Nat.cast_ofNat, Nat.ofNat_pos, mul_le_mul_iff_right₀]
+    apply mul_le_mul (le_refl _) ?_ ?_ (by positivity)
     · nth_rw 1 [← one_mul (a := (h7.c₁₅ ^ 4) )]
       nth_rw 1 [← mul_assoc]
       apply mul_le_mul ?_ (Nat.le_ceil (h7.c₁₅ ^ 4)) (by positivity) (by positivity)
       · unfold h;
-        refine one_le_mul_of_one_le_of_one_le ?_ ?_
-        · simp only [Nat.one_le_ofNat]
+        refine one_le_mul_of_one_le_of_one_le (Nat.one_le_ofNat) ?_
         · norm_cast
-          have : 0 < h7.h := by
-            unfold h; exact Module.finrank_pos
-          unfold h at *
-          linarith
+          grind [Module.finrank_pos]
     · apply pow_nonneg
-      have := h7.c15_geg_1
-      grind
-    · positivity
+      grind [h7.c15_geg_1]
 
   have H3 : 6* h7.h ≤ h7.n q := by
     unfold n
-    calc _ ≤ ((2*h7.m) * (6* h7.h))^2 /(2 * h7.m) := ?_
+    calc _ ≤ ((2 * h7.m) * (6 * h7.h)) ^ 2 / (2 * h7.m) := ?_
          _ ≤  h7.n q := ?_
     · refine (Nat.le_div_iff_mul_le ?_).mpr ?_
-      · have : 0 < h7.h := by
-          unfold h; exact Module.finrank_pos
-        unfold h at *
+      · have : 0 < h7.h := by grind [Module.finrank_pos]
         apply mul_pos (by aesop) (Nat.zero_lt_succ (2 * h7.h + 1))
       · rw [mul_comm, Nat.pow_two]
         apply Nat.le_mul_self
@@ -110,11 +92,10 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
     refine Nat.ceil_le.mp ?_
     refine (Nat.le_div_iff_mul_le ?_).mpr ?_
     · have : 0 < h7.h := by
-        unfold h; exact Module.finrank_pos
-      unfold h at *
+        grind [Module.finrank_pos]
       apply mul_pos (by aesop) (Nat.zero_lt_succ (2 * h7.h + 1))
     · rw [mul_comm, mul_pow]
-      apply mul_le_mul
+      apply mul_le_mul ?_ ?_ (by positivity) (by positivity)
       · rw [Nat.pow_two]; apply Nat.le_mul_self
       · rw [Nat.pow_two]
         simp only [← mul_assoc]
@@ -138,8 +119,6 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
               exact Nat.ne_zero_of_lt this
             · exact Nat.ne_zero_of_lt this
         · rw [Nat.pow_two]; apply Nat.le_mul_self
-      · positivity
-      · positivity
 
   have H5 : 6* h7.h ≤ h7.r q hq0 h2mq := H3.trans (n_le_r h7 q hq0 h2mq)
 
@@ -149,8 +128,7 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
     simp only [Nat.cast_le]
     exact n_le_r h7 q hq0 h2mq
 
-  apply absurd
-  · apply use5
+  apply absurd (use5 h7 q hq0 u t h2mq) ?_
   · simp only [Real.rpow_natCast, not_lt]
     rw [← Real.rpow_le_rpow_iff (z:= ( ((↑(h7.r q hq0 h2mq) - 3 * ↑h7.h) / 2) : ℝ)⁻¹)]
     rw [← Real.rpow_mul, mul_inv_cancel₀]
@@ -170,10 +148,9 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
                  _ ≤ ((h7.h * 6 - ↑h7.h * 3) : ℝ) := ?_
                  _ ≤ (h7.r q hq0 h2mq : ℝ) - h7.h * 3 := ?_
             · have : 0 < h7.h := by
-                unfold h; exact Module.finrank_pos
-              unfold h at *
+                grind [Module.finrank_pos]
               simp only [Nat.ofNat_pos, mul_pos_iff_of_pos_right, Nat.cast_pos, gt_iff_lt]
-              linarith
+              grind
             · ring_nf; simp only [le_refl]
             · simp only [tsub_le_iff_right, sub_add_cancel]
               rw [mul_comm]
@@ -194,10 +171,9 @@ theorem gelfondSchneider (α β : ℂ) (hα : IsAlgebraic ℚ α) (hβ : IsAlgeb
     simp only [Real.rpow_ofNat]
     apply H6
     · exact c15_nonneg h7
-    · have Hh : 0 < h7.h := by unfold h; exact Module.finrank_pos
-      apply div_ne_zero
+    · apply div_ne_zero
       · have : 3 * h7.h < (h7.r q hq0 h2mq : ℝ) := by
-          calc _ < (6 * h7.h : ℝ)  := by norm_cast; grind
+          calc _ < (6 * h7.h : ℝ)  := by norm_cast; grind [Module.finrank_pos]
                _ ≤ (h7.r q hq0 h2mq :ℝ) := by norm_cast;
         grind
       · simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]
@@ -221,7 +197,7 @@ end Setup
 A formalization of a proof that `√2 ^ √2` is transcendental.
 -/
 lemma sqrt2sqrt_is_transcendental : Transcendental ℚ ((√2 : ℂ)^ (√2 : ℂ)) := by
-  apply Setup.gelfondSchneider √2 √2
+  apply Setup.transcendental_cpow_of_isAlgebraic_of_irrational √2 √2
   · refine IsAlgebraic.of_aeval ?_ (fun H ↦ ?_) ?_ ?_
     · exact Polynomial.X ^ 2 - Polynomial.C 1
     · have : ((((Polynomial.X ^ 2 - Polynomial.C 1) : ℚ[X])).natDegree : ℕ) = 2 := by {

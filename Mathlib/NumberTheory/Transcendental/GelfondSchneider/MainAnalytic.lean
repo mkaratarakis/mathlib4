@@ -32,38 +32,18 @@ variable (h7 : Setup) (q : ℕ) (hq0 : 0 < q) (u : Fin (h7.m * h7.n q))
 
 namespace Setup
 
-lemma iteratedkDeriv_R_eq_zero (k : Fin (h7.n q)) (l' : Fin (h7.m)) :
+lemma iteratedkDeriv_R_eq_zero (k : Fin (h7.n q)) (l' : Fin h7.m) :
     deriv^[k] (h7.R q hq0 h2mq) (l' + 1) = 0 := by
-  let u : Fin (h7.m * h7.n q) := (finProdFinEquiv.toFun ⟨l',k⟩)
-  have h1 := coeffs_mul_deriv_eq_zero h7 q hq0 u h2mq
-  unfold Setup.k at *
-  unfold Setup.l at *
-  unfold u at *
-  simp only [Equiv.toFun_as_coe,
-    Equiv.symm_apply_apply] at *
-  have : (h7.σ (h7.c_coeffs q) *
-   (Complex.log h7.α)^(-k : ℤ)) * deriv^[k] (h7.R q hq0 h2mq) (l'+1) =
-    (h7.σ (h7.c_coeffs q) *
-    (Complex.log h7.α)^(-k : ℤ)) * 0 → deriv^[k] (h7.R q hq0 h2mq) (l' + 1) = 0 := by
-      apply mul_left_cancel₀
-      by_contra H
-      simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow,
-        map_intCast, zpow_neg, zpow_natCast,
-        mul_eq_zero, pow_eq_zero_iff', Int.cast_eq_zero, ne_eq, not_or, inv_eq_zero] at H
-      rcases H with ⟨h1, h2⟩
-      · apply h7.c₁_ne_zero; assumption
-      ·  apply h7.c₁_ne_zero; rename_i h2; exact h2.1
-      · apply h7.c₁_ne_zero; rename_i h2; exact h2.1
-      · have : Complex.log h7.α ≠ 0 :=
-         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
-        apply this; rename_i h2; exact h2.1
-  rw [this]
-  rw [mul_zero]
-  rw [mul_assoc]
-  simp only [mul_assoc] at *
-  rw [← h1]
-  simp only [Int.cast_mul, Int.cast_pow, map_mul, map_pow, map_intCast, zpow_neg, zpow_natCast,
-    Nat.cast_add, Nat.cast_one]
+  have h1 := h7.coeffs_mul_deriv_eq_zero q hq0 (finProdFinEquiv ⟨l', k⟩) h2mq
+  simp only [Setup.k, Setup.l, Equiv.toFun_as_coe, Equiv.symm_apply_apply,
+    Int.cast_mul, Int.cast_pow, map_mul, map_pow, map_intCast, zpow_neg, zpow_natCast,
+    Nat.cast_add, Nat.cast_one, ← mul_assoc] at h1
+  refine (mul_eq_zero.mp h1).resolve_left (fun h_zero ↦ ?_)
+  have h_log : Complex.log h7.α ≠ 0 := fun h ↦
+    h7.htriv.2 (by simpa [exp_log h7.htriv.1] using congrArg exp h)
+  simp only [mul_eq_zero, inv_eq_zero, pow_eq_zero_iff'] at h_zero
+  revert h_zero
+  simp [h7.c₁_ne_zero, h_log]
 
 open AnalyticOnNhd
 
@@ -84,7 +64,8 @@ lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z �
   intros z
   fun_prop
 
-lemma Rorder_exists (z : ℂ) :
+
+lemma exists_analyticOrderAt_R_eq_some (z : ℂ) :
     ∃ r, (analyticOrderAt (h7.R q hq0 h2mq) z) = some r := by
   have : (analyticOrderAt (h7.R q hq0 h2mq) z) ≠ ⊤ :=
     h7.order_neq_top_min_one q hq0 h2mq z
@@ -93,12 +74,12 @@ lemma Rorder_exists (z : ℂ) :
   | top => grind
   | coe => aesop
 
-def R_order (z : ℂ) : ℕ := (Rorder_exists h7 q hq0 h2mq z).choose
+def R_order (z : ℂ) : ℕ := (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose
 
-def R_order_prop {z : ℂ} := (Rorder_exists h7 q hq0 h2mq z).choose_spec
+def R_order_prop {z : ℂ} := (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose_spec
 
 lemma R_order_eq (z) : (analyticOrderAt (h7.R q hq0 h2mq) z) = h7.R_order q hq0 h2mq z :=
-  (Rorder_exists h7 q hq0 h2mq z).choose_spec
+  (exists_analyticOrderAt_R_eq_some h7 q hq0 h2mq z).choose_spec
 
 lemma r_exists : ∃ r, r' h7 q hq0 h2mq = some r := by
   have H := order_neq_top_min_one h7 q hq0 h2mq (l₀' h7 q hq0 h2mq + 1)
@@ -148,7 +129,7 @@ lemma systemCoeffs_ne_zero_r : h7.systemCoeffs_r q hq0 t h2mq ≠ 0 := by
     exact h7.alpha'_beta'_gamma'_ne_zero.2.2 H2.1
 
 def ρᵣ : ℂ := (Complex.log h7.α)^(-(h7.r q hq0 h2mq) : ℤ) *
- deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
+  deriv^[h7.r q hq0 h2mq] (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1)
 
 lemma systemCoeffs_map_eq_exp_mul_r :
   exp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) *
@@ -197,10 +178,7 @@ lemma systemCoeffs_map_eq_exp_mul_r :
     have : cexp (( ↑(a q t) + (b q t) • h7.β) * Complex.log h7.α * (h7.l₀' q hq0 h2mq + 1)
         ) =
         cexp ((↑(a q t) + ↑(b q t) • h7.β) * Complex.log h7.α * (h7.l₀' q hq0 h2mq +1)) := by
-          simp_all only [Equiv.toFun_as_coe, finProdFinEquiv_symm_apply,
-          Fin.coe_modNat,
-            Fin.coe_divNat, Nat.cast_add, Nat.cast_one,
-            nsmul_eq_mul, b, a]
+          aesop
     rw [this];clear this
     have : h7.σ h7.α' ^ ((a q t) * (h7.l₀' q hq0 h2mq + 1)) *
        h7.σ h7.γ' ^ ((b q t) * (h7.l₀' q hq0 h2mq + 1)) =
@@ -257,9 +235,10 @@ def deriv_R_k_eval_at_l0' :
   cexp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) * (h7.ρ q t) ^ (h7.r q hq0 h2mq) := by
   rw [iteratedDeriv_R]
 
+
 lemma systemCoeffs_deriv_r :
- (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
- (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) =
+   (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
+   (h7.R q hq0 h2mq) (h7.l₀' q hq0 h2mq + 1) =
  ∑ t, h7.σ ↑((h7.η q hq0 h2mq) t) * h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
   rw [h7.deriv_R_k_eval_at_l0' q hq0 h2mq, mul_sum, Finset.sum_congr rfl]
   intros t ht
@@ -463,15 +442,15 @@ lemma one_le_norm_c1rho : 1 ≤ norm (h7.cρ q hq0 h2mq) := by
 lemma zero_le_c1rho : 0 ≤ ↑(h7.cρ q hq0 h2mq) :=
   Int.le_of_lt (one_le_c1rho h7 q hq0 h2mq)
 
-lemma crho_le_abs_crho :
+lemma cρ_le_abs_cρ :
     (h7.cρ q hq0 h2mq) ≤ abs (h7.cρ q hq0 h2mq):= le_abs_self _
 
-lemma abs_crho_le_norm_crho :
+lemma abs_cρ_le_norm_cρ :
     abs (h7.cρ q hq0 h2mq) ≤ norm (h7.cρ q hq0 h2mq) := by
   simp only [Int.cast_abs]
   rfl
 
-lemma norm_crho_le_house_crho : norm (h7.cρ q hq0 h2mq) ≤
+lemma norm_cρ_le_house_cρ : norm (h7.cρ q hq0 h2mq) ≤
   house (h7.cρ q hq0 h2mq : h7.K) := by
   rw [house_intCast]
   simp only [Int.cast_abs]
@@ -483,7 +462,7 @@ lemma norm_cρ_pos : 0 < ‖h7.cρ q hq0 h2mq‖ := by
   unfold cρ at this
   exact this
 
-lemma h1 : 1 ≤ ‖h7.cρ q hq0 h2mq‖ ^ Module.finrank ℚ h7.K := by
+lemma one_le_norm_cρ_pow : 1 ≤ ‖h7.cρ q hq0 h2mq‖ ^ Module.finrank ℚ h7.K := by
       rw [one_le_pow_iff_of_nonneg]
       · rw [Int.norm_eq_abs]
         have := (h7.norm_cρ_pos q hq0 h2mq)
