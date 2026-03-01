@@ -64,7 +64,6 @@ lemma order_neq_top_min_one : ∀ z : ℂ, analyticOrderAt (h7.R q hq0 h2mq) z �
   intros z
   fun_prop
 
-
 lemma exists_analyticOrderAt_R_eq_some (z : ℂ) :
     ∃ r, (analyticOrderAt (h7.R q hq0 h2mq) z) = some r := by
   have : (analyticOrderAt (h7.R q hq0 h2mq) z) ≠ ⊤ :=
@@ -137,16 +136,12 @@ lemma systemCoeffs_map_eq_exp_mul_r :
   Complex.log h7.α ^ (-(h7.r q hq0 h2mq) : ℤ) = h7.σ (h7.systemCoeffs_r q hq0 t h2mq) := by
     nth_rw 2 [ρ]
     rw [mul_pow, mul_assoc, mul_assoc]
-    have : (Complex.log h7.α ^ (h7.r q hq0 h2mq : ℕ) *
-      Complex.log h7.α ^ (-h7.r q hq0 h2mq : ℤ)) = 1 := by
-      simp only [zpow_neg, zpow_natCast]
-      refine Complex.mul_inv_cancel ?_
-      by_contra! H
-      have : Complex.log h7.α ≠ 0 :=
-         mt (fun h ↦ by simpa [exp_log h7.htriv.1, exp_zero] using congrArg exp h) h7.htriv.2
-      apply this
-      simp only [pow_eq_zero_iff', ne_eq] at H
-      apply H.1
+    have hlog : Complex.log h7.α ≠ 0 := by
+      intro h
+      exact h7.htriv.2 (by simpa [Complex.exp_log h7.htriv.1] using congrArg Complex.exp h)
+    have : Complex.log h7.α ^ (h7.r q hq0 h2mq : ℕ) *
+      Complex.log h7.α ^ (-h7.r q hq0 h2mq : ℤ) = 1 := by
+      simp [zpow_neg, zpow_natCast, hlog]
     rw [this]; clear this
     rw [mul_one]
     unfold systemCoeffs_r
@@ -210,23 +205,14 @@ lemma systemCoeffs_map_eq_exp_mul_r :
         exact h7.htriv.1
     rw [this]; clear this
     rw [cpow_def_of_ne_zero]
-    · have : Complex.log h7.α * (↑(a q t) * (h7.l₀' q hq0 h2mq +1) +
-       ((b q t) * (h7.l₀' q hq0 h2mq + 1)) * h7.β) =
-        (↑(a q t) + (b q t) • h7.β) * Complex.log h7.α * (h7.l₀' q hq0 h2mq + 1) := by
-        nth_rw 4 [mul_comm]
-        have : ( ((h7.l₀' q hq0 h2mq + 1) * (b q t)) * h7.β) =
-        ( (((b q t) * h7.β) * (h7.l₀' q hq0 h2mq + 1))) := by
-          exact mul_rotate (↑↑(h7.l₀' q hq0 h2mq) + 1) (↑(b q t)) h7.β
-        rw [this];clear this
-        have H : (↑(a q t) * (h7.l₀' q hq0 h2mq + 1) +
-        (((b q t) * h7.β) * (h7.l₀' q hq0 h2mq +1))) =
-        (((a q t)  + ((b q t) * h7.β)) *  ↑((↑(h7.l₀' q hq0 h2mq : ℕ) + 1  :ℂ))) :=
-        Eq.symm (RightDistribClass.right_distrib
-          (↑(a q t)) (↑(b q t) * h7.β) (h7.l₀' q hq0 h2mq + 1))
-        rw [H, mul_comm, mul_assoc]
-        nth_rw 3 [mul_comm]
-        rw [← mul_assoc, nsmul_eq_mul]
-      rw [this]
+    · have hmul :
+          Complex.log h7.α *
+            (↑(a q t) * (h7.l₀' q hq0 h2mq + 1) +
+              ((b q t) * (h7.l₀' q hq0 h2mq + 1)) * h7.β) =
+            (↑(a q t) + (b q t) • h7.β) * Complex.log h7.α * (h7.l₀' q hq0 h2mq + 1) := by
+        simp [nsmul_eq_mul]
+        ring
+      simp [hmul]
     · exact h7.htriv.1
 
 def deriv_R_k_eval_at_l0' :
@@ -234,7 +220,6 @@ def deriv_R_k_eval_at_l0' :
   ∑ t, h7.σ ((h7.η q hq0 h2mq) t) *
   cexp (h7.ρ q t * (h7.l₀' q hq0 h2mq + 1)) * (h7.ρ q t) ^ (h7.r q hq0 h2mq) := by
   rw [iteratedDeriv_R]
-
 
 lemma systemCoeffs_deriv_r :
    (Complex.log h7.α)^(-h7.r q hq0 h2mq : ℤ) * deriv^[h7.r q hq0 h2mq]
@@ -304,116 +289,98 @@ lemma ρ_is_int :
         rw [← this]
       simp_rw [this]
       apply IsIntegral.mul
-      · apply IsIntegral.mul
-        · simp only [nsmul_eq_mul, zsmul_eq_mul, Int.cast_pow]
-          rw [← mul_pow]
-          apply IsIntegral.pow
-          rw [mul_add]
-          apply IsIntegral.add
-          · apply IsIntegral.mul <| IsIntegral.Cast _ _
-            · apply IsIntegral.Nat
-          · rw [mul_comm, mul_assoc]
-            apply IsIntegral.mul
-            · apply IsIntegral.Nat
-            · rw [mul_comm];
-              have := h7.isIntegral_c₁β
-              simp only [zsmul_eq_mul] at this
-              exact this
-        · apply h7.isIntegral_c₁_pow_smul_pow
+      · refine IsIntegral.mul ?_ ?_
+        · have hbase : IsIntegral ℤ (↑h7.c₁ * (↑(a q x) + b q x • h7.β')) := by
+            rw [mul_add]
+            refine (IsIntegral.add (R := ℤ) (A := h7.K) ?_ ?_)
+            · simpa [mul_assoc, mul_comm, mul_left_comm] using
+                (IsIntegral.mul (IsIntegral.Nat h7.K (a q x)) (IsIntegral.Cast h7.K h7.c₁))
+            · simpa [zsmul_eq_mul, mul_assoc, mul_comm, mul_left_comm] using
+                (IsIntegral.mul (IsIntegral.Nat h7.K (b q x)) h7.isIntegral_c₁β)
+          simpa [Nat.mul_one] using
+            (h7.isIntegral_c₁_pow_smul_pow
+              (u := (↑(a q x) + b q x • h7.β'))
+              (n := h7.r q hq0 h2mq) (k := 1) (a := h7.r q hq0 h2mq) (l := 1)
+              (by simp) hbase)
+        · refine h7.isIntegral_c₁_pow_smul_pow
+            (u := h7.α') (n := h7.m) (k := q) (a := a q x) (l := h7.l₀' q hq0 h2mq + 1) ?_ ?_
           · rw [mul_comm]
-            apply Nat.mul_le_mul ((h7.l₀' q hq0 h2mq).isLt) ((finProdFinEquiv.symm.toFun x).1.isLt)
-          · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
-      · have : h7.c₁ ^ (h7.m * q - ((b q x) * (h7.l₀' q hq0 h2mq + 1))) *
-           (h7.c₁ ^ ((b q x) * (h7.l₀' q hq0 h2mq + 1))) =
-              (h7.c₁ ^ ((h7.m * q))) := by
-          rw [← pow_add,Nat.sub_add_cancel]
-          nth_rw 1 [mul_comm]
-          apply mul_le_mul
-          · exact (h7.l₀' q hq0 h2mq).isLt
-          · exact (finProdFinEquiv.symm.toFun x).2.isLt
-          · simp only [zero_le]
-          · simp only [zero_le]
-        rw [← this]
-        simp only [zsmul_eq_mul, Int.cast_mul, Int.cast_pow]
-        rw [mul_assoc]
-        apply IsIntegral.mul
-        · apply IsIntegral.pow
-          · apply IsIntegral.Cast
-        · rw [← mul_pow]
-          apply IsIntegral.pow
-          · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁γ
+            exact Nat.mul_le_mul (h7.l₀' q hq0 h2mq).isLt
+              (finProdFinEquiv.symm.toFun x).1.isLt
+          · simpa [zsmul_eq_mul] using h7.isIntegral_c₁α
+      · refine h7.isIntegral_c₁_pow_smul_pow
+          (u := h7.γ') (n := h7.m) (k := q) (a := b q x) (l := h7.l₀' q hq0 h2mq + 1) ?_ ?_
+        · rw [mul_comm]
+          exact Nat.mul_le_mul (h7.l₀' q hq0 h2mq).isLt
+            (finProdFinEquiv.symm.toFun x).2.isLt
+        · simpa [zsmul_eq_mul] using h7.isIntegral_c₁γ
   · rw [Finset.smul_sum]
     apply IsIntegral.sum
-    intros x hx
-    rw [← mul_assoc, H2]
-    rw [zsmul_eq_mul]
-    nth_rw 1 [mul_comm]
-    rw [mul_assoc]
-    apply IsIntegral.mul
-    · exact RingOfIntegers.isIntegral_coe ((h7.η q hq0 h2mq) x)
-    · rw [mul_comm]
-      rw [← zsmul_eq_mul]
-      have triple_comm (K : Type) [Field K] (a b c : ℤ) (x y z : K) :
-         ((a*b)*c) • ((x*y)*z) = a•x * b•y * c•z := by
-        simp only [zsmul_eq_mul, Int.cast_mul]; ring
-      have H := triple_comm h7.K
-        (h7.c₁^(h7.r q hq0 h2mq))
-        (h7.c₁^(h7.m * q) : ℤ)
-        (h7.c₁^(h7.m * q) : ℤ)
-        (((a q x : ℕ) + (b q x) • h7.β')^(h7.r q hq0 h2mq))
-        (h7.α' ^ ((a q x) * ((h7.l₀' q hq0 h2mq + 1))))
-        (h7.γ' ^ ((b q x) * ((h7.l₀' q hq0 h2mq + 1))))
-      have : IsIntegral ℤ (-(h7.c₁ ^ h7.r q hq0 h2mq * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q)) •
-    ((↑(a q x) + b q x • h7.β') ^ h7.r q hq0 h2mq * h7.α' ^ (a q x * (h7.l₀' q hq0 h2mq + 1)) *
-      h7.γ' ^ (b q x * (h7.l₀' q hq0 h2mq + 1)))) =
-         IsIntegral ℤ ((h7.c₁ ^ (h7.r q hq0 h2mq) •
-          (↑(a q x) + (b q x) • h7.β') ^ (h7.r q hq0 h2mq)
-           * h7.c₁ ^ (h7.m * q) • h7.α' ^ ((a q x) *
-           (h7.l₀' q hq0 h2mq + 1)) * h7.c₁ ^ (h7.m * q) •
-             h7.γ' ^ ((b q x) * (h7.l₀' q hq0 h2mq + 1)))) := by
-          rw [← H]
-          rw [neg_smul]
-          simp only [nsmul_eq_mul, zsmul_eq_mul, Int.cast_mul, Int.cast_pow,
-            IsIntegral.neg_iff]
-      clear H
-      rw [this]
-      apply IsIntegral.mul
-      · apply IsIntegral.mul
-        · simp only [nsmul_eq_mul, zsmul_eq_mul, Int.cast_pow]
-          rw [← mul_pow]
-          apply IsIntegral.pow
-          rw [mul_add]
-          · apply IsIntegral.add
-            · apply IsIntegral.mul <| IsIntegral.Cast _ _
-              · apply IsIntegral.Nat
-            ·rw [mul_comm, mul_assoc]
-             apply IsIntegral.mul <| IsIntegral.Nat _ _
-             rw [mul_comm, ← zsmul_eq_mul]
-             exact h7.isIntegral_c₁β
-        · apply h7.isIntegral_c₁_pow_smul_pow
+    intro x hx
+    have hmul :
+        IsIntegral ℤ
+          (h7.c₁ ^ (h7.r q hq0 h2mq) • (↑(a q x) + b q x • h7.β') ^ (h7.r q hq0 h2mq) *
+            h7.c₁ ^ (h7.m * q) • h7.α' ^ (a q x * (h7.l₀' q hq0 h2mq + 1)) *
+            h7.c₁ ^ (h7.m * q) • h7.γ' ^ (b q x * (h7.l₀' q hq0 h2mq + 1))) := by
+      refine IsIntegral.mul ?_ ?_
+      · refine IsIntegral.mul ?_ ?_
+        · have hbase : IsIntegral ℤ (↑h7.c₁ * (↑(a q x) + b q x • h7.β')) := by
+            rw [mul_add]
+            refine IsIntegral.add (R := ℤ) (A := h7.K) ?_ ?_
+            · simpa [mul_assoc, mul_comm, mul_left_comm] using
+                (IsIntegral.mul (IsIntegral.Nat h7.K (a q x)) (IsIntegral.Cast h7.K h7.c₁))
+            · simpa [zsmul_eq_mul, mul_assoc, mul_comm, mul_left_comm] using
+                (IsIntegral.mul (IsIntegral.Nat h7.K (b q x)) h7.isIntegral_c₁β)
+          simpa [Nat.mul_one] using
+            (h7.isIntegral_c₁_pow_smul_pow
+              (u := (↑(a q x) + b q x • h7.β'))
+              (n := h7.r q hq0 h2mq) (k := 1) (a := h7.r q hq0 h2mq) (l := 1)
+              (by simp) hbase)
+        · refine h7.isIntegral_c₁_pow_smul_pow
+            (u := h7.α') (n := h7.m) (k := q) (a := a q x) (l := h7.l₀' q hq0 h2mq + 1) ?_ ?_
           · rw [mul_comm]
-            apply Nat.mul_le_mul
-            · exact (h7.l₀' q hq0 h2mq).isLt
-            exact (finProdFinEquiv.symm.toFun x).1.isLt
-          · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁α
-      · have : h7.c₁ ^ (h7.m * q - (b q x * (h7.l₀' q hq0 h2mq + 1))) *
-           (h7.c₁ ^ ((b q x) * (h7.l₀' q hq0 h2mq + 1))) = (h7.c₁ ^ ((h7.m * q))) := by
-          rw [← pow_add, Nat.sub_add_cancel]
-          nth_rw 1 [mul_comm]
-          apply mul_le_mul
-          · exact (h7.l₀' q hq0 h2mq).isLt
-          · exact (finProdFinEquiv.symm.toFun x).2.isLt
-          · simp only [zero_le]
-          · simp only [zero_le]
-        rw [← this]
-        simp only [zsmul_eq_mul, Int.cast_mul, Int.cast_pow]
-        rw [mul_assoc]
-        apply IsIntegral.mul
-        · apply IsIntegral.pow
-          · apply IsIntegral.Cast
-        · rw [← mul_pow]
-          apply IsIntegral.pow
-          · rw [← zsmul_eq_mul]; exact h7.isIntegral_c₁γ
+            exact Nat.mul_le_mul (h7.l₀' q hq0 h2mq).isLt
+              (finProdFinEquiv.symm.toFun x).1.isLt
+          · simpa [zsmul_eq_mul] using h7.isIntegral_c₁α
+      · refine h7.isIntegral_c₁_pow_smul_pow
+          (u := h7.γ') (n := h7.m) (k := q) (a := b q x) (l := h7.l₀' q hq0 h2mq + 1) ?_ ?_
+        · rw [mul_comm]
+          exact Nat.mul_le_mul (h7.l₀' q hq0 h2mq).isLt
+            (finProdFinEquiv.symm.toFun x).2.isLt
+        · simpa [zsmul_eq_mul] using h7.isIntegral_c₁γ
+    have hη : IsIntegral ℤ (↑((h7.η q hq0 h2mq) x) : h7.K) :=
+      RingOfIntegers.isIntegral_coe ((h7.η q hq0 h2mq) x)
+    have hnegScaled :
+        IsIntegral ℤ
+          ((↑(-(h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q)) : ℤ) : h7.K) *
+            ((↑(a q x) + b q x • h7.β') ^ (h7.r q hq0 h2mq) *
+              h7.α' ^ (a q x * (h7.l₀' q hq0 h2mq + 1)) *
+              h7.γ' ^ (b q x * (h7.l₀' q hq0 h2mq + 1)))) := by
+      have hscaled :
+          IsIntegral ℤ
+            ((↑(h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q) : ℤ) : h7.K) *
+              ((↑(a q x) + b q x • h7.β') ^ (h7.r q hq0 h2mq) *
+                h7.α' ^ (a q x * (h7.l₀' q hq0 h2mq + 1)) *
+                h7.γ' ^ (b q x * (h7.l₀' q hq0 h2mq + 1)))) := by
+        convert hmul using 1
+        grind
+      convert (IsIntegral.neg hscaled) using 1
+      grind
+    have habs :
+        |h7.c₁ ^ (h7.r q hq0 h2mq) * (h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q))| =
+          -(h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q)) := by
+      simpa [mul_assoc] using H2
+    rw [habs, zsmul_eq_mul]
+    have hmulInt :
+        IsIntegral ℤ
+          (((↑(-(h7.c₁ ^ (h7.r q hq0 h2mq) * h7.c₁ ^ (h7.m * q) * h7.c₁ ^ (h7.m * q)) : ℤ) : h7.K) *
+              ((↑(a q x) + b q x • h7.β') ^ (h7.r q hq0 h2mq) *
+                h7.α' ^ (a q x * (h7.l₀' q hq0 h2mq + 1)) *
+                h7.γ' ^ (b q x * (h7.l₀' q hq0 h2mq + 1)))) *
+            (↑((h7.η q hq0 h2mq) x) : h7.K)) := by
+      exact IsIntegral.mul hnegScaled hη
+    convert hmulInt using 1
+    ac_rfl
 
 def c1ρ : 𝓞 h7.K := RingOfIntegers.restrict _
   (fun _ => (ρ_is_int h7 q hq0 h2mq)) ℤ
@@ -463,25 +430,10 @@ lemma norm_cρ_pos : 0 < ‖h7.cρ q hq0 h2mq‖ := by
   exact this
 
 lemma one_le_norm_cρ_pow : 1 ≤ ‖h7.cρ q hq0 h2mq‖ ^ Module.finrank ℚ h7.K := by
-      rw [one_le_pow_iff_of_nonneg]
-      · rw [Int.norm_eq_abs]
-        have := (h7.norm_cρ_pos q hq0 h2mq)
-        rw [Int.norm_eq_abs] at this
-        unfold cρ
-        simp only [Int.cast_abs, Int.cast_mul, Int.cast_pow, abs_abs]
-        rw [← pow_add]
-        simp only [abs_pow]
-        have : 1 ≤ |↑(h7.c₁)| := by
-          rw [le_abs']
-          right
-          exact h7.one_le_c₁
-        refine one_le_pow₀ ?_
-        exact mod_cast this
-      · apply norm_nonneg
-      · have : 0 < Module.finrank ℚ h7.K  := Module.finrank_pos
-        simp_all only [ne_eq]
-        intro a
-        simp_all only [lt_self_iff_false]
+  rw [one_le_pow_iff_of_nonneg]
+  · simpa using h7.one_le_norm_c1rho q hq0 h2mq
+  · exact norm_nonneg _
+  · exact Nat.ne_of_gt Module.finrank_pos
 
 end Setup
 
