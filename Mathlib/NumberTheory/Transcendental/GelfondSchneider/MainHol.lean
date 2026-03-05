@@ -60,61 +60,59 @@ lemma exists_analyticOn_factor_R_at_add_one (l' : Fin h7.m) :
       exact (AnalyticAt.sub analyticAt_id analyticAt_const).pow (o - h7.r q hq0 h2mq)
     exact (hpow.mul (hU2prop z hz.2)).analyticWithinAt
 
-noncomputable def analyticFactorR (l' : Fin h7.m) : ℂ → ℂ :=
+noncomputable def R'U (l' : Fin h7.m) : ℂ → ℂ :=
   (exists_analyticOn_factor_R_at_add_one h7 q hq0 h2mq l').choose
 
-noncomputable def analyticFactorNhds (l' : Fin h7.m) : Set ℂ :=
+noncomputable def U (l' : Fin h7.m) : Set ℂ :=
   (exists_analyticOn_factor_R_at_add_one h7 q hq0 h2mq l').choose_spec.choose
 
-lemma analyticFactorR_spec (l' : Fin h7.m) :
-    analyticFactorNhds h7 q hq0 h2mq l' ∈ nhds (l' + 1 : ℂ) ∧
-    (l' + 1 : ℂ) ∈ analyticFactorNhds h7 q hq0 h2mq l' ∧
-    (∀ z ∈ analyticFactorNhds h7 q hq0 h2mq l',
-      h7.R q hq0 h2mq z = (z - (l' + 1)) ^ h7.r q hq0 h2mq * analyticFactorR h7 q hq0 h2mq l' z) ∧
-    AnalyticOn ℂ (analyticFactorR h7 q hq0 h2mq l') (analyticFactorNhds h7 q hq0 h2mq l') :=
+lemma R'_spec (l' : Fin h7.m) :
+    U h7 q hq0 h2mq l' ∈ nhds (l' + 1 : ℂ) ∧
+    (l' + 1 : ℂ) ∈ U h7 q hq0 h2mq l' ∧
+    (∀ z ∈ U h7 q hq0 h2mq l',
+      h7.R q hq0 h2mq z = (z - (l' + 1)) ^ h7.r q hq0 h2mq * R'U h7 q hq0 h2mq l' z) ∧
+    AnalyticOn ℂ (R'U h7 q hq0 h2mq l') (U h7 q hq0 h2mq l') :=
   (exists_analyticOn_factor_R_at_add_one h7 q hq0 h2mq l').choose_spec.choose_spec
 
-noncomputable def R_mul_pow_neg (l' : Fin h7.m) (z : ℂ) : ℂ :=
+noncomputable def R'R (l' : Fin h7.m) (z : ℂ) : ℂ :=
   h7.R q hq0 h2mq z * (z - (l' + 1)) ^ (-(h7.r q hq0 h2mq : ℤ))
 
-def analyticExtensionR (l' : Fin (h7.m)) : ℂ → ℂ :=
-  let R'U := analyticFactorR h7 q hq0 h2mq l'
-  let R'R := R_mul_pow_neg h7 q hq0 h2mq l'
-  let U := analyticFactorNhds h7 q hq0 h2mq l'
+def R' (l' : Fin (h7.m)) : ℂ → ℂ :=
+  let U := U h7 q hq0 h2mq l'
   letI : ∀ z, Decidable (z ∈ U) := by
     intros z
     exact Classical.propDecidable (z ∈ U)
   fun z ↦
     if z = l' + 1 then
-      R'U z
+      (R'U h7 q hq0 h2mq l') z
     else
-      R'R z
+      (R'R h7 q hq0 h2mq l') z
 
-lemma analyticExtensionR_eq_analyticFactorR_on_nhds (l' : Fin (h7.m)) :
-  let U := h7.analyticFactorNhds q hq0 h2mq l'
-  ∀ z ∈ U, h7.analyticExtensionR q hq0 h2mq l' z = h7.analyticFactorR q hq0 h2mq l' z := by
+lemma R'_eq_R'U_on_nhds (l' : Fin (h7.m)) :
+  let U := h7.U q hq0 h2mq l'
+  ∀ z ∈ U, h7.R' q hq0 h2mq l' z = h7.R'U q hq0 h2mq l' z := by
   intros U z hz
-  unfold Setup.analyticExtensionR
+  unfold Setup.R'
   split_ifs with h
   · rfl
-  · unfold R_mul_pow_neg
-    rw [(analyticFactorR_spec h7 q hq0 h2mq l').2.2.1 z hz, mul_right_comm,
+  · unfold R'R
+    rw [(R'_spec h7 q hq0 h2mq l').2.2.1 z hz, mul_right_comm,
         ← zpow_natCast, ← zpow_add₀ (sub_ne_zero.mpr h)]
     simp
 
-lemma analyticExtensionR_eq_R_mul_pow_neg (l' : Fin h7.m) :
+lemma R'_eq_R'R (l' : Fin h7.m) :
     ∀ z ∈ {z : ℂ | z ≠ l' + 1},
-      h7.analyticExtensionR q hq0 h2mq l' z = h7.R_mul_pow_neg q hq0 h2mq l' z := by
+      h7.R' q hq0 h2mq l' z = h7.R'R q hq0 h2mq l' z := by
   intro z hz
-  unfold Setup.analyticExtensionR
+  unfold Setup.R'
   split_ifs with h
   · exact (hz h).elim
   · rfl
 
 lemma R_mul_pow_neg_analyticOn (l' : Fin h7.m) :
-    let R'R := h7.R_mul_pow_neg q hq0 h2mq l'
+    let R'R := h7.R'R q hq0 h2mq l'
     AnalyticOn ℂ R'R {z | z ≠ l' + 1} := by
-  unfold R_mul_pow_neg
+  unfold R'R
   refine AnalyticOn.mul ?_ ?_
   · apply AnalyticOn.mono
     · have : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by fun_prop
@@ -123,29 +121,28 @@ lemma R_mul_pow_neg_analyticOn (l' : Fin h7.m) :
   · apply AnalyticOn.zpow (AnalyticOn.sub analyticOn_id analyticOn_const)
     exact fun z hz ↦ sub_ne_zero.mpr hz
 
-
-lemma analyticExtensionR_analyticAt (l' : Fin (h7.m)) :
-  ∀ z : ℂ, AnalyticAt ℂ (analyticExtensionR h7 q hq0 h2mq l') z := by
+lemma R'_analyticAt (l' : Fin (h7.m)) :
+  ∀ z : ℂ, AnalyticAt ℂ (R' h7 q hq0 h2mq l') z := by
   intro z
   by_cases hz : z = l' + 1
-  · rcases analyticFactorR_spec h7 q hq0 h2mq l' with ⟨hU, -, -, hA⟩
+  · rcases R'_spec h7 q hq0 h2mq l' with ⟨hU, -, -, hA⟩
     have hAt :
-      AnalyticAt ℂ (analyticFactorR h7 q hq0 h2mq l') z :=
+      AnalyticAt ℂ (R'U h7 q hq0 h2mq l') z :=
       AnalyticOn.analyticAt
-        (f := analyticFactorR h7 q hq0 h2mq l')
-        (z := z) (s := analyticFactorNhds h7 q hq0 h2mq l')
+        (f := R'U h7 q hq0 h2mq l')
+        (z := z) (s := U h7 q hq0 h2mq l')
         hA (hU := by simpa [hz] using hU)
     refine hAt.congr ?_
     refine Filter.eventually_of_mem (by simpa [hz] using hU) ?_
     intro w hw
     symm
-    exact (analyticExtensionR_eq_analyticFactorR_on_nhds h7 q hq0 h2mq l' _ hw)
+    exact (R'_eq_R'U_on_nhds h7 q hq0 h2mq l' _ hw)
   · have hU : ({w : ℂ | w ≠ l' + 1} : Set ℂ) ∈ nhds z :=
       IsOpen.mem_nhds isOpen_ne (by simpa using hz)
     have hAt :
-      AnalyticAt ℂ (R_mul_pow_neg h7 q hq0 h2mq l') z :=
+      AnalyticAt ℂ (R'R h7 q hq0 h2mq l') z :=
       AnalyticOn.analyticAt
-        (f := R_mul_pow_neg h7 q hq0 h2mq l')
+        (f := R'R h7 q hq0 h2mq l')
         (z := z) (s := {w : ℂ | w ≠ l' + 1})
         (R_mul_pow_neg_analyticOn h7 q hq0 h2mq l')
         (hU := hU)
@@ -153,16 +150,16 @@ lemma analyticExtensionR_analyticAt (l' : Fin (h7.m)) :
     refine Filter.eventually_of_mem hU ?_
     intro w hw
     symm
-    exact (analyticExtensionR_eq_R_mul_pow_neg h7 q hq0 h2mq l' _ hw)
+    exact (R'_eq_R'R h7 q hq0 h2mq l' _ hw)
 
-lemma R_eq_pow_mul_analyticExtensionR (l' : Fin h7.m) (z : ℂ) :
+lemma R_eq_pow_mul_R' (l' : Fin h7.m) (z : ℂ) :
     h7.R q hq0 h2mq z = (z - (l' + 1)) ^ h7.r q hq0 h2mq *
-    h7.analyticExtensionR q hq0 h2mq l' z := by
-  unfold Setup.analyticExtensionR
+    h7.R' q hq0 h2mq l' z := by
+  unfold Setup.R'
   split_ifs with h
-  · exact h ▸ (analyticFactorR_spec h7 q hq0 h2mq l').2.2.1 _
-      (analyticFactorR_spec h7 q hq0 h2mq l').2.1
-  · unfold R_mul_pow_neg
+  · exact h ▸ (R'_spec h7 q hq0 h2mq l').2.2.1 _
+      (R'_spec h7 q hq0 h2mq l').2.1
+  · unfold R'R
     rw [mul_left_comm, ← zpow_natCast, ← zpow_add₀ (sub_ne_zero.mpr h),
         add_neg_cancel, zpow_zero, mul_one]
 
@@ -191,15 +188,15 @@ lemma sub_ne_zero_of_mem_evaluationPoints_compl {z : ℂ}
   rw [sub_ne_zero]
   exact fun h => hz (h7.mem_evaluationPoints_iff |>.mpr ⟨k, h⟩)
 
-def auxiliaryRemainderRestricted : ℂ → ℂ := fun z ↦
+def SR : ℂ → ℂ := fun z ↦
   (h7.R q hq0 h2mq) z * (h7.r q hq0 h2mq).factorial *
     ((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h2mq) : ℤ)) *
     (∏ k' ∈ Finset.range (h7.m) \ {↑(h7.l₀' q hq0 h2mq)},
       (((h7.l₀' q hq0 h2mq + 1) - (k' + 1)) / (z - (k' + 1 : ℂ))) ^ (h7.r q hq0 h2mq))
 
-lemma auxiliaryRemainderRestricted_analyticOn_evaluationPoints_compl :
-    AnalyticOn ℂ (h7.auxiliaryRemainderRestricted q hq0 h2mq) (h7.evaluationPoints_compl) := by
-  unfold auxiliaryRemainderRestricted
+lemma SR_analyticOn_evaluationPoints_compl :
+    AnalyticOn ℂ (h7.SR q hq0 h2mq) (h7.evaluationPoints_compl) := by
+  unfold SR
   refine .mul (.mul (.mul ?_ analyticOn_const) ?_) ?_
   · have : ∀ (z : ℂ), AnalyticAt ℂ (h7.R q hq0 h2mq) z := by fun_prop
     apply AnalyticOn.mono (f:=(h7.R q hq0 h2mq)) (s:=(evaluationPoints_compl h7))
@@ -216,20 +213,20 @@ lemma auxiliaryRemainderRestricted_analyticOn_evaluationPoints_compl :
       fun_prop
     · exact fun z hz ↦ sub_ne_zero_of_mem_evaluationPoints_compl h7 hz ⟨u, hu.1⟩
 
-lemma auxiliaryRemainderRestricted_AnalyticAt (z : ℂ) (hz : z ∈ evaluationPoints_compl h7) :
-    AnalyticAt ℂ (h7.auxiliaryRemainderRestricted q hq0 h2mq) z :=
-  AnalyticOn.analyticAt (f:=(h7.auxiliaryRemainderRestricted q hq0 h2mq)) (z := z)
+lemma SR_AnalyticAt (z : ℂ) (hz : z ∈ evaluationPoints_compl h7) :
+    AnalyticAt ℂ (h7.SR q hq0 h2mq) z :=
+  AnalyticOn.analyticAt (f:=(h7.SR q hq0 h2mq)) (z := z)
     (s := evaluationPoints_compl h7)
-    (auxiliaryRemainderRestricted_analyticOn_evaluationPoints_compl h7 q hq0 h2mq)
+    (SR_analyticOn_evaluationPoints_compl h7 q hq0 h2mq)
     (hU:= S.U_nhds h7 z hz)
 
-def auxRemainderAtL0 : ℂ → ℂ := fun z ↦
-  (h7.analyticExtensionR q hq0 h2mq (h7.l₀' q hq0 h2mq)) z * ((h7.r q hq0 h2mq).factorial)  *
+def SRl0 : ℂ → ℂ := fun z ↦
+  (h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)) z * ((h7.r q hq0 h2mq).factorial)  *
     (∏ k' ∈ Finset.range (h7.m) \ {↑(h7.l₀' q hq0 h2mq)},
     (((h7.l₀' q hq0 h2mq +1) - (k' + 1)) / (z - (k' + 1 : ℂ))) ^ (h7.r q hq0 h2mq))
 
-def auxRemainderAtL (l' : Fin (h7.m)) : ℂ → ℂ := fun z ↦
-  (h7.analyticExtensionR q hq0 h2mq l') z *
+def SRl (l' : Fin (h7.m)) : ℂ → ℂ := fun z ↦
+  (h7.R' q hq0 h2mq l') z *
     (h7.r q hq0 h2mq).factorial *
     ((z - (h7.l₀' q hq0 h2mq + 1 : ℂ)) ^ (-(h7.r q hq0 h2mq) : ℤ)) *
     (∏ k' ∈ (Finset.range (h7.m) \ ({↑(h7.l₀' q hq0 h2mq : ℕ)} ∪ {↑(l' : ℕ)})),
@@ -240,15 +237,15 @@ def S : ℂ → ℂ :=
   fun z ↦
     if H : ∃ (k' : Fin (h7.m)), z = (k' : ℂ) + 1 then
       if z = (h7.l₀' q hq0 h2mq + 1) then
-        h7.auxRemainderAtL0 q hq0 h2mq z
+        h7.SRl0 q hq0 h2mq z
       else
-        h7.auxRemainderAtL q hq0 h2mq (H.choose) z
+        h7.SRl q hq0 h2mq (H.choose) z
     else
-      h7.auxiliaryRemainderRestricted q hq0 h2mq z
+      h7.SR q hq0 h2mq z
 
 lemma SR_eq_SRl0 {z : ℂ} :
   z ∈ (evaluationPoints_compl h7) →
-  (h7.auxRemainderAtL0 q hq0 h2mq) z = (h7.auxiliaryRemainderRestricted q hq0 h2mq) z := by
+  (h7.SRl0 q hq0 h2mq) z = (h7.SR q hq0 h2mq) z := by
   intro hz
   let a : ℂ := (h7.l₀' q hq0 h2mq : ℂ) + 1
   have hne : z - a ≠ 0 := by
@@ -258,17 +255,17 @@ lemma SR_eq_SRl0 {z : ℂ} :
     (z - a) ^ (h7.r q hq0 h2mq) *
     (z - a) ^ (-(h7.r q hq0 h2mq : ℤ)) = (1 : ℂ) := by
    rw [← zpow_natCast, ← zpow_add₀ hne, add_neg_cancel, zpow_zero]
-  unfold auxRemainderAtL0 auxiliaryRemainderRestricted
-  rw [h7.R_eq_pow_mul_analyticExtensionR q hq0 h2mq (h7.l₀' q hq0 h2mq) z]
+  unfold SRl0 SR
+  rw [h7.R_eq_pow_mul_R' q hq0 h2mq (h7.l₀' q hq0 h2mq) z]
   calc
-  (h7.analyticExtensionR q hq0 h2mq (h7.l₀' q hq0 h2mq)) z *
+  (h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)) z *
     ↑((h7.r q hq0 h2mq).factorial) *
     ∏ k' ∈ Finset.range h7.m \ {↑(h7.l₀' q hq0 h2mq)},
       (((h7.l₀' q hq0 h2mq + 1) - (k' + 1)) / (z - (k' + 1 : ℂ))) ^
       (h7.r q hq0 h2mq)
     =
     ((z - a) ^ (h7.r q hq0 h2mq) * (z - a) ^ (-(h7.r q hq0 h2mq : ℤ))) *
-      ((h7.analyticExtensionR q hq0 h2mq (h7.l₀' q hq0 h2mq)) z *
+      ((h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)) z *
       ↑((h7.r q hq0 h2mq).factorial) *
       ∏ k' ∈ Finset.range h7.m \ {↑(h7.l₀' q hq0 h2mq)},
         (((h7.l₀' q hq0 h2mq + 1) - (k' + 1)) / (z - (k' + 1 : ℂ))) ^
@@ -277,7 +274,7 @@ lemma SR_eq_SRl0 {z : ℂ} :
     grind
   _ =
     ((z - a) ^ (h7.r q hq0 h2mq) *
-      (h7.analyticExtensionR q hq0 h2mq (h7.l₀' q hq0 h2mq)) z) *
+      (h7.R' q hq0 h2mq (h7.l₀' q hq0 h2mq)) z) *
       ↑((h7.r q hq0 h2mq).factorial) *
       (z - a) ^ (-(h7.r q hq0 h2mq : ℤ)) *
       ∏ k' ∈ Finset.range h7.m \ {↑(h7.l₀' q hq0 h2mq)},
@@ -292,24 +289,24 @@ lemma SR_eq_SRl0 {z : ℂ} :
 --fix l+1
 lemma SR_eq_SRl {z : ℂ} (l' : Fin (h7.m)) (hl : l' ≠ h7.l₀' q hq0 h2mq) :
     z ∈ (evaluationPoints_compl h7) →
-    (h7.auxRemainderAtL q hq0 h2mq l') z = (h7.auxiliaryRemainderRestricted q hq0 h2mq) z := by
+    (h7.SRl q hq0 h2mq l') z = (h7.SR q hq0 h2mq) z := by
   intros hz
   unfold evaluationPoints_compl at *
-  dsimp [auxiliaryRemainderRestricted, auxRemainderAtL]
+  dsimp [SR, SRl]
   nth_rw 3 [mul_assoc]
   simp only [zpow_neg, zpow_natCast]
   dsimp [evaluationPoints] at hz
   simp only [coe_image, coe_range, mem_compl_iff,
     Set.mem_image, Set.mem_Iio, not_exists,
     not_and] at hz
-  have := R_eq_pow_mul_analyticExtensionR h7 q hq0 h2mq l' z
+  have := R_eq_pow_mul_R' h7 q hq0 h2mq l' z
   simp only at this
   rw [this]; clear this
   simp only [← mul_assoc]
   nth_rw 8 [mul_comm]
-  rw [mul_assoc  (h7.analyticExtensionR q hq0 h2mq (l') z) ((z - (↑↑(l') + 1)) ^ h7.r q hq0 h2mq)]
+  rw [mul_assoc  (h7.R' q hq0 h2mq (l') z) ((z - (↑↑(l') + 1)) ^ h7.r q hq0 h2mq)]
   rw [mul_comm ((z - (↑↑(l') + 1)) ^ h7.r q hq0 h2mq) ↑(h7.r q hq0 h2mq).factorial]
-  unfold analyticExtensionR
+  unfold R'
   simp only [mul_assoc]
   have : l' < h7.m := by simp only [Fin.is_lt]
   have H := (hz l' this)
@@ -382,7 +379,7 @@ lemma SR_eq_SRl {z : ℂ} (l' : Fin (h7.m)) (hl : l' ≠ h7.l₀' q hq0 h2mq) :
 
 lemma S_eq_restricted_of_mem_compl {z : ℂ} :
   z ∈ (evaluationPoints_compl h7) →
-  h7.auxiliaryRemainderRestricted q hq0 h2mq z = h7.S q hq0 h2mq z := by
+  h7.SR q hq0 h2mq z = h7.S q hq0 h2mq z := by
   intros hz
   unfold evaluationPoints_compl at *
   unfold S
@@ -421,12 +418,12 @@ lemma dist_nat_cast_lt_one (n m : ℕ) : dist (n : ℂ) (m : ℂ) < 1 ↔ n = m 
 
 --SR_analytic_S.U follow this for srl0 too
 lemma SRl_is_analytic_at_ball_of_radius_one (l' : Fin (h7.m)) (hl : l' ≠ h7.l₀' q hq0 h2mq) :
-  AnalyticOn ℂ (h7.auxRemainderAtL q hq0 h2mq l') (Metric.ball ((l' : ℂ) + 1) 1) := by
-  unfold auxRemainderAtL
+  AnalyticOn ℂ (h7.SRl q hq0 h2mq l') (Metric.ball ((l' : ℂ) + 1) 1) := by
+  unfold SRl
   refine AnalyticOn.mul ?_ ?_
   · apply AnalyticOn.mul ?_ ?_
     · apply AnalyticOn.mul ?_ ?_
-      · have := h7.analyticExtensionR_analyticAt q hq0 h2mq
+      · have := h7.R'_analyticAt q hq0 h2mq
         simp only at this
         apply AnalyticOn.mul (AnalyticOnNhd.analyticOn fun x a ↦ this l' x) analyticOn_const
       · apply AnalyticOn.fun_zpow
@@ -478,12 +475,12 @@ lemma SRl_is_analytic_at_ball_of_radius_one (l' : Fin (h7.m)) (hl : l' ≠ h7.l�
 
 
 lemma SRl0_is_analytic_at_ball_of_radius_one :
-  AnalyticOn ℂ (h7.auxRemainderAtL0 q hq0 h2mq)
+  AnalyticOn ℂ (h7.SRl0 q hq0 h2mq)
     (Metric.ball (h7.l₀' q hq0 h2mq + 1) 1) := by
-  unfold Setup.auxRemainderAtL0
+  unfold Setup.SRl0
   refine AnalyticOn.mul ?_ ?_
   · refine AnalyticOn.mul ?_ analyticOn_const
-    have hA := h7.analyticExtensionR_analyticAt q hq0 h2mq
+    have hA := h7.R'_analyticAt q hq0 h2mq
     exact AnalyticOnNhd.analyticOn (fun z hz ↦ hA (h7.l₀' q hq0 h2mq) z)
   · apply Finset.analyticOn_fun_prod
     intro u hu
@@ -514,7 +511,7 @@ lemma holS :
   · rcases H with ⟨l', hl'⟩
     by_cases Hzl0 : z = (h7.l₀' q hq0 h2mq : ℂ) + 1
     · refine AnalyticAtEq
-        (f := h7.auxRemainderAtL0 q hq0 h2mq)
+        (f := h7.SRl0 q hq0 h2mq)
         (g := h7.S q hq0 h2mq)
         (U := Metric.ball ((h7.l₀' q hq0 h2mq : ℂ) + 1) 1)
         (z := z)
@@ -545,13 +542,13 @@ lemma holS :
           simpa [Hzl0] using
             (Metric.ball_mem_nhds ((h7.l₀' q hq0 h2mq : ℂ) + 1) zero_lt_one)
         exact AnalyticOn.analyticAt
-          (f := h7.auxRemainderAtL0 q hq0 h2mq)
+          (f := h7.SRl0 q hq0 h2mq)
           (s := Metric.ball ((h7.l₀' q hq0 h2mq : ℂ) + 1) 1)
           (z := z)
           (h7.SRl0_is_analytic_at_ball_of_radius_one q hq0 h2mq)
           (hU := hU)
     · refine AnalyticAtEq
-        (f := h7.auxRemainderAtL q hq0 h2mq l')
+        (f := h7.SRl q hq0 h2mq l')
         (g := h7.S q hq0 h2mq)
         (U := Metric.ball ((l' : ℂ) + 1) 1)
         (z := z)
@@ -610,7 +607,7 @@ lemma holS :
       intro hzEval
       exact H ((h7.mem_evaluationPoints_iff).1 hzEval)
     refine AnalyticAtEq
-      (f := h7.auxiliaryRemainderRestricted q hq0 h2mq)
+      (f := h7.SR q hq0 h2mq)
       (g := h7.S q hq0 h2mq)
       (U := evaluationPoints_compl h7)
       (z := z)
@@ -619,7 +616,7 @@ lemma holS :
     · exact hzCompl
     · intro w hw
       exact h7.S_eq_restricted_of_mem_compl q hq0 h2mq hw
-    · exact h7.auxiliaryRemainderRestricted_AnalyticAt q hq0 h2mq z hzCompl
+    · exact h7.SR_AnalyticAt q hq0 h2mq z hzCompl
 
 
 lemma hcauchy :
@@ -645,14 +642,14 @@ lemma hcauchy :
     simpa [Metric.mem_ball, dist_zero_right] using hz
   · intro x hx
     simpa using
-      (DifferentiableAt.differentiableWithinAt (AnalyticAt.differentiableAt (holS h7 q hq0 h2mq x))).continuousWithinAt
+      (DifferentiableAt.differentiableWithinAt
+      (AnalyticAt.differentiableAt (holS h7 q hq0 h2mq x))).continuousWithinAt
   · intro x hx
     simpa using AnalyticAt.differentiableAt (holS h7 q hq0 h2mq x)
 
-
 lemma S_eq_SR_on_circle : ∀ (z : ℂ) (hz : z ∈ Metric.sphere 0
     (h7.m * (1 + (h7.r q hq0 h2mq : ℝ) / (q : ℝ)))),
-  h7.S q hq0 h2mq z = h7.auxiliaryRemainderRestricted q hq0 h2mq z := by
+  h7.S q hq0 h2mq z = h7.SR q hq0 h2mq z := by
   intros z hz
   unfold S
   split
