@@ -1095,9 +1095,9 @@ theorem norm_pos_rho : 0 < ‖(Algebra.norm ℚ) (h7.rho q hq0 h2mq)‖ := by
   apply ρᵣ_nonzero h7 q hq0 h2mq
   simpa [← rho_eq_ρᵣ]
 
-lemma eq5inv :
+lemma norm_algebraNorm_rho_gtinv :
     norm ((Algebra.norm ℚ) (h7.rho q hq0 h2mq)) ⁻¹ < h7.c₅ ^ ((h7.r q hq0 h2mq : ℝ)) := by
-  have h := eq5 h7 q hq0 h2mq
+  have h := norm_algebraNorm_rho_gt h7 q hq0 h2mq
   rw [← inv_lt_inv₀] at h
   · simpa [← Real.rpow_neg] using h
   · exact norm_pos_rho h7 q hq0 h2mq
@@ -1139,7 +1139,7 @@ lemma use5 : (h7.r q hq0 h2mq : ℝ) ^ (((h7.r q hq0 h2mq : ℝ) - 3 * h7.h) / 2
 
   have hltN : N⁻¹ < h7.c₅ ^ r := by
     dsimp [N, r]
-    simpa using (eq5inv h7 q hq0 h2mq)
+    simpa using (norm_algebraNorm_rho_gtinv h7 q hq0 h2mq)
 
   have hApos : 0 < h7.c₁₄ ^ r := by
     exact Real.rpow_pos_of_pos (lt_of_lt_of_le zero_lt_one h7.c14_nonneg) _

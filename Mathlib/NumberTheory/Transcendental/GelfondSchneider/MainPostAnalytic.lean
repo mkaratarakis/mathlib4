@@ -78,7 +78,7 @@ lemma house_geq_1 : 1 ≤ house (h7.c1ρ q hq0 h2mq : h7.K) := by
   rw [← ne_eq]
   exact c1rho_neq_0 h7 q hq0 h2mq
 
-lemma eq5zero : 1 ≤ norm
+lemma one_le_norm_algebraNorm_c1rho : 1 ≤ norm
     (Algebra.norm ℚ ((algebraMap (𝓞 h7.K) h7.K) (h7.c1ρ q hq0 h2mq))) := by
   have := ρ_is_int h7 q hq0 h2mq
   have := Algebra.isIntegral_norm ℚ this
@@ -153,11 +153,11 @@ $$
 |N(\rho)| > c_1^{-h(r+2mq)} > c_5^{-r}.
 $$-/
 
-lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ) < norm (Algebra.norm ℚ (rho h7 q hq0 h2mq)) := by
+lemma norm_algebraNorm_rho_gt : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ) < norm (Algebra.norm ℚ (rho h7 q hq0 h2mq)) := by
   simp only [Real.rpow_neg_natCast, zpow_neg, zpow_natCast]
   have h1 : 1 ≤ ‖(h7.cρ q hq0 h2mq) ^ Module.finrank ℚ h7.K‖ *
       ‖(Algebra.norm ℚ) (rho h7 q hq0 h2mq)‖ := by
-    have := eq5zero h7 q hq0 h2mq
+    have := one_le_norm_algebraNorm_c1rho h7 q hq0 h2mq
     unfold c1ρ at this
     unfold RingOfIntegers.restrict at this
     simp only [zsmul_eq_mul] at this

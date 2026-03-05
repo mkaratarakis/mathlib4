@@ -2295,7 +2295,7 @@ lemma house_geq_1 : 1 ≤ house (h7.c1ρ q hq0 h2mq : h7.K) := by
   rw [← ne_eq]
   exact c1rho_neq_0 h7 q hq0 h2mq
 
-lemma eq5zero : 1 ≤ norm
+lemma one_le_norm_algebraNorm_c1rho : 1 ≤ norm
     (Algebra.norm ℚ ((algebraMap (𝓞 h7.K) h7.K) (h7.c1ρ q hq0 h2mq))) := by
   have := ρ_is_int h7 q hq0 h2mq
   have := Algebra.isIntegral_norm ℚ this
@@ -2328,12 +2328,12 @@ lemma c5nonneg : 0 < h7.c₅ := by
     · simp only [abs_nonneg]
     · simp only [zero_lt_one]
 
-lemma eq5 : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
+lemma norm_algebraNorm_rho_gt : h7.c₅ ^ (-(h7.r q hq0 h2mq) : ℝ)
   < norm (Algebra.norm ℚ (rho h7 q hq0 h2mq)) := by
   simp only [Real.rpow_neg_natCast, zpow_neg, zpow_natCast]
   have h1 : 1 ≤ ‖(h7.cρ q hq0 h2mq) ^ Module.finrank ℚ h7.K‖ *
      ‖(Algebra.norm ℚ) (rho h7 q hq0 h2mq)‖ := by
-    have := eq5zero h7 q hq0 h2mq
+    have := one_le_norm_algebraNorm_c1rho h7 q hq0 h2mq
     unfold c1ρ at this
     unfold RingOfIntegers.restrict at this
     simp only [zsmul_eq_mul] at this
@@ -5642,17 +5642,17 @@ theorem norm_pos_rho  :
   rw [rho_eq_ρᵣ] at H
   simp only [H, map_zero]
 
-lemma eq5inv:
+lemma norm_algebraNorm_rho_gtinv:
   norm ((Algebra.norm ℚ) (h7.rho q hq0 h2mq)) ⁻¹ <
     h7.c₅ ^ ((h7.r q hq0 h2mq : ℝ)) := by
-  have eq5 := eq5 h7 q hq0 h2mq
-  simp only at eq5
-  rw [← inv_lt_inv₀] at eq5
+  have norm_algebraNorm_rho_gt := norm_algebraNorm_rho_gt h7 q hq0 h2mq
+  simp only at norm_algebraNorm_rho_gt
+  rw [← inv_lt_inv₀] at norm_algebraNorm_rho_gt
   · simp only [norm_inv]
-    simp only at eq5
-    rw [← Real.rpow_neg] at eq5
-    simp only [neg_neg] at eq5
-    exact eq5
+    simp only at norm_algebraNorm_rho_gt
+    rw [← Real.rpow_neg] at norm_algebraNorm_rho_gt
+    simp only [neg_neg] at norm_algebraNorm_rho_gt
+    exact norm_algebraNorm_rho_gt
     rw [le_iff_lt_or_eq]
     left
     exact c5nonneg h7
@@ -5666,7 +5666,7 @@ lemma use5 : (h7.r q hq0 h2mq : ℝ) ^
   (((h7.r q hq0 h2mq : ℝ) - 3 * (h7.h)) / 2) <
     (h7.c₁₅) ^ (h7.r q hq0 h2mq : ℝ) := by
 
-  have eq5 := eq5 h7 q hq0 h2mq
+  have norm_algebraNorm_rho_gt := norm_algebraNorm_rho_gt h7 q hq0 h2mq
 
   have Hpow : ↑(h7.r q hq0 h2mq : ℝ) ^
     (((h7.r q hq0 h2mq : ℝ ) - 3 * h7.h) / 2) =
@@ -5702,7 +5702,7 @@ lemma use5 : (h7.r q hq0 h2mq : ℝ) ^
     simp only [norm_inv] at this
     apply this
   · rw [mul_comm]
-    have := eq5inv h7 q hq0 h2mq
+    have := norm_algebraNorm_rho_gtinv h7 q hq0 h2mq
     simp only [norm_inv, Real.rpow_natCast] at this
     refine (mul_lt_mul_iff_right₀ ?_).mpr ?_
     · simp only [Real.rpow_natCast]
