@@ -5,10 +5,9 @@
 -- Exponents in decreasing order, coefficients non-zero (so zero polynomial is empty list)
 -- Note that Lean allows the ring with just 0 (so 1=0)
 -- JHD: we may wish to rethink allowing this, as it causes extra checks
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Deprecated.Sort
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
+import Mathlib.Algebra.GCDMonoid.Basic
+import Mathlib.Algebra.Polynomial.AlgebraMap
+import Mathlib.Data.Int.ConditionallyCompleteOrder
 import Mathlib.Tactic
 --import Mathlib
 
@@ -33,17 +32,50 @@ set_option linter.style.longFile 2000
 namespace SparsePoly
 open Polynomial
 
+universe u
+
 variable {R}
 
-instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (SparsePoly R) where
+/-- A helper class to decide which variable name to use based on nesting depth -/
+class HasVarName (α : Type u) where
+  varName : String
+
+variable {α : Type u} [HasVarName α]
+-- Default for base rings (like Int, Float, etc.) is empty
+instance (priority := low) : HasVarName α where
+  varName := ""
+
+
+-- Logic to "increment" the variable name
+instance [HasVarName R] [CommRing R] : HasVarName (SparsePoly R) where
+  varName :=
+    let n := HasVarName.varName R
+    if n == "" then "X"      -- Level 1
+    else if n == "X" then "Y" -- Level 2
+    else if n == "Y" then "Z" -- Level 3
+    else "W"                  -- Level 4
+
+instance [CommRing R] [Lean.ToFormat R] [HasVarName R] : Lean.ToFormat (SparsePoly R) where
   format x :=
+    let v := HasVarName.varName (SparsePoly R) -- Get "X" or "Y" etc.
     have := x.coeffs.foldl (init := none) fun (f : Option Lean.Format) (i, x) =>
-      let monomial := if i = 0 then f!"({x})" else if i = 1 then f!"({x})*X" else f!"({x})*X^{i}"
+      let monomial :=
+        if i = 0 then f!"({x})"
+        else if i = 1 then f!"({x})*{v}"
+        else f!"({x})*{v}^{i}"
       match f with
       | none => monomial
       | some f => f ++ " + " ++ monomial
     this.getD f!"0"
-instance [CommRing R] [Lean.ToFormat R] : Repr (SparsePoly R) where
+-- instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (SparsePoly R) where
+--   format x :=
+--     have := x.coeffs.foldl (init := none) fun (f : Option Lean.Format) (i, x) =>
+--       let monomial := if i = 0 then f!"({x})" else if i = 1 then f!"({x})*X" else f!"({x})*X^{i}"
+--       match f with
+--       | none => monomial
+--       | some f => f ++ " + " ++ monomial
+--     this.getD f!"0"
+instance [CommRing R] [Lean.ToFormat R] [HasVarName R] : Repr (SparsePoly R) where
   reprPrec x _ := Lean.format x
 
 variable [CommRing R] [DecidableEq R]
@@ -1894,5 +1926,23 @@ theorem ofPoly_X : toPolyEquiv.symm Polynomial.X = (X : SparsePoly R) := by
 @[simp]
 theorem toPoly_X : (X : SparsePoly R).toPoly = Polynomial.X := by
   rw [← toPolyEquiv.apply_symm_apply Polynomial.X, ofPoly_X]; rfl
+
+-- Define our inner "constant" (x + 1)
+def x_plus_1 : SparsePoly ℤ := X + 1
+
+-- Define the dividend: (x + 1) * y^2 - (x + 1)
+-- Note: the outer X is 'y', the inner X is 'x'
+def dividend : SparsePoly (SparsePoly ℤ) :=
+  C x_plus_1 * X^2 - C x_plus_1
+
+-- Define the divisor: y - 1
+def divisor : SparsePoly (SparsePoly ℤ) :=
+  X - 1
+
+-- Run the computation
+#eval (dividend / divisor)
+
+-- This will return (0, dividend) because division in ℤ is strict
+#eval divRem dividend (X - 2)
 
 end SparsePoly
