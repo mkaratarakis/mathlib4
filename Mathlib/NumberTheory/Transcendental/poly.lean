@@ -32,51 +32,16 @@ set_option linter.style.longFile 2000
 namespace SparsePoly
 open Polynomial
 
-universe u
-
 variable {R}
 
-/-- A helper class to decide which variable name to use based on nesting depth -/
-class HasVarName (α : Type u) where
-  varName : String
-
-variable {α : Type u} [HasVarName α]
--- Default for base rings (like Int, Float, etc.) is empty
-instance (priority := low) : HasVarName α where
-  varName := ""
-
-
--- Logic to "increment" the variable name
-instance [HasVarName R] [CommRing R] : HasVarName (SparsePoly R) where
-  varName :=
-    let n := HasVarName.varName R
-    if n == "" then "X"      -- Level 1
-    else if n == "X" then "Y" -- Level 2
-    else if n == "Y" then "Z" -- Level 3
-    else "W"                  -- Level 4
-
-instance [CommRing R] [Lean.ToFormat R] [HasVarName R] : Lean.ToFormat (SparsePoly R) where
+instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (SparsePoly R) where
   format x :=
-    let v := HasVarName.varName (SparsePoly R) -- Get "X" or "Y" etc.
     have := x.coeffs.foldl (init := none) fun (f : Option Lean.Format) (i, x) =>
-      let monomial :=
-        if i = 0 then f!"({x})"
-        else if i = 1 then f!"({x})*{v}"
-        else f!"({x})*{v}^{i}"
+      let monomial := if i = 0 then f!"({x})" else if i = 1 then f!"({x})*X" else f!"({x})*X^{i}"
       match f with
       | none => monomial
       | some f => f ++ " + " ++ monomial
     this.getD f!"0"
--- instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (SparsePoly R) where
---   format x :=
---     have := x.coeffs.foldl (init := none) fun (f : Option Lean.Format) (i, x) =>
---       let monomial := if i = 0 then f!"({x})" else if i = 1 then f!"({x})*X" else f!"({x})*X^{i}"
---       match f with
---       | none => monomial
---       | some f => f ++ " + " ++ monomial
---     this.getD f!"0"
-instance [CommRing R] [Lean.ToFormat R] [HasVarName R] : Repr (SparsePoly R) where
-  reprPrec x _ := Lean.format x
 
 variable [CommRing R] [DecidableEq R]
 def ofSortedList
@@ -1943,6 +1908,5 @@ def divisor : SparsePoly (SparsePoly ℤ) :=
 #eval (dividend / divisor)
 
 -- This will return (0, dividend) because division in ℤ is strict
-#eval divRem dividend (X - 2)
 
 end SparsePoly
