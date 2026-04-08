@@ -17,7 +17,9 @@ import Mathlib.Deprecated.Sort
 
 set_option linter.style.emptyLine false
 set_option linter.style.multiGoal false
+set_option linter.style.longLine false
 set_option linter.unusedVariables false
+set_option linter.unreachableTactic false
 
 @[ext] structure MvDegrees (nvars : ℕ) where
   degrees : Array ℕ
@@ -407,7 +409,7 @@ lemma list_lex_total (l1 l2 : List ℕ) : list_lex l1 l2 = true ∨ list_lex l2 
         subst heq -- Replaces y with x everywhere
         have h_not_lt : ¬(x < x) := by omega
         -- Both sides of the OR reduce to checking the tails of the lists
-        simp [h_not_lt]
+        simp
         grind
 
       · -- Case 3: x > y
@@ -446,12 +448,14 @@ lemma list_forIn_eq_list_lex (la lb : List ℕ) :
         have h_not_lt : ¬(x < y) := by omega
         have h_not_gt : ¬(x > y) := by omega
         -- The current iteration yields, so we apply the induction hypothesis to the rest
-        simp [h_not_lt, h_not_gt, heq]
+        simp [heq]
         sorry
       · -- Case: x > y
         have h_not_lt : ¬(x < y) := by omega
         simp [h_not_lt, hgt]
         sorry
+
+
 
 -- Intermediate 3: Bridge the Array loop to the List loop
 -- This handles the low-level Array index shifting so you don't have to
@@ -478,6 +482,9 @@ instance : LE (MvDegrees nvars) where le a b := lexorder_impl a b
 @[implemented_by lexorder_impl]
 def lexorder (a b : MvDegrees nvars) : Bool :=
   list_lex a.degrees.toList b.degrees.toList
+
+
+
 
 instance : LE (MvDegrees nvars) where le a b := lexorder a b = true
 
@@ -512,7 +519,7 @@ lemma list_lex_antisymm {l1 l2 : List ℕ} (hlen : l1.length = l2.length)
       have hxy : x = y := by omega
       subst hxy
       -- Apply induction to the tails!
-      simp at hlen
+      simp only [List.length_cons, Nat.add_right_cancel_iff] at hlen
       have := ih hlen h1 h2
       subst this
       rfl
@@ -527,8 +534,8 @@ lemma list_lex_trans {l1 l2 l3 : List ℕ} (h12 : l1.length = l2.length) (h23 : 
     cases l3 with | nil => simp at h23 | cons z zs =>
       unfold list_lex at h1 h2 ⊢
       -- This single line proves all 27 combinations of x, y, and z inequalities!
-      split_ifs at h1 h2 ⊢ <;> try omega <;> try rfl
-      simp at h12 h23
+      split_ifs at h1 h2 ⊢ <;> try omega
+      simp only [List.length_cons, Nat.add_right_cancel_iff] at h12 h23
       exact ih h12 h23 h1 h2
 
 -- 3. Zero ≤ X on pure lists
@@ -538,7 +545,7 @@ lemma list_lex_zero_le (l : List ℕ) : list_lex (List.replicate l.length 0) l =
   | cons x xs ih =>
     change list_lex (0 :: List.replicate xs.length 0) (x :: xs) = true
     unfold list_lex
-    split_ifs <;> try omega <;> try rfl
+    split_ifs <;> try omega
     grind
 
 -- 4. Additive preservation on pure lists
@@ -553,9 +560,18 @@ lemma list_lex_add_le_add (la lb lc : List ℕ) (h1 : la.length = lb.length) (h2
       unfold list_lex at hab ⊢
       simp only [List.zipWith]
       -- omega natively knows that if x < y, then x + z < y + z !
-      split_ifs at hab ⊢ <;> try omega <;> try rfl
+      split_ifs at hab ⊢ <;> try omega
       simp at h1 h2
       grind
+
+
+-- Intermediate Lemma: Anti-symmetry for MvDegrees
+lemma lexorder_antisymm (a b : MvDegrees nvars) (hab : lexorder a b = true) (hba : lexorder b a = true) : a = b := by
+  have h1 : a.degrees.toList.length = b.degrees.toList.length := by aesop --[← a.correct, ← b.correct]
+  have hlist := list_lex_antisymm h1 hab hba
+  apply MvDegrees.ext
+  · exact array_eq_of_toList_eq hlist
+  · rw [a.totalDegree_eq, b.totalDegree_eq, array_eq_of_toList_eq hlist]
 
 instance : WOrdering nvars where
   le a b := lexorder a b
@@ -591,24 +607,76 @@ instance : WOrdering nvars where
 
   le_total := lexorder_total
   toDecidableLE := fun a b => inferInstanceAs (Decidable (lexorder a b = true))
-  compare_eq_compareOfLessAndEq := sorry
-  -- The WOrdering specific properties
-  zero_le := by
-    intros a
-    change list_lex (List.replicate nvars 0).toArray.toList a.degrees.toList = true
-    -- Map nvars to the target array length so the lemma accepts it
-    have h : nvars = a.degrees.toList.length := by aesop-- [← a.correct]
-    sorry
-    --exact list_lex_zero_le a.degrees.toList
+  compare_eq_compareOfLessAndEq a b := by
+    -- 1. Fetch our standalone anti-symmetry lemma
+    have h_anti := lexorder_antisymm a b
 
-  add_le_add hab := by
-    sorry
-    -- change list_lex a.degrees.toList b.degrees.toList = true at hab
-    -- change list_lex (Array.zipWith (· + ·) a.degrees c.degrees).toList (Array.zipWith (· + ·) b.degrees c.degrees).toList = true
-    -- simp only [Array.toList_zipWith]
-    -- have h1 : a.degrees.toList.length = b.degrees.toList.length := by simp [← a.correct, ← b.correct]
-    -- have h2 : b.degrees.toList.length = c.degrees.toList.length := by simp [← b.correct, ← c.correct]
-    -- exact list_lex_add_le_add a.degrees.toList b.degrees.toList c.degrees.toList h1 h2 hab
+    -- 2. Unfold the definitions
+    dsimp [compare, compareOfLessAndEq]
+
+    -- 3. Convert Mathlib's generic `<` into our `lexorder` logic natively
+    --simp only [lt_iff_le_not_le]
+
+    -- 4. Split all the if/then/else statements at once
+    split_ifs
+
+    -- Case 1: Both sides agree (rfl instantly solves the valid branches)
+    · rfl
+
+    -- Case 2: Impossible Contradiction (a = b, but lexorder says a > b)
+    · -- The `‹a = b›` syntax lets us grab Lean's hidden `✝` variable!
+      subst ‹a = b›
+      -- By totality, lexorder a a MUST be true
+      have h_refl : lexorder a a = true := by
+        rcases lexorder_total a a with h | h <;> exact h
+      -- This contradicts the `¬lexorder a a = true` branch we are in.
+      grind
+
+    -- Case 3: Impossible Contradiction (lexorder says a = b, but Mathlib says a ≠ b)
+    · -- If we are in this branch, lexorder a b = true, but a < b is false.
+      -- This mathematically forces lexorder b a to also be true!
+      have hba : lexorder b a = true := by tauto
+      -- If both are true, our anti-symmetry lemma says a = b!
+      have heq := h_anti ‹lexorder a b = true› hba
+      -- This contradicts the `¬(a = b)` branch we are in.
+      contradiction
+
+    -- Case 4: Both sides agree on .gt
+    · -- 1. Grab the hidden `a = b` variable
+      subst ‹a = b›
+      -- 2. Prove that lexorder a a is always true
+      have h_refl : lexorder a a = true := by
+        rcases lexorder_total a a with h | h <;> exact h
+      -- 3. Lean instantly sees this contradicts h✝¹ (¬lexorder a a = true)
+      contradiction
+    · rfl
+
+  -- The WOrdering specific properties
+  zero_le {a} := by
+    -- 1. Expose the zero definition and drop the Array wrappers natively!
+    -- (Lean allows this because .toArray.toList is definitionally equal to doing nothing)
+    change list_lex (List.replicate nvars 0) (a : MvDegrees nvars).degrees.toList = true
+
+    -- 2. Extract the array length equality from our `correct` property
+    have h : nvars = (a : MvDegrees nvars).degrees.toList.length := by aesop-- [← a.correct]
+
+    -- 3. Swap `nvars` for the actual list length
+    --rw [h]
+
+    -- 4. Now the goal is a 100% perfect match for our pure list lemma!
+    grind [list_lex_zero_le (a : MvDegrees nvars).degrees.toList]
+
+  -- FIX: Use {a b c} to match the implicit {x y z} in your class definition
+  add_le_add {a b c} hab := by
+    change list_lex a.degrees.toList b.degrees.toList = true at hab
+    change list_lex (Array.zipWith (· + ·) a.degrees c.degrees).toList
+      (Array.zipWith (· + ·) b.degrees c.degrees).toList = true
+    simp only [Array.toList_zipWith]
+
+    have h1 : a.degrees.toList.length = b.degrees.toList.length := by aesop
+    have h2 : b.degrees.toList.length = c.degrees.toList.length := by aesop
+
+    exact list_lex_add_le_add a.degrees.toList b.degrees.toList c.degrees.toList h1 h2 hab
 
 @[ext] structure MvSparsePoly (R : Type) [CommRing R] (nvars : ℕ) [WOrdering nvars] : Type where
   terms : List (MvDegrees nvars × R)
@@ -616,6 +684,7 @@ instance : WOrdering nvars where
   nonzero : ∀ x ∈ terms, x.2 ≠ 0
 
 namespace MvSparsePoly
+
 open MvPolynomial
 
 --instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (MvSparsePoly R nvars) where
@@ -630,8 +699,9 @@ open MvPolynomial
 --  reprPrec x _ := Lean.format x
 
 variable {R : Type} [CommRing R] [DecidableEq R] [WOrdering nvars]
+
 def ofSortedList
-    (terms : List (MvDegrees nvars × R)) (sorted : terms.Sorted (·.1 > ·.1)) :
+    (terms : List (MvDegrees nvars × R)) (sorted : terms.Pairwise (·.1 > ·.1)) :
     MvSparsePoly R nvars where
   terms := terms.filter (·.2 ≠ 0)
   sorted := sorted.sublist (List.filter_sublist _)
@@ -640,7 +710,7 @@ def ofSortedList
 instance : Zero (MvSparsePoly R nvars) where
   zero := { terms := [], sorted := .nil, nonzero := nofun }
 
-def C (r : R) : MvSparsePoly R nvars := ofSortedList [(0, r)] (List.sorted_singleton _)
+def C (r : R) : MvSparsePoly R nvars := ofSortedList [(0, r)] (List.Pairwise_singleton _)
 -- Need the ofSortedList to deal with r=0; note that 0 is the 0 of the MvDegrees monoid
 
 instance : One (MvSparsePoly R nvars) where
@@ -707,8 +777,8 @@ def addCore : List (MvDegrees nvars × R) → List (MvDegrees nvars × R) → Li
 -- -- termination_by x y => x.length + y.length
 
 theorem addCore_sorted : ∀ {x y : List (MvDegrees nvars × R)},
-    x.Sorted (·.1 > ·.1) → y.Sorted (·.1 > ·.1) →
-    (addCore x y).Sorted (·.1 > ·.1) := by
+    x.Pairwise (·.1 > ·.1) → y.Pairwise (·.1 > ·.1) →
+    (addCore x y).Pairwise (·.1 > ·.1) := by
   intro x y hx hy
   unfold addCore
   split
@@ -755,8 +825,8 @@ def dedupList : List (ℕ × R) → List (ℕ × R)
   | x => x
 
 theorem dedupList_sorted (terms : List (ℕ × R))
-  (sorted : terms.Sorted (·.1 ≥ ·.1)) :
-  (dedupList terms).Sorted (·.1 > ·.1) := sorry
+  (sorted : terms.Pairwise (·.1 ≥ ·.1)) :
+  (dedupList terms).Pairwise (·.1 > ·.1) := sorry
 
 def ofList (terms : List (ℕ × R)) : MvSparsePoly R nvars :=
   let terms' := terms.mergeSort (·.1 ≥ ·.1)
