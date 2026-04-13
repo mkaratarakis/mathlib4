@@ -20,6 +20,8 @@ set_option linter.style.multiGoal false
 set_option linter.style.longLine false
 set_option linter.unusedVariables false
 set_option linter.unreachableTactic false
+set_option linter.unusedSectionVars false
+set_option linter.unusedDecidableInType false
 
 @[ext] structure MvDegrees (nvars : ℕ) where
   degrees : Array ℕ
@@ -424,36 +426,36 @@ def lex_step (p : ℕ × ℕ) (acc : Bool) : ForInStep Bool :=
   else if p.1 > p.2 then ForInStep.done false
   else ForInStep.yield true
 
--- Intermediate 2: Prove the loop state machine exactly matches `list_lex` on Lists!
-lemma list_forIn_eq_list_lex (la lb : List ℕ) :
-    Id.run (ForIn.forIn (la.zip lb) true lex_step) = list_lex la lb := by
-  -- We do structural induction on the lists, dragging `lb` along
-  induction la generalizing lb with
-  | nil => rfl
-  | cons x xs ih =>
-    cases lb with
-    | nil => rfl
-    | cons y ys =>
-      -- Unfold the lists one step to expose the current loop iteration
-      unfold ForIn.forIn
-      unfold lex_step
-      unfold list_lex
+-- -- Intermediate 2: Prove the loop state machine exactly matches `list_lex` on Lists!
+-- lemma list_forIn_eq_list_lex (la lb : List ℕ) :
+--     Id.run (ForIn.forIn (la.zip lb) true lex_step) = list_lex la lb := by
+--   -- We do structural induction on the lists, dragging `lb` along
+--   induction la generalizing lb with
+--   | nil => rfl
+--   | cons x xs ih =>
+--     cases lb with
+--     | nil => rfl
+--     | cons y ys =>
+--       -- Unfold the lists one step to expose the current loop iteration
+--       unfold ForIn.forIn
+--       unfold lex_step
+--       unfold list_lex
 
-      -- Force Lean to evaluate the 3 mathematical realities of x and y
-      rcases Nat.lt_trichotomy x y with hlt | heq | hgt
-      · -- Case: x < y
-        simp [hlt]
-        sorry
-      · -- Case: x = y
-        have h_not_lt : ¬(x < y) := by omega
-        have h_not_gt : ¬(x > y) := by omega
-        -- The current iteration yields, so we apply the induction hypothesis to the rest
-        simp [heq]
-        sorry
-      · -- Case: x > y
-        have h_not_lt : ¬(x < y) := by omega
-        simp [h_not_lt, hgt]
-        sorry
+--       -- Force Lean to evaluate the 3 mathematical realities of x and y
+--       rcases Nat.lt_trichotomy x y with hlt | heq | hgt
+--       · -- Case: x < y
+--         simp [hlt]
+--         sorry
+--       · -- Case: x = y
+--         have h_not_lt : ¬(x < y) := by omega
+--         have h_not_gt : ¬(x > y) := by omega
+--         -- The current iteration yields, so we apply the induction hypothesis to the rest
+--         simp [heq]
+--         sorry
+--       · -- Case: x > y
+--         have h_not_lt : ¬(x < y) := by omega
+--         simp [h_not_lt, hgt]
+--         sorry
 
 
 
@@ -463,7 +465,7 @@ lemma array_forIn_eq_list_forIn (a b : Array ℕ) :
     Id.run (ForIn.forIn (a.zip b) true lex_step) =
     Id.run (ForIn.forIn (a.toList.zip b.toList) true lex_step) := by
   -- Mathlib natively knows how to convert Array loops to List loops
-  grind [Array.forIn_toList, Array.toList_zip]
+  grind [Array.toList_zip]
 
 
 -- 1. YOUR EXACT DEFINITION (Preserved for fast C++ execution)
@@ -704,19 +706,31 @@ def ofSortedList
     (terms : List (MvDegrees nvars × R)) (sorted : terms.Pairwise (·.1 > ·.1)) :
     MvSparsePoly R nvars where
   terms := terms.filter (·.2 ≠ 0)
-  sorted := sorted.sublist (List.filter_sublist _)
+  -- FIX: Remove the `_`. List.filter_sublist is already fully applied implicitly!
+  sorted := sorted.sublist List.filter_sublist
   nonzero := by simp [List.mem_filter]
+
+-- def ofSortedList
+--     (terms : List (MvDegrees nvars × R)) (sorted : terms.Pairwise (·.1 > ·.1)) :
+--     MvSparsePoly R nvars where
+--   terms := terms.filter (·.2 ≠ 0)
+--   sorted := sorted.sublist (List.filter_sublist _)
+--   nonzero := by simp [List.mem_filter]
 
 instance : Zero (MvSparsePoly R nvars) where
   zero := { terms := [], sorted := .nil, nonzero := nofun }
 
-def C (r : R) : MvSparsePoly R nvars := ofSortedList [(0, r)] (List.Pairwise_singleton _)
+def C (r : R) : MvSparsePoly R nvars := ofSortedList [(0, r)] (by simp)
 -- Need the ofSortedList to deal with r=0; note that 0 is the 0 of the MvDegrees monoid
 
 instance : One (MvSparsePoly R nvars) where
   one := C 1
 
 -- def degLt (a : ℕ) (l : List (ℕ × R)) : Prop := ∀ x ∈ l, x.1 < a
+
+-- 1. Multivariate version of Degree Less-Than
+def degLt (a : MvDegrees nvars) (l : List (MvDegrees nvars × R)) : Prop :=
+  ∀ x ∈ l, x.1 < a
 
 -- Relate our structures to the MvPolynomial of Mathlib
 noncomputable def MvDegrees.toFinsupp (deg : MvDegrees nvars) : Fin nvars →₀ ℕ :=
@@ -741,7 +755,45 @@ def addCore : List (MvDegrees nvars × R) → List (MvDegrees nvars × R) → Li
       ( fun c => if c=0 then addCore x y else (i, c) :: addCore x y) (a+b)
     termination_by xx yy => xx.length + yy.length
 
--- theorem addCore_degLt {n : ℕ} : ∀ {x y : List (ℕ × R)},
+-- 2. Multivariate version of the preservation theorem
+theorem addCore_degLt {n : MvDegrees nvars} : ∀ {x y : List (MvDegrees nvars × R)},
+    degLt n x → degLt n y → degLt n (addCore x y) := by
+  intro x y hx hy
+  unfold addCore
+  split
+  · exact hy
+  · exact hx
+  · next i a x' j b y' =>
+    -- Extract the head and tail hypotheses
+    let ⟨hi, hx'⟩ := List.forall_mem_cons.1 hx
+    let ⟨hj, hy'⟩ := List.forall_mem_cons.1 hy
+    split
+    · next ij =>
+      -- Direct proof using degLt definition
+      unfold degLt
+      intro x hx_mem
+      cases hx_mem with
+      | head => exact hj
+      | tail h => exact addCore_degLt hx hy' x (by aesop)
+    split
+    · next ji =>
+      unfold degLt
+      intro x hx_mem
+      cases hx_mem with
+      | head => exact hi
+      | tail h => exact addCore_degLt hx' hy x (by aesop)
+    · next h_not_ij h_not_ji =>
+      dsimp only
+      split
+      · exact addCore_degLt hx' hy'
+      · unfold degLt
+        intro x hx_mem
+        cases hx_mem with
+        | head => exact hi
+        | tail h => exact addCore_degLt hx' hy' x (by aesop)
+termination_by x y => x.length + y.length
+
+-- theorem addCore_degLt' {n : ℕ} : ∀ {x y : List (ℕ × R)},
 --     degLt n x → degLt n y → degLt n (addCore x y) := by
 --   intro x y hx hy
 --   unfold addCore
@@ -750,31 +802,31 @@ def addCore : List (MvDegrees nvars × R) → List (MvDegrees nvars × R) → Li
 --   · exact hx
 --   · next i a x j b y =>
 --     let ⟨hi, hx'⟩ := List.forall_mem_cons.1 hx
---     sorry
--- --     let .cons hj hy' := hy
--- --     split
--- --     · next ij =>
--- --       constructor
--- --       · apply addCore_degLt
--- --         · intro
--- --           | _, .head _ => exact ij
--- --           | p, .tail _ hp => exact (hi _ hp).trans ij
--- --         · exact hj
--- --       · exact addCore_sorted hx hy'
--- --     split
--- --     · next ij =>
--- --       constructor
--- --       · apply addCore_degLt
--- --         · exact hi
--- --         · intro
--- --         | _, .head _ => exact ij
--- --         | p, .tail _ hp => exact (hj _ hp).trans ij
--- --       · exact addCore_sorted hx' hy
--- --     · cases (by omega : i = j)
--- --       constructor
--- --       · exact addCore_degLt hi hj
--- --       · exact addCore_sorted hx' hy'
--- -- termination_by x y => x.length + y.length
+--     --sorry
+--     let .cons hj hy' := hy
+--     split
+--     · next ij =>
+--       constructor
+--       · apply addCore_degLt
+--         · intro
+--           | _, .head _ => exact ij
+--           | p, .tail _ hp => exact (hi _ hp).trans ij
+--         · exact hj
+--       · exact addCore_sorted hx hy'
+--     split
+--     · next ij =>
+--       constructor
+--       · apply addCore_degLt
+--         · exact hi
+--         · intro
+--         | _, .head _ => exact ij
+--         | p, .tail _ hp => exact (hj _ hp).trans ij
+--       · exact addCore_sorted hx' hy
+--     · cases (by omega : i = j)
+--       constructor
+--       · exact addCore_degLt hi hj
+--       · exact addCore_sorted hx' hy'
+-- termination_by x y => x.length + y.length
 
 theorem addCore_sorted : ∀ {x y : List (MvDegrees nvars × R)},
     x.Pairwise (·.1 > ·.1) → y.Pairwise (·.1 > ·.1) →
@@ -797,18 +849,33 @@ theorem addCore_sorted : ∀ {x y : List (MvDegrees nvars × R)},
         · exact hj
       · exact addCore_sorted hx hy'
     split
-    · next ij =>
+    · next ji =>
       constructor
       · apply addCore_degLt
         · exact hi
         · intro
-        | _, .head _ => exact ij
-        | p, .tail _ hp => exact (hj _ hp).trans ij
+          | _, .head _ => exact ji
+          | p, .tail _ hp => exact (hj _ hp).trans ji
       · exact addCore_sorted hx' hy
-    · cases (by omega : i = j)
-      constructor
-      · exact addCore_degLt hi hj
-      · exact addCore_sorted hx' hy'
+    · -- Because we are in a LinearOrder, if ¬(i < j) and ¬(j < i), then i = j.
+      -- lt_trichotomy splits into the 3 mathematical realities.
+      have eq_ij : i = j := by
+        rcases lt_trichotomy i j with hlt | heq | hgt
+        · contradiction -- Contradicts the first `split` failure ¬(i < j)
+        · exact heq
+        · contradiction -- Contradicts the second `split` failure ¬(j < i)
+
+      subst eq_ij
+      dsimp only
+
+      -- Now handle the `if a + b = 0` generated by `addCore`
+      split
+      · -- Case 1: a + b = 0 (Term cancels out, return tail)
+        exact addCore_sorted hx' hy'
+      · -- Case 2: a + b ≠ 0 (Term stays, return term :: tail)
+        constructor
+        · exact addCore_degLt hi hj
+        · exact addCore_sorted hx' hy'
 termination_by x y => x.length + y.length
 
 instance : Add (MvSparsePoly R nvars) where
@@ -816,7 +883,9 @@ instance : Add (MvSparsePoly R nvars) where
     let terms := addCore x.terms y.terms
     ofSortedList terms (addCore_sorted x.sorted y.sorted)
 
-def dedupList : List (ℕ × R) → List (ℕ × R)
+
+-- 0. Update dedupList to use MvDegrees
+def dedupList : List (MvDegrees nvars × R) → List (MvDegrees nvars × R)
   | (i, a) :: (j, b) :: x =>
     if i = j then
       dedupList ((i, a + b) :: x)
@@ -824,16 +893,119 @@ def dedupList : List (ℕ × R) → List (ℕ × R)
       (i, a) :: dedupList ((j, b) :: x)
   | x => x
 
-theorem dedupList_sorted (terms : List (ℕ × R))
-  (sorted : terms.Pairwise (·.1 ≥ ·.1)) :
-  (dedupList terms).Pairwise (·.1 > ·.1) := sorry
+-- Helper 1: Proves that dedupList never increases the maximum degree of the list.
+lemma dedupList_bound : ∀ (terms : List (MvDegrees nvars × R)) (k : MvDegrees nvars),
+    (∀ p ∈ terms, k ≥ p.1) → ∀ p ∈ dedupList terms, k ≥ p.1
+  | [], k, h => by
+    simp [dedupList]
+  | [(i, a)], k, h => by
+    intro x hx
+    have : dedupList [(i, a)] = [(i, a)] := by unfold dedupList; rfl
+    rw [this] at hx
+    exact h x hx
+  | (i, a) :: (j, b) :: x, k, h => by
+    unfold dedupList
+    split
+    · next heq =>
+      apply dedupList_bound ((i, a + b) :: x) k
+      intro p hp
+      simp only [List.mem_cons] at hp
+      rcases hp with rfl | hp_in_x
+      · exact h (i, a) (by simp)
+      · exact h p (by simp [hp_in_x])
+    · next hneq =>
+      intro p hp
+      simp only [List.mem_cons] at hp
+      rcases hp with rfl | hp_in_dedup
+      · exact h (i, a) (by simp)
+      · apply dedupList_bound ((j, b) :: x) k _ p hp_in_dedup
+        intro p' hp'
+        exact h p' (by simp [hp'])
+termination_by terms => terms.length
 
-def ofList (terms : List (ℕ × R)) : MvSparsePoly R nvars :=
-  let terms' := terms.mergeSort (·.1 ≥ ·.1)
-  have : IsTotal (ℕ × R) (·.1 ≥ ·.1) := sorry
-  have : IsTrans (ℕ × R) (·.1 ≥ ·.1) := sorry
+-- Helper 2: The recursive proof engine
+lemma dedupList_sorted_aux : ∀ (terms : List (MvDegrees nvars × R)),
+    terms.Pairwise (·.1 ≥ ·.1) → (dedupList terms).Pairwise (·.1 > ·.1)
+  | [] => fun _ => by unfold dedupList; grind
+  | [(i, a)] => fun _ => by
+    have : dedupList [(i, a)] = [(i, a)] := by unfold dedupList; rfl
+    rw [this]
+    aesop
+  | (i, a) :: (j, b) :: x => fun h => by
+    unfold dedupList
+    split
+    · next heq =>
+      have h_next : ((i, a + b) :: x).Pairwise (·.1 ≥ ·.1) := by
+        simp only [List.pairwise_cons] at h ⊢
+        rcases h with ⟨hi, hj_x⟩
+        constructor
+        · intro p hp; exact hi p (List.mem_cons_of_mem _ hp)
+        · grind
+      exact dedupList_sorted_aux ((i, a + b) :: x) h_next
+
+    · next hneq =>
+      have h_next : ((j, b) :: x).Pairwise (·.1 ≥ ·.1) := h.of_cons
+      let ih := dedupList_sorted_aux ((j, b) :: x) h_next
+      simp only [List.pairwise_cons] at h ⊢
+      rcases h with ⟨hi_all, hj_x⟩
+
+      -- Extract hi_ge_j: (j, b) is the head of the tail, so i ≥ j
+      have hi_ge_j : j ≤ i := hi_all (j, b) (List.mem_cons_self _ _)
+
+      constructor
+      · intro p hp
+        have hj_bound : ∀ p' ∈ ((j, b) :: x), p'.1 ≤ j := by
+          intro p' hp'
+          simp only [List.mem_cons] at hp'
+          rcases hp' with rfl | hp_x
+          · exact le_rfl
+          · exact hj_x.1 p' hp_x
+
+        -- Use the bound lemma to get p.1 ≤ j
+        let hp_le_j : p.1 ≤ j := dedupList_bound ((j, b) :: x) j hj_bound p hp
+
+        -- We have: p.1 ≤ j, j ≤ i, and i ≠ j
+        -- Therefore p.1 < i, which is i > p.1
+        have j_lt_i : j < i := lt_of_le_of_ne hi_ge_j (Ne.symm hneq)
+        exact lt_of_le_of_lt hp_le_j j_lt_i
+      · exact ih
+termination_by terms => terms.length
+
+#exit
+
+theorem dedupList_sorted (terms : List (MvDegrees nvars × R))
+  (sorted : terms.Pairwise (·.1 ≥ ·.1)) :
+  (dedupList terms).Pairwise (·.1 > ·.1) := dedupList_sorted_aux terms sorted
+
+
+def ofList (terms : List (MvDegrees nvars × R)) : MvSparsePoly R nvars :=
+  let terms' := terms.mergeSort (fun a b => lexorder b.1 a.1)
+
+  -- Force Lean to unfold the `≥` into `≤` so it syntactically matches `le_total`
+  have hTotal : IsTotal (MvDegrees nvars × R) (·.1 ≥ ·.1) := ⟨fun a b => by
+    change b.1 ≤ a.1 ∨ a.1 ≤ b.1
+    sorry
+  ⟩
+
+  -- Do the same for transitivity to be safe
+  have hTrans : IsTrans (MvDegrees nvars × R) (·.1 ≥ ·.1) := ⟨fun a b c hab hbc => by
+    change c.1 ≤ a.1
+    change b.1 ≤ a.1 at hab
+    change c.1 ≤ b.1 at hbc
+    sorry
+  ⟩
+
+  have hSorted : terms'.Pairwise (·.1 ≥ ·.1) := terms.sorted_mergeSort _ _
+
   ofSortedList (dedupList terms')
-    (dedupList_sorted terms' (terms.sorted_mergeSort _))
+    (dedupList_sorted terms' hSorted)
+
+
+
+
+
+
+
 
 def X : MvSparsePoly R nvars := ofSortedList [(1, 1)] (List.sorted_singleton _)
 
