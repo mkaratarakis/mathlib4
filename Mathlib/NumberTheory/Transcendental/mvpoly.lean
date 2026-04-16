@@ -1707,7 +1707,7 @@ instance : CommRing (MvSparsePoly R nvars) where
   -- ⚠️ NOTE: We intentionally deleted nsmul, zsmul, and natCast!
   -- Lean's `AddMonoidWithOne` automatically writes and proves all 8 of their
   -- tedious theorems natively using our proven 0, 1, +, and -
-
+#exit
 
 #print AddMonoidWithOne
 instance : Algebra R (MvSparsePoly R nvars) := by
