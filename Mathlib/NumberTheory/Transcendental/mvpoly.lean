@@ -1524,11 +1524,7 @@ theorem toPolyCore_injective_of_sorted : ∀ (l1 l2 : List (MvDegrees nvars × R
         have h_finsupp_ne : MvDegrees.toFinsupp j ≠ MvDegrees.toFinsupp i := by
           intro h_eq
           exact (ne_of_lt hji) (toFinsupp_inj.mp h_eq)
-
-        -- 3. Evaluate the monomial coefficient (0 because degrees don't match)
         rw [MvPolynomial.coeff_monomial, if_neg h_finsupp_ne]
-
-        -- 4. Evaluate the tail coefficient (0 by Helper 2)
         rw [coeff_toPolyCore_of_degLt ys h_ys_i, zero_add]
       rw [h_rhs] at h_coeff
       have ha_nz := nz1 (i, a) List.mem_cons_self
@@ -1576,7 +1572,7 @@ theorem toPolyCore_addCore : ∀ (x y : List (MvDegrees nvars × R)),
     · -- Case 1: i < j
       -- Build the proof that j < i is false manually
       have h_not_ji : ¬(j < i) := fun h_contra => lt_irrefl i (lt_trans hlt h_contra)
-      simp [hlt]
+      simp only [hlt, ↓reduceIte]
       dsimp only [toPolyCore]
       rw [toPolyCore_addCore]
       simp only [toPolyCore]
@@ -1584,33 +1580,42 @@ theorem toPolyCore_addCore : ∀ (x y : List (MvDegrees nvars × R)),
 
     · -- Case 2: i = j
       subst heq
-      simp [lt_irrefl i]
-      try split
-      all_goals {
-        dsimp only [toPolyCore]
-        rw [toPolyCore_addCore]
-        try {
-          -- This block handles the case where a + b = 0
-          have hab : a + b = 0 := by assumption
+      -- Clear the trichotomy conditions
+      simp only [lt_self_iff_false, ↓reduceIte]
+
+      -- Explicitly split the `if a + b = 0` branch from your addCore definition
+      split
+
+      · -- Subcase 2.1: a + b = 0 (The term is dropped)
+        next hab =>
+          dsimp only [toPolyCore]
+          rw [toPolyCore_addCore]
+
+          -- Group the two monomials together
           have h_rearrange : (MvPolynomial.monomial (MvDegrees.toFinsupp i) a + toPolyCore x) +
                              (MvPolynomial.monomial (MvDegrees.toFinsupp i) b + toPolyCore y) =
                              (MvPolynomial.monomial (MvDegrees.toFinsupp i) a + MvPolynomial.monomial (MvDegrees.toFinsupp i) b) +
                              (toPolyCore x + toPolyCore y) := by ring
-          rw [h_rearrange, ← map_add, hab, map_zero, zero_add]
-        }
+          rw [h_rearrange]
 
-        -- This handles the case where a + b ≠ 0
-        try rw [map_add]
-        sorry
+          -- Combine them into a single monomial, apply a + b = 0, and clear it
+          rw [← map_add, hab, map_zero, zero_add]
 
-        -- This final 'ring' closes the exact goal you are seeing!
+      · -- Subcase 2.2: a + b ≠ 0 (The merged term is kept)
+        next hab =>
+          dsimp only [toPolyCore]
+          rw [toPolyCore_addCore]
 
-      }
+          -- Distribute the combined coefficient into two separate monomials
+          rw [map_add]
+
+          -- The terms are now identical on both sides, just out of order
+          ring
 
     · -- Case 3: j < i
       -- Build the proof that i < j is false manually
       have h_not_ij : ¬(i < j) := fun h_contra => lt_irrefl j (lt_trans hgt h_contra)
-      simp [hgt, h_not_ij]
+      simp only [h_not_ij, ↓reduceIte, hgt]
       dsimp only [toPolyCore]
       rw [toPolyCore_addCore]
       simp only [toPolyCore]
@@ -1619,12 +1624,9 @@ theorem toPolyCore_addCore : ∀ (x y : List (MvDegrees nvars × R)),
 termination_by x y => x.length + y.length
 
 lemma toPoly_add (a b : MvSparsePoly R nvars) : toPoly (a + b) = toPoly a + toPoly b := by
-  -- 1. Unfold 'toPoly' to reach the list-level logic
   unfold toPoly
-  -- 2. Explicitly desugar the '+' on MvSparsePoly
   change toPolyCore ((addCore a.terms b.terms).filter (·.2 ≠ 0)) =
          toPolyCore a.terms + toPolyCore b.terms
-  -- 3. Use the helpers we just defined
   rw [toPolyCore_filter_nonzero]
   exact toPolyCore_addCore a.terms b.terms
 
@@ -1686,77 +1688,12 @@ theorem toPolyCore_monomial_mul (l : List (MvDegrees nvars × R)) (i : MvDegrees
     -- Use the bridge: i + j in MvDegrees is addition in Finsupp
     rw [MvPolynomial.monomial_mul, toFinsupp_add, mul_comm a b, add_comm]
 
--- Helper 2: The Master Multiplication Lemma (The "flatMap" bridge)
-theorem toPolyCore_mul_x (l1 l2 : List (MvDegrees nvars × R)) :
-    toPolyCore (l1.flatMap fun ⟨i, a⟩ => l2.map fun ⟨j, b⟩ => (i + j, a * b)) =
-    toPolyCore l1 * toPolyCore l2 := by
-  induction l1 with
-  | nil => simp [toPolyCore]
-  | cons hd tl ih =>
-    rcases hd with ⟨i, a⟩
-    dsimp [toPolyCore]
-    -- Distribute: (monomial i a + toPolyCore tl) * toPolyCore l2
-    rw [add_mul, ← toPolyCore_monomial_mul]
-    rw [← ih]
-    sorry
 
-
-
--- -- 1. Filtering out zeros doesn't change the sum
--- theorem toPolyCore_filter_nonzero (l : List (MvDegrees nvars × R)) :
---     toPolyCore (l.filter (·.2 ≠ 0)) = toPolyCore l := by
---   induction l with
---   | nil => rfl
---   | cons hd tl ih =>
---     rcases hd with ⟨i, a⟩
---     simp only [List.filter_cons]
---     split
---     · unfold toPolyCore; rw [ih]
---     · next h0 =>
---       have ha0 : a = 0 := by aesop
---       unfold toPolyCore
---       rw [ha0, map_zero, zero_add, ih]
-
--- -- 2. Reordering terms doesn't change the sum
--- theorem toPolyCore_perm {l1 l2 : List (MvDegrees nvars × R)} (h : l1.Perm l2) :
---     toPolyCore l1 = toPolyCore l2 := by
---   induction h with
---   | nil => rfl
---   | cons x _ ih => dsimp [toPolyCore]; rw [ih]
---   | swap x y l => dsimp [toPolyCore]; ring
--- --   | trans _ _ ih1 ih2 => exact ih1.trans ih2
-
--- -- 3. mergeSort is just a permutation
--- theorem toPolyCore_mergeSort (l : List (MvDegrees nvars × R)) (r : (MvDegrees nvars × R) → (MvDegrees nvars × R) → Bool) :
---     toPolyCore (l.mergeSort r) = toPolyCore l :=
---   toPolyCore_perm (l.mergeSort_perm r)
-
--- -- 4. Deduplicating (combining like terms) preserves the sum
--- theorem toPolyCore_dedupList : ∀ (l : List (MvDegrees nvars × R)),
---     toPolyCore (dedupList l) = toPolyCore l
---   | [] => rfl
---   | [x] => rfl
---   | (i, a) :: (j, b) :: xs => by
---       unfold dedupList
---       split
---       · next heq =>
---         subst heq
---         rw [toPolyCore_dedupList ((i, a + b) :: xs)]
---         dsimp [toPolyCore]
---         simp only [MvPolynomial.coeff_add] -- Replaced map_add for safety
---         ring
---       · next hneq =>
---         dsimp [toPolyCore]
---         rw [toPolyCore_dedupList ((j, b) :: xs)]
-
--- 5. THE MISSING IDENTIFIER: ofList preserves the sum
 theorem toPolyCore_ofList_terms (l : List (MvDegrees nvars × R)) :
     toPolyCore (ofList l).terms = toPolyCore l := by
   unfold ofList ofSortedList
   dsimp
   rw [toPolyCore_filter_nonzero, toPolyCore_dedupList, toPolyCore_mergeSort]
-
-
 
 -- Helper 1: toPolyCore distributes over list append
 theorem toPolyCore_append (l1 l2 : List (MvDegrees nvars × R)) :
@@ -1767,8 +1704,6 @@ theorem toPolyCore_append (l1 l2 : List (MvDegrees nvars × R)) :
     dsimp [toPolyCore]
     rw [ih, add_assoc]
 
-
-
 -- 2. New FlatMap Monomial Helper (Using `change` to outsmart the elaborator)
 theorem toPolyCore_monomial_mul_flatMap (l : List (MvDegrees nvars × R)) (i : MvDegrees nvars) (a : R) :
     toPolyCore (l.flatMap fun x => [(i + x.1, a * x.2)]) =
@@ -1776,8 +1711,6 @@ theorem toPolyCore_monomial_mul_flatMap (l : List (MvDegrees nvars × R)) (i : M
   induction l with
   | nil => simp [toPolyCore, List.flatMap]
   | cons hd tl ih =>
-    -- Lean already evaluated the singleton list, so we use `change` to fold the
-    -- tail back into a clean flatMap, perfectly matching our inductive hypothesis.
     change (MvPolynomial.monomial (MvDegrees.toFinsupp (i + hd.1))) (a * hd.2) +
            toPolyCore (tl.flatMap fun x => [(i + x.1, a * x.2)]) = _
     rw [ih]
@@ -1792,8 +1725,6 @@ theorem toPolyCore_mul_flatMap (l1 l2 : List (MvDegrees nvars × R)) :
   induction l1 with
   | nil => simp [toPolyCore, List.flatMap]
   | cons hd tl ih =>
-    -- Here, the list is NOT a singleton, so the `++` is still intact.
-    -- We use `change` to explicitly show the append, making the rewrite bulletproof.
     change toPolyCore ((l2.flatMap fun y => [(hd.1 + y.1, hd.2 * y.2)]) ++
                        (tl.flatMap fun x => l2.flatMap fun y => [(x.1 + y.1, x.2 * y.2)])) = _
 
@@ -1838,29 +1769,21 @@ instance : CommRing (MvSparsePoly R nvars) where
   zero_mul := poly_zero_mul
   mul_zero := poly_mul_zero
 
-  nsmul n x := nsmulRec n x
+  nsmul := nsmulRec
 
-  zsmul z x:= sorry
-
+  zsmul := zsmulRec
   nsmul_zero := by intros; rfl
 
   nsmul_succ := by intros; rfl
 
-  zsmul_zero' := sorry
+  zsmul_zero' := by intros; rfl
 
-  zsmul_succ' := sorry
+  zsmul_succ' := by intros; rfl
 
-  natCast := sorry
-
-  natCast_zero := sorry
-
-  natCast_succ := sorry
-
-  zsmul_neg' := sorry
-
-  -- ✨ 4. THE MAGIC: Crushing the Final Bosses ✨
-  -- We push our polynomials into Mathlib, use Mathlib's fully proven axioms,
-  -- and use Injectivity to prove they must also be equal in our computational type!
+  natCast n := nsmulRec n 1
+  natCast_zero := rfl
+  natCast_succ := by intros; rfl
+  zsmul_neg' := by intros; rfl
   add_assoc a b c := toPoly_injective (by simp only [toPoly_add, add_assoc])
   mul_assoc a b c := toPoly_injective (by simp only [toPoly_mul, mul_assoc])
   mul_comm a b := toPoly_injective (by simp only [toPoly_mul, mul_comm])
@@ -1869,19 +1792,154 @@ instance : CommRing (MvSparsePoly R nvars) where
   one_mul a := toPoly_injective (by simp only [toPoly_mul, toPoly_one, one_mul])
   mul_one a := toPoly_injective (by simp only [toPoly_mul, toPoly_one, mul_one])
 
-  -- ⚠️ NOTE: We intentionally deleted nsmul, zsmul, and natCast!
-  -- Lean's `AddMonoidWithOne` automatically writes and proves all 8 of their
-  -- tedious theorems natively using our proven 0, 1, +, and -
-#exit
+
 
 #print AddMonoidWithOne
-instance : Algebra R (MvSparsePoly R nvars) := by
-  refine' { toFun := C, smul := fun a r => C a * r, ..} <;> sorry
+
+-- instance : Algebra R (MvSparsePoly R nvars) := by
+--   refine' { toFun := C, smul := fun a r => C a * r, ..} <;> sorry
+lemma toPoly_zero : toPoly (0 : MvSparsePoly R nvars) = 0 := rfl
+-- First, we bundle your `C` constructor into a formal RingHom
+def C_hom : R →+* MvSparsePoly R nvars where
+  toFun := C
+  map_zero' := by
+    apply toPoly_injective
+    simp only [toPoly_C, toPoly_zero, map_zero]
+  map_one' := by
+    apply toPoly_injective
+    simp only [toPoly_C, toPoly_one, map_one]
+  map_add' := by
+    intro x y
+    apply toPoly_injective
+    simp only [toPoly_add, toPoly_C, map_add]
+  map_mul' := by
+    intro x y
+    apply toPoly_injective
+    simp only [toPoly_mul, toPoly_C, map_mul]
+
+-- Now we define the Algebra using that RingHom
+instance : Algebra R (MvSparsePoly R nvars) where
+  smul r p := C r * p
+  algebraMap := C_hom
+  commutes' r p := mul_comm (C r) p
+  smul_def' _ _ := rfl
+
+-- instance : Algebra R (MvSparsePoly R nvars) := by
+--   refine' { smul_def' := sorry, smul := fun a r => C a * r, ..} <;> sorry
 
 class IsExactDiv (R : Type*) [Monoid R] [Div R] : Prop where
   mul_div_cancel {a b : R} : b ∣ a → b * (a / b) = a
 
-def degree (a : MvSparsePoly R nvars) : ℕ := (a.terms.headD (0, 0)).1
+/-For algebra we use :-/
+def multidegree (a : MvSparsePoly R nvars) : MvDegrees nvars :=
+  (a.terms.headD (0, 0)).1
+
+/- For proofs, we use : -/
+def totalDegree (a : MvSparsePoly R nvars) : ℕ :=
+  (a.terms.headD (0, 0)).1.totalDegree
+
+-- def degree (a : MvSparsePoly R nvars) : ℕ := (a.terms.headD (0, 0)).1
+
+-- def degree (a : MvSparsePoly R nvars) : MvDegrees nvars :=
+--   (a.terms.headD (0, 0)).1
+
+def degree (a : MvSparsePoly R nvars) : ℕ := (a.terms.headD (0, 0)).1.totalDegree
+
+instance : Sub (MvDegrees nvars) where
+  sub a b := {
+    -- Point-wise subtraction of the exponent arrays
+    degrees := Array.zipWith (· - ·) a.degrees b.degrees
+    correct := by simp [a.correct, b.correct]
+    -- Calculate the new total degree of the subtracted array
+    totalDegree := (Array.zipWith (· - ·) a.degrees b.degrees).foldl (· + ·) 0
+    totalDegree_eq := rfl
+  }
+
+def sparseMonomial (d : MvDegrees nvars) (r : R) : MvSparsePoly R nvars :=
+  ofSortedList [(d, r)] (by simp)
+
+def MvDegrees.divides (a b : MvDegrees nvars) : Bool :=
+  Array.zipWith (fun x y => decide (x ≤ y)) a.degrees b.degrees |>.all id
+
+
+-- Fix: R and nvars and their typeclasses come BEFORE a and b!
+lemma multidegree_sub_cancel {R : Type} [Field R] {nvars : ℕ} [WOrdering nvars] [DecidableEq R]
+  {a b : MvSparsePoly R nvars} {i j : MvDegrees nvars} {x y : R} {as bs}
+  (hA : a.terms = (i, x) :: as)
+  (hB : b.terms = (j, y) :: bs)
+  (hDiv : MvDegrees.divides j i = true) :
+  (a - sparseMonomial (i - j) (x / y) * b).multidegree < a.multidegree := by
+  sorry
+
+-- Fix: R and nvars and their typeclasses come BEFORE a!
+lemma multidegree_tail_lt {R : Type} [Field R] {nvars : ℕ} [WOrdering nvars] [DecidableEq R]
+  {a : MvSparsePoly R nvars} {i : MvDegrees nvars} {x : R} {as}
+  (hA : a.terms = (i, x) :: as) :
+  (ofSortedList as sorry).multidegree < a.multidegree := by
+  sorry
+-- 1. Define the custom typeclass mentioned in the paper
+class Wordering (nvars : ℕ) where
+  lt : MvDegrees nvars → MvDegrees nvars → Prop
+  wf : WellFounded lt
+
+-- 2. Teach Lean that 'Wordering' provides the standard '<' operator
+instance [w : Wordering nvars] : LT (MvDegrees nvars) where
+  lt := w.lt
+
+-- 3. The high-priority WellFoundedRelation that fixes your decreasing_by block
+instance (priority := high) [w : Wordering nvars] : WellFoundedRelation (MvDegrees nvars) where
+  rel := (· < ·)
+  wf := w.wf
+
+-- We use `local instance` and a massive priority to completely overwrite Lean's defaults for this file
+local instance (priority := high) customPolyWF [w : Wordering nvars] [CommRing R] :
+    WellFoundedRelation (MvSparsePoly R nvars) where
+  rel a b := a.multidegree < b.multidegree
+  wf := InvImage.wf multidegree w.wf
+
+-- Notice the addition of [Wordering nvars] right next to [Field R]!
+def mvDivRem [Field R] [Wordering nvars] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
+  match hA : a.terms with
+  | [] => (0, 0)
+  | (i, x) :: as =>
+    match hB : b.terms with
+    | [] => (0, a)
+    | (j, y) :: bs =>
+      if hDiv : MvDegrees.divides j i then
+        let c := sparseMonomial (i - j) (x / y)
+        if y * (x / y) = x then
+          let (q', r') := mvDivRem (a - c * b) b
+          (q' + c, r')
+        else
+          (0, a)
+      else
+        let (q', r') := mvDivRem (ofSortedList as sorry) b
+        (q', sparseMonomial i x + r')
+termination_by a.multidegree
+decreasing_by
+  · exact multidegree_sub_cancel hA hB hDiv
+  · exact multidegree_tail_lt hA
+
+def mvDivRem [Field R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
+  match a.terms with
+  | [] => (0, 0)
+  | (i, x) :: as =>
+    match b.terms with
+    | [] => (0, a)
+    | (j, y) :: bs =>
+      if MvDegrees.divides j i then
+        let c := sparseMonomial (i - j) (x / y)
+        if y * (x / y) = x then
+          let (q', r') := mvDivRem (a - c * b) b
+          (q' + c, r')
+        else
+          (0, a)
+      else
+        let (q', r') := mvDivRem (ofSortedList as sorry) b
+        (q', sparseMonomial i x + r')
+termination_by a.multidegree
+decreasing_by all_goals sorry
+
 
 def gcdPrim (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   match a.terms with
@@ -1891,16 +1949,19 @@ def gcdPrim (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
     | [] => a
     | (j, y) :: bs =>
       if i > j then
-        gcdPrim (y • a - x • X^(i-j) * b) b
+        -- Cancel the head of 'a' using 'b'
+        gcdPrim (y • a - sparseMonomial (i - j) x * b) b
       else
-        gcdPrim a (x • b - y • X^(j-i) * a)
+        -- Cancel the head of 'b' using 'a'
+        gcdPrim a (x • b - sparseMonomial (j - i) y * a)
 termination_by a.degree + b.degree
 decreasing_by all_goals sorry
 
-def content [CancelCommMonoidWithZero R] [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
+
+def content [CommMonoidWithZero R] [IsCancelMulZero R] [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
   a.terms.foldl (init := 0) (gcd · ·.2)
 
-def primitivePart [CancelCommMonoidWithZero R] [GCDMonoid R]
+def primitivePart [CommMonoidWithZero R] [IsCancelMulZero R] [GCDMonoid R]
     [Div R] [IsExactDiv R] (a : MvSparsePoly R nvars) : MvSparsePoly R nvars where
   terms :=
     let b := a.content
@@ -1908,7 +1969,7 @@ def primitivePart [CancelCommMonoidWithZero R] [GCDMonoid R]
   sorted := sorry
   nonzero := sorry
 
-nonrec def gcd [CancelCommMonoidWithZero R] [GCDMonoid R]
+nonrec def gcd [CommMonoidWithZero R] [IsCancelMulZero R] [GCDMonoid R]
     [Div R] [IsExactDiv R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   gcd a.content b.content • (gcdPrim a b).primitivePart
 
