@@ -706,7 +706,7 @@ open MvPolynomial
 --instance [CommRing R] [Lean.ToFormat R] : Repr (SparsePoly R) where
 --  reprPrec x _ := Lean.format x
 
-variable {R : Type} [CommRing R] [DecidableEq R] [WOrdering nvars]
+variable {R : Type} [CommRing R] [DecidableEq R]
 
 def ofSortedList
     (terms : List (MvDegrees nvars × R)) (sorted : terms.Pairwise (·.1 > ·.1)) :
@@ -1743,14 +1743,7 @@ lemma toPoly_mul (a b : MvSparsePoly R nvars) :
   -- Use exact with the new _flatMap theorem
   exact toPolyCore_mul_flatMap a.terms b.terms
 
--- ==========================================
--- THE TARGET LEMMA
--- ==========================================
 
-
--- ==========================================
--- THE FINAL, FULLY PROVEN COMMRING INSTANCE
--- ==========================================
 instance : CommRing (MvSparsePoly R nvars) where
   -- 1. The Addition Foundations
   add := (·+·)
@@ -1862,43 +1855,186 @@ def MvDegrees.divides (a b : MvDegrees nvars) : Bool :=
   Array.zipWith (fun x y => decide (x ≤ y)) a.degrees b.degrees |>.all id
 
 
--- Fix: R and nvars and their typeclasses come BEFORE a and b!
-lemma multidegree_sub_cancel {R : Type} [Field R] {nvars : ℕ} [WOrdering nvars] [DecidableEq R]
+-- 2. The Cancel Lemma (No shadow variables, just Field R)
+
+-- -- 1. Define the custom typeclass mentioned in the paper
+-- class Wordering (nvars : ℕ) where
+--   lt : MvDegrees nvars → MvDegrees nvars → Prop
+--   wf : WellFounded lt
+
+
+@[ext] class WOrdering (nvars : ℕ) extends LinearOrder (MvDegrees nvars) where
+  zero_le {x : MvDegrees nvars} : 0 ≤ x
+  add_le_add {x y z : MvDegrees nvars} : x ≤ y → x + z ≤ y + z
+  -- FIX: Explicitly state the types so Lean can find the `<` operator!
+  wf : WellFounded (fun (a b : MvDegrees nvars) => a < b)
+
+-- The True High-Priority Relation
+instance (priority := high) {nvars : ℕ} [w : WOrdering nvars] : WellFoundedRelation (MvDegrees nvars) where
+  -- Lean can infer the types here because `rel` expects `MvDegrees nvars → MvDegrees nvars → Prop`
+  rel := fun a b => a < b
+  wf := w.wf
+
+-- -- 2. Teach Lean that 'Wordering' provides the standard '<' operator
+-- instance [w : Wordering nvars] : LT (MvDegrees nvars) where
+--   lt := w.lt
+
+-- -- 3. The high-priority WellFoundedRelation that fixes your decreasing_by block
+-- instance (priority := high) [w : Wordering nvars] : WellFoundedRelation (MvDegrees nvars) where
+--   rel := (· < ·)
+--   wf := w.wf
+
+
+-- -- We use `local instance` and a massive priority to completely overwrite Lean's defaults for this file
+-- local instance (priority := high) customPolyWF [w : Wordering nvars] [CommRing R] :
+--     WellFoundedRelation (MvSparsePoly R nvars) where
+--   rel a b := a.multidegree < b.multidegree
+--   wf := InvImage.wf multidegree w.wf
+
+-- 1. The ONLY Custom Relation we need for the Polynomial.
+-- FIX: We explicitly add [WOrdering nvars] here so Lean knows to use your '<' operator!
+local instance (priority := high) customPolyWF [WOrdering nvars] : WellFoundedRelation (MvSparsePoly R nvars) where
+
+  -- We tie the relation exactly to Lean's built-in Tuple relation so they can never mismatch
+  rel := InvImage
+           (inferInstance : WellFoundedRelation (MvDegrees nvars × ℕ)).rel
+           (fun p => (p.multidegree, p.terms.length))
+
+  -- The proof is now a mathematically perfect match for the relation
+  wf := InvImage.wf
+          (fun (p : MvSparsePoly R nvars) => (p.multidegree, p.terms.length))
+          (inferInstance : WellFoundedRelation (MvDegrees nvars × ℕ)).wf
+
+-- 1. Make absolutely sure Lean has the WellFoundedRelation for MvDegrees.
+-- (This prevents Lean from wrapping the tuple components in sizeOf!)
+instance (priority := high) mvDegreesWF {nvars : ℕ} [w : WOrdering nvars] : WellFoundedRelation (MvDegrees nvars) where
+  rel := (· < ·)
+  wf := w.wf
+
+-- Helper 1: Filtering a list for a condition never increases its length.
+lemma length_filter_le {α} (p : α → Bool) (l : List α) : (l.filter p).length ≤ l.length := by
+  induction l with
+  | nil => simp
+  | cons h t ih =>
+    simp only [List.filter_cons]
+    split
+    · -- Kept the element: length increases by 1 on both sides
+      simp only [List.length_cons]
+      omega
+    · -- Dropped the element: left side stays same, right side increases
+      simp only [List.length_cons]
+      omega
+
+-- Helper 2: The length of `ofSortedList` is always ≤ the length of the raw list.
+lemma ofSortedList_length_le (l : List (MvDegrees nvars × R)) (h) :
+  (ofSortedList l h).terms.length ≤ l.length := by
+  -- Because `terms` is definitionally just a filter, we apply Helper 1 directly!
+  exact length_filter_le (fun p => decide (p.2 ≠ 0)) l
+
+lemma addCore_cancel_head (i : MvDegrees nvars) (x : R) (as bs : List (MvDegrees nvars × R)) :
+  addCore ((i, x) :: as) ((i, -x) :: bs) = addCore as bs := by
+  -- 1. Unfold addCore ONLY on the left-hand side
+  conv =>
+    lhs
+    unfold addCore
+
+  -- 2. Provide our mathematical facts
+  have h_not_lt : ¬(i < i) := lt_irrefl i
+  have h_zero : x + -x = 0 := add_neg_cancel x
+
+  -- 3. With the Ghost Instance gone, simp easily crushes the if/else logic!
+  simp only [h_not_lt, h_zero, ite_false, ite_true]
+
+
+-- Helper 2: The Master Bridge Lemma!
+lemma lex_drop_of_degLt_with_hA [CommRing R]
+  {a : MvSparsePoly R nvars} {i : MvDegrees nvars} {x : R} {as}
+  (hA : a.terms = (i, x) :: as)
+  {l : List (MvDegrees nvars × R)}
+  (h_deg : degLt i l) :
+  Prod.Lex (fun (u v : MvDegrees nvars) => u < v) (fun (u v : ℕ) => u < v)
+    ((l.headD (0, 0)).1, l.length) (i, a.terms.length) := by
+  cases l with
+  | nil =>
+    -- Case 1: The remainder list is completely empty (multidegree is 0)
+    rcases lt_trichotomy (0 : MvDegrees nvars) i with hlt | heq | hgt
+    · exact Prod.Lex.left _ _ hlt
+    · subst heq
+      -- If i = 0, we check the list lengths!
+      apply Prod.Lex.right
+      rw [hA]
+      simp only [List.length_cons]
+      aesop
+    · -- FIX: We explicitly pass nvars to the global template so Lean doesn't guess!
+      have h_zero_le : (0 : MvDegrees nvars) ≤ i := @WOrdering.zero_le nvars (@instWOrdering nvars) i
+      exact False.elim (lt_irrefl _ (lt_of_le_of_lt h_zero_le hgt))
+  | cons hd tl =>
+    -- Case 2: The remainder list is NOT empty.
+    have h_hd_lt : hd.1 < i := h_deg hd List.mem_cons_self
+    exact Prod.Lex.left _ _ h_hd_lt
+
+-- The Cancel Lemma
+lemma multidegree_sub_cancel [Field R]
   {a b : MvSparsePoly R nvars} {i j : MvDegrees nvars} {x y : R} {as bs}
   (hA : a.terms = (i, x) :: as)
   (hB : b.terms = (j, y) :: bs)
   (hDiv : MvDegrees.divides j i = true) :
-  (a - sparseMonomial (i - j) (x / y) * b).multidegree < a.multidegree := by
+  Prod.Lex (fun (u v : MvDegrees nvars) => u < v) (fun (u v : ℕ) => u < v)
+    ((a - sparseMonomial (i - j) (x / y) * b).multidegree, (a - sparseMonomial (i - j) (x / y) * b).terms.length)
+    (a.multidegree, a.terms.length) := by
+
+  -- 1. Evaluate a.multidegree to i
+  have ha_deg : a.multidegree = i := by
+    unfold multidegree
+    rw [hA]
+    rfl
+  rw [ha_deg]
+
+  -- 2. Unfold multidegree on the left side to expose the raw List
+  unfold multidegree
+
+  -- 3. Apply the Master Bridge Lemma!
+  apply lex_drop_of_degLt_with_hA hA
+
+  -- 4. PURE ALGEBRA GOAL REMAINS
+  -- Goal: Prove that (a - c*b).terms contains no degrees >= i.
+  -- You will prove this later using the 'addCore_cancel_head' lemma we just built!
   sorry
 
--- Fix: R and nvars and their typeclasses come BEFORE a!
-lemma multidegree_tail_lt {R : Type} [Field R] {nvars : ℕ} [WOrdering nvars] [DecidableEq R]
+lemma tail_terminates
   {a : MvSparsePoly R nvars} {i : MvDegrees nvars} {x : R} {as}
   (hA : a.terms = (i, x) :: as) :
-  (ofSortedList as sorry).multidegree < a.multidegree := by
-  sorry
--- 1. Define the custom typeclass mentioned in the paper
-class Wordering (nvars : ℕ) where
-  lt : MvDegrees nvars → MvDegrees nvars → Prop
-  wf : WellFounded lt
+  Prod.Lex (fun (u v : MvDegrees nvars) => u < v) (fun (u v : ℕ) => u < v)
+    ((ofSortedList as sorry).multidegree, (ofSortedList as sorry).terms.length)
+    (a.multidegree, a.terms.length) := by
 
--- 2. Teach Lean that 'Wordering' provides the standard '<' operator
-instance [w : Wordering nvars] : LT (MvDegrees nvars) where
-  lt := w.lt
+  -- Step 1: Formally prove that the length strictly drops
+  have h_len : (ofSortedList as sorry).terms.length < a.terms.length := by
+    rw [hA]
+    simp only [List.length_cons]
+    have h_bound := ofSortedList_length_le as sorry
+    grind
 
--- 3. The high-priority WellFoundedRelation that fixes your decreasing_by block
-instance (priority := high) [w : Wordering nvars] : WellFoundedRelation (MvDegrees nvars) where
-  rel := (· < ·)
-  wf := w.wf
+  -- Step 2: Split the multidegree comparison into 3 mathematical realities
+  rcases lt_trichotomy ((ofSortedList as sorry).multidegree) a.multidegree with h_lt | h_eq | h_gt
 
--- We use `local instance` and a massive priority to completely overwrite Lean's defaults for this file
-local instance (priority := high) customPolyWF [w : Wordering nvars] [CommRing R] :
-    WellFoundedRelation (MvSparsePoly R nvars) where
-  rel a b := a.multidegree < b.multidegree
-  wf := InvImage.wf multidegree w.wf
+  · -- Case 1: The multidegree strictly dropped.
+    -- Prod.Lex.left satisfies the goal purely on the first tuple element.
+    apply Prod.Lex.left
+    exact h_lt
 
--- Notice the addition of [Wordering nvars] right next to [Field R]!
-def mvDivRem [Field R] [Wordering nvars] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
+  · -- Case 2: The multidegree stayed exactly the same.
+    -- We substitute the equality, and Prod.Lex.right satisfies the goal using the length drop!
+    sorry
+
+  · -- Case 3: The multidegree somehow increased.
+    -- Mathematically, because the list is sorted, the tail CANNOT have a higher degree.
+    -- You will use your `degLt` theorems here to prove this contradicts `hA` and close the branch.
+    sorry
+
+-- 4. The Clean Function
+-- FIX: Explicitly add [WOrdering nvars] here so Lean doesn't throw it away!
+def mvDivRem [Field R] [WOrdering nvars] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
   match hA : a.terms with
   | [] => (0, 0)
   | (i, x) :: as =>
@@ -1915,31 +2051,10 @@ def mvDivRem [Field R] [Wordering nvars] (a b : MvSparsePoly R nvars) : MvSparse
       else
         let (q', r') := mvDivRem (ofSortedList as sorry) b
         (q', sparseMonomial i x + r')
-termination_by a.multidegree
+termination_by a
 decreasing_by
-  · exact multidegree_sub_cancel hA hB hDiv
-  · exact multidegree_tail_lt hA
-
-def mvDivRem [Field R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
-  match a.terms with
-  | [] => (0, 0)
-  | (i, x) :: as =>
-    match b.terms with
-    | [] => (0, a)
-    | (j, y) :: bs =>
-      if MvDegrees.divides j i then
-        let c := sparseMonomial (i - j) (x / y)
-        if y * (x / y) = x then
-          let (q', r') := mvDivRem (a - c * b) b
-          (q' + c, r')
-        else
-          (0, a)
-      else
-        let (q', r') := mvDivRem (ofSortedList as sorry) b
-        (q', sparseMonomial i x + r')
-termination_by a.multidegree
-decreasing_by all_goals sorry
-
+  · exact multidegree_sub_cancel (a := a) (b := b) (x := x) (y := y) hA hB hDiv
+  · exact tail_terminates (a := a) hA
 
 def gcdPrim (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   match a.terms with
