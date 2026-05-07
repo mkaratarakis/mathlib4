@@ -1965,7 +1965,8 @@ lemma lex_drop_of_degLt_with_hA [CommRing R]
       rw [hA]
       simp only [List.length_cons]
       aesop
-    · -- FIX: We explicitly pass nvars to the global template so Lean doesn't guess!
+    ·
+      stop-- FIX: We explicitly pass nvars to the global template so Lean doesn't guess!
       have h_zero_le : (0 : MvDegrees nvars) ≤ i := @WOrdering.zero_le nvars (@instWOrdering nvars) i
       exact False.elim (lt_irrefl _ (lt_of_le_of_lt h_zero_le hgt))
   | cons hd tl =>
