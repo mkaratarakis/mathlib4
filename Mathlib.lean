@@ -1683,6 +1683,7 @@ public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
 public import Mathlib.Analysis.CStarAlgebra.Module.Defs
 public import Mathlib.Analysis.CStarAlgebra.Module.Synonym
 public import Mathlib.Analysis.CStarAlgebra.Multiplier
+public import Mathlib.Analysis.CStarAlgebra.PerronFrobenius
 public import Mathlib.Analysis.CStarAlgebra.PositiveLinearMap
 public import Mathlib.Analysis.CStarAlgebra.Projection
 public import Mathlib.Analysis.CStarAlgebra.SpecialFunctions.PosPart
@@ -3562,8 +3563,10 @@ public import Mathlib.Combinatorics.Quiver.Basic
 public import Mathlib.Combinatorics.Quiver.Cast
 public import Mathlib.Combinatorics.Quiver.ConnectedComponent
 public import Mathlib.Combinatorics.Quiver.Covering
+public import Mathlib.Combinatorics.Quiver.Cyclic
 public import Mathlib.Combinatorics.Quiver.Path
 public import Mathlib.Combinatorics.Quiver.Path.Decomposition
+public import Mathlib.Combinatorics.Quiver.Path.PerronFrobenius
 public import Mathlib.Combinatorics.Quiver.Path.Vertices
 public import Mathlib.Combinatorics.Quiver.Path.Weight
 public import Mathlib.Combinatorics.Quiver.Prefunctor
@@ -4040,6 +4043,7 @@ public import Mathlib.Data.List.Perm.Basic
 public import Mathlib.Data.List.Perm.Lattice
 public import Mathlib.Data.List.Perm.Subperm
 public import Mathlib.Data.List.Permutation
+public import Mathlib.Data.List.PerronFrobenius
 public import Mathlib.Data.List.Pi
 public import Mathlib.Data.List.Prime
 public import Mathlib.Data.List.ProdSigma
@@ -5064,6 +5068,17 @@ public import Mathlib.LinearAlgebra.Matrix.Notation
 public import Mathlib.LinearAlgebra.Matrix.Orthogonal
 public import Mathlib.LinearAlgebra.Matrix.Permanent
 public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Aperiodic
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Aux
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.CollatzWielandt
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Dominance
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.DominancePart2
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Multiplicity
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Primitive
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Stochastic
+public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 public import Mathlib.LinearAlgebra.Matrix.Polynomial
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.LinearAlgebra.Matrix.ProjectiveSpecialLinearGroup
@@ -5074,6 +5089,7 @@ public import Mathlib.LinearAlgebra.Matrix.SchurComplement
 public import Mathlib.LinearAlgebra.Matrix.SemiringInverse
 public import Mathlib.LinearAlgebra.Matrix.SesquilinearForm
 public import Mathlib.LinearAlgebra.Matrix.SpecialLinearGroup
+public import Mathlib.LinearAlgebra.Matrix.Spectrum.PerronFrobenius
 public import Mathlib.LinearAlgebra.Matrix.StdBasis
 public import Mathlib.LinearAlgebra.Matrix.Stochastic
 public import Mathlib.LinearAlgebra.Matrix.Swap
@@ -7667,6 +7683,7 @@ public import Mathlib.Topology.Compactness.CompactlyCoherentSpace
 public import Mathlib.Topology.Compactness.CompactlyGeneratedSpace
 public import Mathlib.Topology.Compactness.CountablyCompact
 public import Mathlib.Topology.Compactness.DeltaGeneratedSpace
+public import Mathlib.Topology.Compactness.ExtremeValueUSC
 public import Mathlib.Topology.Compactness.HilbertCubeEmbedding
 public import Mathlib.Topology.Compactness.Lindelof
 public import Mathlib.Topology.Compactness.LocallyCompact
