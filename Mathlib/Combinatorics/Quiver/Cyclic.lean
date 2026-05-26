@@ -48,7 +48,7 @@ lemma period_min (i : V) :
   · simpa [period] using (Nat.find_min' (commonDivisorsSet_nonempty (i := i)) hm)
 
 /-- Basic characterization of `period`: divisibility plus minimality.
-    TODO: it may be needed a more rigorous characterization-/
+    -/
 lemma period_spec (i : V) : (∀ k ∈ CycleLengths i, period i ∣ k) ∧
     (∀ m, (∀ k ∈ CycleLengths i, m ∣ k) → period i ≤ m) :=
   ⟨fun k hk ↦ (period_min i).1 k hk, fun m hm ↦ (period_min i).2 m hm⟩
@@ -62,12 +62,10 @@ lemma period_le_of_commonDivisor (i : V) {m : ℕ} (hm : ∀ k ∈ CycleLengths 
 lemma divides_cycle_length {i : V} {k : ℕ} (hk : k ∈ CycleLengths i) : period i ∣ k :=
   (period_spec i).1 _ hk
 
--- The period divides every cycle length (corollary of `period_spec`).
 lemma period_divides_cycle_lengths (i : V) : ∀ {k}, k ∈ CycleLengths i → period i ∣ k := by
   intro k hk
   exact (period_spec i).1 k hk
 
--- If the set of cycle lengths is non-empty, the period is positive.
 lemma period_pos_of_nonempty_cycles (i : V) (h_nonempty : (CycleLengths i).Nonempty) :
     period i > 0 := by
   obtain ⟨k, hk⟩ := h_nonempty
@@ -179,7 +177,7 @@ theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V] (
       (mem_CycleLengths_of_cons_comp_right (p := P i) (e := e) (s := s) hs_pos)
     have hdvd2 : h ∣ (((P i).cons e).comp s).length := by simpa [index_of_imprimitivity, i0]
     have h2 : Nat.ModEq h ((P i).length + 1 + s.length) 0 := by
-      simpa [Nat.ModEq,Path.length_comp, Path.length_cons, Nat.add_assoc] using (Nat.mod_eq_zero_of_dvd hdvd2)
+      simpa [Nat.ModEq, Path.length_comp, Path.length_cons, Nat.add_assoc] using (Nat.mod_eq_zero_of_dvd hdvd2)
     simpa [Nat.ModEq] using (Nat.ModEq.add_right_cancel' s.length (h1.trans h2.symm))
   · rw [Nat.add_mod]; by_cases h1 : h = 1 <;> aesop
 
