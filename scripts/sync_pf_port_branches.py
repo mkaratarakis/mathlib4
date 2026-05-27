@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # (branch, paths relative to repo root, optional Mathlib.lean import line)
 BRANCHES: list[tuple[str, list[str], str | None]] = [
-    ("pf/port/list-basic", ["Mathlib/Data/List/Basic.lean"], None),
     ("pf/port/list-count", ["Mathlib/Data/List/Count.lean"], None),
     ("pf/port/quiver-cyclic", ["Mathlib/Combinatorics/Quiver/Cyclic.lean"],
      "public import Mathlib.Combinatorics.Quiver.Cyclic"),
