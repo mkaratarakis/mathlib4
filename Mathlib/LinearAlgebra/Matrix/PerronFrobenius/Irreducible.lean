@@ -94,7 +94,7 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n] {r : ℝ} (hA_irred
     (_ : 0 < r) {v : n → ℝ} (h_eig : A *ᵥ v = r • v) (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
   by_contra h_has_zero
-  push_neg at h_has_zero
+  push Not at h_has_zero
   obtain ⟨i₀, hi₀_zero⟩ := h_has_zero
   let S : Set n := { i | 0 < v i }
   let T : Set n := { i | v i = 0 }
@@ -193,7 +193,7 @@ lemma eigenvector_is_positive_of_irreducible {r : ℝ} (hA_irred : A.IsIrreducib
     {v : n → ℝ} (h_eig : A *ᵥ v = r • v) (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
   by_contra h_has_nonpos
-  push_neg at h_has_nonpos        -- `∃ i, v i ≤ 0`
+  push Not at h_has_nonpos
   rcases h_has_nonpos with ⟨i₀, hvi₀_le⟩
   let S : Set n := {i | 0 < v i}
   let T : Set n := {i | v i = 0}

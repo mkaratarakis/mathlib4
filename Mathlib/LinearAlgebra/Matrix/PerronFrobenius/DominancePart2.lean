@@ -185,15 +185,9 @@ lemma eigenvector_norm_pos_of_primitive_and_norm_eq_perron_root
     exact norm_eq_zero.mp (congr_fun hx_ne_zero j)
   have h_x_abs_nonneg : ∀ j, 0 ≤ ‖x j‖ := fun j => norm_nonneg _
   have h_r_pos : 0 < perronRoot_alt A := by
-    obtain ⟨r', v, hr'_pos, hv_pos, h_eig'⟩ := exists_positive_eigenvector_of_primitive hA_prim hA_nonneg
-    have : r' = perronRoot_alt A := by
-      apply eigenvalue_is_perron_root_of_positive_eigenvector
-      · exact Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
-      · exact hA_nonneg
-      · exact hr'_pos
-      · exact hv_pos
-      · exact h_eig'
-    rwa [← this]
+    obtain ⟨r', _, hr'_pos, hv_pos, h_eig'⟩ := exists_positive_eigenvector_of_primitive hA_prim hA_nonneg
+    exact hr'_pos.trans <| (eigenvalue_is_perron_root_of_positive_eigenvector
+      (IsPrimitive.isIrreducible hA_prim) hA_nonneg hr'_pos hv_pos h_eig').symm
   exact eigenvector_of_primitive_is_positive hA_prim h_r_pos h_x_abs_eig h_x_abs_nonneg h_x_abs_ne_zero
 
 omit [Nonempty n] in
@@ -383,65 +377,24 @@ lemma eigenvalue_eq_of_phase_aligned
     exact h_key
   exact h_final.symm
 
-theorem spectral_dominance_of_primitive
-    {A : Matrix n n ℝ} (hA_prim : IsPrimitive A)
-    (hA_nonneg : ∀ i j, 0 ≤ A i j)
-    {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)))
-    (h_norm_eq_r : ‖μ‖ = perronRoot_alt A) :
-    μ = perronRoot_alt A := by
-  -- 1.  we obtain a (non-zero) eigenvector `x` corresponding to `μ`.
+theorem spectral_dominance_of_primitive {A : Matrix n n ℝ} (hA_prim : IsPrimitive A)
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)))
+    (h_norm_eq_r : ‖μ‖ = perronRoot_alt A) : μ = perronRoot_alt A := by
   let B := A.map (algebraMap ℝ ℂ)
-  have h_spec : μ ∈ spectrum ℂ (toLin' B) := by
+  obtain ⟨x, hx_ne_zero, hx_eig⟩ := Module.End.exists_eigenvector_of_mem_spectrum <| by
     rwa [spectrum.Matrix_toLin'_eq_spectrum]
-  obtain ⟨x, hx_ne_zero, hx_eig_lin⟩ := Module.End.exists_eigenvector_of_mem_spectrum h_spec
-  have hx_eig : B *ᵥ x = μ • x := by rwa [toLin'_apply] at hx_eig_lin
-  -- 2.  we build the sub-invariance inequality  r • |x| ≤ A ⋅ |x|.
-  have h_subinv :
-      (perronRoot_alt A) • (fun i => ‖x i‖) ≤ A *ᵥ (fun i => ‖x i‖) := by
-    have := eigenvalue_abs_subinvariant hA_nonneg hx_eig
-    simpa [h_norm_eq_r] using this
-  -- 3. we upgrade sub-invariance to equality, so `|x|` is a Perron eigenvector.
-  have h_x_abs_eig :
-      A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖) := by
-    have hA_irred : A.IsIrreducible := Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
-    have hx_abs_nonneg : ∀ i, 0 ≤ ‖x i‖ := fun _ ↦ norm_nonneg _
-    have hx_abs_ne_zero : (fun i => ‖x i‖) ≠ 0 := by
-      intro h_abs
-      have : x = 0 := by
-        funext i
-        have : ‖x i‖ = 0 := congrFun h_abs i
-        exact (norm_eq_zero).1 this
-      exact hx_ne_zero this
-    exact
-      subinvariant_equality_implies_eigenvector
-        hA_irred hA_nonneg hx_abs_nonneg hx_abs_ne_zero h_subinv
-  -- 4. we turn the triangle inequality into equality.
-  have h_triangle_eq :
-      ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖ :=
-    triangle_equality_of_norm_eq_perron_root
-      hA_nonneg hx_eig h_norm_eq_r h_x_abs_eig
-  -- 5.  Strict positivity of `|x|`.
-  have hx_abs_pos : ∀ i, 0 < ‖x i‖ :=
-    eigenvector_norm_pos_of_primitive_and_norm_eq_perron_root
-      hA_prim hA_nonneg h_is_eigenvalue h_norm_eq_r
-      hx_ne_zero hx_eig h_x_abs_eig
-  -- 6.  Global phase alignment of the complex eigenvector `x`.
-  obtain ⟨c, hc_norm, h_phase⟩ :=
-    eigenvector_phase_aligned_of_primitive
-      hA_prim hA_nonneg h_norm_eq_r
-      hx_eig h_x_abs_eig hx_abs_pos
-  -- μ = r  from the phase-aligned situation.
-  have hμ_eq_r :
-      μ = perronRoot_alt A :=
-    eigenvalue_eq_of_phase_aligned
-      hc_norm
-      hx_eig
-      (by
-        intro i
-        exact congrFun h_phase i)
-      h_x_abs_eig
-      (hx_abs_pos (Classical.arbitrary n))
-  exact hμ_eq_r
+  have h_subinv := by
+    simpa [h_norm_eq_r] using eigenvalue_abs_subinvariant hA_nonneg hx_eig
+  have h_x_abs_eig := subinvariant_equality_implies_eigenvector
+    (IsPrimitive.isIrreducible hA_prim) hA_nonneg (fun _ => norm_nonneg _) (by
+      intro h; exact hx_ne_zero <| funext fun i => norm_eq_zero.mp (congrFun h i))
+    h_subinv
+  have hx_abs_pos := eigenvector_norm_pos_of_primitive_and_norm_eq_perron_root hA_prim hA_nonneg
+    h_is_eigenvalue h_norm_eq_r hx_ne_zero hx_eig h_x_abs_eig
+  obtain ⟨c, hc_norm, h_phase⟩ := eigenvector_phase_aligned_of_primitive hA_prim hA_nonneg h_norm_eq_r
+    hx_eig h_x_abs_eig hx_abs_pos
+  exact eigenvalue_eq_of_phase_aligned hc_norm hx_eig (fun i => congrFun h_phase i) h_x_abs_eig
+    (hx_abs_pos (Classical.arbitrary n))
 
 /--
 Spectral Dominance for Primitive Matrices
@@ -449,21 +402,12 @@ Spectral Dominance for Primitive Matrices
 If `A` is primitive with Perron root `r`, every eigenvalue `μ ≠ r`
 satisfies `‖μ‖ < r`.
 -/
-theorem spectral_dominance_of_primitive'
-    (hA_prim   : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+theorem spectral_dominance_of_primitive' (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     (μ : ℂ) (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)))
-    (h_ne_perron : μ ≠ perronRoot_alt A) :
-    ‖μ‖ < perronRoot_alt A := by
-  have hA_irred : A.IsIrreducible := Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
-  have h_le : ‖μ‖ ≤ perronRoot_alt A := by
-    exact @eigenvalue_abs_le_perron_root n _ _ _ A hA_irred hA_nonneg μ h_is_eigenvalue
-  have h_lt_or_eq : ‖μ‖ < perronRoot_alt A ∨ ‖μ‖ = perronRoot_alt A :=
-    lt_or_eq_of_le h_le
-  cases h_lt_or_eq with
-  | inl h_lt   => exact h_lt
-  | inr h_eq   =>
-  have h_eqμ : μ = perronRoot_alt A :=
-    @spectral_dominance_of_primitive n _ _ _ A hA_prim hA_nonneg μ h_is_eigenvalue h_eq
-  exact (h_ne_perron h_eqμ).elim
+    (h_ne_perron : μ ≠ perronRoot_alt A) : ‖μ‖ < perronRoot_alt A := by
+  rcases lt_or_eq_of_le <| eigenvalue_abs_le_perron_root (IsPrimitive.isIrreducible hA_prim)
+    hA_nonneg h_is_eigenvalue with h_lt | h_eq
+  · exact h_lt
+  · exact (h_ne_perron <| spectral_dominance_of_primitive hA_prim hA_nonneg h_is_eigenvalue h_eq).elim
 
 end Matrix

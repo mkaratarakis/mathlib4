@@ -155,20 +155,18 @@ lemma val_eq_zero_of_nonpos (hA_nonneg : ∀ i j, 0 ≤ A i j)
     (hS_nonempty : S.Nonempty) (r : ℝ) (hr_def : r = collatzWielandtFn A v) (hr_nonpos : r ≤ 0) :
     r = 0 := by
   refine le_antisymm hr_nonpos ?_
-  · rw [hr_def, collatzWielandtFn, dif_pos]
-    · apply le_inf'
-      intro j hj
-      rw [Set.mem_toFinset] at hj
-      exact div_nonneg (sum_nonneg fun k _ ↦ mul_nonneg (hA_nonneg j k) (hv_nonneg k)) hj.le
-    · rwa [Set.toFinset_nonempty_iff, ← hS_def]
+  rw [hr_def, collatzWielandtFn, dif_pos (by rwa [Set.toFinset_nonempty_iff, ← hS_def])]
+  apply le_inf'
+  intro j hj
+  rw [Set.mem_toFinset] at hj
+  exact div_nonneg (mulVec_nonneg hA_nonneg hv_nonneg j) hj.le
 
-/-- Each ratio is at least the Collatz-Wielandt value -/
+/-- Each ratio is at least the Collatz–Wielandt value. -/
 lemma le_ratio (_ : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (_ : ∀ i, 0 ≤ v i)
-    (S : Set n) (hS_def : S = {i | 0 < v i}) (hS_nonempty : S.Nonempty)
-    (i : n) (hi_S : i ∈ S) : collatzWielandtFn A v ≤ (A *ᵥ v) i / v i := by
-  rw [collatzWielandtFn, dif_pos (by rwa [Set.toFinset_nonempty_iff, ← hS_def])]; apply inf'_le;
-  simp [← hS_def]
-  grind
+    (S : Set n) (hS_def : S = {i | 0 < v i}) (_ : S.Nonempty)
+    (i : n) (_ : i ∈ S) : collatzWielandtFn A v ≤ (A *ᵥ v) i / v i := by
+  rw [collatzWielandtFn, dif_pos (by rwa [Set.toFinset_nonempty_iff, ← hS_def])]
+  exact inf'_le _ (by rwa [Set.mem_toFinset, ← hS_def])
 
 /-- For any non-negative, non-zero vector `v`, the Collatz-Wielandt value `r` satisfies
     `r • v ≤ A *ᵥ v`. This is the fundamental inequality derived from the definition of
@@ -195,12 +193,11 @@ lemma exists_mulVec_eq_zero_on_support_of_nonpos (hA_nonneg : ∀ i j, 0 ≤ A i
   have r_nonneg : 0 ≤ collatzWielandtFn A v := by
     rw [collatzWielandtFn, dif_pos h_supp_nonempty]
     apply le_inf'
-    intro i hi_mem
-    exact div_nonneg (mulVec_nonneg hA_nonneg hv_nonneg i) (by exact hv_nonneg i)
+    intro i hi
+    exact div_nonneg (mulVec_nonneg hA_nonneg hv_nonneg i) (le_of_lt <| by simpa using hi)
   have r_eq_zero : collatzWielandtFn A v = 0 := le_antisymm h_r_nonpos r_nonneg
   rw [collatzWielandtFn, dif_pos h_supp_nonempty] at r_eq_zero
-  obtain ⟨b, hb_mem, hb_eq⟩ := exists_mem_eq_inf' h_supp_nonempty (fun i ↦ (A *ᵥ v) i / v i)
-  have h_vb_pos : 0 < v b := by simpa [Set.mem_toFinset] using hb_mem
+  obtain ⟨b, hb_mem, hb_eq⟩ := exists_mem_eq_inf' h_supp_nonempty fun i => (A *ᵥ v) i / v i
   grind
 
 lemma le_any_ratio (A : Matrix n n ℝ) {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i)
@@ -208,9 +205,8 @@ lemma le_any_ratio (A : Matrix n n ℝ) {x : n → ℝ} (hx_nonneg : ∀ i, 0 �
     collatzWielandtFn A x ≤ (A *ᵥ x) i / x i := by
   dsimp [collatzWielandtFn]
   have h_supp_nonempty : ({k | 0 < x k}.toFinset).Nonempty := by
-    rw [Set.toFinset_nonempty_iff, Set.nonempty_def]
-    obtain ⟨j, hj_ne_zero⟩ := Function.exists_ne_zero_of_ne_zero hx_ne_zero
-    exact ⟨j, lt_of_le_of_ne (hx_nonneg j) hj_ne_zero.symm⟩
+    obtain ⟨j, hj⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
+    exact ⟨j, Set.mem_toFinset.mpr hj⟩
   rw [dif_pos h_supp_nonempty]
   apply inf'_le
   rw [Set.mem_toFinset]
@@ -223,11 +219,9 @@ lemma bddAbove [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i
   rintro y ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
   obtain ⟨m, _, h_max_eq⟩ := exists_mem_eq_sup' univ_nonempty x
   have h_xm_pos : 0 < x m := by
-    obtain ⟨i, hi_pos⟩ : ∃ i, 0 < x i := by
-      obtain ⟨j, hj⟩ := Function.exists_ne_zero_of_ne_zero hx_ne_zero
-      exact ⟨j, lt_of_le_of_ne (hx_nonneg j) hj.symm⟩
+    obtain ⟨j, hj⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
     rw [← h_max_eq]
-    exact lt_of_lt_of_le hi_pos (le_sup' x (mem_univ i))
+    exact lt_of_lt_of_le hj (le_sup' x (mem_univ j))
   have h_ratio_le : (A *ᵥ x) m / x m ≤ univ.sup' univ_nonempty (fun k ↦ ∑ l, A k l) := by
     rw [mulVec_apply, div_le_iff h_xm_pos]
     calc _ ≤ ∑ j, A m j * x m := ?_

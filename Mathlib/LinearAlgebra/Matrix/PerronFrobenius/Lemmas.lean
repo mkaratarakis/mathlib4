@@ -53,9 +53,10 @@ theorem path_in_submatrix_to_original (S : Set n) [DecidablePred S] {i j : S}
   exact ⟨p', Subquiver.mapPath_embedding_vertices_in_set S p⟩
 
 
-/-- A path exists between vertices in `S` using only vertices in `S` when the submatrix is irreducible -/
+/-- A path exists between vertices in `S` when the submatrix on `S` is irreducible. -/
 theorem path_exists_in_support_of_irreducible (S : Set n) [DecidablePred S]
-    (hS : IsIrreducible (A.submatrix (Subtype.val : S → n) (Subtype.val : S → n))) (i j : n) (hi : i ∈ S) (hj : j ∈ S) :
+    (hS : IsIrreducible (A.submatrix (Subtype.val : S → n) (Subtype.val : S → n)))
+    (i j : n) (hi : i ∈ S) (hj : j ∈ S) :
   letI : Quiver n := Matrix.toQuiver A
   letI : Quiver S := inducedQuiver S
     ∃ p : Quiver.Path i j, ∀ k, k ∈ p.activeVertices → k ∈ S := by
@@ -94,7 +95,7 @@ lemma positive_mul_vec_pos [Fintype n] (hA_pos : ∀ i j, 0 < A i j) {x : n → 
     exact mul_nonneg (le_of_lt (hA_pos i j)) (hx_nonneg j)
   · have : ∃ k, 0 < x k := by
       by_contra h_all_nonpos
-      push_neg at h_all_nonpos
+      push Not at h_all_nonpos
       have h_zero : x = 0 := funext (fun j => le_antisymm (h_all_nonpos j) (hx_nonneg j))
       exact hx_ne_zero h_zero
     rcases this with ⟨k, hk_pos⟩
@@ -102,7 +103,7 @@ lemma positive_mul_vec_pos [Fintype n] (hA_pos : ∀ i j, 0 < A i j) {x : n → 
     · simp only [Finset.mem_univ]  --  `k ∈ Finset.univ`
     · exact mul_pos (hA_pos i k) hk_pos
 
-variable {A : Matrix n n ℝ} --[DecidableEq n] [Nonempty n]
+variable {A : Matrix n n ℝ}
 
 theorem positive_mul_vec_of_nonneg_vec [Fintype n] (hA_pos : ∀ i j, 0 < A i j) {v : n → ℝ}
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) : ∀ i, 0 < (A *ᵥ v) i := by
@@ -113,7 +114,7 @@ theorem positive_mul_vec_of_nonneg_vec [Fintype n] (hA_pos : ∀ i j, 0 < A i j)
     exact mul_nonneg (le_of_lt (hA_pos i j)) (hv_nonneg j)
   · have : ∃ k, 0 < v k := by
       by_contra h_all_nonpos
-      push_neg at h_all_nonpos
+      push Not at h_all_nonpos
       have h_zero : v = 0 := funext (fun j => le_antisymm (h_all_nonpos j) (hv_nonneg j))
       exact hv_ne_zero h_zero
     rcases this with ⟨k, hk_pos⟩
@@ -262,8 +263,9 @@ lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
   simpa [hji] using e_pos
 
 /-- An irreducible matrix with a positive diagonal is primitive. -/
-theorem IsPrimitive.of_irreducible_pos_diagonal [Fintype n][Nonempty n] [DecidableEq n] (A : Matrix n n ℝ)
-    (hA_nonneg : ∀ i j, 0 ≤ A i j) (hA_irred : IsIrreducible A) (hA_diag_pos : ∀ i, 0 < A i i) :
+theorem IsPrimitive.of_irreducible_pos_diagonal [Fintype n] [Nonempty n] [DecidableEq n]
+    (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) (hA_irred : IsIrreducible A)
+    (hA_diag_pos : ∀ i, 0 < A i i) :
     IsPrimitive A := by
   let N := Fintype.card n
   have h_card_pos : 0 < N := Fintype.card_pos

@@ -49,7 +49,8 @@ def IsAperiodic [Nonempty n] (A : Matrix n n ℝ) : Prop :=
   IsIrreducible A ∧ index_of_imprimitivity A = 1
 
 /-- A primitive matrix is irreducible and aperiodic. -/
-theorem primitive_implies_irreducible_and_aperiodic [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+theorem primitive_implies_irreducible_and_aperiodic [Nonempty n]
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     IsPrimitive A → IsAperiodic A := by
   intro h_prim
   refine ⟨h_prim.isIrreducible, ?_⟩
@@ -67,7 +68,8 @@ theorem primitive_implies_irreducible_and_aperiodic [Nonempty n] (hA_nonneg : �
     refine ⟨?_, Pj.comp s, rfl⟩
     simp only [Path.length_comp, hPj]
     exact Nat.lt_of_lt_of_le hk_pos (Nat.le_add_right _ _)
-  have hc2 : ((Path.nil.cons e0).comp (s.comp Pi0)).length ∈ Quiver.CycleLengths (i := i0) := by
+  have hc2 :
+      ((Path.nil.cons e0).comp (s.comp Pi0)).length ∈ Quiver.CycleLengths (i := i0) := by
     refine ⟨?_, (Path.nil.cons e0).comp (s.comp Pi0), rfl⟩
     simp only [Path.length_comp, Path.length_cons, Path.length_nil, hPi0]
     grind

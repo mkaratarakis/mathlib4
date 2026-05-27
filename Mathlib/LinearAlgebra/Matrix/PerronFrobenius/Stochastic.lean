@@ -39,7 +39,7 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
     {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (h_col_stoch : ∀ j, ∑ i, A i j = 1) :
     ∃! v : stdSimplex ℝ n, A *ᵥ v.val = v.val := by
   have hA_nonneg := hA_irred.1
-  have h_eig_T : Aᵀ *ᵥ (fun _ ↦ 1 : n → ℝ) = (1 : ℝ) • (fun _ ↦ 1 : n → ℝ) := by
+  have h_eig_T : Aᵀ *ᵥ (fun _ ↦ 1) = (1 : ℝ) • (fun _ ↦ 1) := by
     ext i; simp [mulVec_apply, h_col_stoch]
   have r_A_eq_one : perronRoot_alt A = 1 := by
     rw [perronRoot_transpose_eq A hA_irred]
@@ -49,7 +49,8 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
   have v_pos_raw := eigenvector_is_positive_of_irreducible hA_irred h_eig v.property.1
     (ne_zero_of_mem_stdSimplex v.property)
   have h_eig_one : A *ᵥ v.val = v.val := by
-    simpa [eigenvalue_is_perron_root_of_positive_eigenvector hA_irred hA_nonneg hr_pos v_pos_raw h_eig,
+    simpa [
+      eigenvalue_is_perron_root_of_positive_eigenvector hA_irred hA_nonneg hr_pos v_pos_raw h_eig,
       r_A_eq_one] using h_eig
   refine ⟨v, h_eig_one, fun w hw_eig ↦ Subtype.ext ?_⟩
   have hv_eig' : A *ᵥ v.val = (1 : ℝ) • v.val := by simpa using h_eig_one
@@ -58,8 +59,8 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
     (ne_zero_of_mem_stdSimplex v.property)
   have w_pos := eigenvector_is_positive_of_irreducible hA_irred hw_eig' w.property.1
     (ne_zero_of_mem_stdSimplex w.property)
-  obtain ⟨c, _, hc_eq⟩ := uniqueness_of_positive_eigenvector_gen hA_irred zero_lt_one v_pos w_pos
-    hv_eig' hw_eig'
+  obtain ⟨c, _, hc_eq⟩ :=
+    uniqueness_of_positive_eigenvector_gen hA_irred zero_lt_one v_pos w_pos hv_eig' hw_eig'
   have hc_one : c = 1 := by
     calc c = c * ∑ i, w.val i := by simp [w.property.2]
       _ = ∑ i, v.val i := by simp [hc_eq, smul_eq_mul, ← Finset.mul_sum]

@@ -14,6 +14,11 @@ public import Mathlib.Data.List.Basic
 
 Auxiliary lemmas on `List` used by quiver paths and matrix Perron–Frobenius theory.
 
+## Main results
+
+* `ContainsDup` and `nodup_iff_not_contains_dup`: duplicate detection via counting.
+* `exists_pos_get_of_dropLast_count_ge_two`: locate a repeated vertex in a list prefix.
+
 ## Tags
 
 list, quiver path, Perron–Frobenius theorem
@@ -29,7 +34,8 @@ theorem mem_concat {a x : α} {l : List α} : a ∈ l.concat x ↔ a ∈ l ∨ a
   rw [concat_eq_append, mem_append, mem_singleton, or_comm]
 
 /-- Any `x ∈ l` gives a decomposition `l = l₁ ++ x :: l₂`. -/
-lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) : ∃ l₁ l₂, l = l₁ ++ x :: l₂ := by
+lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) :
+    ∃ l₁ l₂, l = l₁ ++ x :: l₂ := by
   induction l with
   | nil => cases h
   | cons y ys ih =>
@@ -39,7 +45,8 @@ lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) : ∃ l₁ l₂, l =
       exact ⟨y :: l₁, l₂, rfl⟩
 
 lemma get_eq_get_dropLast {l : List α} {i : Nat} (hi : i < l.length - 1) :
-    l.get ⟨i, Nat.lt_of_lt_pred hi⟩ = l.dropLast.get ⟨i, by rw [length_dropLast]; omega⟩ := by
+    l.get ⟨i, Nat.lt_of_lt_pred hi⟩ =
+      l.dropLast.get ⟨i, by rw [length_dropLast]; omega⟩ := by
   simp [get_eq_getElem, dropLast_eq_take, getElem_take]
 
 variable [DecidableEq α]
@@ -55,24 +62,22 @@ lemma idxOf_eq_idxOf_of_isPrefix {v : α} {l₁ l₂ : List α}
     (hpref : l₁ <+: l₂) (hv : v ∈ l₁) : idxOf v l₂ = idxOf v l₁ :=
   (IsPrefix.idxOf_eq_of_mem hpref hv).symm
 
-lemma mem_tail_of_count_ge_two {x : α} {l : List α} (h : l.count x ≥ 2) : x ∈ l.tail := by
+lemma mem_tail_of_count_ge_two {x : α} {l : List α} (h : 2 ≤ l.count x) : x ∈ l.tail := by
   cases l with
   | nil => simp at h
   | cons hd tl =>
-      have hpos : 0 < tl.count x := by
-        by_contra h0
-        push Not at h0
-        have h0' : tl.count x = 0 := Nat.eq_zero_of_le_zero h0
-        by_cases hhd : hd = x
-        · simp [hhd, count_cons, h0'] at h
-        · simp [hhd, count_cons, h0'] at h
-      exact (count_pos_iff).1 hpos
+    have hpos : 0 < tl.count x := by
+      by_contra h0
+      push Not at h0
+      by_cases hhd : hd = x <;> simp [hhd, Nat.eq_zero_of_le_zero h0] at h
+    exact count_pos_iff.mp hpos
 
 lemma get_idxOf_of_mem {l : List α} {x : α} (h : x ∈ l) :
     l.get ⟨idxOf x l, idxOf_lt_length_of_mem h⟩ = x := by
   rw [get_eq_getElem, getElem_idxOf (idxOf_lt_length_of_mem h)]
 
-lemma exists_pos_get_of_dropLast_count_ge_two {l : List α} {x : α} (h : 2 ≤ l.dropLast.count x) :
+lemma exists_pos_get_of_dropLast_count_ge_two {l : List α} {x : α}
+    (h : 2 ≤ l.dropLast.count x) :
     ∃ (i : Nat) (hi : i < l.length), 0 < i ∧ i < l.length - 1 ∧ l.get ⟨i, hi⟩ = x := by
   have hx_tail := mem_tail_of_count_ge_two h
   have hlen : 2 ≤ l.length := by
@@ -87,21 +92,16 @@ lemma exists_pos_get_of_dropLast_count_ge_two {l : List α} {x : α} (h : 2 ≤ 
     let i := (z :: tl).dropLast.idxOf x + 1
     have hidx := idxOf_lt_length_of_mem hx_mem
     have hdl : (z :: tl).dropLast.length = tl.length := by
-      simp only [length_cons, length_dropLast]
-      omega
+      simp only [length_cons, length_dropLast]; omega
     have hi_pred : i < (y :: z :: tl).length - 1 := by
-      dsimp [i, length_cons]
-      rw [hdl] at hidx
-      exact Nat.succ_lt_succ hidx
+      dsimp [i, length_cons]; rw [hdl] at hidx; exact Nat.succ_lt_succ hidx
     have hi_lt_len : i < (y :: z :: tl).length := Nat.lt_of_lt_pred hi_pred
     have hi_z : (z :: tl).dropLast.idxOf x < (z :: tl).length - 1 := by
-      have h1 : (z :: tl).length - 1 = (z :: tl).dropLast.length := by
-        rw [length_dropLast, length_cons]
-      rw [h1]
+      rw [show (z :: tl).length - 1 = (z :: tl).dropLast.length from by
+        rw [length_dropLast, length_cons]]
       exact hidx
-    have hi_get : (y :: z :: tl).get ⟨i, hi_lt_len⟩ = x := by
-      dsimp only [i]
-      rw [get_cons_succ, get_eq_get_dropLast hi_z, get_idxOf_of_mem hx_mem]
-    exact ⟨i, hi_lt_len, Nat.succ_pos _, hi_pred, hi_get⟩
+    refine ⟨i, hi_lt_len, Nat.succ_pos _, hi_pred, ?_⟩
+    simp only [i]
+    rw [get_cons_succ, get_eq_get_dropLast hi_z, get_idxOf_of_mem hx_mem]
 
 end List

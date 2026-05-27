@@ -73,15 +73,14 @@ lemma spectrum_eq_spectrum_toLin' (A : Matrix n n ℝ) :
     spectrum ℝ A = spectrum ℝ (Matrix.toLin' A) := by
   exact Eq.symm (AlgEquiv.spectrum_eq (Matrix.toLinAlgEquiv (Pi.basisFun ℝ n)) A)
 
-/-- The determinant of `μ • 1 - A` is the evaluation of the characteristic polynomial of `A` at `μ`. -/
+/-- The determinant of `μ • 1 - A` is the characteristic polynomial of `A` at `μ`. -/
 lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
     det (μ • 1 - A) = (Matrix.charpoly A).eval μ := by
   have h : μ • 1 = Matrix.scalar n μ := by
     ext i j
     simp [Matrix.scalar, Matrix.one_apply, smul_apply]
     rfl
-  rw [h]
-  rw [← eval_charpoly A μ]
+  rw [h, ← eval_charpoly A μ]
 
 
 /-- A matrix and its transpose have the same spectrum. -/
@@ -91,25 +90,17 @@ lemma spectrum_eq_spectrum_transpose (A : Matrix n n ℝ) :
   rw [mem_spectrum_iff_isRoot_charpoly, mem_spectrum_iff_isRoot_charpoly, charpoly_transpose]
 
 /-!
-## Determinant, Kernel, and Invertibility
+## Determinant, kernel, and invertibility
 -/
-open Module
+
+open Module LinearMap
+
+variable {R : Type*} [CommRing R] {n : Type*} [Fintype n] [DecidableEq n]
 
 /-- The determinant of a matrix equals the determinant of its associated linear map. -/
 lemma det_toLin' (A : Matrix n n ℝ) : det A = LinearMap.det (toLin' A) := by
   rw [← LinearMap.det_toMatrix' (toLin' A)]
   simp [LinearMap.toMatrix'_toLin']
-
-/-!
-Perron-Frobenius Theory for Matrices
-
-This file provides core lemmas and theorems related to the Perron-Frobenius theory for non-negative,
-irreducible matrices.
--/
-
-open LinearMap
-
-variable {R : Type*} [CommRing R] {n : Type*} [Fintype n] [DecidableEq n]
 
 /-- If a linear map is not injective, then its kernel is non-trivial. -/
 lemma ker_ne_bot_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
@@ -136,9 +127,9 @@ lemma LinearMap.injective_of_isUnit {K V : Type*} [Field K] [AddCommGroup V] [Mo
 
 /-- If the kernel of a linear endomorphism on a finite-dimensional vector space is non-trivial,
     then its determinant is zero. -/
-lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
-    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : LinearMap.ker f ≠ ⊥) :
-    LinearMap.det f = 0 := by
+lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
+    {f : V →ₗ[K] V} (h : LinearMap.ker f ≠ ⊥) : LinearMap.det f = 0 := by
   by_contra h_det_ne_zero
   have h_det_unit : IsUnit (LinearMap.det f) := IsUnit.mk0 _ h_det_ne_zero
   have h_f_is_unit : IsUnit f := by
@@ -157,9 +148,9 @@ lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module
   exact h h_ker_eq_bot
 
 /-- If a non-zero vector `v` is in the kernel of a linear map `f`, then `det f` must be zero. -/
-lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
-    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ∃ v, v ≠ 0 ∧ f v = 0) :
-    LinearMap.det f = 0 := by
+lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V]
+    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
+    {f : V →ₗ[K] V} (h : ∃ v, v ≠ 0 ∧ f v = 0) : LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
   obtain ⟨v, hv_ne_zero, hv_ker⟩ := h
   rw [Submodule.ne_bot_iff]
@@ -168,9 +159,9 @@ lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V
 
 /-- If a linear endomorphism on a finite-dimensional vector space is not injective,
     then its determinant is zero. -/
-lemma det_eq_zero_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
-    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ¬Function.Injective f) :
-    LinearMap.det f = 0 := by
+lemma det_eq_zero_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
+    {f : V →ₗ[K] V} (h : ¬Function.Injective f) : LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
   exact ker_ne_bot_of_not_injective h
 
@@ -252,12 +243,11 @@ lemma ker_ne_bot_of_det_eq_zero (A : Matrix n n ℝ) :
       (toLin' A)).mpr h_ker_bot)
   exact IsUnit.ne_zero h_isUnit
 
--- Basic kernel-injectivity relationship
-lemma ker_eq_bot_iff_injective_toLin' (A : Matrix n n ℝ) :
-    LinearMap.ker (Matrix.toLin' A) = ⊥ ↔ Function.Injective (Matrix.toLin' A) := by
-  exact LinearMap.ker_eq_bot
-
 -- For finite dimensions, injective endomorphisms are bijective
+lemma ker_eq_bot_iff_injective_toLin' (A : Matrix n n ℝ) :
+    LinearMap.ker (toLin' A) = ⊥ ↔ Function.Injective (toLin' A) :=
+  LinearMap.ker_eq_bot
+
 lemma injective_iff_bijective_toLin' (A : Matrix n n ℝ) :
     Function.Injective (Matrix.toLin' A) ↔ Function.Bijective (Matrix.toLin' A) := by
   constructor
@@ -275,13 +265,12 @@ lemma bijective_iff_isUnit_toLin' (A : Matrix n n ℝ) :
   rw [h_equiv, and_self]
   rw [LinearMap.isUnit_iff_ker_eq_bot]
 
-lemma isUnit_of_det_ne_zero (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det (Matrix.toLin' A) ≠ 0) :
-    IsUnit (Matrix.toLin' A) := by
-  rw [← bijective_iff_isUnit_toLin', ← injective_iff_bijective_toLin', ← ker_eq_bot_iff_injective_toLin']
+lemma isUnit_of_det_ne_zero (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det (toLin' A) ≠ 0) :
+    IsUnit (toLin' A) := by
+  rw [← bijective_iff_isUnit_toLin', ← injective_iff_bijective_toLin',
+    ← ker_eq_bot_iff_injective_toLin']
   by_contra h_ker_ne_bot
-  have h_det_zero : LinearMap.det (Matrix.toLin' A) = 0 := by
-    exact det_eq_zero_of_ker_ne_bot h_ker_ne_bot
-  exact h_det_ne_zero h_det_zero
+  exact h_det_ne_zero <| det_eq_zero_of_ker_ne_bot h_ker_ne_bot
 
 
 -- An algebra equivalence preserves the property of being a unit.
@@ -294,26 +283,9 @@ lemma AlgEquiv.isUnit_map_iff {R A B : Type*} [CommSemiring R] [Ring A] [Ring B]
   · intro h_x_unit
     simp_all only [MulEquiv.isUnit_map]
 
-lemma isUnit_of_det_ne_zero' {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det (Matrix.toLin' A) ≠ 0) :
-    IsUnit (Matrix.toLin' A) := by
-  let f := Matrix.toLin' A
-  have h_det_f_is_unit : IsUnit (LinearMap.det f) := IsUnit.mk0 (LinearMap.det f) h_det_ne_zero
-  let b := Pi.basisFun ℝ n
-  have h_det_matrix_form_is_unit : IsUnit (Matrix.det (LinearMap.toMatrix b b f)) :=
-    (LinearMap.det_toMatrix b f).symm ▸ h_det_f_is_unit
-  have h_matrix_representation_is_unit : IsUnit (LinearMap.toMatrix b b f) :=
-    (Matrix.isUnit_iff_isUnit_det _).mpr h_det_matrix_form_is_unit
-  simp only at h_matrix_representation_is_unit
-  have h_toMatrix_eq_A : LinearMap.toMatrix b b f = A := by
-    exact (LinearEquiv.eq_symm_apply (toMatrix b b)).mp rfl
-  rw [h_toMatrix_eq_A] at h_matrix_representation_is_unit
-  rw [← bijective_iff_isUnit_toLin']
-  have h_isUnit_toLin : IsUnit (Matrix.toLin' A) := by
-          let e : Matrix n n ℝ ≃ₐ[ℝ] Module.End ℝ (n → ℝ) := Matrix.toLinAlgEquiv (Pi.basisFun ℝ n)
-          change IsUnit (e A)
-          rw [AlgEquiv.isUnit_map_iff e A]
-          exact h_matrix_representation_is_unit
-  exact (bijective_iff_isUnit_toLin' A).mpr h_isUnit_toLin
+lemma isUnit_of_det_ne_zero' {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix n n ℝ)
+    (h : LinearMap.det (toLin' A) ≠ 0) : IsUnit (toLin' A) :=
+  isUnit_of_det_ne_zero A h
 
 lemma det_eq_zero_of_ker_ne_bot' (A : Matrix n n ℝ) :
     LinearMap.ker (Matrix.toLin' A) ≠ ⊥ → LinearMap.det (Matrix.toLin' A) = 0 := by
@@ -370,8 +342,10 @@ lemma spectralRadius_le_nnnorm_of_mem_spectrum {A : Matrix n n ℝ} {μ : ℝ}
   have hv_norm_pos : 0 < ‖v‖ := norm_pos_iff.mpr hv_ne_zero
   have : ‖μ • v‖ = ‖μ‖ * ‖v‖ := norm_smul μ v
   rw [← hv_eigen, ← Matrix.toLin'_apply] at this
-  have h_bound : ‖(Matrix.toLin' A).toContinuousLinearMap v‖ ≤ ‖(Matrix.toLin' A).toContinuousLinearMap‖ * ‖v‖ :=
-      ContinuousLinearMap.le_opNorm _ v
+  have h_bound :
+      ‖(Matrix.toLin' A).toContinuousLinearMap v‖ ≤
+        ‖(Matrix.toLin' A).toContinuousLinearMap‖ * ‖v‖ :=
+    ContinuousLinearMap.le_opNorm _ v
   rw [LinearMap.coe_toContinuousLinearMap', this] at h_bound
   exact le_of_mul_le_mul_right h_bound hv_norm_pos
 
@@ -385,7 +359,8 @@ lemma spectralRadius_lt_top {A : Matrix n n ℝ} :
   · intro i
     apply iSup_le
     intro hi
-    exact ENNReal.coe_le_coe.mpr (le_trans (spectralRadius_le_nnnorm_of_mem_spectrum hi) (le_add_of_nonneg_right zero_le_one))
+    exact ENNReal.coe_le_coe.mpr <|
+      le_trans (spectralRadius_le_nnnorm_of_mem_spectrum hi) (le_add_of_nonneg_right zero_le_one)
 
 lemma spectrum.nnnorm_le_nnnorm_of_mem {𝕜 A : Type*}
     [NormedField 𝕜] [NormedRing A] [NormedAlgebra 𝕜 A] [CompleteSpace A] [NormOneClass A]
@@ -398,9 +373,7 @@ lemma spectrum.nnnorm_le_nnnorm_of_mem {𝕜 A : Type*}
     exact hk_in_ball
   exact h_norm_le
 
-
-
-lemma vecMul_eq_mulVec_transpose {n : Type*} [Fintype n] (A : Matrix n n ℝ) (v : n → ℝ) :
+lemma vecMul_eq_mulVec_transpose (A : Matrix n n ℝ) (v : n → ℝ) :
     v ᵥ* A = Aᵀ *ᵥ v := by
   ext j
   simp [vecMul, mulVec, transpose]
@@ -474,7 +447,8 @@ lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
 
 lemma spectralRadius_finite (A : Matrix n n ℝ) :
     spectralRadius ℝ (Matrix.toLin' A) ≠ ⊤ := by
-  have h_le_norm : spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ :=
+  have h_le_norm :
+      spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ :=
     spectralRadius_le_opNorm A
   have h_norm_finite : (↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ : ENNReal) ≠ ⊤ :=
     ENNReal.coe_ne_top
@@ -582,13 +556,11 @@ lemma exists_pos_of_sum_pos {ι : Type*} [Fintype ι] {f : ι → ℝ}
 /-- For a non-negative `a`, `a * b` is positive iff both `a` and `b` are positive. -/
 lemma mul_pos_iff_of_nonneg_left {a b : ℝ} (ha_nonneg : 0 ≤ a) :
     0 < a * b ↔ 0 < a ∧ 0 < b := by
-  refine' ⟨fun h_mul_pos => _, fun ⟨ha_pos, hb_pos⟩ => mul_pos ha_pos hb_pos⟩
-  have ha_pos : 0 < a := by
-    refine' lt_of_le_of_ne ha_nonneg fun ha_zero => _
-    rw [ha_zero] at h_mul_pos
-    subst ha_zero
-    simp_all only [le_refl, zero_mul, lt_self_iff_false]
-  simp_all only [mul_pos_iff_of_pos_left, and_self]
+  refine ⟨fun h => ?_, fun ⟨ha, hb⟩ => mul_pos ha hb⟩
+  have ha : 0 < a := lt_of_le_of_ne ha_nonneg fun ha => by
+    rw [← ha, zero_mul] at h
+    exact h.false
+  exact ⟨ha, (mul_pos_iff_of_pos_left ha).1 h⟩
 
 /-- If a scalar `μ` is an eigenvalue of a matrix `A`, then it is a root of its
 characteristic polynomial. -/
@@ -600,14 +572,14 @@ lemma isRoot_of_hasEigenvalue {A : Matrix n n ℝ} {μ : ℝ}
 
 /-- The spectrum of a matrix `A` is equal to the spectrum of its corresponding linear map
 `Matrix.toLin' A`. -/
-theorem spectrum.Matrix_toLin'_eq_spectrum {R n : Type*} [CommRing R] [Fintype n] [DecidableEq n] (A : Matrix n n R) :
-    spectrum R (Matrix.toLin' A) = spectrum R A := by
-  exact AlgEquiv.spectrum_eq (Matrix.toLinAlgEquiv (Pi.basisFun R n)) A
-end Matrix
+theorem spectrum.Matrix_toLin'_eq_spectrum {R n : Type*} [CommRing R] [Fintype n] [DecidableEq n]
+    (A : Matrix n n R) : spectrum R (toLin' A) = spectrum R A :=
+  AlgEquiv.spectrum_eq (toLinAlgEquiv (Pi.basisFun R n)) A
 
-/-- If a linear map `f` has an eigenvector `v` for an eigenvalue `μ`, then `μ` is in the spectrum of `f`. -/
-lemma Module.End.mem_spectrum_of_hasEigenvector {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V]
-    {f : V →ₗ[K] V} {μ : K} {v : V} (h : HasEigenvector f μ v) :
-    μ ∈ spectrum K f := by
+lemma Module.End.mem_spectrum_of_hasEigenvector {K V : Type*} [Field K] [AddCommGroup V]
+    [Module K V] [FiniteDimensional K V] {f : V →ₗ[K] V} {μ : K} {v : V}
+    (h : Module.End.HasEigenvector f μ v) : μ ∈ spectrum K f := by
   rw [← Module.End.hasEigenvalue_iff_mem_spectrum]
   exact Module.End.hasEigenvalue_of_hasEigenvector h
+
+end Matrix

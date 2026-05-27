@@ -30,31 +30,22 @@ Perron–Frobenius theorem, standard simplex, matrix–vector product
 
 open Filter Set Finset Matrix Topology Convex
 
-/-! ### Continuity helpers -/
-
 theorem eventually_to_open {α : Type*} [TopologicalSpace α] {p : α → Prop} {a : α}
     (h : ∀ᶠ x in 𝓝 a, p x) :
     ∃ U : Set α, IsOpen U ∧ a ∈ U ∧ ∀ x ∈ U, p x := by
   rcases mem_nhds_iff.mp h with ⟨U, hU_sub, hU_open, haU⟩
   exact ⟨U, hU_open, haU, hU_sub⟩
 
--- Continuous infimum over finset
 theorem continuousOn_finset_inf' {α β : Type*} [TopologicalSpace α] [LinearOrder β]
-    [TopologicalSpace β] [OrderTopology β] {ι : Type*} [Fintype ι]
-    {s : Finset ι} {U : Set α} (hs : s.Nonempty) {f : ι → α → β}
-    (hf : ∀ i ∈ s, ContinuousOn (f i) U) :
+    [TopologicalSpace β] [OrderTopology β] {ι : Type*} {s : Finset ι} {U : Set α}
+    (hs : s.Nonempty) {f : ι → α → β} (hf : ∀ i ∈ s, ContinuousOn (f i) U) :
     ContinuousOn (fun x => s.inf' hs (fun i => f i x)) U :=
   ContinuousOn.finset_inf'_apply hs hf
 
--- Infimum monotonicity for subsets
 theorem finset_inf'_mono_subset {α β : Type*} [LinearOrder β] {s t : Finset α} (h : s ⊆ t)
     {f : α → β} {hs : s.Nonempty} {ht : t.Nonempty} :
-    t.inf' ht f ≤ s.inf' hs f := by
-  exact inf'_mono f h hs
-
-/-!
-## Matrix & vector operations
--/
+    t.inf' ht f ≤ s.inf' hs f :=
+  inf'_mono f h hs
 
 theorem mulVec_nonneg {n : Type*} [Fintype n] {A : Matrix n n ℝ} (hA : ∀ i j, 0 ≤ A i j)
     {x : n → ℝ} (hx : ∀ i, 0 ≤ x i) : ∀ i, 0 ≤ (A *ᵥ x) i := by
@@ -62,44 +53,30 @@ theorem mulVec_nonneg {n : Type*} [Fintype n] {A : Matrix n n ℝ} (hA : ∀ i j
   simp only [Matrix.mulVec, dotProduct]
   exact Finset.sum_nonneg fun j _ => mul_nonneg (hA i j) (hx j)
 
-/-!
-## Utility lemmas
--/
-
 theorem exists_pos_of_sum_one_of_nonneg {n : Type*} [Fintype n] [Nonempty n] {x : n → ℝ}
     (hsum : ∑ i, x i = 1) (hnonneg : ∀ i, 0 ≤ x i) : ∃ j, 0 < x j := by
   by_contra h
   push_neg at h
-  have h_all_zero : ∀ i, x i = 0 := by
-    intro i
-    exact le_antisymm (h i) (hnonneg i)
-  have h_sum_zero : ∑ i, x i = 0 := by
-    simp only [h_all_zero, Finset.sum_const_zero]
-  have : 1 = 0 := by linarith
-  exact absurd this (by norm_num)
+  have : ∑ i, x i = 0 := by simp [fun i => le_antisymm (h i) (hnonneg i)]
+  linarith
 
-theorem pow_mulVec_succ {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ} (k : ℕ) (x : n → ℝ) :
-    (A^(k+1)).mulVec x = A.mulVec ((A^k).mulVec x) := by
-  simp only [mulVec_mulVec]
-  rw [pow_succ']
+theorem pow_mulVec_succ {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
+    {A : Matrix n n ℝ} (k : ℕ) (x : n → ℝ) :
+    (A ^ (k + 1)).mulVec x = A.mulVec ((A ^ k).mulVec x) := by
+  simp only [mulVec_mulVec, pow_succ']
 
-
-/-!
-## Finset Operations
--/
-
--- Infimum over finite type equals finset infimum
 theorem iInf_apply_eq_finset_inf'_apply_fun {α β γ : Type*} [Fintype α] [Nonempty α]
     [ConditionallyCompleteLinearOrder γ] (f : α → β → γ) :
-    (fun x => ⨅ i, f i x) = (fun x => (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x)) := by
+    (fun x => ⨅ i, f i x) =
+      fun x =>
+        (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x) := by
   ext x
   have h1 : ⨅ i, f i x = ⨅ i ∈ Set.univ, f i x := by simp only [mem_univ, ciInf_unique]
   have h2 : ⨅ i ∈ Set.univ, f i x = ⨅ i ∈ (Finset.univ : Finset α), f i x := by
-    congr
-    ext i
-    simp only [mem_univ, ciInf_unique, Finset.mem_univ]
-  have h3 : ⨅ i ∈ (Finset.univ : Finset α), f i x =
-           (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x) := by
+    congr; ext i; simp only [mem_univ, ciInf_unique, Finset.mem_univ]
+  have h3 :
+      ⨅ i ∈ (Finset.univ : Finset α), f i x =
+        (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x) := by
     rw [Finset.inf'_eq_csInf_image]
     simp only [ciInf_unique, Finset.mem_univ, Finset.coe_univ, image_univ]
     rfl
@@ -114,79 +91,66 @@ theorem continuousOn_iInf {α β : Type*} [Fintype α] [Nonempty α] [Topologica
     {s : Set β} {f : α → β → ℝ} (hf : ∀ i, ContinuousOn (f i) s) :
     ContinuousOn (fun x => ⨅ i, f i x) s := by
   classical
-  let g : β → ℝ := fun x => (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x)
+  let g : β → ℝ := fun x =>
+    (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x)
   have hg : ContinuousOn g s := ContinuousOn.finset_inf'_apply Finset.univ_nonempty fun i _ => hf i
-  have h_eq : (fun x => ⨅ i, f i x) = g := by
-    dsimp [g]
-    exact iInf_apply_eq_finset_inf'_apply_fun f
-  rwa [h_eq]
+  rwa [iInf_apply_eq_finset_inf'_apply_fun f]
 
-theorem sum_pos_of_mem {α : Type*} {s : Finset α} {f : α → ℝ}
-    [DecidableEq α] (h_nonneg : ∀ a ∈ s, 0 ≤ f a) (a : α) (ha_mem : a ∈ s) (ha_pos : 0 < f a) :
+theorem sum_pos_of_mem {α : Type*} [DecidableEq α] {s : Finset α} {f : α → ℝ}
+    (h_nonneg : ∀ a ∈ s, 0 ≤ f a) (a : α) (ha_mem : a ∈ s) (ha_pos : 0 < f a) :
     0 < ∑ x ∈ s, f x := by
-  have h_sum_split : ∑ x ∈ s, f x = f a + ∑ x ∈ s.erase a, f x :=
-    Eq.symm (add_sum_erase s f ha_mem)
-  have h_erase_nonneg : 0 ≤ ∑ x ∈ s.erase a, f x :=
-    Finset.sum_nonneg (λ x hx => h_nonneg x (Finset.mem_of_mem_erase hx))
-  rw [h_sum_split]
-  exact add_pos_of_pos_of_nonneg ha_pos h_erase_nonneg
+  rw [← add_sum_erase s f ha_mem]
+  exact add_pos_of_pos_of_nonneg ha_pos (Finset.sum_nonneg fun x hx =>
+    h_nonneg x (Finset.mem_of_mem_erase hx))
 
 lemma Finset.inf'_eq_ciInf {α β} [ConditionallyCompleteLinearOrder β] {s : Finset α}
     (h : s.Nonempty) (f : α → β) :
     s.inf' h f = ⨅ i : s, f i := by
-  have : Nonempty s := Finset.Nonempty.to_subtype h
   rw [Finset.inf'_eq_csInf_image]
-  congr
-  ext x
-  simp [Set.mem_image, Set.mem_range]
+  congr; ext x; simp [Set.mem_image, Set.mem_range]
 
 variable {n : Type*}
 
-lemma exists_pos_of_ne_zero [Fintype n] [DecidableEq n] {v : n → ℝ} (h_nonneg : ∀ i, 0 ≤ v i) (h_ne_zero : v ≠ 0) :
-    ∃ i, 0 < v i := by
-  by_contra h_all_nonpos
-  apply h_ne_zero
+lemma exists_pos_of_ne_zero [Fintype n] {v : n → ℝ} (h_nonneg : ∀ i, 0 ≤ v i)
+    (h_ne_zero : v ≠ 0) : ∃ i, 0 < v i := by
+  contrapose! h_ne_zero
   ext i
   exact le_antisymm (by simp_all) (h_nonneg i)
 
-lemma Set.toFinset_nonempty_iff {α : Type*} [Fintype α] [DecidableEq α] (s : Set α) [Finite s] [Fintype s] :
+lemma Set.toFinset_nonempty_iff {α : Type*} [Fintype α] [DecidableEq α] (s : Set α)
+    [Finite s] [Fintype s] :
     s.toFinset.Nonempty ↔ s.Nonempty := by
   constructor
-  · intro h
-    obtain ⟨x, hx⟩ := h
+  · rintro ⟨x, hx⟩
     exact ⟨x, Set.mem_toFinset.mp hx⟩
-  · intro h
-    obtain ⟨x, hx⟩ := h
+  · rintro ⟨x, hx⟩
     exact ⟨x, Set.mem_toFinset.mpr hx⟩
 
 lemma div_le_iff {a b c : ℝ} (hb : 0 < b) : a / b ≤ c ↔ a ≤ c * b := by
   rw [@le_iff_le_iff_lt_iff_lt]
   exact lt_div_iff₀ hb
 
-lemma Finset.inf'_pos {α : Type*} {s : Finset α} (hs : s.Nonempty)
-    {f : α → ℝ} (h_pos : ∀ a ∈ s, 0 < f a) :
+lemma Finset.inf'_pos {α : Type*} {s : Finset α} (hs : s.Nonempty) {f : α → ℝ}
+    (h_pos : ∀ a ∈ s, 0 < f a) :
     0 < s.inf' hs f := by
   obtain ⟨b, hb_mem, h_fb_is_inf⟩ := s.exists_mem_eq_inf' hs f
-  have h_fb_pos : 0 < f b := h_pos b hb_mem
   rw [h_fb_is_inf]
-  exact h_fb_pos
+  exact h_pos b hb_mem
 
 lemma mulVec_apply {n : Type*} [Fintype n] {A : Matrix n n ℝ} {v : n → ℝ} (i : n) :
-  (A *ᵥ v) i = ∑ j, A i j * v j :=
-rfl
+    (A *ᵥ v) i = ∑ j, A i j * v j :=
+  rfl
 
 lemma sum_pos_of_nonneg_of_ne_zero {α : Type*} {s : Finset α} {f : α → ℝ}
     (h_nonneg : ∀ a ∈ s, 0 ≤ f a) (h_ne_zero : ∑ x ∈ s, f x ≠ 0) :
-    0 < ∑ x ∈ s, f x := by
-  have h_sum_nonneg : 0 ≤ ∑ x ∈ s, f x := Finset.sum_nonneg h_nonneg
-  exact lt_of_le_of_ne h_sum_nonneg h_ne_zero.symm
+    0 < ∑ x ∈ s, f x :=
+  lt_of_le_of_ne (Finset.sum_nonneg h_nonneg) h_ne_zero.symm
 
-lemma Function.exists_ne_zero_of_ne_zero {α β} [Zero β] {f : α → β} (h : f ≠ (fun _ => 0)) : ∃ i, f i ≠ 0 := by
-  by_contra hf
-  push_neg at hf
-  apply h
+lemma Function.exists_ne_zero_of_ne_zero {α β} [Zero β] {f : α → β} (h : f ≠ fun _ => 0) :
+    ∃ i, f i ≠ 0 := by
+  contrapose! h
   ext x
-  exact hf x
+  exact h x
 
 lemma Nat.eq_one_or_one_lt (n : ℕ) (hn : n ≠ 0) : n = 1 ∨ 1 < n := by
   rcases n with _ | n
@@ -195,9 +159,9 @@ lemma Nat.eq_one_or_one_lt (n : ℕ) (hn : n ≠ 0) : n = 1 ∨ 1 < n := by
   · exact Or.inl rfl
   · exact Or.inr (Nat.succ_lt_succ (Nat.succ_pos _))
 
-lemma Finset.inf'_eq_of_forall_le_of_exists_le {α β} [LinearOrder β]
-    {s : Finset α} (hs : s.Nonempty) (f : α → β) (y : β)
-    (h_le : ∀ i ∈ s, y ≤ f i) (h_exists : ∃ i ∈ s, f i = y) :
+lemma Finset.inf'_eq_of_forall_le_of_exists_le {α β} [LinearOrder β] {s : Finset α}
+    (hs : s.Nonempty) (f : α → β) (y : β) (h_le : ∀ i ∈ s, y ≤ f i)
+    (h_exists : ∃ i ∈ s, f i = y) :
     s.inf' hs f = y := by
   apply le_antisymm
   · obtain ⟨i, hi_mem, hi_eq⟩ := h_exists
@@ -205,57 +169,38 @@ lemma Finset.inf'_eq_of_forall_le_of_exists_le {α β} [LinearOrder β]
     exact inf'_le f hi_mem
   · exact (le_inf'_iff hs f).mpr h_le
 
-lemma ne_zero_of_mem_stdSimplex
-    {n : Type*} [Fintype n] [Nonempty n] {x : n → ℝ}
-    (hx : x ∈ stdSimplex ℝ n) :
-    x ≠ 0 := by
-  intro h_zero
-  have h_sum_zero : (∑ i, x i) = 0 := by
-    subst h_zero
-    simp_all only [Pi.zero_apply, Finset.sum_const_zero]
-  have h_sum_one : (∑ i, x i) = 1 := hx.2
-  linarith
+lemma ne_zero_of_mem_stdSimplex {n : Type*} [Fintype n] [Nonempty n] {x : n → ℝ}
+    (hx : x ∈ stdSimplex ℝ n) : x ≠ 0 := by
+  intro h
+  linarith [hx.2, show (∑ i, x i) = 0 from by subst h; simp]
 
 namespace Matrix
 
 lemma dotProduct_pos_of_pos_of_nonneg_ne_zero {n : Type*} [Fintype n] [DecidableEq n]
     {u v : n → ℝ} (hu_pos : ∀ i, 0 < u i) (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     0 < u ⬝ᵥ v := by
-  simp [dotProduct]
-  have h_exists_pos : ∃ i, 0 < v i := by
-    by_contra h
-    push_neg at h
-    have h_all_zero : ∀ i, v i = 0 := fun i =>
-      le_antisymm (h i) (hv_nonneg i)
-    have h_zero : v = 0 := funext h_all_zero
-    contradiction
-  have h_nonneg : ∀ i ∈ Finset.univ, 0 ≤ u i * v i :=
-    fun i _ => mul_nonneg (le_of_lt (hu_pos i)) (hv_nonneg i)
-  rcases h_exists_pos with ⟨i, hi⟩
-  have hi_mem : i ∈ Finset.univ := Finset.mem_univ i
-  have h_pos : 0 < u i * v i := mul_pos (hu_pos i) hi
-  exact sum_pos_of_mem h_nonneg i hi_mem h_pos
+  obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hv_nonneg hv_ne_zero
+  exact sum_pos_of_mem (fun j _ => mul_nonneg (hu_pos j).le (hv_nonneg j)) i (Finset.mem_univ i)
+    (mul_pos (hu_pos i) hi)
 
-lemma dotProduct_smul_left {n : Type*} [Fintype n]
-    (c : ℝ) (v w : n → ℝ) :
+lemma dotProduct_smul_left {n : Type*} [Fintype n] (c : ℝ) (v w : n → ℝ) :
     (c • v) ⬝ᵥ w = c * (v ⬝ᵥ w) := by
   unfold dotProduct
   simp [smul_eq_mul, Finset.mul_sum, mul_comm, mul_left_comm]
 
 /-- `u ⬝ᵥ (A *ᵥ v) = (Aᵀ *ᵥ u) ⬝ᵥ v`. -/
-lemma dotProduct_mulVec_comm {n : Type*} [Fintype n] (u v : n → ℝ) (A : Matrix n n ℝ) :
+lemma dotProduct_mulVec_comm {n : Type*} [Fintype n] [DecidableEq n] (u v : n → ℝ) (A : Matrix n n ℝ) :
     u ⬝ᵥ (A *ᵥ v) = (Aᵀ *ᵥ u) ⬝ᵥ v := by
   rw [dotProduct_mulVec, vecMul_eq_mulVec_transpose]
 
-lemma diagonal_mulVec_ones [DecidableEq n][Fintype n] (d : n → ℝ) :
+lemma diagonal_mulVec_ones {n : Type*} [DecidableEq n] [Fintype n] (d : n → ℝ) :
     diagonal d *ᵥ (fun _ => 1) = d := by
   ext i; simp [mulVec_diagonal]
 
--- This could also be a general lemma
-lemma diagonal_inv_mulVec_self [DecidableEq n][Fintype n] {d : n → ℝ} (hd : ∀ i, d i ≠ 0) :
-    diagonal (d⁻¹) *ᵥ d = fun _ => 1 := by
+lemma diagonal_inv_mulVec_self {n : Type*} [DecidableEq n] [Fintype n] {d : n → ℝ}
+    (hd : ∀ i, d i ≠ 0) :
+    diagonal (d⁻¹) *ᵥ d = fun _ => (1 : ℝ) := by
   ext i
-  simp [mulVec_diagonal]
-  simp_all only [ne_eq, isUnit_iff_ne_zero, not_false_eq_true, IsUnit.inv_mul_cancel]
+  simp [mulVec_diagonal, IsUnit.inv_mul_cancel (isUnit_iff_ne_zero.mpr (hd i))]
 
 end Matrix

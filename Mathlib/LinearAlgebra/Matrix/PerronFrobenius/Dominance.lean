@@ -51,7 +51,7 @@ lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n →
   (h₀ : ∃ i₀, P i₀) (hstep : ∀ i j, P i → 0 < A i j → P j) :
   ∀ i, P i := by
   by_contra hP
-  push_neg at hP
+  push Not at hP
   set S : Set n := {i | P i}
   have hS' : S ≠ Set.univ := by
     intro hSu
@@ -127,8 +127,9 @@ If equality holds in the triangle inequality for `∑ z_j`, then all non-zero `z
 are aligned with the sum.
 -/
 lemma aligned_of_all_nonneg_re_im {i : n} {x : n → ℂ}
-  (h_sum_eq : ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖) :
-    ∀ j, (A i j : ℂ) * x j ≠ 0 → ∃ c : ℝ, 0 ≤ c ∧ (A i j : ℂ) * x j = c • (∑ k, (A i k : ℂ) * x k) := by
+    (h_sum_eq : ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖) :
+    ∀ j, (A i j : ℂ) * x j ≠ 0 →
+      ∃ c : ℝ, 0 ≤ c ∧ (A i j : ℂ) * x j = c • ∑ k, (A i k : ℂ) * x k := by
   let z : n → ℂ := fun j => (A i j : ℂ) * x j
   let s : ℂ     := ∑ j, z j
   have h_z_sum : ‖s‖ = ∑ j, ‖z j‖ := by
@@ -159,10 +160,9 @@ lemma aligned_of_all_nonneg_re_im {i : n} {x : n → ℂ}
 
 /-- For a non-negative matrix `A`, if the row sums are all
 equal to `lambda`, then `lambda` is an eigenvalue with the all-ones vector as its eigenvector. -/
-lemma row_sum_eigenvalue (_ : ∀ i j, 0 ≤ A i j) {lambda : ℝ} (h_row_sums : ∀ i, ∑ j, A i j = lambda) :
-  A *ᵥ (1 : n → ℝ) = lambda • (1 : n → ℝ) := by
-  ext i
-  simp [mulVec_apply, h_row_sums i, smul_eq_mul]
+lemma row_sum_eigenvalue {lambda : ℝ} (h_row_sums : ∀ i, ∑ j, A i j = lambda) :
+    A *ᵥ (1 : n → ℝ) = lambda • (1 : n → ℝ) := by
+  ext i; simp [mulVec_apply, h_row_sums i, smul_eq_mul]
 
 /-- If the dot product of a non-negative vector `v` and a strictly positive vector `w` is zero,
     then `v` must be the zero vector. -/
@@ -199,19 +199,12 @@ lemma pow_eigenvector_of_eigenvector {R : Type*} [DecidableEq n] [CommSemiring R
   induction m with
   | zero => simp [pow_zero]
   | succ m ih =>
-  calc
-    (A ^ m.succ) *ᵥ v = (A ^ m * A) *ᵥ v := ?_
-    _ = A ^ m *ᵥ (A *ᵥ v) := ?_
-    _ = A ^ m *ᵥ (r • v) := ?_
-    _ = r • (A ^ m *ᵥ v) := ?_
-    _ = r • (r ^ m • v) := ?_
-    _ = r ^ (m + 1) • v := ?_
-  · simp [pow_succ]
-  · rw [Matrix.mulVec_mulVec]
-  · simp [h_eig]
-  · rw [mulVec_smul]
-  · simp [ih]
-  · simp [pow_succ', smul_smul]
+    calc (A ^ m.succ) *ᵥ v = (A ^ m * A) *ᵥ v := by simp [pow_succ]
+      _ = A ^ m *ᵥ (A *ᵥ v) := by rw [Matrix.mulVec_mulVec]
+      _ = A ^ m *ᵥ (r • v) := by rw [h_eig]
+      _ = r • (A ^ m *ᵥ v) := by rw [mulVec_smul]
+      _ = r • (r ^ m • v) := by rw [ih]
+      _ = r ^ (m + 1) • v := by simp [pow_succ', smul_smul]
 
 lemma sum_component_norms_eq_perron_power_norm [DecidableEq n] -- [CommSemiring R]
       {A : Matrix n n ℝ} {x : n → ℂ}
@@ -242,16 +235,15 @@ lemma pow_eigenvector_of_eigenvector' [DecidableEq n] {A : Matrix n n ℝ} {μ :
   | zero =>
     simp [pow_zero, Matrix.map_one, one_mulVec, one_smul]
   | succ m ih =>
-    calc
-      ((A ^ (m + 1)).map (algebraMap ℝ ℂ)) *ᵥ x
-          = ((A * A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x := by rw [pow_succ']
+    calc ((A ^ (m + 1)).map (algebraMap ℝ ℂ)) *ᵥ x
+        = ((A * A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x := by rw [pow_succ']
       _ = ((A.map (algebraMap ℝ ℂ)) * ((A ^ m).map (algebraMap ℝ ℂ))) *ᵥ x := by rw [Matrix.map_mul]
       _ = (A.map (algebraMap ℝ ℂ)) *ᵥ (((A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x) := by rw [Matrix.mulVec_mulVec]
       _ = (A.map (algebraMap ℝ ℂ)) *ᵥ ((μ ^ m) • x) := by rw [ih]
       _ = (μ ^ m) • ((A.map (algebraMap ℝ ℂ)) *ᵥ x) := by rw [mulVec_smul]
       _ = (μ ^ m) • (μ • x) := by rw [h_eig]
       _ = ((μ ^ m) * μ) • x := by rw [smul_smul]
-      _ = (μ ^ (m + 1)) • x := by rw [pow_succ']; rw [@pow_mul_comm']
+      _ = (μ ^ (m + 1)) • x := by simp [pow_succ', mul_comm]
 
 /--
 For an eigenvalue μ of a nonnegative matrix A with eigenvector x,
@@ -313,19 +305,17 @@ theorem eigenvalue_is_perron_root_of_positive_eigenvector {r : ℝ} {v : n → �
     (_ : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) (hr_pos : 0 < r) (hv_pos : ∀ i, 0 < v i)
     (h_eig : A *ᵥ v = r • v) : r = perronRoot_alt A := by
   have h_ge : perronRoot_alt A ≤ r :=
-    eigenvalue_is_ub_of_positive_eigenvector
-      (A := A) hA_nonneg hr_pos hv_pos h_eig
+    eigenvalue_is_ub_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig
   have h_le : r ≤ perronRoot_alt A := by
     rw [← eq_eigenvalue_of_positive_eigenvector hv_pos h_eig]
-    have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
+    have hv_nonneg : ∀ i, 0 ≤ v i := fun i => (hv_pos i).le
     have hv_ne_zero : v ≠ 0 := by
       intro h0
       have : 0 < v (Classical.arbitrary n) := hv_pos (Classical.arbitrary n)
       rw [h0] at this
-      simp only [Pi.zero_apply, lt_self_iff_false] at this
+      exact lt_irrefl 0 this
     apply le_csSup (CollatzWielandt.bddAbove A hA_nonneg)
-    rw [@Set.mem_image]
-    exact ⟨v, ⟨hv_nonneg, hv_ne_zero⟩, rfl⟩
+    exact Set.mem_image_of_mem _ ⟨hv_nonneg, hv_ne_zero⟩
   exact le_antisymm h_le h_ge
 
 theorem perronRoot_transpose_eq (A : Matrix n n ℝ) (hA_irred : A.IsIrreducible) :
@@ -335,8 +325,9 @@ theorem perronRoot_transpose_eq (A : Matrix n n ℝ) (hA_irred : A.IsIrreducible
       hA_irred hA_irred.nonneg hr_pos hv_pos hv_eig
   obtain ⟨r', u, hr'_pos, hu_pos, hu_eig_T⟩ := exists_positive_eigenvector_of_irreducible
       (Matrix.IsIrreducible.transpose hA_irred)
-  have hr'_eq_perron : r' = perronRoot_alt Aᵀ := eigenvalue_is_perron_root_of_positive_eigenvector
-      (Matrix.IsIrreducible.transpose hA_irred) (fun i j ↦ hA_irred.nonneg j i) hr'_pos hu_pos hu_eig_T
+  have hr'_eq_perron : r' = perronRoot_alt Aᵀ :=
+    eigenvalue_is_perron_root_of_positive_eigenvector (Matrix.IsIrreducible.transpose hA_irred)
+      (fun i j => hA_irred.nonneg j i) hr'_pos hu_pos hu_eig_T
   have hu_eig_left : u ᵥ* A = r' • u := by simpa [vecMul_eq_mulVec_transpose] using hu_eig_T
   have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
   have hv_ne_zero : v ≠ 0 := by
@@ -424,20 +415,19 @@ lemma subinvariant_equality_implies_eigenvector
     have h_dot_z : u ⬝ᵥ z = 0 := by
       rw [dotProduct_sub, dotProduct_mulVec, h_u_left_eig, h_rT_eq_r, dotProduct_smul_left,
         dotProduct_smul, smul_eq_mul, sub_self]
-    have h_z_is_zero' := eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos hz_nonneg hu_pos (by rwa [dotProduct_comm])
+    have h_z_is_zero' := eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos hz_nonneg hu_pos
+      (by rw [dotProduct_comm]; exact h_dot_z)
     contradiction
 
 /--
 The value of the Collatz-Wielandt function for any non-negative, non-zero vector
 is less than or equal to the Perron root.
 -/
-lemma collatzWielandtFn_le_perronRoot_alt
-    {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j)
+lemma collatzWielandtFn_le_perronRoot_alt (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
-    collatzWielandtFn A x ≤ perronRoot_alt A := by
-  apply le_csSup (CollatzWielandt.bddAbove A hA_nonneg)
-  rw [Set.mem_image]
-  exact ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
+    collatzWielandtFn A x ≤ perronRoot_alt A :=
+  le_csSup (CollatzWielandt.bddAbove A hA_nonneg) <|
+    Set.mem_image_of_mem _ ⟨hx_nonneg, hx_ne_zero⟩
 
 /--
 Any eigenvalue μ of a nonnegative irreducible matrix A has absolute value
@@ -470,12 +460,9 @@ supremum) is equal to the unique positive eigenvalue `r` from the existence theo
 lemma perron_root_eq_positive_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     ∃ r v, 0 < r ∧ (∀ i, 0 < v i) ∧ A *ᵥ v = r • v ∧ perronRoot_alt A = r := by
   obtain ⟨r, v, hr_pos, hv_pos, h_eig⟩ := exists_positive_eigenvector_of_irreducible hA_irred
-  have h_le : perronRoot_alt A ≤ r :=
-    eigenvalue_is_ub_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig
-  have h_ge : r ≤ perronRoot_alt A :=
-    eigenvalue_le_perron_root_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig
-  have h_eq : perronRoot_alt A = r := le_antisymm h_le h_ge
-  exact ⟨r, v, hr_pos, hv_pos, h_eig, h_eq⟩
+  exact ⟨r, v, hr_pos, hv_pos, h_eig, le_antisymm
+    (eigenvalue_is_ub_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig)
+    (eigenvalue_le_perron_root_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig)⟩
 
 /--
 If a matrix `A` has an eigenvector `v` for an eigenvalue `μ`, then `μ` is in the spectrum of `A`.
