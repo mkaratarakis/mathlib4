@@ -154,7 +154,7 @@ lemma mem_CycleLengths_of_cons_comp_right {i v w : V} (p : Path i v) (e : v ⟶ 
 /--
 Theorem: A strongly connected quiver with index of imprimitivity h admits a cyclic partition.
 -/
-theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
+theorem exists_cyclic_partition_of_strongly_connected [Nonempty V]
     (h_sc : Quiver.IsSStronglyConnected V) :
     ∀ (h_pos : 0 < indexOfImprimitivity (inferInstance : Quiver V)),
       ∃ partition : V → Fin (indexOfImprimitivity (inferInstance : Quiver V)),

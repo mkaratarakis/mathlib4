@@ -128,8 +128,8 @@ lemma LinearMap.injective_of_isUnit {K V : Type*} [Field K] [AddCommGroup V] [Mo
 /-- If the kernel of a linear endomorphism on a finite-dimensional vector space is non-trivial,
     then its determinant is zero. -/
 lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
-    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
-    {f : V →ₗ[K] V} (h : LinearMap.ker f ≠ ⊥) : LinearMap.det f = 0 := by
+    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : LinearMap.ker f ≠ ⊥) :
+    LinearMap.det f = 0 := by
   by_contra h_det_ne_zero
   have h_det_unit : IsUnit (LinearMap.det f) := IsUnit.mk0 _ h_det_ne_zero
   have h_f_is_unit : IsUnit f := by
@@ -149,8 +149,8 @@ lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module
 
 /-- If a non-zero vector `v` is in the kernel of a linear map `f`, then `det f` must be zero. -/
 lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V]
-    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
-    {f : V →ₗ[K] V} (h : ∃ v, v ≠ 0 ∧ f v = 0) : LinearMap.det f = 0 := by
+    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ∃ v, v ≠ 0 ∧ f v = 0) :
+    LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
   obtain ⟨v, hv_ne_zero, hv_ker⟩ := h
   rw [Submodule.ne_bot_iff]
@@ -160,15 +160,15 @@ lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V
 /-- If a linear endomorphism on a finite-dimensional vector space is not injective,
     then its determinant is zero. -/
 lemma det_eq_zero_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
-    [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)] [FiniteDimensional K V]
-    {f : V →ₗ[K] V} (h : ¬Function.Injective f) : LinearMap.det f = 0 := by
+    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ¬Function.Injective f) :
+    LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
   exact ker_ne_bot_of_not_injective h
 
-omit [DecidableEq n] in
 /-- If the determinant is zero, the linear map is not injective. -/
-lemma not_injective_of_det_eq_zero {f : (n → ℝ) →ₗ[ℝ] (n → ℝ)} (h : LinearMap.det f = 0) :
+lemma not_injective_of_det_eq_zero [Finite n] {f : (n → ℝ) →ₗ[ℝ] (n → ℝ)} (h : LinearMap.det f = 0) :
     ¬Function.Injective f := by
+  letI := Fintype.ofFinite n
   by_contra h_inj
   have h_unit : IsUnit f := by
     rw [LinearMap.isUnit_iff_ker_eq_bot]
@@ -373,6 +373,7 @@ lemma spectrum.nnnorm_le_nnnorm_of_mem {𝕜 A : Type*}
     exact hk_in_ball
   exact h_norm_le
 
+omit [DecidableEq n] in
 lemma vecMul_eq_mulVec_transpose (A : Matrix n n ℝ) (v : n → ℝ) :
     v ᵥ* A = Aᵀ *ᵥ v := by
   ext j
