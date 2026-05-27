@@ -14,7 +14,7 @@ public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Dominance
 @[expose] public section
 
 namespace Matrix
-open CollatzWielandt Matrix Classical Complex
+open CollatzWielandt Classical Complex
 
 variable {n : Type*} {A : Matrix n n ℝ} [Fintype n] [Nonempty n] [DecidableEq n]
 
@@ -112,10 +112,8 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
   let s := ∑ l', z l'
   have hs_ne_zero : s ≠ 0 :=
     sum_s_ne_zero_of_triangle_eq hA_irred hA_nonneg h_triangle_eq h_x_abs_eig hx_ne_zero k
-  have h_aligned_with_sum : ∀ l', z l' ≠ 0 → z l' / ↑‖z l'‖ = s / ↑‖s‖ := by
-    intro l' hz
-    have h := Complex.aligned_of_triangle_eq rfl (h_triangle_eq k) hs_ne_zero l' (by simp) hz
-    exact h
+  have h_aligned_with_sum : ∀ l', z l' ≠ 0 → z l' / ↑‖z l'‖ = s / ↑‖s‖ := fun l' hz =>
+    Complex.aligned_of_triangle_eq rfl (h_triangle_eq k) hs_ne_zero l' (by simp) hz
   have h_zl_ne_zero : z l ≠ 0 := by
     apply term_ne_zero_of_pos_entry hAkl_pos
     exact norm_pos_iff.mp (h_x_abs_pos l)
@@ -125,11 +123,9 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
   have h_align_l := h_aligned_with_sum l h_zl_ne_zero
   have h_align_m := h_aligned_with_sum m h_zm_ne_zero
   have h_xl_aligned : x l / ↑‖x l‖ = z l / ↑‖z l‖ := by
-    have h_xl_ne_zero : x l ≠ 0 := norm_pos_iff.mp (h_x_abs_pos l)
-    apply (Complex.aligned_of_mul_of_real_pos hAkl_pos rfl h_xl_ne_zero).symm
+    exact (Complex.aligned_of_mul_of_real_pos hAkl_pos rfl (norm_pos_iff.mp (h_x_abs_pos l))).symm
   have h_xm_aligned : x m / ↑‖x m‖ = z m / ↑‖z m‖ := by
-    have h_xm_ne_zero : x m ≠ 0 := norm_pos_iff.mp (h_x_abs_pos m)
-    apply (Complex.aligned_of_mul_of_real_pos hAkm_pos rfl h_xm_ne_zero).symm
+    exact (Complex.aligned_of_mul_of_real_pos hAkm_pos rfl (norm_pos_iff.mp (h_x_abs_pos m))).symm
   rw [h_xl_aligned, h_xm_aligned, h_align_l, h_align_m]
 
 lemma aligned_term_of_triangle_eq {ι : Type*} {s : Finset ι} {v : ι → ℂ}
@@ -448,3 +444,5 @@ theorem spectral_dominance_of_primitive'
   have h_eqμ : μ = perronRoot_alt A :=
     @spectral_dominance_of_primitive n _ _ _ A hA_prim hA_nonneg μ h_is_eigenvalue h_eq
   exact (h_ne_perron h_eqμ).elim
+
+end Matrix

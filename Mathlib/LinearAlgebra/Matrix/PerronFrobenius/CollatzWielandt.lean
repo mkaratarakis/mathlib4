@@ -38,15 +38,6 @@ noncomputable def collatzWielandtFn (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :
     supp.inf' h fun i ↦ (A *ᵥ x) i / x i
   else 0
 
-/-- The Collatz-Wielandt function r_x for a positive vector `x`.
-    See p. 30 in Berman & Plemmons.
-    We define it for strictly positive vectors to avoid division by zero. -/
-noncomputable def r_x (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨅ i, (A.mulVec x i) / (x i)
-
---instance : Nonempty n := inferInstance
-
-/-- The matrix-vector multiplication map as a continuous linear map. -/
 noncomputable abbrev mulVec_continuousLinearMap (A : Matrix n n ℝ) : (n → ℝ) →L[ℝ] (n → ℝ) :=
   (Matrix.mulVecLin A).toContinuousLinearMap
 
@@ -56,13 +47,6 @@ private lemma IsCompact_stdSimplex : IsCompact (stdSimplex ℝ n) :=
   isCompact_iff_compactSpace.mpr inferInstance
 
 namespace CollatzWielandt
-
--- The Collatz-Wielandt function r_x is continuous on the set of strictly positive vectors.
-lemma r_x_continuousOn_pos [Nonempty n] (A : Matrix n n ℝ) :
-    ContinuousOn (r_x A) {x : n → ℝ | ∀ i, 0 < x i} := by
-  refine continuousOn_iInf (fun i ↦ ContinuousOn.div
-  (((continuous_apply i).comp (mulVec_continuousLinearMap A).continuous).continuousOn)
-  ((continuous_apply i).continuousOn) (fun x hx ↦ (hx i).ne.symm))
 
 /-- *The Collatz-Wielandt function is upper-semicontinuous*.
 Seneta relies on this fact (p.15, Appendix C) to use the Extreme Value Theorem.
@@ -115,9 +99,6 @@ theorem upperSemicontinuousOn [Nonempty n] (A : Matrix n n ℝ) :
 
 -- The set of vectors we are optimizing over.
 def P_set := {x : n → ℝ | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
-
-/-- The Collatz-Wielandt value is the supremum of `r_x` over P. -/
-noncomputable def r (A : Matrix n n ℝ) [Fintype n] := ⨆ x ∈ P_set, collatzWielandtFn A x
 
 /-- The Collatz-Wielandt function attains its maximum on the standard simplex.
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
@@ -250,50 +231,9 @@ lemma smul [Nonempty n] {c : ℝ} (hc : 0 < c) (_ : ∀ i j, 0 ≤ A i j)
   simp only [mulVec_smul, smul_eq_mul, Pi.smul_apply]
   rw [mul_div_mul_left _ _ (ne_of_gt hc)]
 
-/-- The minimum ratio `(Ax)_i / x_i` for a positive vector `x`. -/
-noncomputable def minRatio (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨅ i, (A.mulVec x i) / x i
-
-/-- The maximum ratio `(Ax)_i / x_i` for a positive vector `x`. -/
-noncomputable def maxRatio (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨆ i, (A.mulVec x i) / x i
-
-/-- The Collatz-Wielandt formula for the Perron root, defined as a supremum of infima. -/
-noncomputable def perronRoot (A : Matrix n n ℝ) : ℝ :=
-  ⨆ (x : n → ℝ) (_ : ∀ i, 0 < x i), minRatio A x
-
-/-- The Collatz-Wielandt formula for the Perron root, defined as an infimum of suprema. -/
-noncomputable def perronRoot' (A : Matrix n n ℝ) : ℝ :=
-  ⨅ (x : n → ℝ) (_ : ∀ i, 0 < x i), maxRatio A x
-
 /-- The Perron root, as the supremum of the Collatz-Wielandt function (see Seneta). -/
 noncomputable def perronRoot_alt (A : Matrix n n ℝ) : ℝ :=
   sSup (collatzWielandtFn A '' P_set)
-
-lemma minRatio_le_maxRatio (A : Matrix n n ℝ) (x : n → ℝ) :
-    minRatio A x ≤ maxRatio A x  := by
-  cases isEmpty_or_nonempty n with
-  | inl h =>
-    simp [minRatio, maxRatio]
-  | inr h =>
-    simpa [minRatio, maxRatio] using
-    (ciInf_le_ciSup (f := fun i : n ↦ (A.mulVec x i) / x i)
-      (Set.finite_range _).bddBelow (Set.finite_range _).bddAbove)
-
--- Auxiliary lemma: the sets used in sSup and sInf are nonempty
-lemma min_max_sets_nonempty [Nonempty n] (A : Matrix n n ℝ) :
-  ({r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = minRatio A x}.Nonempty) ∧
-  ({r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = maxRatio A x}.Nonempty) := by
-  refine ⟨?_, ?_⟩ <;>
-  refine ⟨_, ⟨fun _ => (1 : ℝ), ⟨?_, rfl⟩⟩⟩ <;>
-  intro i <;> simp
-
--- Auxiliary lemma: for any minimum ratio, there exists a maximum ratio that's greater
-lemma forall_exists_min_le_max [Nonempty n] (A : Matrix n n ℝ) :
-    ∀ r ∈ {r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = minRatio A x},
-    ∃ s ∈ {s | ∃ y : n → ℝ, (∀ i, 0 < y i) ∧ s = maxRatio A y}, r ≤ s := by
-  rintro _ ⟨x, hx, rfl⟩
-  exact ⟨maxRatio A x, ⟨x, hx, rfl⟩, minRatio_le_maxRatio A x⟩
 
 theorem eq_eigenvalue_of_positive_eigenvector [Nonempty n] {A : Matrix n n ℝ}
     {r : ℝ} {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
@@ -313,27 +253,9 @@ theorem eq_eigenvalue_of_positive_eigenvector [Nonempty n] {A : Matrix n n ℝ}
     rw [this, mul_div_cancel_pos_right rfl (hv_pos (Exists.choose h_supp_nonempty))]
 
 lemma bddAbove_image_P_set [Nonempty n] (A : Matrix n n ℝ)
-    (hA_nonneg : ∀ i j, 0 ≤ A i j) : BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
-  refine ⟨univ.sup' univ_nonempty (fun i ↦ ∑ j, A i j), fun _ ↦ ?_⟩
-  rintro ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
-  obtain ⟨m, _, h_max_eq⟩ := exists_mem_eq_sup' univ_nonempty x
-  have h_xm_pos : 0 < x m := by
-    obtain ⟨i, hi_pos⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
-    rw [← h_max_eq]
-    exact lt_of_lt_of_le hi_pos (le_sup' x (mem_univ i))
-  have h_le_ratio : collatzWielandtFn A x ≤ (A *ᵥ x) m / x m :=
-    CollatzWielandt.le_any_ratio A hx_nonneg hx_ne_zero m h_xm_pos
-  have h_ratio_le : (A *ᵥ x) m / x m ≤ univ.sup' univ_nonempty (fun k ↦ ∑ l, A k l) := by
-    rw [mulVec_apply, div_le_iff h_xm_pos]
-    calc ∑ j, A m j * x j ≤ ∑ j, A m j * x m := ?_
-         _ = (∑ j, A m j) * x m := by rw [sum_mul]
-         _ ≤ (univ.sup' univ_nonempty (fun k ↦ ∑ l, A k l)) * x m := ?_
-    · apply sum_le_sum; intro j _;
-        exact mul_le_mul_of_nonneg_left
-        (by rw [← h_max_eq]; exact le_sup' x (mem_univ j)) (hA_nonneg m j)
-    · apply mul_le_mul_of_nonneg_right
-        (le_sup' (fun k ↦ ∑ l, A k l) (mem_univ m)) (le_of_lt h_xm_pos)
-  exact le_trans h_le_ratio h_ratio_le
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    BddAbove (collatzWielandtFn A '' P_set) :=
+  bddAbove (A := A) hA_nonneg
 
 /-- Any eigenvalue with a strictly positive eigenvector is ≤ the Perron root. -/
 
@@ -351,7 +273,7 @@ lemma left_eigenvector_of_transpose {r : ℝ} {u : n → ℝ} (hu_left : u ᵥ* 
     Aᵀ *ᵥ u = r • u := by
   rwa [← vecMul_eq_mulVec_transpose]
 
-/-- For any non-negative vector `w`, its Collatz–Wielandt value … -/
+/-- For a left eigenvector, the Collatz–Wielandt value of any non-negative vector is ≤ the eigenvalue. -/
 lemma le_eigenvalue_of_left_eigenvector (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {r : ℝ} (_ : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i) (h_eig : u ᵥ* A = r • u)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
@@ -379,7 +301,7 @@ If `u` is a strictly positive left eigenvector of `A` for eigenvalue `r > 0`,
 then the Perron root of `A` is less than or equal to `r`.
 That is, `perronRoot_alt A ≤ r`.
 -/
-lemma perron_root_le_eigenvalue_of_left_eigenvector [Nonempty n]    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i)
+lemma perron_root_le_eigenvalue_of_left_eigenvector [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i)
     (h_eig : u ᵥ* A = r • u) : perronRoot_alt A ≤ r := by
   apply csSup_le (CollatzWielandt.set_nonempty)
   · rintro _ ⟨w, ⟨hw_nonneg, hw_ne_zero⟩, rfl⟩
@@ -447,7 +369,7 @@ lemma le_of_max_le_row_sum [Nonempty n] {B : Matrix n n ℝ} {x : n → ℝ} {c 
 For any non-negative vector `w`, its Collatz–Wielandt value is bounded above by a
 positive eigenvalue `r` that has a strictly positive *right* eigenvector `v`.
 -/
-theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  (hA_nonneg : ∀ i j, 0 ≤ A i j)
+theorem le_eigenvalue_of_right_eigenvector [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {r : ℝ} (_ : 0 < r) {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
     collatzWielandtFn A w ≤ r := by
@@ -496,7 +418,7 @@ theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  (hA_nonneg : ∀ i j, 0
 /- Any positive eigenvalue `r` with a strictly positive right eigenvector `v` is an
 upper bound for the range of the Collatz-Wielandt function.
 -/
-theorem eigenvalue_is_ub_of_positive_eigenvector [Nonempty n]    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {v : n → ℝ}
+theorem eigenvalue_is_ub_of_positive_eigenvector [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {v : n → ℝ}
     (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) : perronRoot_alt A ≤ r := by
   refine csSup_le (CollatzWielandt.set_nonempty (A := A)) (fun y hy ↦ ?_)
   obtain ⟨w, ⟨hw_nonneg, hw_ne_zero⟩, rfl⟩ := hy
@@ -511,10 +433,6 @@ theorem eq_perron_root_of_positive_eigenvector [Nonempty n] {r : ℝ}
   le_antisymm
     (eigenvalue_le_perron_root_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig)
     (eigenvalue_is_ub_of_positive_eigenvector hA_nonneg hr_pos hv_pos h_eig)
-
-lemma perronRoot'_le_maxRatio_of_min_ge_perronRoot' {x : n → ℝ} (hr : perronRoot' A ≤ minRatio A x) :
-    perronRoot' A ≤ maxRatio A x :=
-  hr.trans (minRatio_le_maxRatio A x)
 
 lemma maximizer_satisfies_le_mulVec [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     let r := perronRoot_alt A
