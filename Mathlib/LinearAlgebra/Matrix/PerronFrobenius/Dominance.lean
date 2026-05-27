@@ -8,18 +8,21 @@ module
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
 public import Mathlib.Analysis.CStarAlgebra.PerronFrobenius
 
-/-!
-# Spectral dominance
--/
+
+open Quiver.Path
 
 @[expose] public section
 
 namespace Matrix
-open CollatzWielandt Matrix Classical Complex
+open CollatzWielandt
+
+open Quiver
+open Matrix Classical Complex
 
 variable {n : Type*} {A : Matrix n n ℝ}
 
-/-- A property propagating along positive entries of an irreducible matrix holds everywhere. -/
+/-- If a property `P` holds for at least one vertex `i₀` and propagates along the edges
+of an irreducible matrix's graph (`P i ∧ A i j > 0 → P j`), then `P` holds for all vertices. -/
 lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n → Prop)
   (h₀ : ∃ i₀, P i₀) (hstep : ∀ i j, P i → 0 < A i j → P j) :
   ∀ i, P i := by
@@ -29,90 +32,208 @@ lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n →
   have hS' : S ≠ Set.univ := by
     intro hSu
     obtain ⟨j, hj⟩ := hP
-    exact hj (by simpa [S] using (Set.mem_univ j ▸ hSu.symm))
+    exact hj (by
+      have : j ∈ S := by simpa [hSu.symm] using (Set.mem_univ j)
+      simpa [S] using this)
   obtain ⟨i, hiS, j, hjS, hij⟩ :=
     Irreducible.exists_edge_out (A := A) hA_irred S h₀ hS'
-  exact hjS (hstep i j (by simpa [S] using hiS) hij)
+  exact hjS (by simpa [S] using (hstep i j (by simpa [S] using hiS) hij))
 
 variable {n : Type*} [Fintype n]
 variable {A : Matrix n n ℝ}
 
-/-- For a non-negative matrix, `|μ| • |v| ≤ A *ᵥ |v|` for any eigenpair. -/
+/-- For an irreducible, non-negative matrix `A`, if `v` is an eigenvector for an eigenvalue `μ`,
+then the vector `w` of absolute values of `v` satisfies the inequality `|μ| • w ≤ A *ᵥ w`.
+This is a key step in the Perron-Frobenius theorem. -/
 lemma abs_eigenvector_inequality (hA_nonneg : ∀ i j, 0 ≤ A i j)
   {μ : ℝ} {v : n → ℝ} (h_eig : A *ᵥ v = μ • v) :
   let w := fun i ↦ |v i|; |μ| • w ≤ A *ᵥ w := by
   intro w i
-  calc (|μ| • w) i = |μ * v i| := by simp [w, Pi.smul_apply, smul_eq_mul]
-    _ = |(A *ᵥ v) i| := by simp [h_eig, Pi.smul_apply, smul_eq_mul, mulVec_apply]
-    _ ≤ ∑ j, A i j * |v j| := by
-      gcongr
-      · exact Finset.abs_sum_le_sum_abs ..
-      · exact fun j _ ↦ abs_mul _ _
-      · exact fun j _ ↦ abs_of_nonneg (hA_nonneg i j)
-    _ = (A *ᵥ w) i := by simp [w, mulVec_apply]
+  calc (|μ| • w) i = |μ| * |v i| := ?_
+    _ = |μ * v i| := ?_
+    _ = |(μ • v) i| := ?_
+    _ = |(A *ᵥ v) i| := ?_
+    _ = |∑ j, A i j * v j| := ?_
+    _ ≤ ∑ j, |A i j * v j| := ?_
+    _ = ∑ j, (A i j) * |v j| := ?_
+    _ = (A *ᵥ w) i := ?_
+  · simp [w, Pi.smul_apply, smul_eq_mul]
+  · simp
+  · simp [Pi.smul_apply, smul_eq_mul]
+  · simp [h_eig, Pi.smul_apply, smul_eq_mul]
+  · simp [mulVec_apply]
+  · simpa using
+    (Finset.abs_sum_le_sum_abs (s := Finset.univ) (f := fun j => A i j * v j))
+  ·classical
+   refine Finset.sum_congr rfl ?_
+   intro j _
+   simp [abs_mul, abs_of_nonneg (hA_nonneg i j)]
+  · simp [w, mulVec_apply]
 
-/-- Triangle equality for a complex eigenvector yields a real eigenvector of absolute values. -/
+/--
+If the triangle equality holds for the complex eigenvector equation `A * x = lam * x`,
+then the vector of norms `‖x‖` is a real eigenvector of `A` with eigenvalue `‖lam‖`.
+-/
 lemma norm_eigenvector_is_eigenvector_of_triangle_eq (hA_nonneg : ∀ i j, 0 ≤ A i j)
   {lam : ℂ} {x : n → ℂ} (hx_eig : (A.map (algebraMap ℝ ℂ)) *ᵥ x = lam • x)
   (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖) :
   A *ᵥ (fun i => ‖x i‖) = (‖lam‖ : ℝ) • (fun i => ‖x i‖) := by
   funext i
-  calc (A *ᵥ fun i => ‖x i‖) i = ∑ j, A i j * ‖x j‖ := by simp [mulVec_apply]
-       _ = ∑ j, ‖(A i j : ℂ) * x j‖ := by
-         simp_rw [Complex.norm_ofReal, abs_of_nonneg (hA_nonneg _ _), norm_mul]
-       _ = ‖∑ j, (A i j : ℂ) * x j‖ := (h_triangle_eq i).symm
-       _ = ‖((A.map (algebraMap ℝ ℂ)) *ᵥ x) i‖ := by simp
-       _ = ‖(lam • x) i‖ := by rw [hx_eig]
-       _ = ‖lam‖ * ‖x i‖ := by simp [norm_mul]
-       _ = ((‖lam‖ : ℝ) • fun i => ‖x i‖) i := by simp [smul_eq_mul]
+  calc (A *ᵥ fun i => ‖x i‖) i = ∑ j, A i j * ‖x j‖ := ?_
+       _   = ∑ j, ‖(A i j : ℂ)‖ * ‖x j‖ := ?_
+       _   = ∑ j, ‖(A i j : ℂ) * x j‖ := ?_
+       _   = ‖∑ j, (A i j : ℂ) * x j‖ := ?_
+       _   = ‖((A.map (algebraMap ℝ ℂ)) *ᵥ x) i‖ := ?_
+       _   = ‖(lam • x) i‖ := ?_
+       _   = ‖lam * x i‖ := ?_
+       _   = ‖lam‖ * ‖x i‖ := ?_
+       _   = ((‖lam‖ : ℝ) • fun i => ‖x i‖) i := ?_
+  · simp [mulVec_apply]
+  · simp_rw [Complex.norm_ofReal, abs_of_nonneg (hA_nonneg _ _)]
+  · simp_rw [norm_mul]
+  · exact (h_triangle_eq i).symm
+  · simp; rfl
+  · rw [hx_eig]
+  · rw [Pi.smul_apply]; rfl
+  · rw [norm_mul]
+  · simp [smul_eq_mul]
 
-/-- Equal row sums give an eigenvector of all ones. -/
-lemma row_sum_eigenvalue (_ : ∀ i j, 0 ≤ A i j) (h_row_sums : ∀ i, ∑ j, A i j = lambda) :
+/--
+If equality holds in the triangle inequality for `∑ z_j`, then all non-zero `z_j`
+are aligned with the sum.
+-/
+lemma aligned_of_all_nonneg_re_im {i : n} {x : n → ℂ}
+  (h_sum_eq : ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖) :
+    ∀ j, (A i j : ℂ) * x j ≠ 0 → ∃ c : ℝ, 0 ≤ c ∧ (A i j : ℂ) * x j = c • (∑ k, (A i k : ℂ) * x k) := by
+  let z : n → ℂ := fun j => (A i j : ℂ) * x j
+  let s : ℂ     := ∑ j, z j
+  have h_z_sum : ‖s‖ = ∑ j, ‖z j‖ := by
+    simpa [z, s] using h_sum_eq
+  intro j hz_ne_zero
+  have hs_ne_zero : s ≠ 0 := by
+    intro hs
+    have hsum : (∑ k, ‖z k‖) = 0 := by
+      calc
+        (∑ k, ‖z k‖) = ‖s‖ := by simpa using h_z_sum.symm
+        _ = 0 := by simpa [hs] using (norm_zero : ‖(0 : ℂ)‖ = 0)
+    have hzj_norm0 : ‖z j‖ = 0 := by
+      have hnonneg : ∀ k, 0 ≤ ‖z k‖ := fun _ => norm_nonneg _
+      exact
+        (Finset.sum_eq_zero_iff_of_nonneg (s := Finset.univ) (fun k _ => hnonneg k)).1 hsum
+          j (by simp)
+    exact hz_ne_zero (by
+      have : z j = 0 := norm_eq_zero.mp hzj_norm0
+      simpa [z] using this)
+  have h_align :=
+    Complex.each_term_is_nonneg_real_multiple_of_sum_of_triangle_eq (s := Finset.univ)
+      (v := z) (u := s) (by simp [s]) (by simpa [s] using h_z_sum) hs_ne_zero
+  rcases h_align j (by simp) with ⟨c, hc_nonneg, hcz⟩
+  have hcz' : z j = (c : ℂ) * s := hcz
+  have hcz_smul : z j = c • s := by simpa [smul_eq_mul] using hcz'
+  refine ⟨c, hc_nonneg, ?_⟩
+  simpa [z, s] using hcz_smul
+
+/-- For a non-negative matrix `A`, if the row sums are all
+equal to `lambda`, then `lambda` is an eigenvalue with the all-ones vector as its eigenvector. -/
+lemma row_sum_eigenvalue (_ : ∀ i j, 0 ≤ A i j) {lambda : ℝ} (h_row_sums : ∀ i, ∑ j, A i j = lambda) :
   A *ᵥ (1 : n → ℝ) = lambda • (1 : n → ℝ) := by
-  ext i; simp [mulVec_apply, h_row_sums i, smul_eq_mul]
+  ext i
+  simp [mulVec_apply, h_row_sums i, smul_eq_mul]
 
-/-- A non-negative vector orthogonal to a positive vector is zero. -/
+/-- If the dot product of a non-negative vector `v` and a strictly positive vector `w` is zero,
+    then `v` must be the zero vector. -/
 lemma eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos {v w : n → ℝ}
     (hv_nonneg : ∀ i, 0 ≤ v i) (hw_pos : ∀ i, 0 < w i) (h_dot : v ⬝ᵥ w = 0) : v = 0 := by
-  rw [dotProduct, Finset.sum_eq_zero_iff_of_nonneg fun i _ => mul_nonneg (hv_nonneg i) (hw_pos i).le]
-    at h_dot
+  rw [dotProduct] at h_dot
+  have h_terms_nonneg : ∀ i, 0 ≤ v i * w i := by
+    intro i
+    exact mul_nonneg (hv_nonneg i) (hw_pos i).le
+  rw [Finset.sum_eq_zero_iff_of_nonneg (fun i _ => h_terms_nonneg i)] at h_dot
   funext i
-  exact (mul_eq_zero.mp (h_dot i (Finset.mem_univ i))).resolve_right (hw_pos i).ne'
+  have hi_zero : v i * w i = 0 := h_dot i (Finset.mem_univ i)
+  rw [mul_eq_zero] at hi_zero
+  exact hi_zero.resolve_right (hw_pos i).ne'
+
+/--
+If a scalar `μ` is in the spectrum of a complex matrix `A`, then there exists a non-zero
+eigenvector `x` for that eigenvalue.
+-/
+theorem exists_eigenvector_of_mem_spectrum {A' : Matrix n n ℝ} {μ : ℂ}
+    (h : μ ∈ spectrum ℂ (A'.map (algebraMap ℝ ℂ))) :
+    ∃ x, x ≠ 0 ∧ (A'.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x := by
+  have h_spec : μ ∈ spectrum ℂ (toLin' (A'.map (algebraMap ℝ ℂ))) := by
+    rwa [spectrum.Matrix_toLin'_eq_spectrum]
+  obtain ⟨x, hx_ne_zero, hx_eig⟩ := Module.End.exists_eigenvector_of_mem_spectrum h_spec
+  refine ⟨x, hx_ne_zero, by aesop⟩
 
 /- If `v` is an eigenvector of `A` with eigenvalue `r`, then `v` is an eigenvector of `A^m`
 with eigenvalue `r^m`.
 -/
-lemma pow_eigenvector_of_eigenvector [DecidableEq n] [CommSemiring R]
+lemma pow_eigenvector_of_eigenvector {R : Type*} [DecidableEq n] [CommSemiring R]
   {A : Matrix n n R} {r : R} {v : n → R} (h_eig : A *ᵥ v = r • v) (m : ℕ) :
   (A ^ m) *ᵥ v = (r ^ m) • v := by
   induction m with
-  | zero => simp
+  | zero => simp [pow_zero]
   | succ m ih =>
-    simp only [pow_succ, Matrix.mulVec_mulVec, mulVec_smul, h_eig, ih, smul_smul, pow_succ']
+  calc
+    (A ^ m.succ) *ᵥ v = (A ^ m * A) *ᵥ v := ?_
+    _ = A ^ m *ᵥ (A *ᵥ v) := ?_
+    _ = A ^ m *ᵥ (r • v) := ?_
+    _ = r • (A ^ m *ᵥ v) := ?_
+    _ = r • (r ^ m • v) := ?_
+    _ = r ^ (m + 1) • v := ?_
+  · simp [pow_succ]
+  · rw [Matrix.mulVec_mulVec]
+  · simp [h_eig]
+  · rw [mulVec_smul]
+  · simp [ih]
+  · simp [pow_succ', smul_smul]
 
-lemma sum_component_norms_eq_perron_power_norm [DecidableEq n]
+lemma sum_component_norms_eq_perron_power_norm [DecidableEq n] -- [CommSemiring R]
       {A : Matrix n n ℝ} {x : n → ℂ}
       (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot_alt A) • (fun i ↦ ‖x i‖))
       (k : ℕ) (m : n) (hAk_pos : ∀ i j, 0 < (A ^ k) i j) :
       ∑ l, ‖((A ^ k) m l : ℂ) * x l‖ = (perronRoot_alt A) ^ k * ‖x m‖ := by
-  have h_pow_eig := pow_eigenvector_of_eigenvector h_x_abs_eig k
-  calc ∑ l, ‖((A ^ k) m l : ℂ) * x l‖ = ∑ l, (A ^ k) m l * ‖x l‖ := by
-        simp_rw [norm_mul, Complex.norm_ofReal, abs_of_pos (hAk_pos m _)]
-      _ = ((A ^ k) *ᵥ (fun i ↦ ‖x i‖)) m := by simp [mulVec_apply]
-      _ = (perronRoot_alt A) ^ k * ‖x m‖ := by
-        simpa [Pi.smul_apply, smul_eq_mul] using congrArg (fun v => v m) h_pow_eig
+  have h_pow_eig : (A ^ k) *ᵥ (fun i ↦ ‖x i‖) = (perronRoot_alt A) ^ k • (fun i ↦ ‖x i‖) :=
+  pow_eigenvector_of_eigenvector h_x_abs_eig k
+  calc ∑ l, ‖((A ^ k) m l : ℂ) * x l‖ = ∑ l, |(A ^ k) m l| * ‖x l‖ := ?_
+    _ = ∑ l, (A ^ k) m l * ‖x l‖ := ?_
+    _ = ((A ^ k) *ᵥ (fun i ↦ ‖x i‖)) m := ?_
+    _ = ((perronRoot_alt A) ^ k • (fun i ↦ ‖x i‖)) m := ?_
+    _ = (perronRoot_alt A) ^ k * ‖x m‖ := ?_
+  · simp_rw [norm_mul, Complex.norm_ofReal]
+  · simp_rw [abs_of_pos (hAk_pos m _)]
+  · simp [mulVec_apply]
+  · simpa using congrArg (fun v => v m) h_pow_eig
+  · simp [Pi.smul_apply, smul_eq_mul]
 
-/-- Complex eigenvectors persist under matrix powers. -/
+/--
+If `x` is a complex eigenvector of a real matrix `A` with eigenvalue `μ`, then `x` is an
+eigenvector of `A^m` with eigenvalue `μ^m`. This is the complex version of the lemma.
+-/
 lemma pow_eigenvector_of_eigenvector' [DecidableEq n] {A : Matrix n n ℝ} {μ : ℂ} {x : n → ℂ}
     (h_eig : (A.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x) (m : ℕ) :
     ((A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x = (μ ^ m) • x := by
   induction m with
-  | zero => simp
+  | zero =>
+    simp [pow_zero, Matrix.map_one, one_mulVec, one_smul]
   | succ m ih =>
-    simp only [pow_succ', Matrix.map_mul, Matrix.mulVec_mulVec, mulVec_smul, h_eig, ih, smul_smul,
-      pow_succ, pow_mul_comm]
+    calc
+      ((A ^ (m + 1)).map (algebraMap ℝ ℂ)) *ᵥ x
+          = ((A * A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x := by rw [pow_succ']
+      _ = ((A.map (algebraMap ℝ ℂ)) * ((A ^ m).map (algebraMap ℝ ℂ))) *ᵥ x := by rw [Matrix.map_mul]
+      _ = (A.map (algebraMap ℝ ℂ)) *ᵥ (((A ^ m).map (algebraMap ℝ ℂ)) *ᵥ x) := by rw [Matrix.mulVec_mulVec]
+      _ = (A.map (algebraMap ℝ ℂ)) *ᵥ ((μ ^ m) • x) := by rw [ih]
+      _ = (μ ^ m) • ((A.map (algebraMap ℝ ℂ)) *ᵥ x) := by rw [mulVec_smul]
+      _ = (μ ^ m) • (μ • x) := by rw [h_eig]
+      _ = ((μ ^ m) * μ) • x := by rw [smul_smul]
+      _ = (μ ^ (m + 1)) • x := by rw [pow_succ']; rw [@pow_mul_comm']
 
-/-- `‖μ‖ • |x| ≤ A *ᵥ |x|` for a complex eigenpair of a non-negative matrix. -/
+/--
+For an eigenvalue μ of a nonnegative matrix A with eigenvector x,
+the absolute value |μ| satisfies the sub-invariant relation: |μ|⋅|x| ≤ A⋅|x|.
+This is the fundamental inequality in spectral analysis of nonnegative matrices.
+-/
 theorem eigenvalue_abs_subinvariant
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {μ : ℂ} {x : n → ℂ} (hx_eig : (A.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x) :
@@ -131,7 +252,9 @@ theorem eigenvalue_abs_subinvariant
 variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
-/-- A non-zero eigenvalue of an irreducible matrix has non-zero norm. -/
+/--
+Under the conditions of the main theorem, the eigenvalue `lamda` must be non-zero.
+-/
 lemma eigenvalue_ne_zero_of_irreducible
     {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {lam : ℂ} {x : n → ℂ} (hx_ne_zero : x ≠ 0)
@@ -245,7 +368,8 @@ lemma perron_root_le_of_subinvariant (hA_irred : A.IsIrreducible) (hA_nonneg : �
     exact le_of_mul_le_mul_right h_mul_le h_dot_pos
   rwa [h_r_eq_perron] at h_r_le_s
 
-/-- Sub-invariance at the Perron root forces eigenvector equality. -/
+/-- If equality holds in the subinvariance inequality `r • v ≤ A *ᵥ v` for the Perron root `r`,
+    then `v` must be an eigenvector. -/
 lemma subinvariant_equality_implies_eigenvector
     (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
@@ -279,7 +403,10 @@ lemma subinvariant_equality_implies_eigenvector
     have h_z_is_zero' := eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos hz_nonneg hu_pos (by rwa [dotProduct_comm])
     contradiction
 
-/-- The Collatz-Wielandt function is bounded by the Perron root. -/
+/--
+The value of the Collatz-Wielandt function for any non-negative, non-zero vector
+is less than or equal to the Perron root.
+-/
 lemma collatzWielandtFn_le_perronRoot_alt
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
@@ -288,7 +415,10 @@ lemma collatzWielandtFn_le_perronRoot_alt
   rw [Set.mem_image]
   exact ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
 
-/-- Every eigenvalue has modulus at most the Perron root. -/
+/--
+Any eigenvalue μ of a nonnegative irreducible matrix A has absolute value
+at most equal to the Perron root.
+-/
 theorem eigenvalue_abs_le_perron_root
     {A : Matrix n n ℝ} (_ : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ))) :
@@ -311,7 +441,8 @@ theorem eigenvalue_abs_le_perron_root
     collatzWielandtFn_le_perronRoot_alt hA_nonneg hx_abs_nonneg hx_abs_ne_zero
   exact le_trans h_le_collatz h_le_perron
 
-/-- The Perron root equals the positive eigenvalue from existence. -/
+/-- For an irreducible, non-negative matrix, the Perron root (defined as the Collatz-Wielandt
+supremum) is equal to the unique positive eigenvalue `r` from the existence theorem. -/
 lemma perron_root_eq_positive_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     ∃ r v, 0 < r ∧ (∀ i, 0 < v i) ∧ A *ᵥ v = r • v ∧ perronRoot_alt A = r := by
   obtain ⟨r, v, hr_pos, hv_pos, h_eig⟩ := exists_positive_eigenvector_of_irreducible hA_irred
@@ -322,6 +453,10 @@ lemma perron_root_eq_positive_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg
   have h_eq : perronRoot_alt A = r := le_antisymm h_le h_ge
   exact ⟨r, v, hr_pos, hv_pos, h_eig, h_eq⟩
 
+/--
+If a matrix `A` has an eigenvector `v` for an eigenvalue `μ`, then `μ` is in the spectrum of `A`.
+This is a direct consequence of the definition of an eigenvalue and the spectrum.
+-/
 lemma mem_spectrum_of_hasEigenvector {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
     [FiniteDimensional K V] {f : V →ₗ[K] V} {μ : K} {v : V} (h : Module.End.HasEigenvector f μ v) :
     μ ∈ spectrum K f := by
@@ -333,10 +468,18 @@ lemma mem_spectrum_of_eigenvalue
     {A : Matrix n n K} {μ : K} {v : n → K}
     (hv_ne_zero : v ≠ 0) (h_eig : A *ᵥ v = μ • v) :
     μ ∈ spectrum K A := by
-  simpa [spectrum.Matrix_toLin'_eq_spectrum] using
-    mem_spectrum_of_hasEigenvector ⟨by rwa [← Module.End.mem_eigenspace_iff, toLin'_apply], hv_ne_zero⟩
+  let f := toLin' A
+  have h_eig_f : f v = μ • v := by
+    simpa [toLin'_apply, f] using h_eig
+  have h_has_eigvec : Module.End.HasEigenvector f μ v :=
+    ⟨by
+      rwa [← Module.End.mem_eigenspace_iff] at h_eig_f,
+      hv_ne_zero⟩
+  have h_mem_f : μ ∈ spectrum K f :=
+    mem_spectrum_of_hasEigenvector h_has_eigvec
+  simpa [f, spectrum.Matrix_toLin'_eq_spectrum] using h_mem_f
 
-/-- The Perron root is an eigenvalue. -/
+/-- The Perron root of an irreducible, non-negative matrix is an eigenvalue. -/
 theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     perronRoot_alt A ∈ spectrum ℝ A := by
   obtain ⟨r', v, _, hv_pos, h_eig, h_eq⟩ := perron_root_eq_positive_eigenvalue hA_irred hA_nonneg
@@ -347,7 +490,9 @@ theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ 
   rw [h_eq]
   exact mem_spectrum_of_eigenvalue hv_ne_0 h_eig
 
-/-- The Perron root is the spectral radius. -/
+/-- Perron-Frobenius Theorem (Dominance): The Perron root of an irreducible, non-negative
+matrix is an eigenvalue and its modulus is greater than or equal to the modulus of any other
+eigenvalue. It is the spectral radius. -/
 theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     let r := perronRoot_alt A
     r ∈ spectrum ℝ A ∧ ∀ μ ∈ spectrum ℝ A, |μ| ≤ r := by
@@ -378,3 +523,5 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
       exact mem_spectrum_of_eigenvalue hvc_ne_zero hvc_eig
     have h_bound := eigenvalue_abs_le_perron_root hA_irred hA_nonneg hμ_complex
     rwa [Complex.norm_ofReal] at h_bound
+
+end Matrix
