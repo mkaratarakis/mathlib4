@@ -13,8 +13,10 @@ BRANCHES: list[tuple[str, list[str], str | None]] = [
     ("pf/port/list-count", ["Mathlib/Data/List/Count.lean"], None),
     ("pf/port/quiver-cyclic", ["Mathlib/Combinatorics/Quiver/Cyclic.lean"],
      "public import Mathlib.Combinatorics.Quiver.Cyclic"),
-    ("pf/port/matrix-spectrum", ["Mathlib/LinearAlgebra/Matrix/Spectrum/PerronFrobenius.lean"],
-     "public import Mathlib.LinearAlgebra.Matrix.Spectrum.PerronFrobenius"),
+    ("pf/port/matrix-spectrum", [
+        "Mathlib/LinearAlgebra/Matrix/Charpoly/Eigs.lean",
+        "Mathlib/LinearAlgebra/Matrix/Spectrum/PerronFrobenius.lean",
+    ], "public import Mathlib.LinearAlgebra.Matrix.Spectrum.PerronFrobenius"),
     ("pf/port/aux", ["Mathlib/LinearAlgebra/Matrix/PerronFrobenius/Aux.lean"],
      "public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Aux"),
     ("pf/port/cstar-classes", ["Mathlib/Analysis/CStarAlgebra/PerronFrobenius.lean"],

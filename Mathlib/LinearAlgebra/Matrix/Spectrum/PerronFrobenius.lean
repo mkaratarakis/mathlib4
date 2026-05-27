@@ -51,7 +51,7 @@ variable {n : Type*} [Fintype n] [DecidableEq n]
 ## Spectral Properties of Matrices
 -/
 
-/-- A matrix and its transpose have the same spectrum. -/
+/-- The determinant of `μ • 1 - A` is the characteristic polynomial of `A` at `μ`. -/
 lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
     det (μ • 1 - A) = (Matrix.charpoly A).eval μ := by
   have h : μ • 1 = Matrix.scalar n μ := by
@@ -60,12 +60,6 @@ lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
     rfl
   rw [h, ← eval_charpoly A μ]
 
-
-/-- A matrix and its transpose have the same spectrum. -/
-lemma spectrum_eq_spectrum_transpose (A : Matrix n n ℝ) :
-    spectrum ℝ A = spectrum ℝ Aᵀ := by
-  ext μ
-  rw [mem_spectrum_iff_isRoot_charpoly, mem_spectrum_iff_isRoot_charpoly, charpoly_transpose]
 
 /-!
 ## Determinant, kernel, and invertibility
@@ -411,7 +405,7 @@ omit [DecidableEq n] in
 lemma spectralRadius_eq_spectralRadius_transpose [DecidableEq n] (A : Matrix n n ℝ) :
     spectralRadius ℝ A = spectralRadius ℝ Aᵀ := by
   unfold spectralRadius
-  rw [spectrum_eq_spectrum_transpose]
+  rw [spectrum_transpose A]
 
 lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
     spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ := by
