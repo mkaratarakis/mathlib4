@@ -1,39 +1,37 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Primitive
 
+/-!
+# Uniqueness of the Perron eigenvector
 
+For a primitive non-negative matrix, the strictly positive eigenvector for the Perron root is
+unique up to a positive scalar multiple.
 
+## Main results
 
+* `uniqueness_of_positive_eigenvector`: uniqueness of the positive Perron eigenvector up to scaling.
+
+## Implementation notes
+
+Given two positive eigenvectors, form their minimum-ratio difference and derive a contradiction
+using primitivity.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, primitive matrix, positive eigenvector
+-/
 
 @[expose] public section
-
-/-!
-# Perron-Frobenius Theorem: Uniqueness of the Eigenvector
-
-This file proves that for a primitive, non-negative matrix, the strictly positive
-eigenvector corresponding to the Perron root `r` is unique up to a positive
-scalar multiple. This corresponds to part (d) of Theorem 1.1 in Seneta's
-"Non-negative Matrices and Markov Chains".
-
-The proof strategy is as follows:
-1. Given two strictly positive eigenvectors `v` and `w` for the same eigenvalue `r`.
-2. Construct a new vector `z = v - c • w`, where `c` is the minimum of the
-   component-wise ratios `vᵢ / wᵢ`.
-3. By construction, `z` is a non-negative vector, and at least one of its
-   components is zero.
-4. Show that `z` is also an eigenvector of `A` with eigenvalue `r`.
-5. Use the primitivity of `A` to show that if `z` were non-zero, then `A^k * z`
-   would be strictly positive for a large enough `k`.
-6. However, `A^k * z = r^k • z`, which must have a zero component since `z` does.
-   This is a contradiction.
-7. Thus, `z` must be the zero vector, which implies `v = c • w`.
--/
 
 namespace Matrix
 variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]

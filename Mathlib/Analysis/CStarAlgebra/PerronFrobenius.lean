@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -13,7 +13,21 @@ public import Mathlib.Analysis.CStarAlgebra.Classes
 /-!
 # Complex-analytic lemmas for Perron–Frobenius
 
-Triangle-inequality alignment and norm identities used in the C*-algebra route.
+Triangle-inequality alignment and norm identities for complex matrices used in spectral
+dominance proofs.
+
+## Main results
+
+* `Complex.aligned_of_triangle_eq`: triangle equality forces termwise phase alignment.
+* `Complex.aligned_of_mul_of_real_pos`: positive real factors preserve phase.
+
+## Implementation notes
+
+These lemmas justify passing from complex eigenvectors to phase-aligned real-modulus vectors.
+
+## Tags
+
+Perron–Frobenius theorem, complex norm, triangle inequality
 -/
 
 open Finset Real Complex Matrix

@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -15,6 +15,17 @@ public import Mathlib.Tactic.Linarith
 
 Supporting lemmas on irreducible matrices, positive matrix–vector products, and quiver paths
 used in the Collatz–Wielandt and Perron–Frobenius chain.
+
+## Main results
+
+* `path_exists_in_support_of_irreducible`: irreducibility yields connecting paths inside supports.
+* `positive_mul_vec_of_nonneg_vec`: strictly positive matrices map non-negative vectors to
+  positive vectors.
+* `irreducible_mulVec_ne_zero`: irreducible matrices preserve non-zero non-negative vectors.
+
+## Tags
+
+irreducible matrix, quiver path, Perron–Frobenius theorem
 -/
 
 @[expose] public section

@@ -1,14 +1,35 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Dominance
 
 /-!
-# Spectral dominance, part 2
+# Spectral dominance for primitive matrices
+
+Phase alignment and triangle-equality arguments showing that eigenvalues of primitive
+non-negative matrices at the Perron modulus are exactly the Perron root.
+
+## Main results
+
+* `spectral_dominance_of_primitive`: if `‖μ‖` equals the Perron root, then `μ` is the Perron root.
+* `spectral_dominance_of_primitive'`: every other eigenvalue has strictly smaller modulus.
+
+## Implementation notes
+
+The proof uses a positive matrix power from primitivity to force global phase alignment of a
+complex eigenvector, then identifies the eigenvalue with the real Perron root.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, primitive matrix, spectral dominance
 -/
 
 @[expose] public section

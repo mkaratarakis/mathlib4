@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -14,7 +14,32 @@ public import Mathlib.Analysis.Convex.StdSimplex
 /-!
 # Collatz–Wielandt function for matrices
 
-Definitions and basic properties of the Collatz–Wielandt formula and Perron root bounds.
+The Collatz–Wielandt formula and its use to define and bound the Perron root of a non-negative
+matrix.
+
+## Main definitions
+
+* `collatzWielandtFn`: minimum positive entry ratio `(Ax)ᵢ / xᵢ`.
+* `perronRoot_alt`: supremum of `collatzWielandtFn` over non-zero non-negative vectors.
+
+## Main results
+
+* `upperSemicontinuousOn` and `exists_maximizer`: the Collatz–Wielandt function attains its
+  maximum on the standard simplex.
+* `eq_perron_root_of_positive_eigenvector`: a positive eigenpair determines the Perron root.
+* `le_of_subinvariant`: sub-invariance yields a Collatz–Wielandt lower bound.
+
+## Implementation notes
+
+Seneta uses row vectors; this development uses column vectors and `Matrix.mulVec`.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Collatz–Wielandt, Perron root, non-negative matrix
 -/
 
 @[expose] public section

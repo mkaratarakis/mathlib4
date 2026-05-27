@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -9,6 +9,21 @@ public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.DominancePart2
 
 /-!
 # Multiplicity of the Perron root
+
+Algebraic and geometric multiplicities of the Perron eigenvalue for irreducible matrices.
+
+## Main results
+
+* `geometric_multiplicity_one_of_irreducible`: the Perron eigenspace is one-dimensional.
+* `algebraic_multiplicity_one_of_irreducible`: the Perron root is a simple eigenvalue.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, algebraic multiplicity, geometric multiplicity
 -/
 
 @[expose] public section

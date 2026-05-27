@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -9,7 +9,30 @@ public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.CollatzWielandt
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 public import Mathlib.Tactic
 
+/-!
+# Perron–Frobenius for primitive matrices
 
+Existence and positivity of the Perron eigenpair for primitive non-negative matrices, following
+Theorem 1.1 of Seneta.
+
+## Main results
+
+* `exists_positive_eigenvector_of_primitive`: existence of a strictly positive Perron eigenvector.
+* `maximizer_is_eigenvector`: a Collatz–Wielandt maximizer is an eigenvector.
+
+## Implementation notes
+
+The proof uses upper semicontinuity of the Collatz–Wielandt function on the standard simplex
+and a contradiction argument from primitivity.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, primitive matrix, Collatz–Wielandt
+-/
 
 @[expose] public section
 
@@ -17,18 +40,6 @@ namespace Matrix
 open Finset Quiver
 variable {n : Type*} [Fintype n]
 
-/-!
-### The Perron-Frobenius Theorem for Primitive Matrices
-
-
-This section formalizes Theorem 1.1 from Seneta's "Non-negative Matrices and Markov Chains".
-The proof follows Seneta's logic :
-1. Define the Perron root `r` as the supremum of the Collatz-Wielandt function `r(x)`.
-2. Use the fact that `r(x)` is upper-semicontinuous on a compact set (the standard simplex)
-   to guarantee the supremum is attained by a vector `v`.
-3. Prove that `v` is an eigenvector by a contradiction argument using the primitivity of `A`.
-4. Prove that `v` is strictly positive, again using primitivity.
--/
 section PerronFrobenius
 variable {n : Type*} [Fintype n]
 variable {A : Matrix n n ℝ}
@@ -157,7 +168,7 @@ lemma perron_root_pos_of_primitive (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i 
 
 open Matrix.CollatzWielandt
 
-/-- **Perron-Frobenius theorem for primitive matrices - Existence part**-/
+/-- **Perron-Frobenius theorem for primitive matrices - Existence part**. -/
 theorem exists_positive_eigenvector_of_primitive
   (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
   ∃ (r : ℝ) (v : n → ℝ), r > 0 ∧ (∀ i, v i > 0) ∧ A *ᵥ v = r • v := by

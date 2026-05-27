@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -15,6 +15,19 @@ public import Mathlib.Analysis.SpecificLimits.Basic
 
 Compactness-based proofs that upper semicontinuous functions on compact sets are bounded
 and attain their supremum, without first-countability assumptions.
+
+## Main results
+
+* `IsCompact.exists_max_on_usco`: an upper semicontinuous function on a compact set attains
+  its maximum.
+
+## Implementation notes
+
+This file supports the Collatz–Wielandt maximizer argument on the standard simplex.
+
+## Tags
+
+upper semicontinuous, compact set, extreme value theorem
 -/
 
 open Set Filter Topology

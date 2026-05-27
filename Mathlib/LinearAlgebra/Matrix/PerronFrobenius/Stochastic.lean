@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -9,6 +9,21 @@ public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Dominance
 
 /-!
 # Column-stochastic matrices
+
+Perron–Frobenius consequences for irreducible column-stochastic matrices.
+
+## Main results
+
+* `exists_positive_eigenvector_of_irreducible_stochastic`: an irreducible column-stochastic
+  matrix has a unique stationary distribution in the standard simplex.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+stochastic matrix, stationary distribution, Perron–Frobenius theorem
 -/
 
 @[expose] public section

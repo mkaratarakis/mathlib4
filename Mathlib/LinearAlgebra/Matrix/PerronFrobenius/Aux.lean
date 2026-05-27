@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -10,20 +10,27 @@ public import Mathlib.Algebra.Order.Ring.Star
 public import Mathlib.Data.Int.Star
 public import Mathlib.Analysis.Convex.StdSimplex
 
-
-open Filter Set Finset Matrix Topology Convex
-
 /-!
 # Auxiliary results for Perron–Frobenius theory
 
-Matrix–vector identities and simplex lemmas used by the Perron–Frobenius development.
+Matrix–vector identities, simplex lemmas, and filter facts used in the Perron–Frobenius
+development.
+
+## Implementation notes
+
+This file collects lemmas that are not yet in mathlib but are shared by several files in the
+Perron–Frobenius chain.
+
+## Tags
+
+Perron–Frobenius theorem, standard simplex, matrix–vector product
 -/
 
 @[expose] public section
 
-/-!
-## Continuity helpers
--/
+open Filter Set Finset Matrix Topology Convex
+
+/-! ### Continuity helpers -/
 
 theorem eventually_to_open {α : Type*} [TopologicalSpace α] {p : α → Prop} {a : α}
     (h : ∀ᶠ x in 𝓝 a, p x) :

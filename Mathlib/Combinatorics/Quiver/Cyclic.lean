@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -13,6 +13,15 @@ public import Mathlib.Data.Nat.ModEq
 # Quiver periodicity and aperiodicity
 
 Period, index of imprimitivity, and cyclic partitions for strongly connected quivers.
+
+## Main definitions
+
+* `CycleLengths`: lengths of positive cycles at a vertex.
+* `index_of_imprimitivity`: gcd of cycle lengths.
+
+## Tags
+
+quiver, aperiodic, primitive matrix, Perron–Frobenius theorem
 -/
 
 @[expose] public section

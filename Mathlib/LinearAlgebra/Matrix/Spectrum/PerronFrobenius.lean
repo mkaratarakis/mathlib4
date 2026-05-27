@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -17,13 +17,30 @@ public import Mathlib.RingTheory.FiniteLength
 public import Mathlib.RingTheory.SimpleRing.Principal
 public import Mathlib.Analysis.Convex.StdSimplex
 
+/-!
+# Spectrum and Perron–Frobenius for matrices
 
+Spectrum, eigenvalue, and positivity lemmas for real and complex matrices used in the
+Perron–Frobenius development.
+
+## Main definitions
+
+* `IsPrimitive`, `IsIrreducible`: graph-theoretic matrix classes from irreducibility theory.
+
+## Main results
+
+* Positive eigenvector lemmas and spectral characterizations supporting the Perron root theory.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, matrix spectrum, irreducible matrix, primitive matrix
+-/
 
 @[expose] public section
-
-/-! Perron-Frobenius Theory for Matrices
-This file develops the essential Perron-Frobenius theory needed for MCMC convergence proofs.
--/
 
 namespace Matrix
 open LinearMap Polynomial Module

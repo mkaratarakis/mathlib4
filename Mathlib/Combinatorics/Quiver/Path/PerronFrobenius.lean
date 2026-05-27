@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -18,8 +18,17 @@ public import Mathlib.Data.Nat.Find
 /-!
 # Quiver paths for Perron–Frobenius
 
-Path weights, decomposition, simplicity, cycles, and acyclicity lemmas used by matrix
-Perron–Frobenius theory.
+Path weights, decomposition, simplicity, cycles, and acyclicity lemmas for weighted quivers
+arising from non-negative matrices.
+
+## Main results
+
+* Lemmas on path weights, cycle lengths, and connectivity used to prove irreducibility and
+  primitivity facts for matrices.
+
+## Tags
+
+quiver path, Perron–Frobenius theorem, irreducible matrix
 -/
 
 open List Finset

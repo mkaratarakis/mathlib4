@@ -1,15 +1,39 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
 public import Mathlib.Analysis.CStarAlgebra.PerronFrobenius
 
+/-!
+# Spectral dominance for irreducible matrices
 
-open Quiver.Path
+Sub-invariance, Perron root bounds, and absolute eigenvalue estimates for irreducible
+non-negative real matrices.
+
+## Main results
+
+* `eigenvalue_abs_subinvariant`: a complex eigenpair yields a sub-invariant absolute-value vector.
+* `eigenvalue_abs_le_perron_root`: every eigenvalue has modulus at most the Perron root.
+* `perron_root_is_eigenvalue` and `perron_root_is_spectral_radius`: the Perron root is a real
+  eigenvalue and equals the spectral radius.
+
+## Implementation notes
+
+Complex eigenvectors are treated through alignment and norm lemmas from
+`Mathlib.Analysis.CStarAlgebra.PerronFrobenius`.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, irreducible matrix, spectral radius, Collatz–Wielandt
+-/
 
 @[expose] public section
 

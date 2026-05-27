@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -10,6 +10,26 @@ public import Mathlib.Combinatorics.Quiver.Path.PerronFrobenius
 
 /-!
 # Aperiodic matrices
+
+Index of imprimitivity and the equivalence between aperiodicity and primitivity for
+irreducible non-negative matrices.
+
+## Main definitions
+
+* `index_of_imprimitivity`: gcd of cycle lengths in the directed graph of the matrix.
+
+## Main results
+
+* `IsAperiodic_iff_IsPrimitive`: for an irreducible matrix, aperiodicity is equivalent to
+  primitivity.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+aperiodic matrix, primitive matrix, index of imprimitivity
 -/
 
 @[expose] public section

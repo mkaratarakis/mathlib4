@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -13,6 +13,10 @@ public import Mathlib.Data.List.Basic
 # List lemmas for Perron–Frobenius
 
 Auxiliary lemmas on `List` used by quiver paths and matrix Perron–Frobenius theory.
+
+## Tags
+
+list, quiver path, Perron–Frobenius theorem
 -/
 
 @[expose] public section

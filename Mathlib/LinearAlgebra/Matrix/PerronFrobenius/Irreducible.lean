@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Matteo Cipollina
+Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
@@ -10,13 +10,25 @@ public import Mathlib.Combinatorics.Quiver.Path
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 
-
-open Quiver.Path
-
 /-!
 # Perron–Frobenius for irreducible matrices
 
-Existence, positivity, and uniqueness of the Perron eigenpair for irreducible non-negative matrices.
+Existence, positivity, and uniqueness of the Perron eigenpair for irreducible non-negative
+matrices.
+
+## Main results
+
+* `exists_positive_eigenvector_of_irreducible`: existence of a strictly positive Perron eigenvector.
+* `pft_irreducible`: the full Perron–Frobenius theorem for irreducible matrices.
+* `uniqueness_of_positive_eigenvector_gen`: uniqueness of the positive eigenvector up to scaling.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+Perron–Frobenius theorem, irreducible matrix, positive eigenvector
 -/
 
 @[expose] public section
