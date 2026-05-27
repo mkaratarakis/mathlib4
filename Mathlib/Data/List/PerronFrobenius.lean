@@ -34,6 +34,10 @@ lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) : ∃ l₁ l₂, l =
     · obtain ⟨l₁, l₂, rfl⟩ := ih h'
       exact ⟨y :: l₁, l₂, rfl⟩
 
+lemma get_eq_get_dropLast {l : List α} {i : Nat} (hi : i < l.length - 1) :
+    l.get ⟨i, Nat.lt_of_lt_pred hi⟩ = l.dropLast.get ⟨i, by rw [length_dropLast]; omega⟩ := by
+  simp [get_eq_getElem, dropLast_eq_take, getElem_take]
+
 variable [DecidableEq α]
 
 /-- A list contains a duplicate element if the count of some element is greater than 1. -/
@@ -53,16 +57,12 @@ lemma mem_tail_of_count_ge_two {x : α} {l : List α} (h : l.count x ≥ 2) : x 
   | cons hd tl =>
       have hpos : 0 < tl.count x := by
         by_contra h0
-        push_neg at h0
+        push Not at h0
         have h0' : tl.count x = 0 := Nat.eq_zero_of_le_zero h0
         by_cases hhd : hd = x
         · simp [hhd, count_cons, h0'] at h
         · simp [hhd, count_cons, h0'] at h
       exact (count_pos_iff).1 hpos
-
-lemma get_eq_get_dropLast {l : List α} {i : Nat} (hi : i < l.length - 1) :
-    l.get ⟨i, Nat.lt_of_lt_pred hi⟩ = l.dropLast.get ⟨i, by rw [length_dropLast]; omega⟩ := by
-  simp [get_eq_getElem, dropLast_eq_take, getElem_take]
 
 lemma get_idxOf_of_mem {l : List α} {x : α} (h : x ∈ l) :
     l.get ⟨idxOf x l, idxOf_lt_length_of_mem h⟩ = x := by

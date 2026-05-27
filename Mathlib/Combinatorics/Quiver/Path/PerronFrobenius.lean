@@ -234,8 +234,8 @@ open Quiver
 
 namespace Quiver
 
-/-- The quiver structure on a subtype is induced by the quiver structure on the original type.
-    An arrow from `a : S` to `b : S` exists if an arrow from `a.val` to `b.val` exists. -/
+/-- The quiver structure on a subtype is induced by the quiver structure on the original type. -/
+@[reducible]
 def inducedQuiver {V : Type*} [Quiver V] (S : Set V) : Quiver S :=
   ⟨fun a b => a.val ⟶ b.val⟩
 
@@ -375,44 +375,35 @@ theorem split_at_vertex {a b : V} (p : Path a b) (i : ℕ) (hi : i < p.vertices.
 end Quiver.Path
 
 namespace Quiver.Path
+open scoped Classical
 open Quiver
-variable {V : Type*} [Quiver V]
+variable {V : Type*} [Quiver V] [DecidableEq V]
 
-/-- A path is simple if it does not visit any vertex more than once, with the possible
-exception of the final vertex, which may be the same as the start vertex in a cycle. -/
-def IsSimple' {a b : V} (p : Path a b) : Prop :=
-  p.vertices.dropLast.Nodup ∧
-  (a = b → p.vertices.dropLast.length = p.length) ∧
-  (a ≠ b → p.end ∉ p.vertices.dropLast)
-
-lemma isSimple_nil {a : V} : IsSimple' (nil : Path a a) := by simp [IsSimple']
-
-/-- A path is simple if it does not contain any vertex more than once.
-This is a strict definition; a cycle `a ⟶ ... ⟶ a` of non-zero length is not simple. -/
+/-- A path does not repeat vertices (strict simplicity; a nontrivial cycle is not simple). -/
 @[simp]
 def IsStrictlySimple {a b : V} (p : Path a b) : Prop := p.vertices.Nodup
 
 lemma isStrictlySimple_nil {a : V} : IsStrictlySimple (nil : Path a a) := by simp [IsStrictlySimple]
 
 @[simp]
-lemma isStrictlySimple_cons [DecidableEq V] {a b c : V} (p : Path a b) (e : b ⟶ c) :
+lemma isStrictlySimple_cons {a b c : V} (p : Path a b) (e : b ⟶ c) :
   IsStrictlySimple (p.cons e) ↔ IsStrictlySimple p ∧ c ∉ p.vertices := by
   simp only [IsStrictlySimple, vertices_cons]
   rw [List.nodup_concat]; aesop
 
 /-- The set of vertices of a simple path has cardinality `p.length + 1`. -/
-lemma card_vertexFinset_of_isStrictlySimple [DecidableEq V] {a b : V} {p : Path a b} (hp : IsStrictlySimple p) :
+lemma card_vertexFinset_of_isStrictlySimple {a b : V} {p : Path a b} (hp : IsStrictlySimple p) :
     p.vertexFinset.card = p.length + 1 := by
   simp [vertexFinset, List.toFinset_card_of_nodup hp, vertices_length]
 
-lemma length_lt_card_of_isStrictlySimple [DecidableEq V] [Fintype V]
+lemma length_lt_card_of_isStrictlySimple [Fintype V]
     {a b : V} {p : Path a b} (hp : IsStrictlySimple p) :
   p.length < Fintype.card V := by
   simpa [card_vertexFinset_of_isStrictlySimple hp, Nat.succ_eq_add_one] using
     (Finset.card_le_univ p.vertexFinset)
 
 /-- If a path is not strictly simple, then there exists a vertex that occurs at least twice. -/
-lemma not_strictly_simple_iff_exists_repeated_vertex [DecidableEq V] {a b : V} {p : Path a b} :
+lemma not_strictly_simple_iff_exists_repeated_vertex {a b : V} {p : Path a b} :
     ¬IsStrictlySimple p ↔ ∃ v, v ∈ p.vertices ∧ p.vertices.count v ≥ 2 := by
   rw [IsStrictlySimple, List.nodup_iff_not_contains_dup]
   push Not
@@ -425,7 +416,7 @@ lemma not_strictly_simple_iff_exists_repeated_vertex [DecidableEq V] {a b : V} {
 
 
 /-- Removing a positive-length cycle from a path gives a strictly shorter path with the same endpoints. -/
-lemma remove_cycle_gives_shorter_path [DecidableEq V] {a v b : V}
+lemma remove_cycle_gives_shorter_path {a v b : V}
     {p_prefix : Path a v} {p_cycle : Path v v} {p_rest : Path v b}
     (h_cycle_pos : p_cycle.length > 0) :
     (p_prefix.comp p_rest).length < (p_prefix.comp (p_cycle.comp p_rest)).length := by
@@ -443,15 +434,14 @@ lemma vertex_in_path_cases {a b c : V} (p : Path a b) (h : c ∈ p.vertices) :
 
 /-- If we have a path p from a to b with c ∈ p.vertices,
     and c is not the end vertex b, then it appears in a proper prefix of the path. -/
-lemma exists_prefix_with_vertex [DecidableEq V] {a b c : V} (p : Path a b) (h : c ∈ p.vertices) (h_ne : c ≠ b) :
+lemma exists_prefix_with_vertex {a b c : V} (p : Path a b) (h : c ∈ p.vertices) (h_ne : c ≠ b) :
     ∃ (p₁ : Path a c) (p₂ : Path c b), p = p₁.comp p₂ := by
   obtain ⟨v, p₁, p₂, h_comp, _, hc⟩ := split_at_vertex p _ (List.idxOf_lt_length_of_mem h)
   rcases hc.trans (List.get_idxOf_of_mem h) with rfl
   exact ⟨p₁, p₂, h_comp⟩
 
 /-- Split a path at the **last** occurrence of a vertex. -/
-theorem exists_decomp_of_mem_vertices_prop
-    [DecidableEq V] {a b x : V} (p : Path a b) (hx : x ∈ p.vertices) :
+theorem exists_decomp_of_mem_vertices_prop {a b x : V} (p : Path a b) (hx : x ∈ p.vertices) :
     ∃ (p₁ : Path a x) (p₂ : Path x b),
       p = p₁.comp p₂ ∧ x ∉ p₂.vertices.tail := by
   induction p with
@@ -468,43 +458,34 @@ theorem exists_decomp_of_mem_vertices_prop
         cases hv : p₂.vertices <;> simp_all [vertices_cons, List.mem_append, List.mem_concat]
       · exact (h_end rfl).elim
 
-theorem isStrictlySimple_of_shortest [DecidableEq V]
-    {a b : V} (p : Path a b)
+theorem isStrictlySimple_of_shortest {a b : V} (p : Path a b)
     (h_min : ∀ q : Path a b, p.length ≤ q.length) :
     IsStrictlySimple p := by
   classical
   by_contra h_dup
   obtain ⟨v, hv_in, hv_ge₂⟩ := not_strictly_simple_iff_exists_repeated_vertex.mp h_dup
   obtain ⟨p₁, p₂, hp, hv_not_tail⟩ := exists_decomp_of_mem_vertices_prop p hv_in
-
   have h_head : p₂.vertices.head? = some v := by
     cases p₂ with
     | nil => rfl
     | cons p' e => simp [vertices_cons, List.concat_eq_append, vertices_head?]
-
   have h_p2_count : p₂.vertices.count v = 1 := by
     cases hv : p₂.vertices with
     | nil => exact (vertices_nonempty p₂ hv).elim
     | cons hd tl =>
-      -- Safely rewrite hd to v without deleting v from the context!
       have h_eq : hd = v := Option.some_inj.mp (by simpa [hv] using h_head)
       rw [h_eq] at hv ⊢
       have h_tl : v ∉ tl := fun h_in ↦ hv_not_tail (by rw [hv]; exact h_in)
       simp [List.count_cons_self, List.count_eq_zero.mpr h_tl]
-
-  -- 2. Deduce v must appear in the prefix dropLast
   have hv_in_p1 : v ∈ p₁.vertices.dropLast := by
     have h2 : 2 ≤ (p₁.vertices.dropLast ++ p₂.vertices).count v := by
       simpa [← vertices_comp, ← hp] using hv_ge₂
     rw [List.count_append, h_p2_count] at h2
     exact List.count_pos_iff.mp (by omega)
-
-  -- 3. Extract the sub-prefix up to the first occurrence of v
   have hv_mem_p1 := List.mem_of_mem_dropLast hv_in_p1
-  obtain ⟨v', q, c, _, h_q_len, hv'_eq⟩ := split_at_vertex p₁ _ (List.idxOf_lt_length_of_mem hv_mem_p1)
+  obtain ⟨v', q, c, _, h_q_len, hv'_eq⟩ :=
+    split_at_vertex p₁ _ (List.idxOf_lt_length_of_mem hv_mem_p1)
   rcases hv'_eq.trans (List.get_idxOf_of_mem hv_mem_p1) with rfl
-
-  -- 4. The new path `q ⟶ p₂` is strictly shorter
   have h_shorter : (q.comp p₂).length < p.length := calc
     (q.comp p₂).length = q.length + p₂.length := length_comp q p₂
     _ < p₁.length + p₂.length := by
@@ -567,7 +548,8 @@ contains no simple cycles.
 
 section Acyclic
 
-variable {V : Type*} [Quiver V]
+open scoped Classical
+variable {V : Type*} [Quiver V] [DecidableEq V]
 
 /-- A quiver is acyclic if there are no non-trivial paths from a vertex to itself. -/
 class IsAcyclic (V : Type*) [Quiver V] : Prop where
@@ -586,7 +568,7 @@ lemma isAcyclic_iff_length_eq_zero :
   · intro h; exact { acyclic := fun a p ↦ h p }
 
 /-- If a quiver is acyclic, then it contains no simple cycles. -/
-lemma isAcyclic_of_no_cycles [DecidableEq V] :
+lemma isAcyclic_of_no_cycles :
     IsAcyclic V → ∀ {a : V} (p : Path a a), ¬IsCycle p := by
   intro h_acyclic a p h_cycle
   have h_pos : p.length > 0 := h_cycle.1
@@ -597,7 +579,7 @@ open Classical
 
 /-- Given a path with a repeated vertex, we can find that vertex and show it appears
     in the dropLast portion of the prefix path. -/
-lemma repeated_vertex_in_prefix_dropLast [DecidableEq V] {a : V} (s : Path a a)
+lemma repeated_vertex_in_prefix_dropLast {a : V} (s : Path a a)
     (h_not_simple : ¬IsStrictlySimple s) :
     ∃ (v : V) (p₁ : Path a v) (p₂ : Path v a),
       v ∈ p₁.vertices.dropLast ∧ s = p₁.comp p₂ ∧ v ∉ p₂.vertices.tail := by
@@ -619,7 +601,7 @@ lemma repeated_vertex_in_prefix_dropLast [DecidableEq V] {a : V} (s : Path a a)
   exact ⟨v, p₁, p₂, hv_in_p1, hp, hv_not_tail⟩
 
 
-lemma extract_cycle_from_prefix [DecidableEq V] {a vertex : V} {p₁ : Path a vertex}
+lemma extract_cycle_from_prefix {a vertex : V} {p₁ : Path a vertex}
     (h_in_drop : vertex ∈ p₁.vertices.dropLast) :
     ∃ (q : Path a vertex) (c : Path vertex vertex),
       p₁ = q.comp c ∧ vertex ∉ q.vertices.dropLast := by
@@ -638,7 +620,7 @@ lemma extract_cycle_from_prefix [DecidableEq V] {a vertex : V} {p₁ : Path a ve
   grind
 
 /-- A cycle extracted from a path with a repeated vertex has positive length. -/
-lemma extracted_cycle_has_positive_length [DecidableEq V] {a v : V}
+lemma extracted_cycle_has_positive_length {a v : V}
     {p₁ q : Path a v} {c : Path v v}
     (h_p1_split : p₁ = q.comp c)
     (hv_in_p1_dropLast : v ∈ p₁.vertices.dropLast)
@@ -654,7 +636,7 @@ lemma extracted_cycle_has_positive_length [DecidableEq V] {a v : V}
   · exact Nat.pos_of_ne_zero h_len_zero
 
 /-- Removing a cycle from a path creates a strictly shorter path. -/
-lemma removing_cycle_gives_shorter_path [DecidableEq V] {a v : V} {s : Path a a}
+lemma removing_cycle_gives_shorter_path {a v : V} {s : Path a a}
     {q : Path a v} {c : Path v v} {p₂ : Path v a}
     (hp : s = (q.comp c).comp p₂) (hc_pos : c.length > 0) : (q.comp p₂).length < s.length := by
   have h_len_shorter : (q.comp p₂).length = q.length + p₂.length := by
@@ -668,7 +650,7 @@ lemma removing_cycle_gives_shorter_path [DecidableEq V] {a v : V} {s : Path a a}
 
 
 /-- A shortest positive loop is simple. -/
-theorem shortest_positive_loop_is_simple [DecidableEq V] {a : V} {c : Path a a}
+theorem shortest_positive_loop_is_simple {a : V} {c : Path a a}
     (hc_pos : c.length > 0)
     (hc_min : ∀ p' : Path a a, p'.length > 0 → c.length ≤ p'.length) :
     c.IsSimple := by

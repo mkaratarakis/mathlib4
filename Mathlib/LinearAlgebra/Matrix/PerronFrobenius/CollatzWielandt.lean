@@ -11,21 +11,21 @@ public import Mathlib.Data.Matrix.Basic
 public import Mathlib.Topology.Compactness.ExtremeValueUSC
 public import Mathlib.Analysis.Convex.StdSimplex
 
-
-
-@[expose] public section
-
-namespace Matrix
-
 /-!
 # Collatz–Wielandt function for matrices
 
 Definitions and basic properties of the Collatz–Wielandt formula and Perron root bounds.
 -/
-section PerronFrobenius
-variable {n : Type*} [Fintype n] {A : Matrix n n ℝ}
 
-open LinearMap Set Filter Topology Finset IsCompact Finset Quiver Matrix
+@[expose] public section
+
+namespace Matrix
+
+section PerronFrobenius
+open scoped Classical
+variable {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
+
+open LinearMap Set Filter Topology Finset IsCompact Quiver Matrix
 
 open scoped Convex Pointwise
 
@@ -131,7 +131,7 @@ lemma eq_iInf_of_nonempty (A : Matrix n n ℝ) (v : n → ℝ) (h : {i | 0 < v i
   refine Function.Surjective.iInf_congr (by aesop) (fun b ↦ by aesop) (by simp)
 
 /-- If r ≤ 0 and r is the infimum of non-negative ratios, then r = 0. -/
-lemma val_eq_zero_of_nonpos [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j)
+lemma val_eq_zero_of_nonpos (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {v : n → ℝ} (hv_nonneg : ∀ i, 0 ≤ v i) (S : Set n) (hS_def : S = {i | 0 < v i})
     (hS_nonempty : S.Nonempty) (r : ℝ) (hr_def : r = collatzWielandtFn A v) (hr_nonpos : r ≤ 0) :
     r = 0 := by
@@ -144,7 +144,7 @@ lemma val_eq_zero_of_nonpos [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j)
     · rwa [Set.toFinset_nonempty_iff, ← hS_def]
 
 /-- Each ratio is at least the Collatz-Wielandt value -/
-lemma le_ratio [DecidableEq n] (_ : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (_ : ∀ i, 0 ≤ v i)
+lemma le_ratio (_ : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (_ : ∀ i, 0 ≤ v i)
     (S : Set n) (hS_def : S = {i | 0 < v i}) (hS_nonempty : S.Nonempty)
     (i : n) (hi_S : i ∈ S) : collatzWielandtFn A v ≤ (A *ᵥ v) i / v i := by
   rw [collatzWielandtFn, dif_pos (by rwa [Set.toFinset_nonempty_iff, ← hS_def])]; apply inf'_le;
@@ -154,7 +154,7 @@ lemma le_ratio [DecidableEq n] (_ : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (_ : �
 /-- For any non-negative, non-zero vector `v`, the Collatz-Wielandt value `r` satisfies
     `r • v ≤ A *ᵥ v`. This is the fundamental inequality derived from the definition of
     the Collatz-Wielandt function. -/
-lemma le_mulVec [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ}
+lemma le_mulVec (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ}
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     (collatzWielandtFn A v) • v ≤ A *ᵥ v := by
   let r := collatzWielandtFn A v
@@ -184,7 +184,7 @@ lemma exists_mulVec_eq_zero_on_support_of_nonpos (hA_nonneg : ∀ i j, 0 ≤ A i
   have h_vb_pos : 0 < v b := by simpa [Set.mem_toFinset] using hb_mem
   grind
 
-lemma le_any_ratio [DecidableEq n] (A : Matrix n n ℝ) {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i)
+lemma le_any_ratio (A : Matrix n n ℝ) {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i)
     (hx_ne_zero : x ≠ 0) (i : n) (hi_pos : 0 < x i) :
     collatzWielandtFn A x ≤ (A *ᵥ x) i / x i := by
   dsimp [collatzWielandtFn]
@@ -198,7 +198,7 @@ lemma le_any_ratio [DecidableEq n] (A : Matrix n n ℝ) {x : n → ℝ} (hx_nonn
   exact hi_pos
 
 /-- The set of values from the Collatz-Wielandt function is bounded above by the maximum row sum of A. -/
-lemma bddAbove [DecidableEq n] [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+lemma bddAbove [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
   use univ.sup' univ_nonempty (fun i ↦ ∑ j, A i j)
   rintro y ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
@@ -220,7 +220,6 @@ lemma bddAbove [DecidableEq n] [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : �
     · rw [sum_mul]
     · apply mul_le_mul_of_nonneg_right
         (le_sup' (fun k ↦ ∑ l, A k l) (mem_univ m)) (le_of_lt h_xm_pos)
-
   exact le_trans (le_any_ratio A hx_nonneg hx_ne_zero m h_xm_pos) h_ratio_le
 
 /-- The set of values from the Collatz-Wielandt function is non-empty. -/
@@ -235,7 +234,7 @@ lemma set_nonempty [Nonempty n] : (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i
       exact one_ne_zero h_contra
   exact ⟨collatzWielandtFn A x_ones, ⟨x_ones, h_x_ones_in_set, rfl⟩⟩
 
-lemma smul [Nonempty n] [DecidableEq n] {c : ℝ} (hc : 0 < c) (_ : ∀ i j, 0 ≤ A i j)
+lemma smul [Nonempty n] {c : ℝ} (hc : 0 < c) (_ : ∀ i j, 0 ≤ A i j)
     {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne : x ≠ 0) :
     collatzWielandtFn A (c • x) = collatzWielandtFn A x := by
   dsimp [collatzWielandtFn]
@@ -296,7 +295,7 @@ lemma forall_exists_min_le_max [Nonempty n] (A : Matrix n n ℝ) :
   rintro _ ⟨x, hx, rfl⟩
   exact ⟨maxRatio A x, ⟨x, hx, rfl⟩, minRatio_le_maxRatio A x⟩
 
-theorem eq_eigenvalue_of_positive_eigenvector [DecidableEq n] [Nonempty n] {A : Matrix n n ℝ}
+theorem eq_eigenvalue_of_positive_eigenvector [Nonempty n] {A : Matrix n n ℝ}
     {r : ℝ} {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     collatzWielandtFn A v = r := by
   have h_supp_nonempty : ({i | 0 < v i}.toFinset).Nonempty := by aesop
@@ -313,7 +312,7 @@ theorem eq_eigenvalue_of_positive_eigenvector [DecidableEq n] [Nonempty n] {A : 
     rw [Pi.smul_apply, smul_eq_mul] at this
     rw [this, mul_div_cancel_pos_right rfl (hv_pos (Exists.choose h_supp_nonempty))]
 
-lemma bddAbove_image_P_set [DecidableEq n] [Nonempty n] (A : Matrix n n ℝ)
+lemma bddAbove_image_P_set [Nonempty n] (A : Matrix n n ℝ)
     (hA_nonneg : ∀ i j, 0 ≤ A i j) : BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
   refine ⟨univ.sup' univ_nonempty (fun i ↦ ∑ j, A i j), fun _ ↦ ?_⟩
   rintro ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
@@ -338,7 +337,7 @@ lemma bddAbove_image_P_set [DecidableEq n] [Nonempty n] (A : Matrix n n ℝ)
 
 /-- Any eigenvalue with a strictly positive eigenvector is ≤ the Perron root. -/
 
-theorem eigenvalue_le_perron_root_of_positive_eigenvector [Nonempty n] [DecidableEq n] {r : ℝ} {v : n → ℝ}
+theorem eigenvalue_le_perron_root_of_positive_eigenvector [Nonempty n] {r : ℝ} {v : n → ℝ}
     (hA_nonneg : ∀ i j, 0 ≤ A i j) (_ : 0 < r) (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     r ≤ perronRoot_alt A := by
   have h_le : collatzWielandtFn A v ≤ perronRoot_alt A :=
@@ -353,7 +352,7 @@ lemma left_eigenvector_of_transpose {r : ℝ} {u : n → ℝ} (hu_left : u ᵥ* 
   rwa [← vecMul_eq_mulVec_transpose]
 
 /-- For any non-negative vector `w`, its Collatz–Wielandt value … -/
-lemma le_eigenvalue_of_left_eigenvector [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j)
+lemma le_eigenvalue_of_left_eigenvector (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {r : ℝ} (_ : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i) (h_eig : u ᵥ* A = r • u)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
     collatzWielandtFn A w ≤ r := by
@@ -372,8 +371,7 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n] (hA_nonneg : ∀ i j, 0 
 
 /-- If v is an eigenvector of A with eigenvalue r (i.e., A *ᵥ v = r • v),
     this lemma provides the relation in the form needed for rewriting. -/
-lemma mulVec_eq_smul_of_eigenvector {n : Type*} [Fintype n] [DecidableEq n]
-    {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ} (h_eig : A *ᵥ v = r • v) :
+lemma mulVec_eq_smul_of_eigenvector {n : Type*} [Fintype n]    {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ} (h_eig : A *ᵥ v = r • v) :
     r • v = A *ᵥ v := Eq.symm h_eig
 
 /--
@@ -381,8 +379,7 @@ If `u` is a strictly positive left eigenvector of `A` for eigenvalue `r > 0`,
 then the Perron root of `A` is less than or equal to `r`.
 That is, `perronRoot_alt A ≤ r`.
 -/
-lemma perron_root_le_eigenvalue_of_left_eigenvector [Nonempty n] [DecidableEq n]
-    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i)
+lemma perron_root_le_eigenvalue_of_left_eigenvector [Nonempty n]    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {u : n → ℝ} (hu_pos : ∀ i, 0 < u i)
     (h_eig : u ᵥ* A = r • u) : perronRoot_alt A ≤ r := by
   apply csSup_le (CollatzWielandt.set_nonempty)
   · rintro _ ⟨w, ⟨hw_nonneg, hw_ne_zero⟩, rfl⟩
@@ -404,7 +401,7 @@ If `v` is a strictly positive right eigenvector of `A` with eigenvalue `r`, then
 of all ones is a right eigenvector of the similarity-transformed matrix `B = D⁻¹AD`
 (where `D` is `diagonal v`) with the same eigenvalue `r`.
 -/
-lemma ones_eigenvector_of_similarity_transform [DecidableEq n] {r : ℝ} {v : n → ℝ}
+lemma ones_eigenvector_of_similarity_transform {r : ℝ} {v : n → ℝ}
     (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     (diagonal (v⁻¹) * A * diagonal v) *ᵥ (fun _ ↦ 1) = fun _ ↦ r := by
   let ones := fun _ : n ↦ (1 : ℝ)
@@ -416,7 +413,7 @@ lemma ones_eigenvector_of_similarity_transform [DecidableEq n] {r : ℝ} {v : n 
 If `v` is a strictly positive right eigenvector of `A` with eigenvalue `r`, then the
 similarity-transformed matrix `B = D⁻¹AD` (where `D` is `diagonal v`) has row sums equal to `r`.
 -/
-lemma row_sum_of_similarity_transformed_matrix [DecidableEq n] [Nonempty n] {A : Matrix n n ℝ}
+lemma row_sum_of_similarity_transformed_matrix [Nonempty n] {A : Matrix n n ℝ}
     {r : ℝ} {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
   ∀ i, ∑ j, (diagonal (v⁻¹) * A * diagonal v) i j = r := fun i ↦ by
   simpa [mulVec_apply, mul_one] using (congrArg (fun f => f i)
@@ -426,7 +423,7 @@ lemma row_sum_of_similarity_transformed_matrix [DecidableEq n] [Nonempty n] {A :
 If a non-negative vector `x` satisfies `c • x ≤ B *ᵥ x` for a non-negative matrix `B`
 whose row sums are all equal to `r`, then `c ≤ r`.
 -/
-lemma le_of_max_le_row_sum [Nonempty n] [DecidableEq n] {B : Matrix n n ℝ} {x : n → ℝ} {c r : ℝ}
+lemma le_of_max_le_row_sum [Nonempty n] {B : Matrix n n ℝ} {x : n → ℝ} {c r : ℝ}
     (hB_nonneg : ∀ i j, 0 ≤ B i j) (h_B_row_sum : ∀ i, ∑ j, B i j = r) (hx_nonneg : ∀ i, 0 ≤ x i)
     (hx_ne_zero : x ≠ 0) (h_le_Bx : c • x ≤ B *ᵥ x) :
   c ≤ r := by
@@ -450,7 +447,7 @@ lemma le_of_max_le_row_sum [Nonempty n] [DecidableEq n] {B : Matrix n n ℝ} {x 
 For any non-negative vector `w`, its Collatz–Wielandt value is bounded above by a
 positive eigenvalue `r` that has a strictly positive *right* eigenvector `v`.
 -/
-theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j)
+theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {r : ℝ} (_ : 0 < r) {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
     collatzWielandtFn A w ≤ r := by
@@ -499,8 +496,7 @@ theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  [DecidableEq n] (hA_non
 /- Any positive eigenvalue `r` with a strictly positive right eigenvector `v` is an
 upper bound for the range of the Collatz-Wielandt function.
 -/
-theorem eigenvalue_is_ub_of_positive_eigenvector [Nonempty n] [DecidableEq n]
-    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {v : n → ℝ}
+theorem eigenvalue_is_ub_of_positive_eigenvector [Nonempty n]    (hA_nonneg : ∀ i j, 0 ≤ A i j) {r : ℝ} (hr_pos : 0 < r) {v : n → ℝ}
     (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) : perronRoot_alt A ≤ r := by
   refine csSup_le (CollatzWielandt.set_nonempty (A := A)) (fun y hy ↦ ?_)
   obtain ⟨w, ⟨hw_nonneg, hw_ne_zero⟩, rfl⟩ := hy
@@ -509,7 +505,7 @@ theorem eigenvalue_is_ub_of_positive_eigenvector [Nonempty n] [DecidableEq n]
 
 open CollatzWielandt
 
-theorem eq_perron_root_of_positive_eigenvector [Nonempty n] [DecidableEq n] {r : ℝ}
+theorem eq_perron_root_of_positive_eigenvector [Nonempty n] {r : ℝ}
     {v : n → ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (hv_pos : ∀ i, 0 < v i) (hr_pos : 0 < r)
     (h_eig : A *ᵥ v = r • v) : r = CollatzWielandt.perronRoot_alt (A := A) :=
   le_antisymm
@@ -520,23 +516,7 @@ lemma perronRoot'_le_maxRatio_of_min_ge_perronRoot' {x : n → ℝ} (hr : perron
     perronRoot' A ≤ maxRatio A x :=
   hr.trans (minRatio_le_maxRatio A x)
 
-/--
-For a function `f` on a non-empty finite type `ι`, the indexed infimum `⨅ i, f i` is equal
-to the infimum over the universal finset.
--/
-lemma ciInf_eq_finset_inf' {α ι : Type*} [Fintype ι] [Nonempty ι]
-    [ConditionallyCompleteLinearOrder α] (f : ι → α) :
-  ⨅ i, f i = univ.inf' univ_nonempty f := (inf'_univ_eq_ciInf f).symm
-
-/--  A finite sum of non-negative terms is strictly positive as soon as one
-     summand is strictly positive.  -/
-lemma Finset.sum_pos_of_nonneg_of_exists_pos {α β : Type*} [AddCommMonoid β] [PartialOrder β]
-    [IsOrderedCancelAddMonoid β] {s : Finset α} {f : α → β} (h_nonneg : ∀ i ∈ s, 0 ≤ f i)
-    (h_exists : ∃ i ∈ s, 0 < f i) : 0 < ∑ i ∈ s, f i :=
-  sum_pos' h_nonneg h_exists
-
-lemma maximizer_satisfies_le_mulVec [Nonempty n] [DecidableEq n]
-    (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+lemma maximizer_satisfies_le_mulVec [Nonempty n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     let r := perronRoot_alt A
     ∃ v ∈ stdSimplex ℝ n, r • v ≤ A *ᵥ v := by
   let r := perronRoot_alt A
@@ -553,7 +533,7 @@ lemma maximizer_satisfies_le_mulVec [Nonempty n] [DecidableEq n]
       have s_pos : 0 < s := by
         obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
         simpa [hs] using
-          (Finset.sum_pos_of_nonneg_of_exists_pos (λ j _ ↦ hx_nonneg j) ⟨i, mem_univ _, hi⟩)
+          (sum_pos' (fun j _ ↦ hx_nonneg j) ⟨i, mem_univ _, hi⟩)
       set x' : n → ℝ := s⁻¹ • x with hx'
       have hx'_in_simplex : x' ∈ stdSimplex ℝ n := by
         refine ⟨fun i ↦ ?_, ?_⟩
@@ -582,7 +562,7 @@ lemma csSup_nonneg {s : Set ℝ} (hs_nonempty : s.Nonempty) (hs_bdd : BddAbove s
   exact (hs_nonneg y hy).trans (le_csSup hs_bdd hy)
 
 /-- The Perron root of a non-negative matrix is non-negative. -/
-lemma perronRoot_nonneg [Nonempty n] [DecidableEq n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+lemma perronRoot_nonneg [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     0 ≤ perronRoot_alt A := by
   refine csSup_nonneg (CollatzWielandt.set_nonempty (A := A))
     (CollatzWielandt.bddAbove (A := A) hA_nonneg) (fun _  ↦ ?_)
@@ -601,7 +581,7 @@ then lambda is bounded by the Collatz-Wielandt function value for w.
 This is the property that the Collatz-Wielandt function gives
 the maximum lambda satisfying such an inequality.
 -/
-theorem le_of_subinvariant [DecidableEq n] (_ : ∀ i j, 0 ≤ A i j)
+theorem le_of_subinvariant (_ : ∀ i j, 0 ≤ A i j)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0)
     {lambda : ℝ} (h_sub : lambda • w ≤ A *ᵥ w) :
     lambda ≤ collatzWielandtFn A w := by
