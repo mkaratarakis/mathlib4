@@ -142,7 +142,8 @@ noncomputable def r (A : Matrix n n ℝ) [Fintype n] := ⨆ x ∈ P_set, collatz
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
 theorem exists_maximizer [Nonempty n] (A : Matrix n n ℝ) :
     ∃ v ∈ stdSimplex ℝ n, IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v :=
-  (upperSemicontinuousOn A).exists_isMaxOn stdSimplex_nonempty Matrix.isCompact_stdSimplex
+  (upperSemicontinuousOn A).exists_isMaxOn
+    ⟨_, single_mem_stdSimplex ℝ (Classical.arbitrary n)⟩ (isCompact_stdSimplex ℝ n)
 
 lemma eq_iInf_of_nonempty (A : Matrix n n ℝ) (v : n → ℝ) (h : {i | 0 < v i}.toFinset.Nonempty) :
     collatzWielandtFn A v = ⨅ i : {i | 0 < v i}, (A *ᵥ v) i / v i := by

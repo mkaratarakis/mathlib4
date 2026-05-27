@@ -11,11 +11,11 @@ public import Mathlib.Analysis.Normed.Algebra.Spectrum
 public import Mathlib.Analysis.RCLike.Lemmas
 public import Mathlib.Data.Real.StarOrdered
 public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.LinearAlgebra.Eigenspace.Matrix
 public import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 public import Mathlib.RingTheory.DedekindDomain.Dvr
 public import Mathlib.RingTheory.FiniteLength
 public import Mathlib.RingTheory.SimpleRing.Principal
-public import Mathlib.Analysis.Convex.StdSimplex
 
 /-!
 # Spectrum and Perron–Frobenius for matrices
@@ -48,32 +48,10 @@ open LinearMap Polynomial Module
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
 /-!
-## The Standard Simplex
--/
-
-omit [DecidableEq n] in
-lemma stdSimplex_nonempty [Nonempty n] : (stdSimplex ℝ n).Nonempty :=
-  ⟨(Fintype.card n : ℝ)⁻¹ • 1, by simp [stdSimplex, Finset.sum_const, nsmul_eq_mul]⟩
-
-omit [DecidableEq n] in
-lemma isCompact_stdSimplex : IsCompact (stdSimplex ℝ n) :=
-  isCompact_iff_compactSpace.mpr inferInstance
-
-omit [DecidableEq n] in
-lemma convex_stdSimplex : Convex ℝ (stdSimplex ℝ n) :=
-  _root_.convex_stdSimplex ℝ n
-
-/-!
 ## Spectral Properties of Matrices
 -/
 
-/-- The spectrum of a matrix `A` is equal to the spectrum of its corresponding linear map
-`Matrix.toLin' A`. -/
-lemma spectrum_eq_spectrum_toLin' (A : Matrix n n ℝ) :
-    spectrum ℝ A = spectrum ℝ (Matrix.toLin' A) := by
-  exact Eq.symm (AlgEquiv.spectrum_eq (Matrix.toLinAlgEquiv (Pi.basisFun ℝ n)) A)
-
-/-- The determinant of `μ • 1 - A` is the characteristic polynomial of `A` at `μ`. -/
+/-- A matrix and its transpose have the same spectrum. -/
 lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
     det (μ • 1 - A) = (Matrix.charpoly A).eval μ := by
   have h : μ • 1 = Matrix.scalar n μ := by
@@ -201,8 +179,8 @@ lemma ker_toLin'_ne_bot_iff_det_eq_zero (A : Matrix n n ℝ) :
 /-- A real number `μ` is an eigenvalue of a matrix `A` if and only if `det(μ • 1 - A) = 0`. -/
 lemma hasEigenvalue_toLin'_iff_det_sub_eq_zero (A : Matrix n n ℝ) (μ : ℝ) :
     Module.End.HasEigenvalue (toLin' A) μ ↔ det (μ • 1 - A) = 0 := by
-  rw [Module.End.hasEigenvalue_iff_mem_spectrum, ← spectrum_eq_spectrum_toLin',
-    mem_spectrum_iff_isRoot_charpoly, Polynomial.IsRoot.def, det_smul_sub_eq_eval_charpoly]
+  rw [Module.End.hasEigenvalue_iff_mem_spectrum, spectrum_toLin', mem_spectrum_iff_isRoot_charpoly,
+    Polynomial.IsRoot.def, det_smul_sub_eq_eval_charpoly]
 
 /-! ## Spectral Radius Theory for Matrices -/
 
@@ -441,9 +419,7 @@ lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
   intro μ
   apply iSup_le
   intro hμ
-  have hμ_matrix : μ ∈ spectrum ℝ A := by
-    rw [spectrum_eq_spectrum_toLin']
-    exact hμ
+  have hμ_matrix : μ ∈ spectrum ℝ A := (spectrum_toLin' A).symm ▸ hμ
   exact ENNReal.coe_le_coe.mpr (spectralRadius_le_nnnorm_of_mem_spectrum hμ_matrix)
 
 lemma spectralRadius_finite (A : Matrix n n ℝ) :
@@ -570,14 +546,8 @@ characteristic polynomial. -/
 lemma isRoot_of_hasEigenvalue {A : Matrix n n ℝ} {μ : ℝ}
     (h_eig : Module.End.HasEigenvalue (toLin' A) μ) :
     (charpoly A).IsRoot μ := by
-  rw [← mem_spectrum_iff_isRoot_charpoly, spectrum_eq_spectrum_toLin']
-  exact Module.End.hasEigenvalue_iff_mem_spectrum.mp h_eig
-
-/-- The spectrum of a matrix `A` is equal to the spectrum of its corresponding linear map
-`Matrix.toLin' A`. -/
-theorem spectrum.Matrix_toLin'_eq_spectrum {R n : Type*} [CommRing R] [Fintype n] [DecidableEq n]
-    (A : Matrix n n R) : spectrum R (toLin' A) = spectrum R A :=
-  AlgEquiv.spectrum_eq (toLinAlgEquiv (Pi.basisFun R n)) A
+  rw [← mem_spectrum_iff_isRoot_charpoly]
+  exact (spectrum_toLin' A).symm ▸ Module.End.hasEigenvalue_iff_mem_spectrum.mp h_eig
 
 lemma Module.End.mem_spectrum_of_hasEigenvector {K V : Type*} [Field K] [AddCommGroup V]
     [Module K V] [FiniteDimensional K V] {f : V →ₗ[K] V} {μ : K} {v : V}

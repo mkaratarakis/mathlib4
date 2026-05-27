@@ -5,7 +5,9 @@ Authors: Matteo Cipollina, Michail Karatarakis
 -/
 module
 
-public import Mathlib.Data.List.PerronFrobenius
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.List.Count
+public import Mathlib.Data.List.Duplicate
 public import Mathlib.Combinatorics.Quiver.Path.Vertices
 public import Mathlib.Combinatorics.Quiver.Path.Weight
 public import Mathlib.Combinatorics.Quiver.Path.Decomposition
@@ -348,14 +350,14 @@ lemma length_lt_card_of_isStrictlySimple [DecidableEq V] [Fintype V] {a b : V} {
 /-- If a path is not strictly simple, then there exists a vertex that occurs at least twice. -/
 lemma not_strictly_simple_iff_exists_repeated_vertex [DecidableEq V] {a b : V} {p : Path a b} :
     ¬IsStrictlySimple p ↔ ∃ v, v ∈ p.vertices ∧ p.vertices.count v ≥ 2 := by
-  rw [IsStrictlySimple, List.nodup_iff_not_contains_dup]
-  push Not
-  simp only [List.ContainsDup]
+  rw [IsStrictlySimple, ← List.exists_duplicate_iff_not_nodup]
   constructor
-  · rintro ⟨v, hv⟩
-    exact ⟨v, List.count_pos_iff.mp (by omega), hv⟩
-  · rintro ⟨v, _, hv⟩
-    exact ⟨v, hv⟩
+  · intro h
+    obtain ⟨v, hv⟩ := h
+    have hv_count := (List.duplicate_iff_two_le_count).1 hv
+    exact ⟨v, (List.count_pos_iff).1 (Nat.lt_of_lt_of_le (by decide) hv_count), hv_count⟩
+  · intro ⟨v, _hv_mem, hv_count⟩
+    exact ⟨v, (List.duplicate_iff_two_le_count).2 hv_count⟩
 
 /-- If we have a path p from a to b with c ∈ p.vertices,
     and c is not the end vertex b, then it appears in a proper prefix of the path. -/
@@ -364,7 +366,7 @@ lemma exists_prefix_with_vertex {a b c : V} (p : Path a b)
     ∃ (p₁ : Path a c) (p₂ : Path c b), p = p₁.comp p₂ := by
   classical
   obtain ⟨v, p₁, p₂, h_comp, _, hc⟩ := split_at_vertex p _ (List.idxOf_lt_length_of_mem h)
-  rcases hc.trans (List.get_idxOf_of_mem h) with rfl
+  rcases hc.trans (List.getElem_idxOf (List.idxOf_lt_length_of_mem h)) with rfl
   exact ⟨p₁, p₂, h_comp⟩
 
 /-- Split a path at the **last** occurrence of a vertex. -/
@@ -396,12 +398,12 @@ theorem isStrictlySimple_of_shortest {a b : V} (p : Path a b)
   have hv_mem_p1 := List.mem_of_mem_dropLast hv_in_p1
   obtain ⟨v', q, c, _, h_q_len, hv'_eq⟩ :=
     split_at_vertex p₁ _ (List.idxOf_lt_length_of_mem hv_mem_p1)
-  rcases hv'_eq.trans (List.get_idxOf_of_mem hv_mem_p1) with rfl
+  rcases hv'_eq.trans (List.getElem_idxOf (List.idxOf_lt_length_of_mem hv_mem_p1)) with rfl
   have h_shorter : (q.comp p₂).length < p.length := calc
     (q.comp p₂).length = q.length + p₂.length := length_comp q p₂
     _ < p₁.length + p₂.length := by
       apply Nat.add_lt_add_right
-      rw [h_q_len, idxOf_eq_idxOf_of_isPrefix (dropLast_prefix p₁.vertices) hv_in_p1]
+      rw [h_q_len, (IsPrefix.idxOf_eq_of_mem (dropLast_prefix p₁.vertices) hv_in_p1).symm]
       have h_lt := List.idxOf_lt_length_of_mem hv_in_p1
       revert h_lt
       simp [List.length_dropLast, vertices_length]
@@ -515,12 +517,12 @@ lemma extract_cycle_from_prefix [DecidableEq V] {a vertex : V} {p₁ : Path a ve
   have h_mem := List.mem_of_mem_dropLast h_in_drop
   obtain ⟨v, q, c, h_comp, h_len, h_v⟩ :=
     split_at_vertex p₁ i (List.idxOf_lt_length_of_mem h_mem)
-  rcases h_v.trans (List.get_idxOf_of_mem h_mem) with rfl
+  rcases h_v.trans (List.getElem_idxOf (List.idxOf_lt_length_of_mem h_mem)) with rfl
   refine ⟨q, c, h_comp, fun h ↦ ?_⟩
   have h_pre : q.vertices.dropLast <+: p₁.vertices := by
     rw [h_comp, vertices_comp]
     grind
-  have h_idx := List.idxOf_eq_idxOf_of_isPrefix h_pre h
+  have h_idx := (IsPrefix.idxOf_eq_of_mem h_pre h).symm
   have h_lt := List.idxOf_lt_length_of_mem h
   rw [← h_idx, List.length_dropLast, vertices_length] at h_lt
   grind
@@ -579,10 +581,13 @@ theorem shortest_positive_loop_is_simple [DecidableEq V] {a : V} {c : Path a a}
         have hc_eq : c = c_cycle := by simpa [comp_nil] using hp_comp
         have h_not_simple' : ¬IsSimple c_cycle := hc_eq ▸ h_not_simple
         have h_dup : ∃ x, 2 ≤ (c_cycle.vertices.dropLast).count x := by
-          simpa [IsSimple, List.nodup_iff_not_contains_dup, List.ContainsDup] using h_not_simple'
+          obtain ⟨x, hx⟩ :=
+            (List.exists_duplicate_iff_not_nodup (l := c_cycle.vertices.dropLast)).mpr
+              (by simpa [IsSimple] using h_not_simple')
+          exact ⟨x, (List.duplicate_iff_two_le_count).mp hx⟩
         obtain ⟨xdup, hx_count⟩ := h_dup
         obtain ⟨i, hi_lt, hi_pos, hi_pred, hi_get⟩ :=
-          exists_pos_get_of_dropLast_count_ge_two hx_count
+          List.exists_pos_get_of_dropLast_count_ge_two hx_count
         by_cases hx : xdup = a
         · obtain ⟨w, p_short, _p_rest, _h_split, h_len, hw_eq⟩ :=
             split_at_vertex c_cycle i hi_lt

@@ -186,7 +186,7 @@ theorem exists_eigenvector_of_mem_spectrum {A' : Matrix n n ℝ} {μ : ℂ}
     (h : μ ∈ spectrum ℂ (A'.map (algebraMap ℝ ℂ))) :
     ∃ x, x ≠ 0 ∧ (A'.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x := by
   have h_spec : μ ∈ spectrum ℂ (toLin' (A'.map (algebraMap ℝ ℂ))) := by
-    rwa [spectrum.Matrix_toLin'_eq_spectrum]
+    rwa [spectrum_toLin']
   obtain ⟨x, hx_ne_zero, hx_eig⟩ := Module.End.exists_eigenvector_of_mem_spectrum h_spec
   refine ⟨x, hx_ne_zero, by aesop⟩
 
@@ -438,7 +438,7 @@ theorem eigenvalue_abs_le_perron_root
     {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ))) :
     ‖μ‖ ≤ perronRoot_alt A := by
   let B := A.map (algebraMap ℝ ℂ)
-  have h_spec : μ ∈ spectrum ℂ (toLin' B) := by rwa [spectrum.Matrix_toLin'_eq_spectrum]
+  have h_spec : μ ∈ spectrum ℂ (toLin' B) := by rwa [spectrum_toLin']
   rcases Module.End.exists_eigenvector_of_mem_spectrum h_spec with ⟨x, hx_ne_zero, hx_eig_lin⟩
   have hx_eig : B *ᵥ x = μ • x := by rwa [toLin'_apply] at hx_eig_lin
   let x_abs := fun i => ‖x i‖
@@ -488,7 +488,7 @@ lemma mem_spectrum_of_eigenvalue
       hv_ne_zero⟩
   have h_mem_f : μ ∈ spectrum K f :=
     mem_spectrum_of_hasEigenvector h_has_eigvec
-  simpa [f, spectrum.Matrix_toLin'_eq_spectrum] using h_mem_f
+  simpa [f, spectrum_toLin'] using h_mem_f
 
 /-- The Perron root of an irreducible, non-negative matrix is an eigenvalue. -/
 theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
@@ -512,7 +512,7 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
   · intro μ hμ
     have hμ_complex : (μ : ℂ) ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)) := by
       have hμ_lin : μ ∈ spectrum ℝ (toLin' A) := by
-        simpa [spectrum.Matrix_toLin'_eq_spectrum] using hμ
+        simpa [spectrum_toLin'] using hμ
       obtain ⟨v, hv_ne_zero, hv_eig⟩ :=
         Module.End.exists_eigenvector_of_mem_spectrum hμ_lin
       let v_complex : n → ℂ := fun i => (v i : ℂ)

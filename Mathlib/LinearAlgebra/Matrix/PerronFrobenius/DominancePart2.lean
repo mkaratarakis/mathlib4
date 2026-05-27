@@ -382,7 +382,7 @@ theorem spectral_dominance_of_primitive {A : Matrix n n ℝ} (hA_prim : IsPrimit
     (h_norm_eq_r : ‖μ‖ = perronRoot_alt A) : μ = perronRoot_alt A := by
   let B := A.map (algebraMap ℝ ℂ)
   obtain ⟨x, hx_ne_zero, hx_eig⟩ := Module.End.exists_eigenvector_of_mem_spectrum <| by
-    rwa [spectrum.Matrix_toLin'_eq_spectrum]
+    rwa [spectrum_toLin']
   have h_subinv := by
     simpa [h_norm_eq_r] using eigenvalue_abs_subinvariant hA_nonneg hx_eig
   have h_x_abs_eig := subinvariant_equality_implies_eigenvector
