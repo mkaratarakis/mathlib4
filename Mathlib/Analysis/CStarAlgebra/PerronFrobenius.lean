@@ -9,7 +9,6 @@ public import Mathlib.Algebra.BigOperators.Field
 public import Mathlib.Algebra.EuclideanDomain.Basic
 public import Mathlib.Algebra.EuclideanDomain.Field
 public import Mathlib.Analysis.CStarAlgebra.Classes
-public import Mathlib.LinearAlgebra.Matrix.PerronFrobenius.Aux
 
 /-!
 # Complex-analytic lemmas for Perron–Frobenius
