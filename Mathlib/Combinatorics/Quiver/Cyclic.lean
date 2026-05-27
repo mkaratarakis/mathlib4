@@ -17,7 +17,7 @@ Period, index of imprimitivity, and cyclic partitions for strongly connected qui
 ## Main definitions
 
 * `CycleLengths`: lengths of positive cycles at a vertex.
-* `index_of_imprimitivity`: gcd of cycle lengths.
+* `indexOfImprimitivity`: gcd of cycle lengths.
 
 ## Tags
 
@@ -118,15 +118,14 @@ theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnecte
       grind
   exact le_antisymm (period_le_of_commonDivisor i h_div_i) (period_le_of_commonDivisor j h_div_j)
 
-/-- The index of imprimitivity (h) of a strongly connected quiver,
-    defined as the common period of its vertices. Requires `Fintype` and `Nonempty`
-    to select an arbitrary vertex. -/
-noncomputable def index_of_imprimitivity [Fintype V] [Nonempty V] (_G : Quiver V) : ℕ :=
+/-- The index of imprimitivity of a strongly connected quiver: the common period of its
+vertices. Requires `Nonempty` to select an arbitrary vertex. -/
+noncomputable def indexOfImprimitivity [Nonempty V] (_G : Quiver V) : ℕ :=
   period (Classical.arbitrary V)
 
 /-- A strongly connected quiver is aperiodic if its index of imprimitivity is 1. -/
-def IsAperiodic [Fintype V] [Nonempty V] (G : Quiver V) : Prop :=
-  index_of_imprimitivity G = 1
+def IsAperiodic [Nonempty V] (G : Quiver V) : Prop :=
+  indexOfImprimitivity G = 1
 
 /-! # Cyclic Structure and Frobenius Normal Form -/
 
@@ -157,11 +156,11 @@ Theorem: A strongly connected quiver with index of imprimitivity h admits a cycl
 -/
 theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
     (h_sc : Quiver.IsSStronglyConnected V) :
-    ∀ (h_pos : 0 < index_of_imprimitivity (inferInstance : Quiver V)),
-      ∃ partition : V → Fin (index_of_imprimitivity (inferInstance : Quiver V)),
+    ∀ (h_pos : 0 < indexOfImprimitivity (inferInstance : Quiver V)),
+      ∃ partition : V → Fin (indexOfImprimitivity (inferInstance : Quiver V)),
         IsCyclicPartition h_pos partition := by
   intro h_pos
-  let h := index_of_imprimitivity (inferInstance : Quiver V)
+  let h := indexOfImprimitivity (inferInstance : Quiver V)
   change ∃ partition : V → Fin h, IsCyclicPartition h_pos partition
   let i0 : V := Classical.arbitrary V
   have hpaths : ∀ v : V, ∃ p : Path i0 v, 0 < p.length := fun v => h_sc i0 v
@@ -176,13 +175,13 @@ theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
   calc (P j).length % h = ((P i).length + 1) % h := ?_
        _   = ((P i).length % h + 1) % h := ?_
   · have hdvd1 : h ∣ ((P j).comp s).length := by
-      simpa [index_of_imprimitivity, i0] using
+      simpa [indexOfImprimitivity, i0] using
         divides_cycle_length (i := i0) (k := ((P j).comp s).length)
           (mem_CycleLengths_of_comp_right (p := P j) (s := s) hs_pos)
     have h1 : Nat.ModEq h ((P j).length + s.length) 0 := by
       simpa [Nat.ModEq, Path.length_comp] using Nat.mod_eq_zero_of_dvd hdvd1
     have hdvd2 : h ∣ (((P i).cons e).comp s).length := by
-      simpa [index_of_imprimitivity, i0] using
+      simpa [indexOfImprimitivity, i0] using
         divides_cycle_length (i := i0) (k := (((P i).cons e).comp s).length)
           (mem_CycleLengths_of_cons_comp_right (p := P i) (e := e) (s := s) hs_pos)
     have h2 : Nat.ModEq h ((P i).length + 1 + s.length) 0 := by

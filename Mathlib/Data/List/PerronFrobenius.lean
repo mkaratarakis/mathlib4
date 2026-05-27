@@ -29,10 +29,6 @@ list, quiver path, Perron–Frobenius theorem
 namespace List
 variable {α : Type*}
 
-@[simp]
-theorem mem_concat {a x : α} {l : List α} : a ∈ l.concat x ↔ a ∈ l ∨ a = x := by
-  rw [concat_eq_append, mem_append, mem_singleton, or_comm]
-
 /-- Any `x ∈ l` gives a decomposition `l = l₁ ++ x :: l₂`. -/
 lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) :
     ∃ l₁ l₂, l = l₁ ++ x :: l₂ := by

@@ -492,9 +492,11 @@ theorem spectralRadius_stochastic_le_one {A : Matrix n n ℝ}
 
 /-! ## Core Perron-Frobenius Theory -/
 
+/-- Indices `i` with strictly positive entry `v i`. -/
 noncomputable def supportFinset (v : n → ℝ) : Finset n :=
   Finset.univ.filter (fun i => v i > 0)
 
+/-- Indices `i` with zero entry `v i`. -/
 noncomputable def kernelFinset (v : n → ℝ) : Finset n :=
   Finset.univ.filter (fun i => v i = 0)
 

@@ -63,17 +63,10 @@ lemma norm_sq_eq_re_sq_add_im_sq (z : ℂ) : ‖z‖ ^ 2 = z.re ^ 2 + z.im ^ 2 :
   rw [Complex.sq_norm, ← normSq_add_mul_I]
   simp [normSq_apply]
 
-/-- The norm of the conjugate of a complex number is the same as the norm of the original number. -/
-@[simp]
-lemma RCLike.norm_conj {K} [RCLike K] (z : K) : ‖star z‖ = ‖z‖ := by exact norm_star z
-
 /-- The real part of a sum is the sum of the real parts. -/
 lemma RCLike.re_sum {F : Type*} [RCLike F] {v : ι → F} {s : Finset ι} :
     RCLike.re (∑ i ∈ s, v i) = ∑ i ∈ s, RCLike.re (v i) :=
   map_sum RCLike.re v s
-
-/-- An equality between a real number and its coercion to `ℂ` holds definitionally. -/
-lemma ofReal_eq_coe (r : ℝ) : (r : ℂ) = ↑r := rfl
 
 /-- The real part of a product of complex numbers is at most the product of their norms. -/
 lemma re_mul_le_norm (z w : ℂ) : re (z * w) ≤ ‖z‖ * ‖w‖ := by

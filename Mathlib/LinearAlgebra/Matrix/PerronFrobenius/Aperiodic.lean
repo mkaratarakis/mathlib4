@@ -16,7 +16,7 @@ irreducible non-negative matrices.
 
 ## Main definitions
 
-* `index_of_imprimitivity`: gcd of cycle lengths in the directed graph of the matrix.
+* `indexOfImprimitivity`: gcd of cycle lengths in the directed graph of the matrix.
 
 ## Main results
 
@@ -41,12 +41,12 @@ open Quiver
 variable {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
 
 /-- Index of imprimitivity of an irreducible matrix. -/
-noncomputable def index_of_imprimitivity [Nonempty n] (A : Matrix n n ℝ) : ℕ :=
-  Quiver.index_of_imprimitivity (toQuiver A)
+noncomputable def indexOfImprimitivity [Nonempty n] (A : Matrix n n ℝ) : ℕ :=
+  Quiver.indexOfImprimitivity (toQuiver A)
 
 /-- An irreducible matrix with index of imprimitivity `1`. -/
 def IsAperiodic [Nonempty n] (A : Matrix n n ℝ) : Prop :=
-  IsIrreducible A ∧ index_of_imprimitivity A = 1
+  IsIrreducible A ∧ indexOfImprimitivity A = 1
 
 /-- A primitive matrix is irreducible and aperiodic. -/
 theorem primitive_implies_irreducible_and_aperiodic [Nonempty n]
@@ -63,7 +63,7 @@ theorem primitive_implies_irreducible_and_aperiodic [Nonempty n]
   obtain ⟨j, e0, s, _, _⟩ := Quiver.Path.path_decomposition_first_edge p0 (hp0 ▸ hk_pos)
   obtain ⟨⟨Pj, hPj⟩⟩ := hP j
   obtain ⟨⟨Pi0, hPi0⟩⟩ := hP i0
-  dsimp [index_of_imprimitivity, Quiver.index_of_imprimitivity]
+  dsimp [indexOfImprimitivity, Quiver.indexOfImprimitivity]
   have hc1 : (Pj.comp s).length ∈ Quiver.CycleLengths (i := i0) := by
     refine ⟨?_, Pj.comp s, rfl⟩
     simp only [Path.length_comp, hPj]
@@ -86,7 +86,7 @@ def IsPermutationMatrix (P : Matrix n n ℝ) : Prop :=
 
 /-- Frobenius normal form (placeholder). -/
 theorem exists_frobenius_normal_form [Nonempty n] (_hA_irred : IsIrreducible A)
-    (_h_h_gt_1 : index_of_imprimitivity A > 1) :
+    (_h_h_gt_1 : indexOfImprimitivity A > 1) :
     ∃ P : Matrix n n ℝ, IsPermutationMatrix P :=
   ⟨1, ⟨Equiv.refl _, fun i j ↦ by simp [Matrix.one_apply]⟩⟩
 
