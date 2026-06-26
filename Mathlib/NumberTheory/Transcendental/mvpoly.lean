@@ -686,7 +686,8 @@ instance : WOrdering nvars where
 
     exact list_lex_add_le_add a.degrees.toList b.degrees.toList c.degrees.toList h1 h2 hab
 
-@[ext] structure MvSparsePoly (R : Type) [CommRing R] (nvars : ℕ) [WOrdering nvars] : Type where
+@[ext] structure MvSparsePoly (R : Type) [CommRing R] (nvars : ℕ)
+    [WOrdering nvars] : Type where
   terms : List (MvDegrees nvars × R)
   sorted : terms.Pairwise (·.1 > ·.1)
   nonzero : ∀ x ∈ terms, x.2 ≠ 0
