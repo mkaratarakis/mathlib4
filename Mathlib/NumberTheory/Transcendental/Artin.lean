@@ -9,6 +9,7 @@ import Mathlib.Algebra.MvPolynomial.Funext
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.RingTheory.Localization.FractionRing
 import Mathlib.Data.Real.Basic
+import Mathlib.NumberTheory.Transcendental.ArtinTransfer
 
 /-!
 # Artin's theorem (scalar Hilbert's 17th), reduced to the Tarski transfer principle
@@ -56,13 +57,15 @@ negative value at some *real* point.
 
 This is the model completeness of the theory of real closed fields (every real closed field is an
 elementary extension of `ℝ`); it is the single genuinely deep, not-yet-in-Mathlib ingredient of
-Artin's theorem. -/
+Artin's theorem. It is **reduced**, in `Mathlib.NumberTheory.Transcendental.ArtinTransfer`, to model
+completeness of real closed fields (`Artin.ModelTheory.realClosed_elementaryEmbedding`) together
+with the eval↔formula dictionary (`Artin.ModelTheory.elementaryEmbedding_reflect_exists_neg`). -/
 theorem exists_neg_eval_of_real_closed
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
     (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
     (h : eval₂ ψ ξ f < 0) :
-    ∃ a : σ → ℝ, eval a f < 0 := by
-  sorry
+    ∃ a : σ → ℝ, eval a f < 0 :=
+  ModelTheory.exists_neg_eval_of_real_closed C ψ ξ f h
 
 /-- The rational function field `ℝ(xᵢ)` is formally real.
 
