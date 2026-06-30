@@ -36,8 +36,6 @@ James Davenport; the multivariate analogue (`MvSparsePoly`) and the reflection t
 developed subsequently.
 -/
 
-set_option linter.style.longFile 1700
-
 @[ext] structure SparsePoly (R : Type) [CommRing R] : Type where
   coeffs : List (ℕ × R)
   sorted : coeffs.Pairwise (·.1 > ·.1)
@@ -81,7 +79,6 @@ instance : One (SparsePoly R) where
 
 def degLt (a : ℕ) (l : List (ℕ × R)) : Prop := ∀ x ∈ l, x.1 < a
 
--- Relate our structures to the Polynomial of Mathlib
 noncomputable def toPolyCore : List (ℕ × R) → R[X]
   | [] => 0
   | (i, a) :: x => Polynomial.C a * Polynomial.X^i + toPolyCore x
@@ -97,7 +94,7 @@ def addCore : List (ℕ × R) → List (ℕ × R) → List (ℕ × R)
       (j, b) :: addCore xx y
     else if j < i then
       (i, a) :: addCore x yy
-    else  -- Check for a+b=0
+    else
       ( fun c => if c=0 then addCore x y else (i, c) :: addCore x y) (a+b)
     termination_by xx yy => xx.length + yy.length
 
@@ -110,35 +107,27 @@ theorem addCore_degLt {n : ℕ} : ∀ {x y : List (ℕ × R)},
     unfold addCore
     exact hx
   | xx@((i, a) :: x), yy@((j, b) :: y), hx, hy => by
-    -- 1. Extract hypotheses for the heads and tails separately
-    -- Lean 4's mem_cons_self uses implicit arguments, so no `_ _` is needed
     have hx_head : i < n := hx (i, a) List.mem_cons_self
     have hx_tail : degLt n x := fun e he => hx e (List.mem_cons_of_mem _ he)
     have hy_head : j < n := hy (j, b) List.mem_cons_self
     have hy_tail : degLt n y := fun e he => hy e (List.mem_cons_of_mem _ he)
     unfold addCore
     split
-    · -- Case: i < j
-      intro e he
+    · intro e he
       simp only [List.mem_cons] at he
       rcases he with rfl | he
       · exact hy_head
       · exact addCore_degLt hx hy_tail e he
-    · -- Case: ¬(i < j)
-      split
-      · -- Case: j < i
-        intro e he
+    · split
+      · intro e he
         simp only [List.mem_cons] at he
         rcases he with rfl | he
         · exact hx_head
         · exact addCore_degLt hx_tail hy e he
-      · -- Case: i = j
-        dsimp only
+      · dsimp only
         split
-        · -- Case: a + b = 0
-          exact addCore_degLt hx_tail hy_tail
-        · -- Case: a + b ≠ 0
-          intro e he
+        · exact addCore_degLt hx_tail hy_tail
+        · intro e he
           simp only [List.mem_cons] at he
           rcases he with rfl | he
           · exact hx_head
@@ -155,12 +144,11 @@ theorem addCore_sorted : ∀ {x y : List (ℕ × R)},
     unfold addCore
     exact hx
   | xx@((i, a) :: x), yy@((j, b) :: y), hx, hy => by
-    -- FIX: Use List.pairwise_cons.1 to extract the head and tail proofs safely
     have ⟨hi, hx'⟩ := List.pairwise_cons.1 hx
     have ⟨hj, hy'⟩ := List.pairwise_cons.1 hy
     unfold addCore
     split
-    · next ij => -- Case: i < j
+    · next ij =>
       constructor
       · apply addCore_degLt
         · intro
@@ -169,7 +157,7 @@ theorem addCore_sorted : ∀ {x y : List (ℕ × R)},
         · exact hj
       · exact addCore_sorted hx hy'
     · split
-      · next ji => -- Case: j < i
+      · next ji =>
         constructor
         · apply addCore_degLt
           · exact hi
@@ -177,15 +165,11 @@ theorem addCore_sorted : ∀ {x y : List (ℕ × R)},
             | _, .head _ => exact ji
             | p, .tail _ hp => exact (hj _ hp).trans ji
         · exact addCore_sorted hx' hy
-      · -- Case: i = j
-        cases (by omega : i = j)
-        -- dsimp is needed here to beta-reduce the (fun c => ...)(a+b)
+      · cases (by omega : i = j)
         dsimp only
         split
-        · -- Case: a + b = 0
-          exact addCore_sorted hx' hy'
-        · -- Case: a + b ≠ 0
-          constructor
+        · exact addCore_sorted hx' hy'
+        · constructor
           · exact addCore_degLt hi hj
           · exact addCore_sorted hx' hy'
 termination_by x y => x.length + y.length
@@ -203,7 +187,6 @@ def dedupList : List (ℕ × R) → List (ℕ × R)
       (i, a) :: dedupList ((j, b) :: x)
   | x => x
 
--- Helper: Proves that deduplicating a list does not increase its maximum degree
 omit [DecidableEq R] in
 lemma dedupList_degLt {n : ℕ} : ∀ (l : List (ℕ × R)),
     degLt n l → degLt n (dedupList l)
@@ -216,17 +199,13 @@ lemma dedupList_degLt {n : ℕ} : ∀ (l : List (ℕ × R)),
   | (i, a) :: (j, b) :: xs => fun h => by
     unfold dedupList
     split
-    · next heq => -- Case: i = j
-      -- Recursively apply the lemma
-      apply dedupList_degLt
-      -- Now prove the un-deduplicated tail still respects degLt
+    · apply dedupList_degLt
       intro e he
       simp only [List.mem_cons] at he
       rcases he with rfl | he
       · exact h (i, a) List.mem_cons_self
       · exact h e (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ he))
-    · next hneq => -- Case: i ≠ j
-      intro e he
+    · intro e he
       simp only [List.mem_cons] at he
       rcases he with rfl | he
       · exact h (i, a) List.mem_cons_self
@@ -244,37 +223,28 @@ theorem dedupList_sorted : ∀ (coeffs : List (ℕ × R)),
   | [(i, a)] => fun _ => by
     unfold dedupList
     rw [List.pairwise_cons]
-    constructor
-    · intro e he
-      contradiction -- A singleton has no tail elements, so this is vacuously true
-    · exact List.Pairwise.nil
+    exact ⟨fun e he => by contradiction, List.Pairwise.nil⟩
   | (i, a) :: (j, b) :: xs => fun h => by
-    -- 1. Extract the proofs for the head and the tail separately
     have h_ij : i ≥ j := (List.pairwise_cons.1 h).1 (j, b) List.mem_cons_self
     have h_tail : ((j, b) :: xs).Pairwise (·.1 ≥ ·.1) := (List.pairwise_cons.1 h).2
     unfold dedupList
     split
-    · next heq => -- Case: i = j
-      apply dedupList_sorted
+    · apply dedupList_sorted
       rw [List.pairwise_cons]
-      constructor
-      · intro e he
-        have h_je : j ≥ e.1 := (List.pairwise_cons.1 h_tail).1 e he
-        omega -- i = j and j >= e.1 implies i >= e.1
-      · exact (List.pairwise_cons.1 h_tail).2
-    · next hneq => -- Case: i ≠ j
+      refine ⟨fun e he => ?_, (List.pairwise_cons.1 h_tail).2⟩
+      have h_je : j ≥ e.1 := (List.pairwise_cons.1 h_tail).1 e he
+      omega
+    · next hneq =>
       have hij_strict : i > j := by omega
       rw [List.pairwise_cons]
-      constructor
-      · -- Here is where our helper lemma saves the day!
-        apply dedupList_degLt
-        intro e he
-        simp only [List.mem_cons] at he
-        rcases he with rfl | he
-        · exact hij_strict
-        · have h_je : j ≥ e.1 := (List.pairwise_cons.1 h_tail).1 e he
-          omega
-      · exact dedupList_sorted ((j, b) :: xs) h_tail
+      refine ⟨?_, dedupList_sorted ((j, b) :: xs) h_tail⟩
+      apply dedupList_degLt
+      intro e he
+      simp only [List.mem_cons] at he
+      rcases he with rfl | he
+      · exact hij_strict
+      · have h_je : j ≥ e.1 := (List.pairwise_cons.1 h_tail).1 e he
+        omega
 termination_by coeffs => coeffs.length
 
 def ofList (coeffs : List (ℕ × R)) : SparsePoly R :=
@@ -297,7 +267,7 @@ def ofList (coeffs : List (ℕ × R)) : SparsePoly R :=
 
 def X : SparsePoly R := ofSortedList [(1, 1)] (List.pairwise_singleton _ _)
 
-instance : Mul (SparsePoly R) where   -- James: I don't follow this
+instance : Mul (SparsePoly R) where
   mul x y :=
     ofList do
       let (i, a) ← x.coeffs
@@ -321,7 +291,6 @@ theorem toPolyCore_filter_nonzero (l : List (ℕ × R)) :
     · unfold toPolyCore
       aesop
 
--- Lemma 1: addCore perfectly mirrors Polynomial addition
 theorem toPolyCore_addCore : ∀ (x y : List (ℕ × R)),
     toPolyCore (addCore x y) = toPolyCore x + toPolyCore y
   | [], yy => by simp [addCore, toPolyCore]
@@ -329,63 +298,45 @@ theorem toPolyCore_addCore : ∀ (x y : List (ℕ × R)),
   | xx@((i, a) :: x), yy@((j, b) :: y) => by
     unfold addCore
     split
-    · next ij => -- Case: i < j
-      -- 1. Unfold the outer layer of toPolyCore to expose the math
-      dsimp only [toPolyCore]
-      -- 2. Apply the recursive hypothesis
+    · dsimp only [toPolyCore]
       rw [toPolyCore_addCore ((i, a) :: x) y]
-      -- 3. The IH introduces `toPolyCore ((i, a) :: x)`. Unfold it again!
       dsimp only [toPolyCore]
-      -- 4. Now ring can see all the additions and multiplications.
       ring
     · split
-      · next ji => -- Case: j < i
-        dsimp only [toPolyCore]
+      · dsimp only [toPolyCore]
         rw [toPolyCore_addCore x ((j, b) :: y)]
         dsimp only [toPolyCore]
         ring
-      · -- Case: i = j
-        cases (by omega : i = j)
+      · cases (by omega : i = j)
         dsimp only
         split
-        · next hab => -- Case: a + b = 0
+        · next hab =>
           dsimp only [toPolyCore]
           rw [toPolyCore_addCore x y]
-          -- Isolate the highest degree terms so we can cancel them
-          have h_eq : Polynomial.C a * Polynomial.X ^ i + toPolyCore x +
-            (Polynomial.C b * Polynomial.X ^ i + toPolyCore y) =
-            (Polynomial.C a * Polynomial.X ^ i + Polynomial.C b * Polynomial.X ^ i) +
-            (toPolyCore x + toPolyCore y) := by ring
-          rw [h_eq]
-          -- Prove that those specific terms cancel to 0 using a+b=0
           have h_zero : Polynomial.C a * Polynomial.X ^ i +
               Polynomial.C b * Polynomial.X ^ i = 0 := by
             rw [← add_mul, ← map_add, hab, map_zero, zero_mul]
-          rw [h_zero, zero_add]
-        · next hab => -- Case: a + b ≠ 0
-          dsimp only [toPolyCore]
-          rw [toPolyCore_addCore x y]
-          -- Expand C(a+b) into Ca + Cb, then distribute the X^i
-          rw [map_add, add_mul]
+          rw [show Polynomial.C a * Polynomial.X ^ i + toPolyCore x +
+            (Polynomial.C b * Polynomial.X ^ i + toPolyCore y) =
+            (Polynomial.C a * Polynomial.X ^ i + Polynomial.C b * Polynomial.X ^ i) +
+            (toPolyCore x + toPolyCore y) by ring, h_zero, zero_add]
+        · dsimp only [toPolyCore]
+          rw [toPolyCore_addCore x y, map_add, add_mul]
           ring
 termination_by x y => x.length + y.length
 
 /-- `SparsePoly` addition mirrors `Polynomial` addition. -/
 theorem toPoly_add (x y : SparsePoly R) :
     toPoly (x + y) = toPoly x + toPoly y := by
-  -- `change` skips the `Add` typeclass and evaluates the struct directly.
   change toPolyCore ((addCore x.coeffs y.coeffs).filter (·.2 ≠ 0)) = _
   rw [toPolyCore_filter_nonzero]
   exact toPolyCore_addCore x.coeffs y.coeffs
 
--- Helper 1: Extract the `degLt` property from a `Sorted` list easily
 omit [CommRing R] [DecidableEq R] in
 lemma degLt_of_sorted_cons {i : ℕ} {a : R} {xs : List (ℕ × R)}
     (h : ((i, a) :: xs).Pairwise (·.1 > ·.1)) : degLt i xs :=
   fun x hx => (List.pairwise_cons.1 h).1 x hx
 
--- Helper 2: If all elements in a list have degree strictly less than `n`,
--- then evaluating the polynomial at degree `n` yields 0.
 omit [DecidableEq R] in
 theorem coeff_toPolyCore_of_degLt {n : ℕ} (xs : List (ℕ × R)) (h : degLt n xs) :
     Polynomial.coeff (toPolyCore xs) n = 0 := by
@@ -395,7 +346,6 @@ theorem coeff_toPolyCore_of_degLt {n : ℕ} (xs : List (ℕ × R)) (h : degLt n 
     rcases hd with ⟨i, a⟩
     dsimp only [toPolyCore]
     rw [Polynomial.coeff_add]
-    -- FIX: Removed `_ _` from List.mem_cons_self
     have h_deg : i < n := h (i, a) List.mem_cons_self
     have h_ne : i ≠ n := ne_of_lt h_deg
     rw [Polynomial.coeff_C_mul_X_pow]
@@ -403,15 +353,12 @@ theorem coeff_toPolyCore_of_degLt {n : ℕ} (xs : List (ℕ × R)) (h : degLt n 
     rw [ih h_tl, add_zero]
     grind
 
--- Helper 3: The coefficient of the head of the list at its own exponent `i` is exactly `a`.
 omit [DecidableEq R] in
 theorem coeff_toPolyCore_head {i : ℕ} {a : R} (xs : List (ℕ × R)) (h : degLt i xs) :
     Polynomial.coeff (toPolyCore ((i, a) :: xs)) i = a := by
   dsimp only [toPolyCore]
   rw [Polynomial.coeff_add, Polynomial.coeff_C_mul_X_pow, if_pos rfl]
   rw [coeff_toPolyCore_of_degLt xs h, add_zero]
--- The Main Boss Fight: Induction on both lists simultaneously
-
 
 omit [DecidableEq R] in
 theorem toPolyCore_injective_of_sorted : ∀ (l1 l2 : List (ℕ × R)),
@@ -490,11 +437,6 @@ theorem toPoly_C (r : R) : toPoly (C r) = Polynomial.C r := by
   dsimp only
   by_cases hr : r = 0 <;> simp [hr, toPolyCore]
 
--- ==========================================
--- PART 1: List Permutation Infrastructure
--- ==========================================
-
--- 1. Polynomials distribute cleanly over appended lists
 omit [DecidableEq R] in
 theorem toPolyCore_append (l1 l2 : List (ℕ × R)) :
     toPolyCore (l1 ++ l2) = toPolyCore l1 + toPolyCore l2 := by
@@ -511,7 +453,6 @@ theorem toPolyCore_append (l1 l2 : List (ℕ × R)) :
       _ = toPolyCore ((i, a) :: tl) + toPolyCore l2 := by
             simp [toPolyCore, add_assoc]
 
--- 2. Sorting a list is just a permutation. Permuting a list doesn't change the polynomial!
 omit [DecidableEq R] in
 theorem toPolyCore_perm {l1 l2 : List (ℕ × R)} (h : List.Perm l1 l2) :
     toPolyCore l1 = toPolyCore l2 := by
@@ -525,19 +466,15 @@ theorem toPolyCore_perm {l1 l2 : List (ℕ × R)} (h : List.Perm l1 l2) :
     rcases x with ⟨i, a⟩
     rcases y with ⟨j, b⟩
     dsimp only [toPolyCore]
-    ring -- Algebraically, C a * X^i + C b * X^j = C b * X^j + C a * X^i
+    ring
   | trans _ _ ih1 ih2 =>
     exact Eq.trans ih1 ih2
 
--- 3. mergeSort is a permutation, so it safely preserves the polynomial
 omit [DecidableEq R] in
 theorem toPolyCore_mergeSort (l : List (ℕ × R)) (r : ℕ × R → ℕ × R → Bool) :
-    toPolyCore (l.mergeSort r) = toPolyCore l := by
-  apply toPolyCore_perm
-  exact List.mergeSort_perm l r
+    toPolyCore (l.mergeSort r) = toPolyCore l :=
+  toPolyCore_perm (List.mergeSort_perm l r)
 
-
--- 4. Deduplicating adds coefficients of matching exponents, preserving the math
 omit [DecidableEq R] in
 theorem toPolyCore_dedupList : ∀ (l : List (ℕ × R)),
     toPolyCore (dedupList l) = toPolyCore l
@@ -548,15 +485,13 @@ theorem toPolyCore_dedupList : ∀ (l : List (ℕ × R)),
   | (i, a) :: (j, b) :: xs => by
     unfold dedupList
     split
-    · next heq => -- Case i = j
+    · next heq =>
       subst heq
       rw [toPolyCore_dedupList ((i, a + b) :: xs)]
       dsimp only [toPolyCore]
-      -- Expand C(a+b)*X^i into Ca*X^i + Cb*X^i
       rw [map_add, add_mul]
       ring
-    · next hneq => -- Case i ≠ j
-      dsimp only [toPolyCore]
+    · dsimp only [toPolyCore]
       rw [toPolyCore_dedupList ((j, b) :: xs)]
       simp [toPolyCore]
 
@@ -564,11 +499,8 @@ theorem toPoly_ofList (l : List (ℕ × R)) :
     toPoly (ofList l) = toPolyCore l := by
   unfold toPoly ofList ofSortedList
   dsimp only
-  rw [toPolyCore_filter_nonzero]
-  rw [toPolyCore_dedupList]
-  rw [toPolyCore_mergeSort]
+  rw [toPolyCore_filter_nonzero, toPolyCore_dedupList, toPolyCore_mergeSort]
 
--- Helper for the inner loop of the List Monad multiplication
 omit [DecidableEq R] in
 lemma toPolyCore_mul_y (i : ℕ) (a : R) (y : List (ℕ × R)) :
     toPolyCore (y.flatMap fun ⟨j, b⟩ => [(i + j, a * b)]) =
@@ -580,14 +512,11 @@ lemma toPolyCore_mul_y (i : ℕ) (a : R) (y : List (ℕ × R)) :
     change toPolyCore ([(i + j, a * b)] ++ tl.flatMap _) = _
     rw [toPolyCore_append, ih]
     dsimp only [toPolyCore]
-    have h_term : Polynomial.C (a * b) * Polynomial.X ^ (i + j) =
-        Polynomial.C a * Polynomial.X ^ i * (Polynomial.C b * Polynomial.X ^ j) := by
-      rw [map_mul, pow_add]
-      ring
-    rw [h_term]
+    rw [show Polynomial.C (a * b) * Polynomial.X ^ (i + j) =
+        Polynomial.C a * Polynomial.X ^ i * (Polynomial.C b * Polynomial.X ^ j) by
+      rw [map_mul, pow_add]; ring]
     ring
 
--- Helper for the outer loop of the List Monad multiplication
 omit [DecidableEq R] in
 lemma toPolyCore_mul_x (x y : List (ℕ × R)) :
     toPolyCore (x.flatMap fun ⟨i, a⟩ => y.flatMap fun ⟨j, b⟩ => [(i + j, a * b)]) =
@@ -601,20 +530,14 @@ lemma toPolyCore_mul_x (x y : List (ℕ × R)) :
     dsimp only [toPolyCore]
     ring
 
--- ==========================================
--- PART 3: The Final Theorems!
--- ==========================================
-
 theorem toPoly_one : toPoly (1 : SparsePoly R) = 1 := by
   change toPoly (C 1) = 1
   rw [toPoly_C]
   exact map_one (Polynomial.C (R := R))
 
 theorem toPoly_mul (x y : SparsePoly R) : toPoly (x * y) = toPoly x * toPoly y := by
-  -- Explicitly state the desugaring of the `do` block from your Mul instance
-  have h_xy : x * y = ofList (x.coeffs.flatMap fun ⟨i, a⟩ =>
-    y.coeffs.flatMap fun ⟨j, b⟩ => [(i + j, a * b)]) := rfl
-  rw [h_xy, toPoly_ofList]
+  rw [show x * y = ofList (x.coeffs.flatMap fun ⟨i, a⟩ =>
+    y.coeffs.flatMap fun ⟨j, b⟩ => [(i + j, a * b)]) from rfl, toPoly_ofList]
   exact toPolyCore_mul_x x.coeffs y.coeffs
 
 theorem toPoly_neg (x : SparsePoly R) : toPoly (-x) = -toPoly x := by
@@ -635,7 +558,6 @@ instance : CommRing (SparsePoly R) where
   natCast n := C (n : R)
   intCast z := C (z : R)
 
-  -- The core Ring axioms
   add_assoc := by
     intro x y z
     apply toPoly_injective
@@ -656,7 +578,6 @@ instance : CommRing (SparsePoly R) where
     apply toPoly_injective
     rw [toPoly_add, toPoly_add, add_comm]
 
--- Inside your CommRing instance:
   neg_add_cancel := by
     intro a
     apply toPoly_injective
@@ -736,7 +657,6 @@ instance : CommRing (SparsePoly R) where
     push_cast
     grind
 
--- First, we bundle your `C` constructor into a formal RingHom
 def C_hom : R →+* SparsePoly R where
   toFun := C
   map_zero' := by
@@ -754,7 +674,6 @@ def C_hom : R →+* SparsePoly R where
     apply toPoly_injective
     simp only [toPoly_mul, toPoly_C, map_mul]
 
--- Now we define the Algebra using that RingHom
 instance : Algebra R (SparsePoly R) where
   smul := fun a r => C a * r
   algebraMap := C_hom
@@ -765,12 +684,6 @@ class IsExactDiv (R : Type*) [Monoid R] [Div R] : Prop where
   mul_div_cancel {a b : R} : b ∣ a → b * (a / b) = a
 
 def degree (a : SparsePoly R) : ℕ := (a.coeffs.headD (0, 0)).1
-
--- ==========================================
--- 1. The Translation API (Bridges SparsePoly to Mathlib)
--- ==========================================
--- These 4 atomic facts tell Lean how your lists mathematically behave.
--- You can prove these later once you define SMul and Sub!
 
 omit [DecidableEq R] in
 lemma degree_eq_head (p : SparsePoly R) (i : ℕ) (x : R) (tail : List (ℕ × R))
@@ -789,7 +702,6 @@ lemma natDegree_toPolyCore_lt (i : ℕ) (x : R) (tail : List (ℕ × R))
       fun p hp => lt_of_lt_of_le ((List.pairwise_cons.1 h_sorted).1 p hp) hge
     exact Polynomial.leadingCoeff_eq_zero.1 (coeff_toPolyCore_of_degLt tail h_degLt_nd)
 
--- Bridge: degree of a SparsePoly agrees with natDegree of its translated Polynomial
 omit [DecidableEq R] in
 lemma degree_eq_natDegree_toPoly (p : SparsePoly R) :
     p.degree = (toPoly p).natDegree := by
@@ -806,9 +718,6 @@ lemma degree_eq_natDegree_toPoly (p : SparsePoly R) :
      rw [toPoly, hcoeffs]
      simpa using coeff_toPolyCore_head (i := i) (a := x) tl hdegTl
     have hcoeff_i_ne : (toPoly p).coeff i ≠ 0 := by simpa [hcoeff_i] using hx0
-    have hpoly_ne : toPoly p ≠ 0 := by
-     intro hz
-     exact hcoeff_i_ne (by simp [hz])
     have hupper : ∀ k > i, (toPoly p).coeff k = 0 := by
      intro k hk
      have hdegTl' : degLt k tl := fun e he => lt_trans (hdegTl e he) hk
@@ -823,11 +732,7 @@ lemma degree_eq_natDegree_toPoly (p : SparsePoly R) :
      have hz : (toPoly p).coeff (toPoly p).natDegree = 0 := by grind
      specialize hupper (toPoly p).natDegree hi_lt
      aesop
-    have hnat : (toPoly p).natDegree = i := le_antisymm hge hle
-    calc
-      p.degree = i := by simp [degree, hcoeffs]
-    _ = (toPoly p).natDegree := hnat.symm
-
+    rw [show p.degree = i by simp [degree, hcoeffs], le_antisymm hge hle]
 
 /-- The pseudo-division of `a` annihilates the leading `x*y*X^i` term (when `i > j`). -/
 lemma toPoly_pseudo_rem_a (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List (ℕ × R))
@@ -867,7 +772,6 @@ lemma toPoly_pseudo_rem_a (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : Li
     ring
   rw [degree_eq_natDegree_toPoly _, hpoly]
 
-
 /-- The pseudo-division of `b` annihilates the leading `x*y*X^j` term (when `¬ i > j`). -/
 lemma toPoly_pseudo_rem_b (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List (ℕ × R))
     (ha : a.coeffs = (i, x) :: as) (hb : b.coeffs = (j, y) :: bs) (hji : ¬ (i > j)) :
@@ -906,7 +810,6 @@ lemma toPoly_pseudo_rem_b (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : Li
     ring
   rw [degree_eq_natDegree_toPoly _, hpoly]
 
--- Helper 1: Cross-multiplying and subtracting drops the degree of 'a'
 lemma deg_pseudo_rem_a (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List (ℕ × R))
     (ha : a.coeffs = (i, x) :: as) (hb : b.coeffs = (j, y) :: bs) (hij : i > j) :
     (y • a - x • X^(i-j) * b).degree < a.degree := by
@@ -939,7 +842,6 @@ lemma deg_pseudo_rem_a (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List 
   · rw [h_zero, Polynomial.natDegree_zero]; omega
   · exact lt_of_not_ge fun h_ge => h_zero (Polynomial.leadingCoeff_eq_zero.mp (h_coeff _ h_ge))
 
--- Helper 2: Cross-multiplying and subtracting drops the degree of 'b'
 lemma deg_pseudo_rem_b (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List (ℕ × R))
     (ha : a.coeffs = (i, x) :: as) (hb : b.coeffs = (j, y) :: bs) (hji : ¬(i > j))
     (hj_pos : 0 < j) :
@@ -974,16 +876,14 @@ lemma deg_pseudo_rem_b (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List 
   · exact lt_of_not_ge fun h_ge => h_zero (Polynomial.leadingCoeff_eq_zero.mp (h_coeff _ h_ge))
 
 def gcdPrim (a b : SparsePoly R) : SparsePoly R :=
-  -- Bind the matches so Lean remembers them!
   match _ha : a.coeffs with
   | [] => b
   | (i, x) :: _as =>
     match hb : b.coeffs with
     | [] => a
     | (j, y) :: bs =>
-      -- NEW: Intercept constants to prevent the infinite loop!
       if h_const : i = 0 ∧ j = 0 then
-        a -- Base case: Both are constants. Stop the loop here.
+        a
       else if h_gt : i > j then
         gcdPrim (y • a - x • X^(i-j) * b) b
       else
@@ -994,13 +894,10 @@ decreasing_by
     have h_drop := deg_pseudo_rem_a a b i j x y _as bs _ha hb h_gt
     aesop
   · simp_wf
-    -- Since ¬(i = 0 ∧ j = 0) and ¬(i > j), Lean logically deduces j MUST be > 0.
     have hj_pos : 0 < j := by omega
-    -- 2. Apply our exact helper lemma for branch 2
     have h_drop := deg_pseudo_rem_b a b i j x y _as bs _ha hb h_gt hj_pos
     aesop
 
--- Helper 1: The core property of foldl gcd
 omit [DecidableEq R] in
 lemma foldl_gcd_dvd_acc [GCDMonoid R] (l : List (ℕ × R)) (acc : R) :
     l.foldl (fun a x => gcd a x.2) acc ∣ acc := by
@@ -1008,11 +905,8 @@ lemma foldl_gcd_dvd_acc [GCDMonoid R] (l : List (ℕ × R)) (acc : R) :
   | nil => simp
   | cons hd tl ih =>
     simp only [List.foldl_cons]
-    -- foldl (...) (gcd acc hd.2) tl  ∣  gcd acc hd.2  ∣  acc
     exact (ih (gcd acc hd.2)).trans (gcd_dvd_left _ _)
 
-
--- Helper 2: foldl gcd also divides every element in the list
 omit [DecidableEq R] in
 lemma foldl_gcd_dvd_mem [GCDMonoid R] {l : List (ℕ × R)} {i : ℕ} {c : R}
     (h : (i, c) ∈ l) (acc : R) : l.foldl (fun a x => gcd a x.2) acc ∣ c := by
@@ -1021,18 +915,13 @@ lemma foldl_gcd_dvd_mem [GCDMonoid R] {l : List (ℕ × R)} {i : ℕ} {c : R}
   | cons hd tl ih =>
     simp only [List.foldl_cons, List.mem_cons] at h ⊢
     rcases h with rfl | h_mem
-    · -- Case: c is the current head
-      -- foldl (...) (gcd acc c) tl  ∣  gcd acc c  ∣  c
-      exact (foldl_gcd_dvd_acc tl (gcd acc c)).trans (gcd_dvd_right _ _)
-    · -- Case: c is in the tail
-      exact ih h_mem (gcd acc hd.2)
+    · exact (foldl_gcd_dvd_acc tl (gcd acc c)).trans (gcd_dvd_right _ _)
+    · exact ih h_mem (gcd acc hd.2)
 
--- Note: I removed [CommMonoidWithZero R] to prevent the diamond error!
 omit [DecidableEq R] in
 lemma content_dvd_coeff_final [GCDMonoid R] {l : List (ℕ × R)} {i : ℕ} {c : R}
-    (h : (i, c) ∈ l) : l.foldl (init := 0) (fun acc x => gcd acc x.2) ∣ c := by
-  -- Just call our helper with acc := 0
-  exact foldl_gcd_dvd_mem h 0
+    (h : (i, c) ∈ l) : l.foldl (init := 0) (fun acc x => gcd acc x.2) ∣ c :=
+  foldl_gcd_dvd_mem h 0
 
 def content [GCDMonoid R] (a : SparsePoly R) : R :=
   a.coeffs.foldl (init := 0) (gcd · ·.2)
@@ -1043,27 +932,20 @@ def primitivePart [GCDMonoid R]
     let b := a.content
     a.coeffs.map fun (i, a) => (i, a / b)
   sorted := by
-    -- 1. Exponents (x.1) are unchanged by the map, so the strictly decreasing order holds.
     have h_sorted := a.sorted
     grind
   nonzero := by
     intro x hx
-    -- 2. Extract the original coefficient 'c' and exponent 'i'
     simp only [List.mem_map, Prod.exists] at hx
     rcases hx with ⟨i, c, h_mem, rfl⟩
-    -- Original coeff was non-zero by SparsePoly invariant
     have hc_nz := a.nonzero (i, c) h_mem
     let b := a.content
     intro h_div_zero
-    -- 3. If c/b = 0, then b*(c/b) = 0
     have h_mul := congr_arg (fun (z : R) => b * z) h_div_zero
     simp only [mul_zero] at h_mul
-    -- 4. Use our new lemma: the content (GCD) must divide the coefficient
     have h_dvd : b ∣ c := content_dvd_coeff_final h_mem
-    -- 5. By IsExactDiv, b * (c / b) = c. This implies c = 0, a contradiction.
     rw [IsExactDiv.mul_div_cancel h_dvd] at h_mul
     exact hc_nz h_mul
-
 
 nonrec def gcd [GCDMonoid R]
     [Div R] [IsExactDiv R] (a b : SparsePoly R) : SparsePoly R :=
@@ -1084,27 +966,16 @@ omit [DecidableEq R] in
 lemma coeff_toPolyCore_eq_zero_of_forall_lt (l : List (ℕ × R)) (k : ℕ)
     (h : ∀ p ∈ l, p.1 < k) : (toPolyCore l).coeff k = 0 := by
   induction l with
-  | nil =>
-    -- Base case: empty list evaluates to 0.
-    simp [toPolyCore]
+  | nil => simp [toPolyCore]
   | cons hd tl ih =>
     rcases hd with ⟨j, y⟩
-    -- 1. Evaluate the head: we know j < k because (j, y) is in the list
-    have h_j_lt_k : j < k := by
-      aesop
-    have h_k_ne_j : k ≠ j := h_j_lt_k.ne'
-    -- 2. Evaluate the tail using the inductive hypothesis
+    have h_k_ne_j : k ≠ j := (by aesop : j < k).ne'
     have h_tail_zero : (toPolyCore tl).coeff k = 0 := by
       apply ih
       intro p hp
-      apply h
-      simp [hp] -- Let simp prove that if p ∈ tl, then p ∈ (j, y) :: tl
-    -- 3. Crush the polynomial math directly by unfolding
+      exact h _ (by simp [hp])
     unfold toPolyCore
-    -- simp will evaluate (C y * X^j).coeff k to 0 (since k ≠ j)
-    -- and plug in the tail zero we just proved!
     simp [h_k_ne_j, h_tail_zero]
-
 
 omit [DecidableEq R] in
 lemma degree_eq_poly_degree (a : SparsePoly R) (h : a.coeffs ≠ []) :
@@ -1118,65 +989,43 @@ lemma degree_eq_poly_degree (a : SparsePoly R) (h : a.coeffs ≠ []) :
     have h_sorted := a.sorted
     rw [h_coeffs] at h_sorted
     exact List.rel_of_pairwise_cons h_sorted hp
-  -- Step 1: Unfold toPolyCore directly to expose the addition
   have h_coeff_i : (toPoly a).coeff i = x := by
     simp only [toPoly, h_coeffs]
     unfold toPolyCore
-    have h_tail_zero : (toPolyCore as).coeff i = 0 := by
-      apply coeff_toPolyCore_eq_zero_of_forall_lt
-      exact h_as_lt
+    have h_tail_zero : (toPolyCore as).coeff i = 0 :=
+      coeff_toPolyCore_eq_zero_of_forall_lt _ _ h_as_lt
     simp [h_tail_zero]
   have h_nz : (toPoly a).coeff i ≠ 0 := by
     rw [h_coeff_i]
     exact a.nonzero (i, x) (by rw [h_coeffs]; simp)
-  -- Step 2: Unfold toPolyCore for the upper bounds check
   have h_zero : ∀ k > i, (toPoly a).coeff k = 0 := by
     intro k hk
     simp only [toPoly, h_coeffs]
     unfold toPolyCore
-    have h_k_ne_i : k ≠ i := hk.ne'
-    have h_tail_zero : (toPolyCore as).coeff k = 0 := by
-      apply coeff_toPolyCore_eq_zero_of_forall_lt
-      intro p hp
-      exact (h_as_lt p hp).trans hk
-    simp [h_k_ne_i, h_tail_zero]
-  -- Step 3: Mathlib limits (single, correct application)
+    have h_tail_zero : (toPolyCore as).coeff k = 0 :=
+      coeff_toPolyCore_eq_zero_of_forall_lt _ _ fun p hp => (h_as_lt p hp).trans hk
+    simp [hk.ne', h_tail_zero]
   symm
   apply le_antisymm
   · by_contra h_gt
     push Not at h_gt
-    have h_lead_zero := h_zero ((toPoly a).natDegree) h_gt
-    have h_poly_zero : toPoly a = 0 := by
-      apply Polynomial.leadingCoeff_eq_zero.mp
-      exact h_lead_zero
-    rw [h_poly_zero] at h_nz
-    simp only [Polynomial.coeff_zero, ne_eq, not_true_eq_false] at h_nz
+    rw [Polynomial.leadingCoeff_eq_zero.mp (h_zero _ h_gt)] at h_nz
+    simp at h_nz
   · by_contra h_lt
     push Not at h_lt
-    have h_coeff_i_zero := Polynomial.coeff_eq_zero_of_natDegree_lt h_lt
-    exact h_nz h_coeff_i_zero
+    exact h_nz (Polynomial.coeff_eq_zero_of_natDegree_lt h_lt)
 
 omit [DecidableEq R] in
 /-- Core Helper: Pushing scalar multiplication through the list translation -/
 lemma toPolyCore_map_smul (c : R) (l : List (ℕ × R)) :
     toPolyCore (l.map fun p => (p.1, c * p.2)) = Polynomial.C c * toPolyCore l := by
   induction l with
-  | nil =>
-    -- Base case: empty list
-    unfold toPolyCore
-    simp
+  | nil => unfold toPolyCore; simp
   | cons hd tl ih =>
     rcases hd with ⟨i, x⟩
-    -- 1. Evaluate the list mapping for the head
     simp only [List.map_cons]
     unfold toPolyCore
-    -- 2. Substitute the tail using the inductive hypothesis
-    rw [ih]
-    -- 3. Distribute C c * (Head + Tail) -> C c * Head + C c * Tail
-    rw [mul_add]
-    -- 4. Polynomial.C is a Ring Homomorphism, so C(c * x) = C(c) * C(x)
-    rw [map_mul]
-    -- 5. Realign the commutative multiplication
+    rw [ih, mul_add, map_mul]
     ring
 
 def coeffCore : List (ℕ × R) → ℕ → R
@@ -1192,36 +1041,25 @@ lemma coeffCore_eq_toPolyCore_coeff (l : List (ℕ × R)) (n : ℕ)
     (hsorted : l.Pairwise (·.1 > ·.1)) :
     coeffCore l n = (toPolyCore l).coeff n := by
   induction l generalizing n with
-  | nil =>
-    -- Base case: empty list evaluates to 0 in both definitions
-    unfold coeffCore toPolyCore
-    simp
+  | nil => unfold coeffCore toPolyCore; simp
   | cons hd tl ih =>
     rcases hd with ⟨i, x⟩
     have hhead : ∀ p ∈ tl, i > p.1 := (List.pairwise_cons.1 hsorted).1
     have htail : tl.Pairwise (·.1 > ·.1) := (List.pairwise_cons.1 hsorted).2
-    -- 1. Unfold both definitions for the head of the list
     unfold coeffCore toPolyCore
-    -- 2. Push Mathlib's coefficient evaluation through the addition
     simp only [Polynomial.coeff_add, Polynomial.coeff_C_mul_X_pow]
-    -- 3. Handle the if/else logic (if n = i)
     by_cases h_eq : n = i
-    · have hdeg : degLt n tl := fun p hp => by grind
-      have h_tail_zero : (toPolyCore tl).coeff n = 0 := coeff_toPolyCore_of_degLt tl hdeg
+    · have h_tail_zero : (toPolyCore tl).coeff n = 0 :=
+        coeff_toPolyCore_of_degLt tl fun p hp => by grind
       simp [h_eq]
       grind
-    · have ih' : coeffCore tl n = (toPolyCore tl).coeff n := ih n htail
-      simp [h_eq, ih']
+    · simp [h_eq, ih n htail]
 
 omit [DecidableEq R] in
 /-- The Main Bridge Lemma -/
 lemma coeff_toPoly (P : SparsePoly R) (n : ℕ) :
-    P.coeff n = (toPoly P).coeff n := by
-  -- 1. Unfold your SparsePoly wrapper
-  -- rw [SparsePoly.coeff_def, toPoly]
-
-  -- 2. Apply the core list helper
-  exact coeffCore_eq_toPolyCore_coeff P.coeffs n P.sorted
+    P.coeff n = (toPoly P).coeff n :=
+  coeffCore_eq_toPolyCore_coeff P.coeffs n P.sorted
 
 lemma toPoly_smul (c : R) (P : SparsePoly R) :
     toPoly (c • P) = Polynomial.C c * toPoly P := by
@@ -1238,20 +1076,14 @@ lemma toPoly_smul_X_pow_mul (c : R) (n : ℕ) (Q : SparsePoly R) :
     toPoly ((c • X^n) * Q) = Polynomial.C c * Polynomial.X^n * toPoly Q := by
   rw [toPoly_mul, toPoly_smul]
   have hX : toPoly (X : SparsePoly R) = Polynomial.X := by
-    by_cases h1 : (1 : R) = 0
-    · unfold X toPoly ofSortedList
-      simp [toPolyCore, Polynomial.X, h1]
-    · unfold X toPoly ofSortedList
-      simp [toPolyCore, Polynomial.X, h1]
+    by_cases h1 : (1 : R) = 0 <;>
+      · unfold X toPoly ofSortedList; simp [toPolyCore, Polynomial.X, h1]
   have hpow : toPoly ((X : SparsePoly R)^n) = Polynomial.X^n := by
     induction n with
-    | zero =>
-      simp [pow_zero, toPoly_one]
+    | zero => simp [pow_zero, toPoly_one]
     | succ n ih =>
-      simpa [pow_succ, ih, hX] using
-        (toPoly_mul ((X : SparsePoly R)^n) (X : SparsePoly R))
+      simpa [pow_succ, ih, hX] using toPoly_mul ((X : SparsePoly R)^n) (X : SparsePoly R)
   rw [hpow]
-  -- to the target (Polynomial.C c * Polynomial.X^n * toPoly Q), so we are done!
 
 /-- Bridge: Translates a SparsePoly monomial into a Mathlib Polynomial -/
 lemma toPoly_smul_X_pow (c : R) (n : ℕ) :
@@ -1262,15 +1094,12 @@ lemma toPoly_smul_X_pow (c : R) (n : ℕ) :
       toPoly_smul_X_pow_mul (R := R) c n (1 : SparsePoly R)
     _ = Polynomial.C c * Polynomial.X^n := by simp [toPoly_one]
 
-
--- Helper 2: Subtracting the leading term reduces the degree
 lemma degree_sub_leading_term_lt [Div R]
     (P Q : SparsePoly R) {i j : ℕ} {x y : R} {as bs : List (ℕ × R)}
     (ha : P.coeffs = (i, x) :: as)
     (hb : Q.coeffs = (j, y) :: bs)
     (h_deg : j ≤ i) (h_div : y * (x / y) = x) (h_pos : 0 < i) :
     degree (P - ((x / y) • X^(i - j)) * Q) < i := by
-  -- Explicitly unfold the degree definition for the empty list to guarantee h_pos application
   by_cases h_empty : (P - ((x / y) • X^(i - j)) * Q).coeffs = []
   · unfold degree
     rw [h_empty]
@@ -1280,87 +1109,63 @@ lemma degree_sub_leading_term_lt [Div R]
   push Not at h_ge
   have h_coeff_zero : ∀ k ≥ i, (toPoly (P - ((x / y) • X^(i - j)) * Q)).coeff k = 0 := by
     intro k hk
-    -- Bypass the missing toPoly_sub by converting subtraction to addition of a negative
-    rw [sub_eq_add_neg, toPoly_add, toPoly_neg]
-    rw [toPoly_mul, toPoly_smul_X_pow]
+    rw [sub_eq_add_neg, toPoly_add, toPoly_neg, toPoly_mul, toPoly_smul_X_pow]
     simp only [Polynomial.coeff_add, Polynomial.coeff_neg]
     have hP_deg : P.degree = i := by simp [degree, ha]
     have hQ_deg : Q.degree = j := by simp [degree, hb]
-    have hP_nz : P.coeffs ≠ [] := by rw [ha];grind
+    have hP_nz : P.coeffs ≠ [] := by rw [ha]; grind
     have hQ_nz : Q.coeffs ≠ [] := by rw [hb]; grind
     rcases eq_or_lt_of_le hk with rfl | h_gt
-    · -- Case k = i: Exact Cancellation
-      have hP_lead : (toPoly P).coeff i = x := by
+    · have hP_lead : (toPoly P).coeff i = x := by
         simp only [toPoly, ha]
         unfold toPolyCore
-        have h_as_lt : ∀ p ∈ as, p.1 < i := by
-          intro p hp; have hs := P.sorted; rw [ha] at hs; exact List.rel_of_pairwise_cons hs hp
-        have h_tail_zero : (toPolyCore as).coeff i = 0 := by
-          apply coeff_toPolyCore_eq_zero_of_forall_lt; exact h_as_lt
+        have h_tail_zero : (toPolyCore as).coeff i = 0 :=
+          coeff_toPolyCore_eq_zero_of_forall_lt _ _ fun p hp => by
+            have hs := P.sorted; rw [ha] at hs; exact List.rel_of_pairwise_cons hs hp
         simp [h_tail_zero]
       have hQ_lead : (Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q).coeff i = x := by
-        have h_rearrange : Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q =
-                           (Polynomial.C (x / y) * toPoly Q) * Polynomial.X ^ (i - j) := by ring
-        rw [h_rearrange]
-        -- Split `i` into `j + (i - j)` so `coeff_mul_X_pow` matches.
-        have h_shift : j + (i - j) = i := by omega
+        rw [show Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q =
+              (Polynomial.C (x / y) * toPoly Q) * Polynomial.X ^ (i - j) by ring]
         have h_coeff_mul_X_pow :
             (Polynomial.C (x / y) * toPoly Q * Polynomial.X ^ (i - j)).coeff i =
               (Polynomial.C (x / y) * toPoly Q).coeff j := by
           calc (Polynomial.C (x / y) * toPoly Q * Polynomial.X ^ (i - j)).coeff i
               = (Polynomial.C (x / y) * toPoly Q * Polynomial.X ^ (i - j)).coeff (j + (i - j)) := by
-                simp [h_shift]
+                simp [(by omega : j + (i - j) = i)]
             _ = (Polynomial.C (x / y) * toPoly Q).coeff j := by simp
         rw [h_coeff_mul_X_pow]
         have hQ_j : (toPoly Q).coeff j = y := by
           simp only [toPoly, hb]
           unfold toPolyCore
-          have h_bs_lt : ∀ p ∈ bs, p.1 < j := by
-            intro p hp; have hs := Q.sorted; rw [hb] at hs; exact List.rel_of_pairwise_cons hs hp
-          have h_tail_zero : (toPolyCore bs).coeff j = 0 := by
-            apply coeff_toPolyCore_eq_zero_of_forall_lt; exact h_bs_lt
+          have h_tail_zero : (toPolyCore bs).coeff j = 0 :=
+            coeff_toPolyCore_eq_zero_of_forall_lt _ _ fun p hp => by
+              have hs := Q.sorted; rw [hb] at hs; exact List.rel_of_pairwise_cons hs hp
           simp [h_tail_zero]
         grind
       grind
-    · -- Case k > i: Upper Bounds
-      have hP_zero : (toPoly P).coeff k = 0 := by
-        apply Polynomial.coeff_eq_zero_of_natDegree_lt
-        rw [← degree_eq_poly_degree P hP_nz, hP_deg]
-        exact h_gt
+    · have hP_zero : (toPoly P).coeff k = 0 :=
+        Polynomial.coeff_eq_zero_of_natDegree_lt
+          (by rw [← degree_eq_poly_degree P hP_nz, hP_deg]; exact h_gt)
       have hQ_zero : (Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q).coeff k = 0 := by
-        have h_rearrange : Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q =
-                           (Polynomial.C (x / y) * toPoly Q) * Polynomial.X ^ (i - j) := by ring
-        rw [h_rearrange]
-        -- EXPLICIT SHIFT: Split 'k' into '(k - (i - j)) + (i - j)'
-        have h_shift_k : (k - (i - j)) + (i - j) = k := by omega
-        -- Push coefficient check through X^pow and then through the Constant C
-        rw [← h_shift_k, Polynomial.coeff_mul_X_pow, Polynomial.coeff_C_mul]
-        -- Isolate Q and prove its coefficient is 0
-        have hQ_coeff_zero : (toPoly Q).coeff (k - (i - j)) = 0 := by
-          apply Polynomial.coeff_eq_zero_of_natDegree_lt
-          rw [← degree_eq_poly_degree Q hQ_nz, hQ_deg]
-          omega
-        -- (x / y) * 0 = 0
-        rw [hQ_coeff_zero, mul_zero]
+        rw [show Polynomial.C (x / y) * Polynomial.X ^ (i - j) * toPoly Q =
+              (Polynomial.C (x / y) * toPoly Q) * Polynomial.X ^ (i - j) by ring,
+          ← (by omega : (k - (i - j)) + (i - j) = k),
+          Polynomial.coeff_mul_X_pow, Polynomial.coeff_C_mul]
+        rw [Polynomial.coeff_eq_zero_of_natDegree_lt
+          (by rw [← degree_eq_poly_degree Q hQ_nz, hQ_deg]; omega), mul_zero]
       rw [hP_zero, hQ_zero, neg_zero, add_zero]
-  -- 5. The Final Contradiction
-  have h_lead_zero := h_coeff_zero ((toPoly (P - ((x / y) • X^(i - j)) * Q)).natDegree) h_ge
   have h_poly_zero : toPoly (P - ((x / y) • X^(i - j)) * Q) = 0 :=
-    Polynomial.leadingCoeff_eq_zero.mp h_lead_zero
-  have h_deg_zero : (toPoly (P - ((x / y) • X^(i - j)) * Q)).natDegree = 0 :=
-    by rw [h_poly_zero, Polynomial.natDegree_zero]
-  rw [h_deg_zero] at h_ge
+    Polynomial.leadingCoeff_eq_zero.mp (h_coeff_zero _ h_ge)
+  rw [show (toPoly (P - ((x / y) • X^(i - j)) * Q)).natDegree = 0 by
+    rw [h_poly_zero, Polynomial.natDegree_zero]] at h_ge
   exact (not_lt_of_ge h_ge h_pos).elim
 
--- divRem a b = (q, r) -> a = b * q + r
 def divRem [Div R] (a b : SparsePoly R) : SparsePoly R × SparsePoly R :=
-  -- Bind the variables so Lean remembers them!
   match _ha : a.coeffs, _hb : b.coeffs with
   | (i, x) :: _as, (j, y) :: _bs =>
     if _h_lt : i < j then
       (0, a)
     else
-      -- Intercept i = 0 so we don't trigger the 0 < 0 loop
       if h_pos : i = 0 then
         let c := (x / y) • X^0
         if y * (x / y) = x then
@@ -1370,7 +1175,6 @@ def divRem [Div R] (a b : SparsePoly R) : SparsePoly R × SparsePoly R :=
       else
         let c := (x / y) • X^(i - j)
         if _h_div : y * (x / y) = x then
-          -- Inline the c variable in the recursive call
           let (q', r') := divRem (a - ((x / y) • X^(i - j)) * b) b
           (q' + c, r')
         else
@@ -1385,13 +1189,12 @@ decreasing_by
   have h_deg : a.degree = i := by unfold degree; rw [_ha]; rfl
   rw [if_neg ha_not_empty, h_deg]
   by_cases h_empty : (a - ((x / y) • X^(i - j)) * b).coeffs = []
-  · aesop--rw [if_pos h_empty]; omega
+  · aesop
   · have h_lt_i := degree_sub_leading_term_lt a b _ha _hb hj_le_i _h_div h_pos_i
     aesop
 
 instance [Div R] : Div (SparsePoly R) where
   div a b := (divRem a b).1
-
 
 /-- Unfolding lemma to safely evaluate divRem without projection motive errors -/
 lemma divRem_eq [Div R] (a b : SparsePoly R) :
@@ -1415,21 +1218,14 @@ lemma divRem_eq [Div R] (a b : SparsePoly R) :
             else
               (0, a)
       | _, _ => (0, a) := by
-  -- Lean safely unfolds this because there are no `.1` or `.2` projections!
   rw [divRem]
 
--- Helper 1: The Division Algorithm Specification
--- States that `divRem a b = (q, r)` always satisfies `b * q + r = a`
 lemma divRem_spec [Div R] (a b : SparsePoly R) :
     b * (divRem a b).1 + (divRem a b).2 = a := by
-  -- Target 'a' for induction, 'b' is fixed
   induction a using divRem.induct
   case b => exact b
-  -- We explicitly name ALL auto-generated variables exactly as they appear in the induction motive
   case case1 a i x as j y bs ha hb h_lt =>
-    -- Rewriting ha and hb forces the match to see the concrete lists
     rw [divRem_eq, ha, hb]
-    -- Simp now perfectly evaluates the `if` using the h_lt hypothesis
     simp [h_lt]
   case case2 a i x as j y bs ha hb h_nlt h_pos h_div =>
     rw [divRem_eq, hb]
@@ -1441,18 +1237,14 @@ lemma divRem_spec [Div R] (a b : SparsePoly R) :
     grind
   case case4 a i x as j y bs ha hb h_nlt h_npos h_div q' r' heq ih =>
     rw [divRem_eq, ha, hb]
-    -- Feed `simp` the boolean branches and the recursive equality `heq` to reduce the
-    -- match and tuple projections to pure algebra.
     simp only [h_nlt, ↓reduceDIte, h_npos, h_div, Algebra.smul_mul_assoc]
-    have h_rearrange : ∀ (q r c : SparsePoly R),
-      b * (q + c) + r = (b * q + r) + b * c := by intros; grind
-    rw [h_rearrange]
+    rw [show ∀ (q r c : SparsePoly R),
+      b * (q + c) + r = (b * q + r) + b * c from fun _ _ _ => by grind]
     simp_all only [not_lt, Algebra.smul_mul_assoc, Algebra.mul_smul_comm]
     grind
   case case5 a i x as j y bs ha hb h_nlt h_npos h_ndiv =>
     rw [divRem_eq, ha, hb]
     simp [h_nlt, h_npos, h_ndiv]
-  -- We leave case6 (fallback) unnamed to avoid arity mismatch on empty lists
   case case6 =>
     rw [divRem_eq]
     split <;> grind
@@ -1461,10 +1253,8 @@ lemma divRem_spec [Div R] (a b : SparsePoly R) :
 term. -/
 lemma degree_mul [IsDomain R] (a b : SparsePoly R)
     (ha : a.coeffs ≠ []) (hb : b.coeffs ≠ []) : (a * b).degree = a.degree + b.degree := by
-  -- Bridge the `SparsePoly` degrees to Mathlib's `natDegree` and push `*` through `toPoly`.
   rw [degree_eq_natDegree_toPoly (a * b), degree_eq_natDegree_toPoly a,
     degree_eq_natDegree_toPoly b, toPoly_mul]
-  -- The translated polynomials are nonzero since `a, b` have nonempty coefficient lists.
   have h_ne : ∀ {c : SparsePoly R}, c.coeffs ≠ [] → toPoly c ≠ 0 := fun {c} hc h =>
     hc (by rw [toPoly_injective (h.trans toPoly_zero.symm)]; rfl)
   exact Polynomial.natDegree_mul (h_ne ha) (h_ne hb)
@@ -1479,8 +1269,7 @@ theorem toPoly_X_fixed : toPoly (X : SparsePoly R) = Polynomial.X := by
   unfold X toPoly ofSortedList
   dsimp only
   by_cases h1 : (1 : R) = 0
-  · simp [h1, toPolyCore]
-    aesop
+  · simp [h1, toPolyCore]; aesop
   · simp [h1, toPolyCore]
 
 /-- Bridge: powers of `X` translate correctly. -/
@@ -1489,20 +1278,16 @@ theorem toPoly_pow (n : ℕ) : toPoly ((X : SparsePoly R)^n) = Polynomial.X^n :=
   | zero => simp [toPoly_one]
   | succ n ih => simp [pow_succ, toPoly_mul, toPoly_X_fixed, ih]
 
--- Helper: The inverse function (eval₂ at X) preserves the polynomial structure
 lemma toPoly_ofPoly (p : Polynomial R) :
     toPoly (p.eval₂ (algebraMap R (SparsePoly R)) X) = p := by
   induction p using Polynomial.induction_on with
   | C r =>
-    -- algebraMap is defined as C_hom, which uses our C function
     simp only [eval₂_C]
-    -- `algebraMap R (SparsePoly R) r` is defeq to `C r`, so `toPoly_C` closes the goal
     exact toPoly_C (R := R) r
   | add =>
     simp only [eval₂_add, toPoly_add]
     grind
   | monomial n r ih =>
-    -- Handles the `r * X^n` logic.
     simp only [eval₂_mul, eval₂_C, eval₂_X_pow, toPoly_mul, toPoly_pow]
     rw [← toPoly_C]
     rfl
@@ -1510,16 +1295,10 @@ lemma toPoly_ofPoly (p : Polynomial R) :
 noncomputable def toPolyEquiv : SparsePoly R ≃ₐ[R] Polynomial R where
   toFun := toPoly
   invFun p := p.eval₂ (algebraMap R (SparsePoly R)) X
-
-  -- Use our new helper for the right inverse
   right_inv p := toPoly_ofPoly p
-
-  -- Use injectivity + right_inv to prove the left inverse
   left_inv p := by
     apply toPoly_injective
     rw [toPoly_ofPoly]
-
-  -- The following preserve the Algebra/Ring structure
   map_add' := toPoly_add
   map_mul' := toPoly_mul
   commutes' r := toPoly_C r
@@ -1532,21 +1311,14 @@ theorem ofPoly_X : toPolyEquiv.symm Polynomial.X = (X : SparsePoly R) := by
 theorem toPoly_X : (X : SparsePoly R).toPoly = Polynomial.X := by
   rw [← toPolyEquiv.apply_symm_apply Polynomial.X, ofPoly_X]; rfl
 
--- Define our inner "constant" (x + 1)
 def x_plus_1 : SparsePoly ℤ := X + 1
 
--- Define the dividend: (x + 1) * y^2 - (x + 1)
--- Note: the outer X is 'y', the inner X is 'x'
 def dividend : SparsePoly (SparsePoly ℤ) :=
   C x_plus_1 * X^2 - C x_plus_1
 
--- Define the divisor: y - 1
 def divisor : SparsePoly (SparsePoly ℤ) :=
   X - 1
 
--- Run the computation
 #eval (dividend / divisor)
-
--- This will return (0, dividend) because division in ℤ is strict
 
 end SparsePoly
