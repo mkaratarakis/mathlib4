@@ -15,7 +15,8 @@ For `p q : Polynomial K` over any field `K` (coefficients may be concrete *or* s
 
 1. parses `p`, `q` into dense vectors of coefficient **expressions** (elements of `K`);
 2. runs **pseudo-division in `MetaM`** — plain compiled Lean, like `norm_num`'s arithmetic, so it
-   never enters the proof term and adds **no axiom**, in particular **no `native_decide`** — producing
+   never enters the proof term and adds **no axiom**, in particular **no `native_decide`** —
+   producing
    a quotient `Q` and the scale `d ^ δ` (`d` = leading coefficient of `p`, `δ = deg q - deg p + 1`)
    with the universal identity `d ^ δ • q = p * Q + (remainder)`;
 3. closes the goal with `(IsUnit (C (d ^ δ))).dvd_mul_left.mp ⟨Q, by simp only [map_…]; ring⟩`, i.e.
@@ -23,8 +24,9 @@ For `p q : Polynomial K` over any field `K` (coefficients may be concrete *or* s
 
 The kernel never divides. Because pseudo-division scales by powers of `d`, the certified identity is
 **division-free**, so plain `ring` checks it over the (commutative) coefficient ring. The only field
-input is that `d ^ δ` is a unit, i.e. `d ≠ 0`; this side goal is discharged automatically when it is a
-nonzero numeral or follows from a hypothesis, and otherwise is **left for the user** (e.g. a symbolic
+input is that `d ^ δ` is a unit, i.e. `d ≠ 0`; this side goal is discharged automatically when it is
+a nonzero numeral or follows from a hypothesis, and otherwise is **left for the user** (e.g. a
+symbolic
 non-monic divisor needs its leading coefficient `≠ 0`). Monic divisors need nothing — they even work
 over any commutative ring.
 -/
@@ -68,7 +70,8 @@ private def kNeg (a : Expr) : MetaM Expr := do
   if isNatLit 0 a then return a
   mkAppM ``Neg.neg #[a]
 
-/-! ### Dense polynomial arithmetic over coefficient expressions (index `i` ↦ coefficient of `Xⁱ`) -/
+/-! ### Dense polynomial arithmetic over coefficient expressions
+(index `i` ↦ coefficient of `Xⁱ`) -/
 
 /-- Pointwise combine, padding the shorter vector with the zero expression `z`. -/
 private def kZip (op : Expr → Expr → MetaM Expr) (z : Expr) (a b : Array Expr) :
@@ -113,7 +116,7 @@ private partial def toCoeffs (K z one : Expr) (e : Expr) : MetaM (Array Expr) :=
       match f.getAppFnArgs with
       | (``Polynomial.C, _) => pure #[c]                            -- `C c`  ↦  constant `c`
       | (``algebraMap, _) => pure #[c]                              -- `algebraMap _ _ c`  ↦  `c`
-      | (``Polynomial.monomial, #[_, _, n]) =>                      -- `monomial k c`  ↦  `c * X ^ k`
+      | (``Polynomial.monomial, #[_, _, n]) =>                     -- `monomial k c` ↦ `c * X ^ k`
           let some k := natLit? n | throwError "poly_dvd_cert: non-literal monomial degree {n}"
           pure ((List.replicate k z).toArray.push c)
       | _ => throwError "poly_dvd_cert: cannot parse {e}"
@@ -204,7 +207,8 @@ elab "poly_dvd_cert" : tactic => withMainContext do
       refine (?hunit : IsUnit (Polynomial.C $scaleStx : Polynomial $Kstx)).dvd_mul_left.mp
         ⟨$Qstx, ?hcert⟩))
     runCert
-    -- discharge `IsUnit (C (lc ^ δ))`: reduce to `IsUnit lc`, then try units valid over any comm ring
+    -- discharge `IsUnit (C (lc ^ δ))`: reduce to `IsUnit lc`, then try units valid over any
+    -- comm ring
     -- (a hypothesis, `±1`) and finally the field route `lc ≠ 0`; leave a clean residual otherwise.
     evalTactic (← `(tactic| case hunit =>
       apply Polynomial.isUnit_C.mpr
@@ -247,7 +251,8 @@ example {K : Type*} [Field K] (a b : K) :
 example {K : Type*} [Field K] (a : K) :
     (X ^ 2 - C (a ^ 2) : Polynomial K) ∣ (X ^ 4 - C (a ^ 4)) := by poly_dvd_cert
 
--- **Arbitrary field, symbolic *non-monic* divisor** — the `lc ≠ 0` side goal is discharged from `hu`:
+-- **Arbitrary field, symbolic *non-monic* divisor** — the `lc ≠ 0` side goal is discharged
+-- from `hu`:
 example {K : Type*} [Field K] (u : K) (hu : u ≠ 0) :
     (C u * X - C u : Polynomial K) ∣ (X ^ 2 - 1) := by poly_dvd_cert
 

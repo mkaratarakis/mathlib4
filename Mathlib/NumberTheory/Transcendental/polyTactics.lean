@@ -9,8 +9,8 @@ import Mathlib.NumberTheory.Transcendental.polyReflectKernel
 # Axiom-free evaluation tactic for univariate `Polynomial R`
 
 Adds, all **axiom-free** (kernel `decide +kernel`, no `native_decide`):
-* `poly_eval` — proves `Polynomial.eval a p = v` (hence `IsRoot`) by evaluating on a kernel-reducible
-  coefficient list;
+* `poly_eval` — proves `Polynomial.eval a p = v` (hence `IsRoot`) by evaluating on a
+  kernel-reducible coefficient list;
 * `poly_dvd` — proves `p ∣ q` by **kernel-reducible long division** (`SparsePoly.Kernel.divMod`,
   fuel-structural so the kernel reduces it), deciding the remainder is `0`. Cleanest over a field.
 -/
@@ -79,8 +79,8 @@ elab "poly_eval" : tactic => withMainContext do
   replaceMainGoal [m.mvarId!]
   evalTactic (← `(tactic| decide +kernel))
 
-/-- Prove `p ∣ q` for `p q : Polynomial R` by kernel-reducible long division (`divMod`): reflect both
-sides, then `decide +kernel` that the remainder is `0` — **axiom-free**. -/
+/-- Prove `p ∣ q` for `p q : Polynomial R` by kernel-reducible long division (`divMod`): reflect
+both sides, then `decide +kernel` that the remainder is `0` — **axiom-free**. -/
 elab "poly_dvd" : tactic => withMainContext do
   let g ← getMainGoal
   let (``Dvd.dvd, #[ty, _, p, q]) := (← whnfR (← g.getType)).getAppFnArgs

@@ -8,17 +8,18 @@ import Mathlib.NumberTheory.Transcendental.mvpoly
 /-!
 # Axiom-free reflection: kernel-reducible normal forms for `MvPolynomial`
 
-This is the reflection tactic for `MvPolynomial`: `mv_decide` (and its synonym `mv_compute`) prove an
-equality or inequality of Mathlib's noncomputable `MvPolynomial` by reflecting onto `MvSparsePoly` and
-closing with kernel `decide +kernel` — **axiom-free** (no `native_decide`/`Lean.ofReduceBool`, which
-Mathlib forbids; its `lean4checker` rejects the extra axiom).
+This is the reflection tactic for `MvPolynomial`: `mv_decide` (and its synonym `mv_compute`) prove
+an equality or inequality of Mathlib's noncomputable `MvPolynomial` by reflecting onto
+`MvSparsePoly` and closing with kernel `decide +kernel` — **axiom-free** (no
+`native_decide`/`Lean.ofReduceBool`, which Mathlib forbids; its `lean4checker` rejects the extra
+axiom).
 
 The subtlety is that our *runtime* arithmetic (`addCore`, `mulCore`, `ofList`)
 is defined by **well-founded recursion**, which the kernel does not reduce — so plain `decide` gets
-stuck. This file provides an **axiom-free** path: a parallel set of polynomial operations on raw term
-lists defined by **structural** recursion (so the kernel *can* reduce them), each proved correct with
-respect to `toPolyCore` (the noncomputable semantics). A goal is then decided by kernel `decide` on the
-two normal-form lists.
+stuck. This file provides an **axiom-free** path: a parallel set of polynomial operations on raw
+term lists defined by **structural** recursion (so the kernel *can* reduce them), each proved
+correct with respect to `toPolyCore` (the noncomputable semantics). A goal is then decided by kernel
+`decide` on the two normal-form lists.
 
 One subtlety, already handled: building *product* monomials needs exponent-vector addition, and
 `MvDegrees`' own `+` is `Array.zipWith`, which the kernel does **not** reduce either. So `kMul` uses
@@ -26,8 +27,9 @@ One subtlety, already handled: building *product* monomials needs exponent-vecto
 `toPolyCore` proofs are unaffected. With that in place, full ring identities (`+`, `-`, `*`, `^`)
 decide axiom-free.
 
-The trade-off is the usual one for kernel reflection (the same one WuProver lives with): `decide` runs
-in the kernel interpreter, so it is only practical for small/medium goals — but it is **axiom-free**.
+The trade-off is the usual one for kernel reflection (the same one WuProver lives with): `decide`
+runs in the kernel interpreter, so it is only practical for small/medium goals — but it is
+**axiom-free**.
 -/
 
 namespace MvSparsePoly.Kernel
@@ -39,8 +41,9 @@ variable {R : Type} [CommRing R] [DecidableEq R] {nvars : ℕ}
 /-- A raw term list (the data of an `MvSparsePoly`, without the sortedness/nonzero proofs). -/
 abbrev TL (R : Type) [CommRing R] (nvars : ℕ) := List (MvDegrees nvars × R)
 
-/-- Insert one term into a descending-sorted, merged term list — **structural** recursion on the list,
-so the kernel reduces it. Combines coefficients on an equal monomial. Zero coefficients (e.g. from
+/-- Insert one term into a descending-sorted, merged term list — **structural** recursion on the
+list, so the kernel reduces it. Combines coefficients on an equal monomial. Zero coefficients (e.g.
+from
 cancellation) are removed once, at the end, by `List.filter` (see `toPolyCore_filter_nonzero`). -/
 def insertK (t : MvDegrees nvars × R) : TL R nvars → TL R nvars
   | [] => [t]
@@ -65,7 +68,8 @@ kernel does **not** reduce; this `List.zipWith` form does. It is `propositionall
 def addDegK (a b : MvDegrees nvars) : MvDegrees nvars where
   degrees := ⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩
   correct := by simp [a.correct, b.correct]
-  totalDegree := (⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
+  totalDegree :=
+    (⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
   totalDegree_eq := rfl
 
 lemma addDegK_eq_add (a b : MvDegrees nvars) : addDegK a b = a + b := by
@@ -77,7 +81,8 @@ lemma addDegK_eq_add (a b : MvDegrees nvars) : addDegK a b = a + b := by
   · exact hdeg
   · show (⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
        = a.totalDegree + b.totalDegree
-    rw [hdeg, array_zipWith_foldl_add a.degrees b.degrees hsz, ← a.totalDegree_eq, ← b.totalDegree_eq]
+    rw [hdeg, array_zipWith_foldl_add a.degrees b.degrees hsz, ← a.totalDegree_eq,
+      ← b.totalDegree_eq]
 
 /-- Multiply a whole list by a single monomial `c·X^d`, then add into the accumulator. Uses
 `addDegK` (kernel-reducible) for the product exponents. -/
@@ -98,7 +103,8 @@ omit [DecidableEq R] in
 omit [DecidableEq R] in
 /-- `insertK` adds one monomial, as seen through `toPolyCore`. -/
 lemma toPolyCore_insertK (d : MvDegrees nvars) (c : R) (l : TL R nvars) :
-    toPolyCore (insertK (d, c) l) = MvPolynomial.monomial (MvDegrees.toFinsupp d) c + toPolyCore l := by
+    toPolyCore (insertK (d, c) l)
+      = MvPolynomial.monomial (MvDegrees.toFinsupp d) c + toPolyCore l := by
   induction l with
   | nil => simp [insertK, toPolyCore]
   | cons hd tl ih =>
@@ -213,10 +219,11 @@ theorem ne_of_core {p q : MvPolynomial (Fin nvars) R} (l₁ l₂ : TL R nvars)
 
 /-! ### Axiom-free ideal membership (`p ∈ Ideal.span {g₁,…,gₖ}`)
 
-A kernel-reducible multivariate multidivisor reduction. At each step we cancel the leading term of the
-running polynomial using the first generator whose leading monomial divides it, **recording** the
-`(cofactor, generator)` pair. By telescoping, `p = Σ (cofactorᵢ · genᵢ) + remainder` holds *for any*
-ring (`toPolyCore_mReduceK`), so if the remainder is `0` then `p` is an explicit combination of the
+A kernel-reducible multivariate multidivisor reduction. At each step we cancel the leading term of
+the running polynomial using the first generator whose leading monomial divides it, **recording**
+the `(cofactor, generator)` pair. By telescoping, `p = Σ (cofactorᵢ · genᵢ) + remainder` holds
+*for any* ring (`toPolyCore_mReduceK`), so if the remainder is `0` then `p` is an explicit
+combination of the
 generators, hence in their span. Sound regardless of whether the generators form a Gröbner basis
 (it just may fail to reach `0` if they do not). No `native_decide`. -/
 
@@ -224,7 +231,8 @@ generators, hence in their span. Sound regardless of whether the generators form
 def subMonK (a b : MvDegrees nvars) : MvDegrees nvars where
   degrees := ⟨List.zipWith (· - ·) a.degrees.toList b.degrees.toList⟩
   correct := by simp [a.correct, b.correct]
-  totalDegree := (⟨List.zipWith (· - ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
+  totalDegree :=
+    (⟨List.zipWith (· - ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
   totalDegree_eq := rfl
 
 /-- Kernel-reducible monomial divisibility: `b` divides `a` iff `b` is componentwise `≤ a`. -/
@@ -266,7 +274,8 @@ def mReduceK [Div R] :
       if cp = 0 then mReduceK fuel pt gs    -- drop a spurious zero leading term
       else
         match findDiv dp gs with
-        | none => ([], (dp, cp) :: pt)      -- leading term irreducible: stop (sound, maybe incomplete)
+        | none => ([], (dp, cp) :: pt)      -- leading term irreducible: stop (sound, maybe
+                                            -- incomplete)
         | some (g, _, cg) =>
           let term : TL R nvars := [(subMonK dp ((g.headD (0, 0)).1), cp / cg)]
           let r := mReduceK fuel (kSub ((dp, cp) :: pt) (kMul term g)) gs
@@ -372,7 +381,8 @@ partial def reifyK (R n : Expr) (e : Expr) : MetaM Expr := do
   | (``HSub.hSub, #[_, _, _, _, a, b]) => mkAppM ``kSub #[← reifyK R n a, ← reifyK R n b]
   | (``HPow.hPow, #[_, _, _, _, a, k]) => mkAppM ``kPow #[← reifyK R n a, k]
   | (``Neg.neg, #[_, _, a])            => mkAppM ``kNeg #[← reifyK R n a]
-  | (``MvPolynomial.X, #[_, _, _, i])  => leafTerms (← mkAppOptM ``MvSparsePoly.X #[n, R, none, none, i])
+  | (``MvPolynomial.X, #[_, _, _, i])  =>
+      leafTerms (← mkAppOptM ``MvSparsePoly.X #[n, R, none, none, i])
   | (``DFunLike.coe, #[_, _, _, _, f, c]) =>
       match f.getAppFnArgs with
       | (``MvPolynomial.C, _) => leafTerms (← mkAppOptM ``MvSparsePoly.C #[n, R, none, none, c])
@@ -396,8 +406,9 @@ def bridgeSimpK : MetaM Simp.Context := do
   for l in lemmas do s ← s.addConst l
   Simp.mkContext {} (simpTheorems := #[s]) (congrTheorems := ← getSimpCongrTheorems)
 
-/-- Prove a `MvPolynomial` **equality or inequality** by reflecting onto kernel-reducible normal-form
-term lists and closing with kernel `decide +kernel` — **axiom-free** (no `native_decide`/compiler
+/-- Prove a `MvPolynomial` **equality or inequality** by reflecting onto kernel-reducible
+normal-form term lists and closing with kernel `decide +kernel` — **axiom-free** (no
+`native_decide`/compiler
 trust). Practical for small/medium goals; the kernel interpreter is the bottleneck. -/
 elab "mv_decide" : tactic => withMainContext do
   let g ← getMainGoal
@@ -433,7 +444,8 @@ elab "mv_decide" : tactic => withMainContext do
 no `native_decide`). -/
 macro "mv_compute" : tactic => `(tactic| mv_decide)
 
-/-- Extract the generator expressions from a set literal `{g₁, …, gₖ}` (`insert`/singleton/empty). -/
+/-- Extract the generator expressions from a set literal `{g₁, …, gₖ}`
+(`insert`/singleton/empty). -/
 partial def extractGens (S : Expr) : MetaM (List Expr) := do
   match (← whnfR S).getAppFnArgs with
   | (``Insert.insert, #[_, _, _, a, s]) => return a :: (← extractGens s)

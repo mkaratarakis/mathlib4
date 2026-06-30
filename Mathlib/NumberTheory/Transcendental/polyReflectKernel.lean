@@ -8,17 +8,18 @@ import Mathlib.NumberTheory.Transcendental.poly
 /-!
 # Axiom-free reflection for **univariate** `Polynomial R`
 
-The univariate analogue of `mvpolyReflectKernel`: `poly_decide` (and its synonym `poly_compute`) prove
-equalities and inequalities of Mathlib's noncomputable `Polynomial R` by reflecting onto
-kernel-reducible normal-form coefficient lists (`List (ℕ × R)`), proving each operation correct against
-the semantics `toPolyCore`, and closing with kernel `decide +kernel` — **no `native_decide`**.
+The univariate analogue of `mvpolyReflectKernel`: `poly_decide` (and its synonym `poly_compute`)
+prove equalities and inequalities of Mathlib's noncomputable `Polynomial R` by reflecting onto
+kernel-reducible normal-form coefficient lists (`List (ℕ × R)`), proving each operation correct
+against the semantics `toPolyCore`, and closing with kernel `decide +kernel` —
+**no `native_decide`**.
 
 The univariate case is cleaner than the multivariate one: an exponent is a single `ℕ`, so product
-exponents are `ℕ` addition (which the kernel reduces) — there is no `Array.zipWith` obstacle, hence no
-need for the `addDegK` workaround. Full ring identities (`+`, `-`, `*`, `^`) decide axiom-free.
+exponents are `ℕ` addition (which the kernel reduces) — there is no `Array.zipWith` obstacle, hence
+no need for the `addDegK` workaround. Full ring identities (`+`, `-`, `*`, `^`) decide axiom-free.
 
-Trade-off (as always for kernel reflection): `decide +kernel` runs in the kernel interpreter, so it is
-for small/medium goals.
+Trade-off (as always for kernel reflection): `decide +kernel` runs in the kernel interpreter, so it
+is for small/medium goals.
 -/
 
 open Lean Elab Tactic Meta
@@ -174,11 +175,13 @@ def divModK [Div R] : ℕ → TL R → TL R → TL R × TL R
       else if dq < dp then ([], (dq, cq) :: qt)
       else
         let term : ℕ × R := (dq - dp, cq / cp)
-        let r := divModK fuel (kSub ((dq, cq) :: qt) (kMul [term] ((dp, cp) :: pt))) ((dp, cp) :: pt)
+        let r := divModK fuel (kSub ((dq, cq) :: qt) (kMul [term] ((dp, cp) :: pt)))
+          ((dp, cp) :: pt)
         (term :: r.1, r.2)
 
 omit [DecidableEq R] in
-/-- `toPolyCore` splits a cons into the head monomial plus the tail (head kept as `toPolyCore [t]`). -/
+/-- `toPolyCore` splits a cons into the head monomial plus the tail
+(head kept as `toPolyCore [t]`). -/
 lemma toPolyCore_cons_split (t : ℕ × R) (l : TL R) :
     toPolyCore (t :: l) = toPolyCore [t] + toPolyCore l := by simp [toPolyCore]
 
@@ -206,8 +209,8 @@ lemma toPolyCore_divModK [Div R] : ∀ (n : ℕ) (q p : TL R),
           linear_combination ih
 
 /-- Divisor with a self-computed fuel bound. Each step strictly lowers the working *degree*, but an
-exact cancellation can leave a zero-coefficient head consumed by an extra drop step, so we allow up to
-`2·(maxdeg) + length + 2` steps — comfortably above the worst case. -/
+exact cancellation can leave a zero-coefficient head consumed by an extra drop step, so we allow up
+to `2·(maxdeg) + length + 2` steps — comfortably above the worst case. -/
 def divMod [Div R] (q p : TL R) : TL R × TL R :=
   divModK (2 * (q.map Prod.fst).foldr Nat.max 0 + q.length + 2) q p
 
@@ -261,8 +264,8 @@ def bridgeSimpK : MetaM Simp.Context := do
 
 end SparsePoly.Kernel
 
-/-- Prove a `Polynomial R` **equality or inequality** by reflecting onto kernel-reducible normal forms
-and closing with kernel `decide +kernel` — **axiom-free**. -/
+/-- Prove a `Polynomial R` **equality or inequality** by reflecting onto kernel-reducible normal
+forms and closing with kernel `decide +kernel` — **axiom-free**. -/
 elab "poly_decide" : tactic => withMainContext do
   let g ← getMainGoal
   let tgt ← whnfR (← g.getType)
