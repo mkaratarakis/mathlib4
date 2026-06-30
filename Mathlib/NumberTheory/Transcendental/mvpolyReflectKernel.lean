@@ -79,7 +79,7 @@ lemma addDegK_eq_add (a b : MvDegrees nvars) : addDegK a b = a + b := by
     apply Array.ext'; simp [Array.toList_zipWith]
   apply MvDegrees.ext
   · exact hdeg
-  · show (⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
+  · change (⟨List.zipWith (· + ·) a.degrees.toList b.degrees.toList⟩ : Array ℕ).foldl (· + ·) 0
        = a.totalDegree + b.totalDegree
     rw [hdeg, array_zipWith_foldl_add a.degrees b.degrees hsz, ← a.totalDegree_eq,
       ← b.totalDegree_eq]
