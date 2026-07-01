@@ -6,6 +6,8 @@ Authors: Michail Karatarakis
 import Mathlib.RingTheory.FreeCommRing
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Data.Real.Basic
+import Mathlib.ModelTheory.Algebra.Ring.FreeCommRing
+import Mathlib.NumberTheory.Transcendental.ArtinTransfer
 
 /-!
 # Algebra core of the Artin eval↔formula bridge
@@ -21,7 +23,7 @@ element `Artin.ModelTheory.polyFree f` of the free commutative ring over `ℝ �
 realization is the polynomial value — the algebra half of the bridge.
 -/
 
-open MvPolynomial
+open MvPolynomial FirstOrder Language
 
 namespace Artin.ModelTheory
 
@@ -39,5 +41,14 @@ theorem lift_polyFree {M : Type*} [CommRing M] (c : ℝ →+* M) (x : σ → M) 
     FreeCommRing.lift (Sum.elim (fun r => c r) x) (polyFree f) = eval₂ c x f := by
   simp only [polyFree, eval₂_eq, map_sum, map_mul, FreeCommRing.lift_of, Sum.elim_inl,
     Finsupp.prod, map_prod, map_pow, Sum.elim_inr]
+
+/-- The ordered-ring term for `f` (the free-commutative-ring encoding pushed through
+`termOfFreeCommRing` into the language of ordered rings) realizes to the polynomial value. -/
+theorem realize_termPolyFree {M : Type*} [Field M] [LinearOrder M] [IsStrictOrderedRing M]
+    (c : ℝ →+* M) (x : σ → M) (f : MvPolynomial σ ℝ) :
+    Term.realize (Sum.elim (fun r => c r) x)
+      ((LHom.sumInl : Language.ring →ᴸ orderedRing).onTerm (Ring.termOfFreeCommRing (polyFree f)))
+      = eval₂ c x f := by
+  rw [LHom.realize_onTerm, Ring.realize_termOfFreeCommRing, lift_polyFree]
 
 end Artin.ModelTheory
