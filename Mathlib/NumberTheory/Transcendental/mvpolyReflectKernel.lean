@@ -39,7 +39,7 @@ open MvSparsePoly
 variable {R : Type} [CommRing R] [DecidableEq R] {nvars : ℕ}
 
 /-- A raw term list (the data of an `MvSparsePoly`, without the sortedness/nonzero proofs). -/
-abbrev TL (R : Type) [CommRing R] (nvars : ℕ) := List (MvDegrees nvars × R)
+abbrev TL (R : Type) (nvars : ℕ) := List (MvDegrees nvars × R)
 
 /-- Insert one term into a descending-sorted, merged term list — **structural** recursion on the
 list, so the kernel reduces it. Combines coefficients on an equal monomial. Zero coefficients (e.g.
@@ -326,7 +326,7 @@ lemma mReduceK_gens_mem [Div R] : ∀ (n : ℕ) (p : TL R nvars) (gs : List (TL 
 
 omit [DecidableEq R] in
 /-- A recorded combination `Σ cofactorᵢ · genᵢ` lies in the span of the generators. -/
-lemma foldr_mem_span [Div R] {S : Set (MvPolynomial (Fin nvars) R)}
+lemma foldr_mem_span {S : Set (MvPolynomial (Fin nvars) R)}
     (steps : List (TL R nvars × TL R nvars)) (h : ∀ s ∈ steps, toPolyCore s.2 ∈ S) :
     (steps.foldr (fun s acc => toPolyCore s.1 * toPolyCore s.2 + acc) 0) ∈ Ideal.span S := by
   induction steps with

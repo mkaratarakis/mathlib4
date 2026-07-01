@@ -378,7 +378,7 @@ def gcdPrim (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   gcdPrimFuel (a.degree + b.degree + 1) a b
 
 omit [DecidableEq R] in
-lemma mv_foldl_gcd_dvd_acc [IsDomain R] [GCDMonoid R]
+lemma mv_foldl_gcd_dvd_acc [GCDMonoid R]
     (l : List (MvDegrees nvars × R)) (acc : R) :
     l.foldl (fun a x => gcd a x.2) acc ∣ acc := by
   induction l generalizing acc with
@@ -405,7 +405,7 @@ lemma mv_content_dvd_coeff [IsDomain R] [GCDMonoid R] {l : List (MvDegrees nvars
     l.foldl (init := 0) (fun acc x => gcd acc x.2) ∣ c :=
   mv_foldl_gcd_dvd_mem h 0
 
-def content [IsDomain R] [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
+def content [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
   a.terms.foldl (init := 0) (gcd · ·.2)
 
 def primitivePart [IsDomain R] [GCDMonoid R]
@@ -1191,7 +1191,7 @@ lemma mul_terms_degLe (a b : MvSparsePoly R nvars) :
 
 set_option maxHeartbeats 1000000 in
 -- The `MvPolynomial.coeff_mul` antidiagonal sum over `Finsupp` exponents is defeq-heavy.
-lemma coeff_leadingTerm_mul [IsDomain R] {a b : MvSparsePoly R nvars}
+lemma coeff_leadingTerm_mul {a b : MvSparsePoly R nvars}
     (ha : a.terms ≠ []) (hb : b.terms ≠ []) :
     MvPolynomial.coeff (MvDegrees.toFinsupp (multidegree a + multidegree b)) (toPoly (a * b))
       = leadCoeff a * leadCoeff b := by
@@ -1715,7 +1715,7 @@ lemma addCore_singleton_cons {i : MvDegrees nvars} {x : R} {l : List (MvDegrees 
 
 /-- The terms of `sparseMonomial i x + q` are `(i, x) :: q.terms`, when `x ≠ 0` and every degree
 in `q` is `< i` (so no merging occurs). -/
-lemma add_sparseMonomial_terms [Div R] {i : MvDegrees nvars} {x : R} {q : MvSparsePoly R nvars}
+lemma add_sparseMonomial_terms {i : MvDegrees nvars} {x : R} {q : MvSparsePoly R nvars}
     (hx : x ≠ 0) (hq : ∀ t ∈ q.terms, t.1 < i) :
     (sparseMonomial i x + q).terms = (i, x) :: q.terms := by
   change (addCore (sparseMonomial i x).terms q.terms).filter (·.2 ≠ 0) = _
