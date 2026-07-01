@@ -9,6 +9,7 @@ import Mathlib.ModelTheory.ElementaryMaps
 import Mathlib.FieldTheory.IsRealClosed.Basic
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Data.Real.Basic
+import Mathlib.Analysis.SpecialFunctions.Sqrt
 
 /-!
 # The Tarski transfer for Artin's theorem, framed in first-order model theory
@@ -59,15 +60,54 @@ instance orderedStructureOfOrderedField (M : Type*) [Field M] [LinearOrder M]
     [IsStrictOrderedRing M] : orderedRing.OrderedStructure M :=
   ⟨fun _ => Iff.rfl⟩
 
-/-- **Model completeness of real closed fields (the isolated deep obligation).** Every real closed
-field `C` with a ring embedding of `ℝ` receives `ℝ` as an *elementary* substructure in the language
-of ordered rings. Equivalent to quantifier elimination for the theory of real closed fields, and the
-single genuinely deep ingredient (the place to apply the `model-theory/quantifier-elimination`
-criteria to a theory `Theory.RCF`). -/
+/-- A ring hom that preserves and reflects `≤` is an `orderedRing`-embedding. -/
+def ringOrderEmbedding {C : Type*} [Field C] [LinearOrder C] [IsStrictOrderedRing C]
+    (ψ : ℝ →+* C) (hle : ∀ a b, ψ a ≤ ψ b ↔ a ≤ b) : ℝ ↪[orderedRing] C where
+  toFun := ψ
+  inj' := ψ.injective
+  map_fun' := by
+    rintro n (rf | ef) x
+    · cases rf <;> simp [map_add, map_mul, map_neg]
+    · exact ef.elim
+  map_rel' := by
+    rintro n (er | or) x
+    · exact er.elim
+    · cases or
+      exact hle (x 0) (x 1)
+
+/-- **Model completeness of real closed fields.** Every real closed field `C` with a ring embedding
+`ψ` of `ℝ` receives `ℝ` as an *elementary* substructure in the language of ordered rings, and the
+elementary embedding's underlying map is `ψ`.
+
+Reduced, via the Tarski–Vaught test `Embedding.toElementaryEmbedding`, to the **RCF back-and-forth**
+(`realClosed_backAndForth`): an existential witness in `C` over `ℝ`-parameters descends to `ℝ`. That
+is the genuinely deep Tarski–Seidenberg ingredient (equivalent to quantifier elimination for real
+closed fields), still a `sorry`. -/
 theorem realClosed_elementaryEmbedding
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
     (ψ : ℝ →+* C) :
-    ∃ g : ℝ ↪ₑ[orderedRing] C, ∀ r, g r = ψ r :=
+    ∃ g : ℝ ↪ₑ[orderedRing] C, ∀ r, g r = ψ r := by
+  -- A ring hom out of `ℝ` is an order embedding: it preserves nonnegativity (every nonnegative real
+  -- is a square) and reflects it (by injectivity).
+  have hnn : ∀ x : ℝ, 0 ≤ x → 0 ≤ ψ x := fun x hx => by
+    rw [show x = Real.sqrt x * Real.sqrt x from (Real.mul_self_sqrt hx).symm, map_mul]
+    exact mul_self_nonneg _
+  have h0 : ∀ y : ℝ, 0 ≤ ψ y ↔ 0 ≤ y := fun y =>
+    ⟨fun hy => not_lt.1 fun hy' => by
+      have h1 := hnn _ (neg_nonneg.2 hy'.le)
+      rw [map_neg] at h1
+      have hz : ψ y = 0 := le_antisymm (by linarith) hy
+      exact hy'.ne (ψ.injective (by rw [hz, map_zero])), hnn y⟩
+  have hle : ∀ a b, ψ a ≤ ψ b ↔ a ≤ b := fun a b =>
+    calc ψ a ≤ ψ b ↔ 0 ≤ ψ b - ψ a := sub_nonneg.symm
+      _ ↔ 0 ≤ ψ (b - a) := by rw [map_sub]
+      _ ↔ 0 ≤ b - a := h0 (b - a)
+      _ ↔ a ≤ b := sub_nonneg
+  refine ⟨(ringOrderEmbedding ψ hle).toElementaryEmbedding ?_, fun _ => rfl⟩
+  -- **RCF back-and-forth (the remaining deep obligation).** Tarski–Vaught test: an existential
+  -- witness in `C` over `ℝ`-parameters descends to `ℝ`; equivalent to quantifier elimination for
+  -- real closed fields.
+  intro n φ x a _
   sorry
 
 /-! The eval↔formula bridge and the assembled transfer `exists_neg_eval_of_real_closed` are proved
