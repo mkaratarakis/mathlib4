@@ -18,14 +18,16 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 
 `Artin.exists_neg_eval_of_real_closed` — the deep ingredient behind `Artin.artin` — says a
 polynomial inequality solvable in a real closed field `C ⊇ ℝ` is already solvable in `ℝ`. This file
-**reframes** that transfer inside Mathlib's first-order model theory and discharges it, `sorry`-free,
+**reframes** that transfer inside Mathlib's first-order model theory and discharges it,
+`sorry`-free,
 down to a *single named hypothesis*: quantifier elimination for the theory of real closed fields.
 
 The two ingredients:
 
 1. `Artin.ModelTheory.realClosed_elementaryEmbedding` — **model completeness of real closed
    fields**: `ℝ` embeds *elementarily* into any real closed field extending it (language of ordered
-   rings). This is **proved** here from `realize_transfer_of_qe`: given a theory `T` modelled by both
+   rings). This is **proved** here from `realize_transfer_of_qe`: given a theory `T` modelled by
+   both
    `ℝ` and `C` with quantifier elimination (`T.HasQuantifierElimination`, e.g. `T = Theory.RCF`), an
    ordered-ring embedding of models is elementary. The Tarski–Vaught back-and-forth reduces to QE
    plus absoluteness of quantifier-free formulas along embeddings (`IsQF.realize_embedding`).
