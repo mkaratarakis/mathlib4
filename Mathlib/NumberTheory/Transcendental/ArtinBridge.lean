@@ -17,8 +17,9 @@ ordered rings — with the real coefficients of `f` as parameters — one first 
 element `Artin.ModelTheory.polyFree f` of the free commutative ring over `ℝ ⊕ σ`, using a generator
 `inl r` for each real coefficient `r` and `inr i` for each indeterminate `i`.
 
-`lift_polyFree` shows the key fact: lifting `polyFree f` along a coefficient ring hom `c` and a point
-`x` recovers `MvPolynomial.eval₂ c x f`. Composing with `FirstOrder.Ring.termOfFreeCommRing` (whose
+`lift_polyFree` shows the key fact: lifting `polyFree f` along a coefficient ring hom `c` and a
+point `x` recovers `MvPolynomial.eval₂ c x f`. Composing with `FirstOrder.Ring.termOfFreeCommRing`
+(whose
 realization is exactly `FreeCommRing.lift`) turns `polyFree f` into an ordered-ring term whose
 realization is the polynomial value. Wrapping that in `∃ point, · < 0` (`formulaOfPoly`) and
 transporting realization along `ElementaryEmbedding.map_formula` gives the full `bridge`, which
