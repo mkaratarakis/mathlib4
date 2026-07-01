@@ -46,14 +46,20 @@ namespace MvSparsePoly.ProductExamples
 
 open MvSparsePoly
 
+/-- The first variable `x` (`X 0`) of `MvSparsePoly ℚ 2`. -/
 abbrev x : MvSparsePoly ℚ 2 := X 0
+/-- The second variable `y` (`X 1`) of `MvSparsePoly ℚ 2`. -/
 abbrev y : MvSparsePoly ℚ 2 := X 1
 
-/-- Saved products — genuine `MvSparsePoly` values you can reuse. -/
+/-- The product `(x + y)(x - y) = x² - y²`. -/
 def diffOfSquares := (x + y) * (x - y)
+/-- The product `(x + 1)³`. -/
 def cubeOfSum := (x + C 1) * (x + C 1) * (x + C 1)
+/-- The product `(x + y)²`. -/
 def sumSquared := (x + y) * (x + y)
+/-- The product `(x + y)⁴`, as `sumSquared * sumSquared`. -/
 def sumToFourth := sumSquared * sumSquared
+/-- The product `(2x + 3y)(x² + y)`. -/
 def mixed := (C 2 * x + C 3 * y) * (x * x + y)
 
 -- `#eval` prints them as polynomials (thanks to the `Repr` instance above):

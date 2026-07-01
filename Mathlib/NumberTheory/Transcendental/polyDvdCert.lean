@@ -221,6 +221,8 @@ elab "poly_dvd_cert" : tactic => withMainContext do
            first | assumption | (apply pow_ne_zero <;> assumption) | norm_num | skip)
         | skip))
 
+attribute [nolint defsWithUnderscore] tacticPoly_dvd_cert
+
 end Polynomial.DvdCert
 
 /-! ## Demonstrations -/

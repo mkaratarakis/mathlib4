@@ -35,7 +35,12 @@ James Davenport; the multivariate analogue (`MvSparsePoly`) and the reflection t
 developed subsequently.
 -/
 
+/-- A computable univariate polynomial over `R`, stored as a list of `(exponent, coefficient)`
+pairs with exponents in strictly decreasing order and all coefficients nonzero (so the zero
+polynomial is `[]`). These invariants make the representation canonical. -/
 @[ext] structure SparsePoly (R : Type) [CommRing R] : Type where
+  /-- The underlying list of `(exponent, coefficient)` pairs, ordered by strictly decreasing
+  exponent with all coefficients nonzero. -/
   coeffs : List (ℕ × R)
   sorted : coeffs.Pairwise (·.1 > ·.1)
   nonzero : ∀ x ∈ coeffs, x.2 ≠ 0
@@ -55,6 +60,8 @@ instance [CommRing R] [Lean.ToFormat R] : Lean.ToFormat (SparsePoly R) where
     this.getD f!"0"
 
 variable [CommRing R] [DecidableEq R]
+/-- Builds a `SparsePoly R` from a list already sorted by strictly decreasing exponent, dropping
+any pairs with zero coefficient to restore the canonical invariant. -/
 def ofSortedList
     (coeffs : List (ℕ × R)) (sorted : coeffs.Pairwise (·.1 > ·.1)) :
     SparsePoly R where
@@ -76,15 +83,21 @@ def C (r : R) : SparsePoly R := ofSortedList [(0, r)] (List.pairwise_singleton _
 instance : One (SparsePoly R) where
   one := C 1
 
+/-- `degLt a l` holds when every pair in `l` has exponent strictly less than `a`. -/
 def degLt (a : ℕ) (l : List (ℕ × R)) : Prop := ∀ x ∈ l, x.1 < a
 
+/-- Interprets a list of `(exponent, coefficient)` pairs as the Mathlib polynomial
+`∑ Polynomial.C a * Polynomial.X ^ i`. -/
 noncomputable def toPolyCore : List (ℕ × R) → R[X]
   | [] => 0
   | (i, a) :: x => Polynomial.C a * Polynomial.X^i + toPolyCore x
 
+/-- The Mathlib `Polynomial R` represented by a `SparsePoly R`. -/
 noncomputable def toPoly (x : SparsePoly R) : Polynomial R :=
   toPolyCore x.coeffs
 
+/-- Adds two exponent-sorted coefficient lists by merging on exponent, summing coefficients on
+matching exponents and dropping any term whose sum is zero. -/
 def addCore : List (ℕ × R) → List (ℕ × R) → List (ℕ × R)
   | [], yy => yy
   | xx, [] => xx
@@ -178,6 +191,8 @@ instance : Add (SparsePoly R) where
     let coeffs := addCore x.coeffs y.coeffs
     ofSortedList coeffs (addCore_sorted x.sorted y.sorted)
 
+/-- Collapses adjacent entries with equal exponents in a list by summing their coefficients,
+turning a list sorted by nonincreasing exponents into one with distinct exponents. -/
 def dedupList : List (ℕ × R) → List (ℕ × R)
   | (i, a) :: (j, b) :: x =>
     if i = j then
@@ -246,6 +261,8 @@ theorem dedupList_sorted : ∀ (coeffs : List (ℕ × R)),
         omega
 termination_by coeffs => coeffs.length
 
+/-- Builds a `SparsePoly R` from an arbitrary list of `(exponent, coefficient)` pairs by sorting on
+exponent, merging duplicate exponents, and dropping zero coefficients. -/
 def ofList (coeffs : List (ℕ × R)) : SparsePoly R :=
   let r : ℕ × R → ℕ × R → Bool := fun a b => decide (a.1 ≥ b.1)
   let coeffs' := coeffs.mergeSort r
@@ -264,6 +281,7 @@ def ofList (coeffs : List (ℕ × R)) : SparsePoly R :=
   ofSortedList (dedupList coeffs')
     (dedupList_sorted coeffs' h_sorted)
 
+/-- The indeterminate `X`, i.e. the monomial `X^1` with coefficient `1`. -/
 def X : SparsePoly R := ofSortedList [(1, 1)] (List.pairwise_singleton _ _)
 
 instance : Mul (SparsePoly R) where
@@ -656,6 +674,7 @@ instance : CommRing (SparsePoly R) where
     push_cast
     grind
 
+/-- The ring homomorphism `R →+* SparsePoly R` sending `r` to the constant polynomial `C r`. -/
 def CHom : R →+* SparsePoly R where
   toFun := C
   map_zero' := by
@@ -679,9 +698,13 @@ instance : Algebra R (SparsePoly R) where
   commutes' r p := mul_comm (C r) p
   smul_def' _ _ := rfl
 
+/-- A typeclass asserting that division `/` is exact on divisibility: whenever `b ∣ a`, one has
+`b * (a / b) = a`. This holds for `ℤ` (Euclidean division) and for fields. -/
 class IsExactDiv (R : Type*) [Monoid R] [Div R] : Prop where
   mul_div_cancel {a b : R} : b ∣ a → b * (a / b) = a
 
+/-- The degree of a `SparsePoly R`, i.e. the exponent of its leading (head) term, or `0` for the
+zero polynomial. -/
 def degree (a : SparsePoly R) : ℕ := (a.coeffs.headD (0, 0)).1
 
 omit [DecidableEq R] in
@@ -874,6 +897,9 @@ lemma deg_pseudo_rem_b (a b : SparsePoly R) (i j : ℕ) (x y : R) (as bs : List 
   · rw [h_zero, Polynomial.natDegree_zero]; exact hj_pos
   · exact lt_of_not_ge fun h_ge => h_zero (Polynomial.leadingCoeff_eq_zero.mp (h_coeff _ h_ge))
 
+/-- A subresultant-style GCD of two polynomials that avoids division: it repeatedly cancels leading
+terms via cross-multiplication (`y • a - x • X^(i-j) * b`), producing a GCD up to a scalar/content
+factor. -/
 def gcdPrim (a b : SparsePoly R) : SparsePoly R :=
   match _ha : a.coeffs with
   | [] => b
@@ -922,9 +948,12 @@ lemma content_dvd_coeff_final [GCDMonoid R] {l : List (ℕ × R)} {i : ℕ} {c :
     (h : (i, c) ∈ l) : l.foldl (init := 0) (fun acc x => gcd acc x.2) ∣ c :=
   foldl_gcd_dvd_mem h 0
 
+/-- The content of a polynomial: the `gcd` of all its coefficients. -/
 def content [GCDMonoid R] (a : SparsePoly R) : R :=
   a.coeffs.foldl (init := 0) (gcd · ·.2)
 
+/-- The primitive part of a polynomial: the result of dividing every coefficient by the content,
+yielding a polynomial whose coefficients have `gcd` a unit. -/
 def primitivePart [GCDMonoid R]
     [Div R] [IsExactDiv R] (a : SparsePoly R) : SparsePoly R where
   coeffs :=
@@ -946,6 +975,8 @@ def primitivePart [GCDMonoid R]
     rw [IsExactDiv.mul_div_cancel h_dvd] at h_mul
     exact hc_nz h_mul
 
+/-- The GCD of two polynomials: the GCD of their contents times the primitive part of the
+division-free `gcdPrim`. -/
 nonrec def gcd [GCDMonoid R]
     [Div R] [IsExactDiv R] (a b : SparsePoly R) : SparsePoly R :=
   gcd a.content b.content • (gcdPrim a b).primitivePart
@@ -1027,10 +1058,11 @@ lemma toPolyCore_map_smul (c : R) (l : List (ℕ × R)) :
     rw [ih, mul_add, map_mul]
     ring
 
-def coeffCore : List (ℕ × R) → ℕ → R
+private def coeffCore : List (ℕ × R) → ℕ → R
   | [], _ => 0
   | (i, a) :: tl, n => if n = i then a else coeffCore tl n
 
+/-- The coefficient of `X^n` in a `SparsePoly R`, found by searching its coefficient list. -/
 def coeff (P : SparsePoly R) (n : ℕ) : R :=
   coeffCore P.coeffs n
 
@@ -1159,6 +1191,9 @@ lemma degree_sub_leading_term_lt [Div R]
     rw [h_poly_zero, Polynomial.natDegree_zero]] at h_ge
   exact (not_lt_of_ge h_ge h_pos).elim
 
+/-- Polynomial division with remainder: returns a quotient/remainder pair `(q, r)` with
+`b * q + r = a`, using `IsExactDiv`-style division of leading coefficients (bailing out with
+quotient `0` when the leading coefficient does not divide exactly). -/
 def divRem [Div R] (a b : SparsePoly R) : SparsePoly R × SparsePoly R :=
   match _ha : a.coeffs, _hb : b.coeffs with
   | (i, x) :: _as, (j, y) :: _bs =>
@@ -1291,6 +1326,8 @@ lemma toPoly_ofPoly (p : Polynomial R) :
     rw [← toPoly_C]
     rfl
 
+/-- The `R`-algebra isomorphism between the computable `SparsePoly R` and Mathlib's
+`Polynomial R`, given by `toPoly` with inverse `eval₂ (algebraMap R _) X`. -/
 noncomputable def toPolyEquiv : SparsePoly R ≃ₐ[R] Polynomial R where
   toFun := toPoly
   invFun p := p.eval₂ (algebraMap R (SparsePoly R)) X
@@ -1309,15 +1346,5 @@ theorem ofPoly_X : toPolyEquiv.symm Polynomial.X = (X : SparsePoly R) := by
 @[simp]
 theorem toPoly_X : (X : SparsePoly R).toPoly = Polynomial.X := by
   rw [← toPolyEquiv.apply_symm_apply Polynomial.X, ofPoly_X]; rfl
-
-def x_plus_1 : SparsePoly ℤ := X + 1
-
-def dividend : SparsePoly (SparsePoly ℤ) :=
-  C x_plus_1 * X^2 - C x_plus_1
-
-def divisor : SparsePoly (SparsePoly ℤ) :=
-  X - 1
-
-#eval (dividend / divisor)
 
 end SparsePoly

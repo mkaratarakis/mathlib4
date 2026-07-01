@@ -31,7 +31,7 @@ open SparsePoly
 variable {R : Type} [CommRing R] [DecidableEq R]
 
 /-- A raw coefficient list (the data of a `SparsePoly`, without the sorted/nonzero proofs). -/
-abbrev TL (R : Type) [CommRing R] := List (ℕ × R)
+abbrev TL (R : Type) := List (ℕ × R)
 
 /-- Structural insert-merge into a descending-sorted coefficient list (kernel-reducible). -/
 def insertK (t : ℕ × R) : TL R → TL R
@@ -42,12 +42,12 @@ def insertK (t : ℕ × R) : TL R → TL R
     | .eq => (j, t.2 + b) :: rest
     | .lt => (j, b) :: insertK t rest
 
-def kAdd (a b : TL R) : TL R := a.foldr insertK b
-def kNeg (a : TL R) : TL R := a.map (fun t => (t.1, -t.2))
-def kSub (a b : TL R) : TL R := kAdd a (kNeg b)
-def kMul (a b : TL R) : TL R :=
+private def kAdd (a b : TL R) : TL R := a.foldr insertK b
+private def kNeg (a : TL R) : TL R := a.map (fun t => (t.1, -t.2))
+private def kSub (a b : TL R) : TL R := kAdd a (kNeg b)
+private def kMul (a b : TL R) : TL R :=
   a.foldr (fun t acc => kAdd (b.flatMap (fun s => [(t.1 + s.1, t.2 * s.2)])) acc) []
-def kPow (a : TL R) : ℕ → TL R
+private def kPow (a : TL R) : ℕ → TL R
   | 0 => (1 : SparsePoly R).coeffs
   | k + 1 => kMul a (kPow a k)
 
@@ -252,6 +252,8 @@ partial def reifyK (R : Expr) (e : Expr) : MetaM Expr := do
       leaf (← mkAppOptM ``SparsePoly.C #[R, none, none, ← mkAppOptM ``OfNat.ofNat #[R, lit, none]])
   | _ => throwError "poly_decide: cannot reify {e} into a coefficient list"
 
+/-- The `simp` context of `toPolyCore`-homomorphism lemmas used to bridge a reified coefficient list
+back to its original `Polynomial R` expression (used by `poly_decide` and related tactics). -/
 def bridgeSimpK : MetaM Simp.Context := do
   let lemmas := #[``SparsePoly.Kernel.toPolyCore_kAdd, ``SparsePoly.Kernel.toPolyCore_kMul,
     ``SparsePoly.Kernel.toPolyCore_kSub, ``SparsePoly.Kernel.toPolyCore_kNeg,
@@ -296,6 +298,8 @@ elab "poly_decide" : tactic => withMainContext do
 
 /-- `poly_compute` is a synonym for the axiom-free `poly_decide`. -/
 macro "poly_compute" : tactic => `(tactic| poly_decide)
+
+attribute [nolint defsWithUnderscore] tacticPoly_decide tacticPoly_compute
 
 /-! ## Examples — proved **axiom-free** (no `native_decide`) -/
 

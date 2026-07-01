@@ -32,10 +32,16 @@ June 2024, with design notes by James Davenport.
 
 set_option linter.style.longFile 1600
 
+/-- An exponent vector for a monomial in `nvars` variables: an array of length `nvars` giving each
+variable's exponent, together with its (cached) total degree. -/
 @[ext] structure MvDegrees (nvars : ℕ) where
+  /-- The per-variable exponents, one entry per variable. -/
   degrees : Array ℕ
+  /-- The exponent array has exactly `nvars` entries. -/
   correct: degrees.size = nvars
+  /-- The cached total degree (the sum of all exponents). -/
   totalDegree : ℕ
+  /-- The cached `totalDegree` equals the sum of the exponents. -/
   totalDegree_eq : totalDegree = degrees.foldl (· + ·) 0
 
 /-- Pull the accumulator out of a pure `List.foldl` add loop. -/
@@ -299,6 +305,9 @@ instance : AddCommMonoid (MvDegrees nvars) where
     · change a.totalDegree * (n + 1) = a.totalDegree * n + a.totalDegree
       grind
 
+/-- A monomial ordering on `MvDegrees nvars`: a linear order compatible with the monoid structure
+(`0` is the least element, addition is monotone) and well-founded, so it can serve as an admissible
+term order for the sparse polynomial arithmetic. -/
 @[ext] class WOrdering (nvars : ℕ) extends LinearOrder (MvDegrees nvars) where
   zero_le {x : MvDegrees nvars} : 0 ≤ x
   add_le_add {x y z : MvDegrees nvars} : x ≤ y → x + z ≤ y + z
@@ -541,10 +550,16 @@ instance : WOrdering nvars where
     exact list_lex_add_le_add a.degrees.toList b.degrees.toList c.degrees.toList h1 h2 hab
   wf := mvDegrees_lex_wf
 
+/-- A computable sparse multivariate polynomial over `R` in `nvars` variables: the list of its
+`(exponent-vector, coefficient)` terms, kept strictly decreasing in the monomial order and with all
+coefficients non-zero, giving a canonical normal form. -/
 @[ext] structure MvSparsePoly (R : Type) [CommRing R] (nvars : ℕ)
     [WOrdering nvars] : Type where
+  /-- The list of `(exponent-vector, coefficient)` terms making up the polynomial. -/
   terms : List (MvDegrees nvars × R)
+  /-- The terms are strictly decreasing in the monomial order (so degrees are distinct). -/
   sorted : terms.Pairwise (·.1 > ·.1)
+  /-- Every stored coefficient is non-zero. -/
   nonzero : ∀ x ∈ terms, x.2 ≠ 0
 
 namespace MvSparsePoly
@@ -579,13 +594,21 @@ def degLt (a : MvDegrees nvars) (l : List (MvDegrees nvars × R)) : Prop :=
 noncomputable def MvDegrees.toFinsupp (deg : MvDegrees nvars) : Fin nvars →₀ ℕ :=
   Finsupp.onFinset Finset.univ (fun i => deg.degrees[i]'(by simp [deg.correct, i.2])) (by simp)
 
+/-- Interpret a raw term list as an honest `MvPolynomial`, by summing the monomials
+`monomial (toFinsupp i) a` over the terms. This is the noncomputable semantics against which the
+computable operations are proved correct. -/
 noncomputable def toPolyCore : List (MvDegrees nvars × R) → MvPolynomial (Fin nvars) R
   | [] => 0
   | (i, a) :: x => monomial (MvDegrees.toFinsupp i) a + toPolyCore x
 
+/-- Interpret an `MvSparsePoly` as the corresponding Mathlib `MvPolynomial`, via `toPolyCore` on its
+term list. -/
 noncomputable def toPoly (x : MvSparsePoly R nvars) : MvPolynomial (Fin nvars) R :=
   toPolyCore x.terms
 
+/-- Add two sorted term lists by a single merge pass: at each step keep the larger-degree head,
+and on equal degrees add the coefficients (dropping the term if the sum is zero). Preserves the
+strictly-decreasing sortedness. -/
 def addCore : List (MvDegrees nvars × R) → List (MvDegrees nvars × R) → List (MvDegrees nvars × R)
   | [], yy => yy
   | xx, [] => xx
@@ -786,6 +809,8 @@ lemma list_set_one_zero_foldl : ∀ (n : ℕ) (i : ℕ) (_h : i < n),
     exact list_set_one_zero_foldl n i (by omega)
 
 
+/-- The exponent vector of the single variable `v`: exponent `1` in position `v` and `0` elsewhere
+(total degree `1`). -/
 def singleDegree (v : Fin nvars) : MvDegrees nvars := {
   degrees := ((List.replicate nvars 0).set v.val 1).toArray
   correct := by simp

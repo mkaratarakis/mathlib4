@@ -248,7 +248,7 @@ def findDiv (dp : MvDegrees nvars) :
     | [] => findDiv dp gs
     | (dg, cg) :: _ => if dvdMonK dg dp then some (g, dg, cg) else findDiv dp gs
 
-omit [DecidableEq R] in
+omit [CommRing R] [DecidableEq R] in
 lemma findDiv_mem (dp : MvDegrees nvars) :
     ∀ {gs : List (TL R nvars)} {g dg cg}, findDiv dp gs = some (g, dg, cg) → g ∈ gs
   | [], _, _, _, h => by simp [findDiv] at h
@@ -512,6 +512,8 @@ elab "mv_mem" : tactic => withMainContext do
 Full ring identities now decide in the kernel: addition, subtraction, cancellation, **and**
 multiplication / powers (the latter via the kernel-reducible `addDegK` exponent addition above).
 -/
+
+attribute [nolint defsWithUnderscore] tacticMv_decide tacticMv_compute tacticMv_mem
 
 namespace MvPolyKernelDemo
 

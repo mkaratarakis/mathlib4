@@ -98,6 +98,8 @@ elab "poly_dvd" : tactic => withMainContext do
 
 /-! ## Examples (axiom-free) -/
 
+attribute [nolint defsWithUnderscore] tacticPoly_eval tacticPoly_dvd
+
 namespace PolyTacticsDemo
 
 open Polynomial

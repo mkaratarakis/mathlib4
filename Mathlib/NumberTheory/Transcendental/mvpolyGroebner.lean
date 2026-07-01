@@ -340,7 +340,8 @@ lemma tail_terminates
     rw [ha_deg] at h_gt
     exact absurd h_gt (not_lt.mpr h_od_le)
 
-def mvDivRem [Div R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
+private def mvDivRem [Div R] (a b : MvSparsePoly R nvars) :
+    MvSparsePoly R nvars × MvSparsePoly R nvars :=
   match hA : a.terms with
   | [] => (0, 0)
   | (i, x) :: as =>
@@ -362,7 +363,7 @@ decreasing_by
   · exact multidegree_sub_cancel hA _hB _hDiv _h_div
   · exact tail_terminates hA
 
-def gcdPrimFuel : ℕ → MvSparsePoly R nvars → MvSparsePoly R nvars → MvSparsePoly R nvars
+private def gcdPrimFuel : ℕ → MvSparsePoly R nvars → MvSparsePoly R nvars → MvSparsePoly R nvars
   | 0, a, _ => a
   | fuel + 1, a, b =>
     match a.terms, b.terms with
@@ -374,6 +375,8 @@ def gcdPrimFuel : ℕ → MvSparsePoly R nvars → MvSparsePoly R nvars → MvSp
       else
         gcdPrimFuel fuel a (x • b - sparseMonomial (j - i) y * a)
 
+/-- The primitive (pseudo-)gcd of `a` and `b`, computed by a fuel-bounded division-free Euclidean
+loop whose fuel is derived from the leading total degrees. -/
 def gcdPrim (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   gcdPrimFuel (a.degree + b.degree + 1) a b
 
@@ -388,7 +391,7 @@ lemma mv_foldl_gcd_dvd_acc [GCDMonoid R]
     exact (ih (gcd acc hd.2)).trans (gcd_dvd_left _ _)
 
 omit [DecidableEq R] in
-lemma mv_foldl_gcd_dvd_mem [IsDomain R] [GCDMonoid R] {l : List (MvDegrees nvars × R)}
+lemma mv_foldl_gcd_dvd_mem [GCDMonoid R] {l : List (MvDegrees nvars × R)}
     {i : MvDegrees nvars} {c : R} (h : (i, c) ∈ l) (acc : R) :
     l.foldl (fun a x => gcd a x.2) acc ∣ c := by
   induction l generalizing acc with
@@ -400,14 +403,16 @@ lemma mv_foldl_gcd_dvd_mem [IsDomain R] [GCDMonoid R] {l : List (MvDegrees nvars
     · exact ih h_mem (gcd acc hd.2)
 
 omit [DecidableEq R] in
-lemma mv_content_dvd_coeff [IsDomain R] [GCDMonoid R] {l : List (MvDegrees nvars × R)}
+lemma mv_content_dvd_coeff [GCDMonoid R] {l : List (MvDegrees nvars × R)}
     {i : MvDegrees nvars} {c : R} (h : (i, c) ∈ l) :
     l.foldl (init := 0) (fun acc x => gcd acc x.2) ∣ c :=
   mv_foldl_gcd_dvd_mem h 0
 
+/-- The content of `a`: the gcd of all its coefficients. -/
 def content [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
   a.terms.foldl (init := 0) (gcd · ·.2)
 
+/-- The primitive part of `a`: `a` with every coefficient divided by its content. -/
 def primitivePart [IsDomain R] [GCDMonoid R]
     [Div R] [IsExactDiv R] (a : MvSparsePoly R nvars) : MvSparsePoly R nvars where
   terms :=
@@ -427,6 +432,8 @@ def primitivePart [IsDomain R] [GCDMonoid R]
     rw [IsExactDiv.mul_div_cancel h_dvd] at h_mul
     exact hc_nz h_mul
 
+/-- The gcd of `a` and `b`: the gcd of their contents scaled by the primitive part of the
+division-free `gcdPrim`. -/
 nonrec def gcd [IsDomain R] [GCDMonoid R]
     [Div R] [IsExactDiv R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   gcd a.content b.content • (gcdPrim a b).primitivePart
@@ -439,6 +446,8 @@ instance {R} [CommGroupWithZero R] : IsExactDiv R where
     apply mul_div_cancel_of_imp'; rintro rfl
     simpa only [zero_dvd_iff] using h
 
+/-- Single-divisor polynomial division: returns a quotient/remainder pair `(q, r)` with
+`b * q + r = a`, cancelling leading terms of `a` by `b` as long as they divide exactly. -/
 def divRem [Div R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars × MvSparsePoly R nvars :=
   match _hA : a.terms, _hB : b.terms with
   | (i, x) :: _as, (j, y) :: _bs =>
@@ -1150,6 +1159,8 @@ theorem mem_idealOf_of_normalForm_eq_zero [Div R] (f : MvSparsePoly R nvars)
   have hspec := normalForm_span f G
   rwa [h, toPoly_zero, sub_zero] at hspec
 
+/-- The leading coefficient of `a`: the coefficient of its leading (highest) term, or `0` if `a`
+is zero. -/
 def leadCoeff (a : MvSparsePoly R nvars) : R := (a.terms.headD (0, 0)).2
 
 
@@ -1354,6 +1365,8 @@ theorem toPoly_eval₂ (p : MvPolynomial (Fin nvars) R) :
   | mul_X p v ih =>
     rw [MvPolynomial.eval₂_mul, MvPolynomial.eval₂_X, toPoly_mul, ih, toPoly_X]
 
+/-- The `R`-algebra isomorphism between `MvSparsePoly R nvars` and `MvPolynomial (Fin nvars) R`
+given by `toPoly`, with inverse the `eval₂` sending each variable to its sparse counterpart. -/
 noncomputable def toPolyEquiv : MvSparsePoly R nvars ≃ₐ[R] MvPolynomial (Fin nvars) R where
   toFun := toPoly
   invFun p := p.eval₂ (algebraMap R (MvSparsePoly R nvars)) X
