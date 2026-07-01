@@ -9,7 +9,7 @@ import Mathlib.Algebra.MvPolynomial.Funext
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.RingTheory.Localization.FractionRing
 import Mathlib.Data.Real.Basic
-import Mathlib.NumberTheory.Transcendental.ArtinTransfer
+import Mathlib.NumberTheory.Transcendental.ArtinBridge
 
 /-!
 # Artin's theorem (scalar Hilbert's 17th), reduced to the Tarski transfer principle
@@ -67,7 +67,7 @@ elementary extension of `ℝ`); it is the single genuinely deep, not-yet-in-Math
 Artin's theorem. It is **reduced**, in `Mathlib.NumberTheory.Transcendental.ArtinTransfer`, to model
 completeness of real closed fields (`Artin.ModelTheory.realClosed_elementaryEmbedding`) together
 with the eval↔formula dictionary (`Artin.ModelTheory.elementaryEmbedding_reflect_exists_neg`). -/
-theorem exists_neg_eval_of_real_closed
+theorem exists_neg_eval_of_real_closed [Finite σ]
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
     (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
     (h : eval₂ ψ ξ f < 0) :
@@ -121,7 +121,7 @@ nonnegative at every real point is a sum of squares in the rational function fie
 
 Proved by the Artin–Schreier reduction modulo `exists_neg_eval_of_real_closed` (the transfer
 principle). -/
-theorem artin (f : MvPolynomial σ ℝ) (hf : ∀ a : σ → ℝ, 0 ≤ eval a f) :
+theorem artin [Finite σ] (f : MvPolynomial σ ℝ) (hf : ∀ a : σ → ℝ, 0 ≤ eval a f) :
     IsSumSq (algebraMap (MvPolynomial σ ℝ) (RatField σ) f) := by
   apply RingPreordering.isSumSq_of_forall_mem
   intro O hO

@@ -18,9 +18,11 @@ element `Artin.ModelTheory.polyFree f` of the free commutative ring over `ℝ �
 `inl r` for each real coefficient `r` and `inr i` for each indeterminate `i`.
 
 `lift_polyFree` shows the key fact: lifting `polyFree f` along a coefficient ring hom `c` and a point
-`x` recovers `MvPolynomial.eval₂ c x f`. Composing with `FirstOrder.Ring.termOfFreeCommRing`
-(whose realization is exactly `FreeCommRing.lift`) turns `polyFree f` into an ordered-ring term whose
-realization is the polynomial value — the algebra half of the bridge.
+`x` recovers `MvPolynomial.eval₂ c x f`. Composing with `FirstOrder.Ring.termOfFreeCommRing` (whose
+realization is exactly `FreeCommRing.lift`) turns `polyFree f` into an ordered-ring term whose
+realization is the polynomial value. Wrapping that in `∃ point, · < 0` (`formulaOfPoly`) and
+transporting realization along `ElementaryEmbedding.map_formula` gives the full `bridge`, which
+reflects `∃ x, f(x) < 0` from a real closed extension back to `ℝ`.
 -/
 
 open MvPolynomial FirstOrder Language
@@ -87,5 +89,15 @@ theorem bridge [Finite σ] {C : Type*} [Field C] [LinearOrder C] [IsStrictOrdere
   rw [realize_formulaOfPoly] at hR
   obtain ⟨a, ha⟩ := hR
   exact ⟨a, by simpa using ha⟩
+
+/-- **The Tarski transfer for Artin's theorem**, assembled from RCF model completeness
+(`realClosed_elementaryEmbedding`, the one remaining `sorry`) and the eval↔formula `bridge`: a
+polynomial inequality solvable in a real closed field `C ⊇ ℝ` is solvable in `ℝ`. -/
+theorem exists_neg_eval_of_real_closed [Finite σ]
+    (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
+    (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ) (h : eval₂ ψ ξ f < 0) :
+    ∃ a : σ → ℝ, eval a f < 0 := by
+  obtain ⟨g, hg⟩ := realClosed_elementaryEmbedding C ψ
+  exact bridge g ψ hg ξ f h
 
 end Artin.ModelTheory

@@ -70,30 +70,8 @@ theorem realClosed_elementaryEmbedding
     ∃ g : ℝ ↪ₑ[orderedRing] C, ∀ r, g r = ψ r :=
   sorry
 
-/-- **The algebra ↔ logic dictionary (separable obligation).** An elementary embedding of ordered
-fields reflects the existential polynomial inequality `∃ x, f(x) < 0`: if `f` (pushed along `ψ`) is
-negative somewhere in `C`, then it is negative somewhere in `ℝ`.
-
-To be built by encoding `∃ x, f(x) < 0` as an `orderedRing`-formula with the coefficients of `f` as
-parameters, via `FirstOrder.Ring.termOfFreeCommRing` and the `≤` relation; elementarity then gives
-the equivalence of realizations. -/
-theorem elementaryEmbedding_reflect_exists_neg
-    (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C]
-    (g : ℝ ↪ₑ[orderedRing] C) (ψ : ℝ →+* C) (hg : ∀ r, g r = ψ r)
-    (ξ : σ → C) (f : MvPolynomial σ ℝ)
-    (h : eval₂ ψ ξ f < 0) :
-    ∃ a : σ → ℝ, eval a f < 0 :=
-  sorry
-
-/-- **The Tarski transfer for Artin's theorem, reduced to model completeness.** This is exactly
-`Artin.exists_neg_eval_of_real_closed`, now proved from the two model-theoretic obligations
-above. -/
-theorem exists_neg_eval_of_real_closed
-    (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
-    (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
-    (h : eval₂ ψ ξ f < 0) :
-    ∃ a : σ → ℝ, eval a f < 0 := by
-  obtain ⟨g, hg⟩ := realClosed_elementaryEmbedding C ψ
-  exact elementaryEmbedding_reflect_exists_neg C g ψ hg ξ f h
+/-! The eval↔formula bridge and the assembled transfer `exists_neg_eval_of_real_closed` are proved
+in `Mathlib.NumberTheory.Transcendental.ArtinBridge`, which has the free-commutative-ring encoding
+machinery. Only `realClosed_elementaryEmbedding` (RCF model completeness) remains a `sorry`. -/
 
 end Artin.ModelTheory
