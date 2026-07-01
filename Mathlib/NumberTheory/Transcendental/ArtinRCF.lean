@@ -48,7 +48,7 @@ def req {n : ℕ} (t₁ t₂ : Language.ring.Term (Empty ⊕ Fin n)) :
 square, and every odd-degree monic polynomial has a root (the latter reusing the algebraic
 `FirstOrder.Field.genericMonicPolyHasRoot` sentences, restricted to odd degrees). -/
 def Theory.realClosedAxioms : orderedRing.Theory :=
-  {∀' ∃' (req (&1) (&0 * &0) ⊔ req (-&1) (&0 * &0))} ∪
+  {∀' ∃' (req (&0) (&1 * &1) ⊔ req (-&0) (&1 * &1))} ∪
     LHom.sumInl.onSentence '' (FirstOrder.Field.genericMonicPolyHasRoot '' {n | Odd n})
 
 /-- The theory of real closed fields, in the language of ordered rings. -/
@@ -71,9 +71,47 @@ instance modelRCF : (Theory.RCF).Model M := by
   refine Theory.model_union_iff.mpr ⟨Theory.model_union_iff.mpr
     ⟨Theory.model_union_iff.mpr ⟨hfield, inferInstance⟩, ?_⟩, ?_⟩
   · -- order-compatibility axioms
-    sorry
+    rw [Theory.model_iff]
+    intro φ hφ
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hφ
+    rcases hφ with rfl | rfl
+    · -- `0 ≤ a → 0 ≤ b → 0 ≤ a * b`
+      simp only [Sentence.Realize, Formula.Realize, BoundedFormula.realize_all,
+        BoundedFormula.realize_imp, rle, Term.realize_le, LHom.realize_onTerm,
+        Ring.realize_mul, Ring.realize_zero]
+      intro a b
+      exact mul_nonneg
+    · -- `a ≤ b → a + c ≤ b + c`
+      simp only [Sentence.Realize, Formula.Realize, BoundedFormula.realize_all,
+        BoundedFormula.realize_imp, rle, Term.realize_le, LHom.realize_onTerm,
+        Ring.realize_add, Term.realize_var, Sum.elim_inr]
+      intro a b c h
+      linarith
   · -- real-closed axioms
-    sorry
+    rw [Theory.realClosedAxioms, Theory.model_union_iff]
+    refine ⟨?_, ?_⟩
+    · -- `∀ x, ∃ y, x = y*y ∨ -x = y*y`
+      rw [Theory.model_iff]
+      intro φ hφ
+      simp only [Set.mem_singleton_iff] at hφ
+      subst hφ
+      simp only [Sentence.Realize, Formula.Realize, BoundedFormula.realize_all,
+        BoundedFormula.realize_ex, BoundedFormula.realize_sup, req, BoundedFormula.realize_bdEqual,
+        LHom.realize_onTerm, Ring.realize_mul, Ring.realize_neg, Term.realize_var]
+      intro x
+      rcases IsRealClosed.isSquare_or_isSquare_neg x with ⟨y, hy⟩ | ⟨y, hy⟩
+      · exact ⟨y, Or.inl hy⟩
+      · exact ⟨y, Or.inr hy⟩
+    · -- every odd-degree monic polynomial has a root
+      rw [Theory.model_iff]
+      intro φ hφ
+      simp only [Set.mem_image, Set.mem_setOf_eq] at hφ
+      obtain ⟨_, ⟨n, hn, rfl⟩, rfl⟩ := hφ
+      rw [LHom.realize_onSentence, Field.realize_genericMonicPolyHasRoot]
+      intro p
+      obtain ⟨x, hx⟩ := IsRealClosed.exists_isRoot_of_odd_natDegree (f := p.1)
+        (by rw [p.2.2]; exact hn)
+      exact ⟨x, hx⟩
 
 end Models
 
