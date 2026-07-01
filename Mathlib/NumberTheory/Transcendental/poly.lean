@@ -5,7 +5,6 @@ Authors: Mario Carneiro, James Davenport, Michail Karatarakis
 -/
 import Mathlib.Algebra.GCDMonoid.Basic
 import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Data.Int.ConditionallyCompleteOrder
 import Mathlib.Tactic
 
 /-!
@@ -657,7 +656,7 @@ instance : CommRing (SparsePoly R) where
     push_cast
     grind
 
-def C_hom : R →+* SparsePoly R where
+def CHom : R →+* SparsePoly R where
   toFun := C
   map_zero' := by
     apply toPoly_injective
@@ -676,7 +675,7 @@ def C_hom : R →+* SparsePoly R where
 
 instance : Algebra R (SparsePoly R) where
   smul := fun a r => C a * r
-  algebraMap := C_hom
+  algebraMap := CHom
   commutes' r p := mul_comm (C r) p
   smul_def' _ _ := rfl
 

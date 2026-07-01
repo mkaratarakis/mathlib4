@@ -4,6 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Mario Carneiro, James Davenport, Michail Karatarakis
 -/
 import Mathlib.NumberTheory.Transcendental.mvpoly
+import Mathlib.Algebra.GCDMonoid.Basic
+import Mathlib.RingTheory.MvPolynomial.MonomialOrder
+import Mathlib.Algebra.MvPolynomial.PDeriv
 
 /-! # Computable multivariate polynomial algebra: division, normal forms, Groebner bases
 

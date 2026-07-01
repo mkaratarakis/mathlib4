@@ -3,14 +3,10 @@ Copyright (c) 2024 Mario Carneiro. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Mario Carneiro, James Davenport, Michail Karatarakis
 -/
-import Mathlib.Algebra.GCDMonoid.Basic
-import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Data.Int.ConditionallyCompleteOrder
-import Mathlib.Tactic
+import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Data.List.Sort
 import Mathlib.Data.DFinsupp.WellFounded
-import Mathlib.RingTheory.MvPolynomial.MonomialOrder
-import Mathlib.Algebra.MvPolynomial.PDeriv
+import Mathlib.Tactic
 
 /-! # Computable multivariate polynomials (`MvSparsePoly`)
 
@@ -309,105 +305,105 @@ instance : AddCommMonoid (MvDegrees nvars) where
   wf : WellFounded (fun (a b : MvDegrees nvars) => a < b)
 
 /-- Pure-list functional definition of lexicographic order. -/
-def list_lex : List ℕ → List ℕ → Bool
+def listLex : List ℕ → List ℕ → Bool
 | [], _ => true
 | _, [] => true
 | (x::xs), (y::ys) =>
   if x < y then true
   else if y < x then false
-  else list_lex xs ys
+  else listLex xs ys
 
 /-- Lexicographic order on lists is total. -/
-lemma list_lex_total (l1 l2 : List ℕ) : list_lex l1 l2 = true ∨ list_lex l2 l1 = true := by
+lemma list_lex_total (l1 l2 : List ℕ) : listLex l1 l2 = true ∨ listLex l2 l1 = true := by
   induction l1 generalizing l2 with
-  | nil => simp [list_lex]
+  | nil => simp [listLex]
   | cons x xs ih =>
     cases l2 with
-    | nil => simp [list_lex]
+    | nil => simp [listLex]
     | cons y ys =>
-      unfold list_lex
+      unfold listLex
       rcases Nat.lt_trichotomy x y with hlt | heq | hgt
       · simp [hlt, show ¬(y < x) by omega]
       · subst heq; simp; grind
       · simp [show ¬(x < y) by omega, hgt]
 
 /-- The per-step state machine for the lexicographic `forIn` loop. -/
-def lex_step (p : ℕ × ℕ) (_acc : Bool) : ForInStep Bool :=
+def lexStep (p : ℕ × ℕ) (_acc : Bool) : ForInStep Bool :=
   if p.1 < p.2 then ForInStep.done true
   else if p.1 > p.2 then ForInStep.done false
   else ForInStep.yield true
 
 /-- Bridge the array `forIn` loop to the list one. -/
 lemma array_forIn_eq_list_forIn (a b : Array ℕ) :
-    Id.run (ForIn.forIn (a.zip b) true lex_step) =
-    Id.run (ForIn.forIn (a.toList.zip b.toList) true lex_step) := by
+    Id.run (ForIn.forIn (a.zip b) true lexStep) =
+    Id.run (ForIn.forIn (a.toList.zip b.toList) true lexStep) := by
   grind [Array.toList_zip]
 
 /-- The executable implementation of `lexorder`, kept as the compiled engine. -/
-def lexorder_impl (a b : MvDegrees nvars) : Bool := Id.run do
+def lexorderImpl (a b : MvDegrees nvars) : Bool := Id.run do
   for ai in a.degrees, bi in b.degrees do
      if ai < bi then return true
      else if ai > bi then return false
   return true
 
-/-- Lexicographic comparison of `MvDegrees`, evaluated via `list_lex` but run via
-`lexorder_impl`. -/
-@[implemented_by lexorder_impl]
+/-- Lexicographic comparison of `MvDegrees`, evaluated via `listLex` but run via
+`lexorderImpl`. -/
+@[implemented_by lexorderImpl]
 def lexorder (a b : MvDegrees nvars) : Bool :=
-  list_lex a.degrees.toList b.degrees.toList
+  listLex a.degrees.toList b.degrees.toList
 
 /-- Antisymmetry of lexicographic order on lists. -/
 lemma list_lex_antisymm {l1 l2 : List ℕ} (hlen : l1.length = l2.length)
-    (h1 : list_lex l1 l2 = true) (h2 : list_lex l2 l1 = true) : l1 = l2 := by
+    (h1 : listLex l1 l2 = true) (h2 : listLex l2 l1 = true) : l1 = l2 := by
   induction l1 generalizing l2 with
   | nil => cases l2 <;> simp_all
   | cons x xs ih =>
     cases l2 with
     | nil => simp at hlen
     | cons y ys =>
-      unfold list_lex at h1 h2
+      unfold listLex at h1 h2
       split_ifs at h1 h2 <;> try omega
       obtain rfl : x = y := by omega
       simp only [List.length_cons, Nat.add_right_cancel_iff] at hlen
       rw [ih hlen h1 h2]
 
-/-- `lexorder` agrees with `list_lex` on the underlying lists. -/
+/-- `lexorder` agrees with `listLex` on the underlying lists. -/
 lemma lexorder_eq_list_lex (a b : MvDegrees nvars) :
-    lexorder a b = list_lex a.degrees.toList b.degrees.toList := rfl
+    lexorder a b = listLex a.degrees.toList b.degrees.toList := rfl
 
 /-- Transitivity of lexicographic order on lists. -/
 lemma list_lex_trans {l1 l2 l3 : List ℕ} (h12 : l1.length = l2.length) (h23 : l2.length = l3.length)
-    (h1 : list_lex l1 l2 = true) (h2 : list_lex l2 l3 = true) : list_lex l1 l3 = true := by
+    (h1 : listLex l1 l2 = true) (h2 : listLex l2 l3 = true) : listLex l1 l3 = true := by
   induction l1 generalizing l2 l3 with
   | nil => rfl
   | cons x xs ih =>
     cases l2 with | nil => simp at h12 | cons y ys =>
     cases l3 with | nil => simp at h23 | cons z zs =>
-      unfold list_lex at h1 h2 ⊢
+      unfold listLex at h1 h2 ⊢
       split_ifs at h1 h2 ⊢ <;> try omega
       simp only [List.length_cons, Nat.add_right_cancel_iff] at h12 h23
       exact ih h12 h23 h1 h2
 
 /-- The zero list is lexicographically below any list of the same length. -/
-lemma list_lex_zero_le (l : List ℕ) : list_lex (List.replicate l.length 0) l = true := by
+lemma list_lex_zero_le (l : List ℕ) : listLex (List.replicate l.length 0) l = true := by
   induction l with
   | nil => rfl
   | cons x xs ih =>
-    change list_lex (0 :: List.replicate xs.length 0) (x :: xs) = true
-    unfold list_lex
+    change listLex (0 :: List.replicate xs.length 0) (x :: xs) = true
+    unfold listLex
     split_ifs <;> try omega
     grind
 
 /-- Lexicographic order is preserved by pointwise addition of a common list. -/
 lemma list_lex_add_le_add (la lb lc : List ℕ) (h1 : la.length = lb.length)
-    (h2 : lb.length = lc.length) (hab : list_lex la lb = true) :
-    list_lex (List.zipWith (· + ·) la lc) (List.zipWith (· + ·) lb lc) = true := by
+    (h2 : lb.length = lc.length) (hab : listLex la lb = true) :
+    listLex (List.zipWith (· + ·) la lc) (List.zipWith (· + ·) lb lc) = true := by
   induction la generalizing lb lc with
   | nil => rfl
   | cons x xs ih =>
     cases lb with | nil => simp at h1 | cons y ys =>
     cases lc with | nil => simp at h2 | cons z zs =>
-      unfold list_lex at hab ⊢
+      unfold listLex at hab ⊢
       simp only [List.zipWith]
       split_ifs at hab ⊢ <;> try omega
       simp at h1 h2
@@ -428,7 +424,7 @@ lemma lexorder_antisymm (a b : MvDegrees nvars) (hab : lexorder a b = true)
 
 /-- The strict lexicographic order is witnessed by the first differing coordinate. -/
 lemma list_lex_strict_first_diff : ∀ {l1 l2 : List ℕ}, l1.length = l2.length →
-    list_lex l1 l2 = true → ¬ (list_lex l2 l1 = true) →
+    listLex l1 l2 = true → ¬ (listLex l2 l1 = true) →
     ∃ n, n < l1.length ∧ (∀ m, m < n → l1[m]! = l2[m]!) ∧ l1[n]! < l2[n]! := by
   intro l1
   induction l1 with
@@ -443,7 +439,7 @@ lemma list_lex_strict_first_diff : ∀ {l1 l2 : List ℕ}, l1.length = l2.length
     | nil => simp at hlen
     | cons y ys =>
       have hlen' : xs.length = ys.length := by simpa using hlen
-      simp only [list_lex] at h1 h2
+      simp only [listLex] at h1 h2
       rcases lt_trichotomy x y with hxy | hxy | hxy
       · exact ⟨0, by simp, fun m hm => absurd hm (by omega), by simpa using hxy⟩
       · subst hxy
@@ -474,8 +470,8 @@ lemma mvDegrees_lex_wf :
   refine Subrelation.wf ?_ (InvImage.wf f hpi)
   intro a b hab
   obtain ⟨hab1, hab2⟩ := hab
-  change list_lex a.degrees.toList b.degrees.toList = true at hab1
-  change ¬ (list_lex b.degrees.toList a.degrees.toList = true) at hab2
+  change listLex a.degrees.toList b.degrees.toList = true at hab1
+  change ¬ (listLex b.degrees.toList a.degrees.toList = true) at hab2
   have hlen : a.degrees.toList.length = b.degrees.toList.length := by
     rw [Array.length_toList, Array.length_toList, a.correct, b.correct]
   obtain ⟨n, hn, heq, hlt⟩ := list_lex_strict_first_diff hlen hab1 hab2
@@ -493,17 +489,17 @@ instance : WOrdering nvars where
   le_refl a := or_self_iff.1 (lexorder_total _ _)
 
   le_trans a b c hab hbc := by
-    change list_lex a.degrees.toList b.degrees.toList = true at hab
-    change list_lex b.degrees.toList c.degrees.toList = true at hbc
-    change list_lex a.degrees.toList c.degrees.toList = true
+    change listLex a.degrees.toList b.degrees.toList = true at hab
+    change listLex b.degrees.toList c.degrees.toList = true at hbc
+    change listLex a.degrees.toList c.degrees.toList = true
     have h1 : a.degrees.toList.length = b.degrees.toList.length := by aesop
     have h2 : b.degrees.toList.length = c.degrees.toList.length := by aesop
     exact list_lex_trans h1 h2 hab hbc
 
   le_antisymm a b hab hba := by
     have h1 : a.degrees.toList.length = b.degrees.toList.length := by aesop
-    change list_lex a.degrees.toList b.degrees.toList = true at hab
-    change list_lex b.degrees.toList a.degrees.toList = true at hba
+    change listLex a.degrees.toList b.degrees.toList = true at hab
+    change listLex b.degrees.toList a.degrees.toList = true at hba
     have hlist := list_lex_antisymm h1 hab hba
     apply MvDegrees.ext
     · exact array_eq_of_toList_eq hlist
@@ -532,12 +528,12 @@ instance : WOrdering nvars where
       contradiction
     · rfl
   zero_le {a} := by
-    change list_lex (List.replicate nvars 0) (a : MvDegrees nvars).degrees.toList = true
+    change listLex (List.replicate nvars 0) (a : MvDegrees nvars).degrees.toList = true
     have h : nvars = (a : MvDegrees nvars).degrees.toList.length := by aesop
     grind [list_lex_zero_le (a : MvDegrees nvars).degrees.toList]
   add_le_add {a b c} hab := by
-    change list_lex a.degrees.toList b.degrees.toList = true at hab
-    change list_lex (Array.zipWith (· + ·) a.degrees c.degrees).toList
+    change listLex a.degrees.toList b.degrees.toList = true at hab
+    change listLex (Array.zipWith (· + ·) a.degrees c.degrees).toList
       (Array.zipWith (· + ·) b.degrees c.degrees).toList = true
     simp only [Array.toList_zipWith]
     have h1 : a.degrees.toList.length = b.degrees.toList.length := by aesop
@@ -1453,7 +1449,7 @@ omit [DecidableEq R] in
 lemma toPoly_zero : toPoly (0 : MvSparsePoly R nvars) = 0 := rfl
 
 /-- The constant-polynomial inclusion `R → MvSparsePoly R nvars` as a ring homomorphism. -/
-def C_hom : R →+* MvSparsePoly R nvars where
+def CHom : R →+* MvSparsePoly R nvars where
   toFun := C
   map_zero' := by
     apply toPoly_injective
@@ -1472,7 +1468,7 @@ def C_hom : R →+* MvSparsePoly R nvars where
 
 instance : Algebra R (MvSparsePoly R nvars) where
   smul r p := C r * p
-  algebraMap := C_hom
+  algebraMap := CHom
   commutes' r p := mul_comm (C r) p
   smul_def' _ _ := rfl
 

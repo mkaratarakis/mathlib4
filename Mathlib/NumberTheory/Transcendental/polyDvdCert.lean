@@ -3,8 +3,8 @@ Copyright (c) 2026 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
-import Mathlib.NumberTheory.Transcendental.poly
-import Mathlib.Tactic.Ring
+import Mathlib.Algebra.Polynomial.AlgebraMap
+import Mathlib.Tactic
 
 /-!
 # `poly_dvd_cert`: divisibility of `Polynomial K` by **symbolic certificate**
