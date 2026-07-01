@@ -413,7 +413,7 @@ def content [GCDMonoid R] (a : MvSparsePoly R nvars) : R :=
   a.terms.foldl (init := 0) (gcd · ·.2)
 
 /-- The primitive part of `a`: `a` with every coefficient divided by its content. -/
-def primitivePart [IsDomain R] [GCDMonoid R]
+def primitivePart [GCDMonoid R]
     [Div R] [IsExactDiv R] (a : MvSparsePoly R nvars) : MvSparsePoly R nvars where
   terms :=
     let b := a.content
@@ -434,7 +434,7 @@ def primitivePart [IsDomain R] [GCDMonoid R]
 
 /-- The gcd of `a` and `b`: the gcd of their contents scaled by the primitive part of the
 division-free `gcdPrim`. -/
-nonrec def gcd [IsDomain R] [GCDMonoid R]
+nonrec def gcd [GCDMonoid R]
     [Div R] [IsExactDiv R] (a b : MvSparsePoly R nvars) : MvSparsePoly R nvars :=
   gcd a.content b.content • (gcdPrim a b).primitivePart
 
