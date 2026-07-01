@@ -8,6 +8,8 @@ import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Data.Real.Basic
 import Mathlib.ModelTheory.Algebra.Ring.FreeCommRing
 import Mathlib.NumberTheory.Transcendental.ArtinTransfer
+import Mathlib.NumberTheory.Transcendental.ArtinRCF
+import Mathlib.NumberTheory.Transcendental.ArtinRealClosure
 
 /-!
 # Algebra core of the Artin eval↔formula bridge
@@ -92,13 +94,15 @@ theorem bridge [Finite σ] {C : Type*} [Field C] [LinearOrder C] [IsStrictOrdere
   exact ⟨a, by simpa using ha⟩
 
 /-- **The Tarski transfer for Artin's theorem**, assembled from RCF model completeness
-(`realClosed_elementaryEmbedding`, the one remaining `sorry`) and the eval↔formula `bridge`: a
-polynomial inequality solvable in a real closed field `C ⊇ ℝ` is solvable in `ℝ`. -/
+(`realClosed_elementaryEmbedding`) and the eval↔formula `bridge`: a polynomial inequality solvable
+in a real closed field `C ⊇ ℝ` is solvable in `ℝ`. The one remaining hypothesis is quantifier
+elimination for `Theory.RCF` (`hqe`) — the Tarski–Seidenberg core, provable via Sturm's theorem. -/
 theorem exists_neg_eval_of_real_closed [Finite σ]
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
+    (hqe : Theory.RCF.HasQuantifierElimination)
     (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ) (h : eval₂ ψ ξ f < 0) :
     ∃ a : σ → ℝ, eval a f < 0 := by
-  obtain ⟨g, hg⟩ := realClosed_elementaryEmbedding C ψ
+  obtain ⟨g, hg⟩ := realClosed_elementaryEmbedding C ψ Theory.RCF hqe
   exact bridge g ψ hg ξ f h
 
 end Artin.ModelTheory

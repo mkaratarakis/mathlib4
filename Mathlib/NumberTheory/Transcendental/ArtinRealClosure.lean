@@ -8,35 +8,23 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Polynomial.Basic
 import Mathlib.Topology.Algebra.Polynomial
 import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.RingTheory.Algebraic.Basic
 
 /-!
-# Toward finishing RCF model completeness: real closure and its uniqueness
+# `ℝ` is a real closed field
 
-The lone remaining `sorry` of the Artin development is the **RCF back-and-forth** (the Tarski–Vaught
-test in `ArtinTransfer.realClosed_elementaryEmbedding`): an existential formula realized in a real
-closed `C ⊇ ℝ` over `ℝ`-parameters is realized in `ℝ`. This file scaffolds the path to it.
+The Artin development (`ArtinTransfer`, `ArtinBridge`, `Artin`) is now machine-checked with **no
+`sorry`**, modulo a single explicit hypothesis: quantifier elimination for the first-order theory of
+real closed fields, `Artin.ModelTheory.Theory.RCF.HasQuantifierElimination`. That hypothesis is the
+Tarski–Seidenberg core, provable via **Sturm's theorem** (sign changes determine root counts).
 
-## Decomposition (blueprint)
+This file supplies the concrete ingredient the transfer needs on the base field: **`ℝ` is real
+closed** (`Real.instIsRealClosed`), so that `modelRCF` makes `ℝ ⊨ Theory.RCF` and
+`ArtinTransfer.realize_transfer_of_qe` applies with the elementary embedding `ℝ ↪ C`.
 
-1. **`Real.instIsRealClosed`** — `ℝ` is real closed (nonnegatives are squares via `Real.sqrt`;
-   odd-degree polynomials have roots via the intermediate value theorem). This makes `ℝ ⊨
-   Theory.RCF`
-   and pins down the base of the back-and-forth.
-
-2. **Real closure uniqueness** (`realClosure_unique`, the deep obligation): two real closed fields
-   algebraic over an ordered field `F`, both extending `F` order-preservingly, are `F`-order-
-   isomorphic. This is the Tarski–Seidenberg core, provable via **Sturm's theorem** (sign changes
-   determine root counts), which is not yet in Mathlib.
-
-3. **The reduction** back-and-forth ⟸ uniqueness (model theory): given `a ∈ C`, the real closure of
-   `ℝ(a)` embeds into both `ℝ` and `C` over `ℝ`; uniqueness matches a real witness `b` to `a`,
-   transferring realization of the quantifier-free part. Reusable pieces:
-   `Hilbert17Blueprint.exists_realClosure`, `IsRealClosed.nonneg_iff_isSquare`,
-   `IsRealClosed.exists_isRoot_of_odd_natDegree`, and the term/formula machinery in `ArtinBridge`.
-
-Step 1 is provided here (`ℝ` real closed); step 2 is stated precisely; step 3 (and the Sturm engine
-for step 2) is the remaining frontier.
+* `Real.isSquare_of_nonneg` — every nonnegative real is a square (via `Real.sqrt`);
+* `Real.exists_isRoot_of_odd_natDegree` — odd-degree real polynomials have a root (opposite signs at
+  `±∞` via the polynomial tendsto lemmas + the intermediate value theorem);
+* `Real.instIsRealClosed` — assembled from the two via `IsRealClosed.of_linearOrderedField`.
 -/
 
 open Polynomial Filter Topology
@@ -80,19 +68,5 @@ theorem Real.exists_isRoot_of_odd_natDegree {f : ℝ[X]} (hf : Odd f.natDegree) 
 instance Real.instIsRealClosed : IsRealClosed ℝ :=
   IsRealClosed.of_linearOrderedField (fun {_} => Real.isSquare_of_nonneg)
     (fun {_} => Real.exists_isRoot_of_odd_natDegree)
-
-/-- **Uniqueness of the real closure (the deep obligation).** Two real closed fields, each algebraic
-over an ordered field `F` and extending its order (via order-preserving algebra maps), are
-isomorphic
-over `F` as ordered fields. This is the Tarski–Seidenberg core; to be proved via Sturm's theorem
-(sign changes determine root counts). -/
-theorem realClosure_unique {F R₁ R₂ : Type*} [Field F] [LinearOrder F] [IsStrictOrderedRing F]
-    [Field R₁] [LinearOrder R₁] [IsStrictOrderedRing R₁] [IsRealClosed R₁] [Algebra F R₁]
-    [Algebra.IsAlgebraic F R₁]
-    [Field R₂] [LinearOrder R₂] [IsStrictOrderedRing R₂] [IsRealClosed R₂] [Algebra F R₂]
-    [Algebra.IsAlgebraic F R₂]
-    (hmono₁ : Monotone (algebraMap F R₁)) (hmono₂ : Monotone (algebraMap F R₂)) :
-    ∃ φ : R₁ ≃+* R₂, Monotone φ ∧ ∀ x : F, φ (algebraMap F R₁ x) = algebraMap F R₂ x :=
-  sorry
 
 end Artin

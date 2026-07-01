@@ -6,6 +6,8 @@ Authors: Michail Karatarakis
 import Mathlib.ModelTheory.Algebra.Ring.Basic
 import Mathlib.ModelTheory.Order
 import Mathlib.ModelTheory.ElementaryMaps
+import Mathlib.ModelTheory.Complexity
+import Mathlib.ModelTheory.QuantifierElimination
 import Mathlib.FieldTheory.IsRealClosed.Basic
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Data.Real.Basic
@@ -14,24 +16,27 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 /-!
 # The Tarski transfer for Artin's theorem, framed in first-order model theory
 
-`Artin.exists_neg_eval_of_real_closed` — the one deep `sorry` behind `Artin.artin` — says a
+`Artin.exists_neg_eval_of_real_closed` — the deep ingredient behind `Artin.artin` — says a
 polynomial inequality solvable in a real closed field `C ⊇ ℝ` is already solvable in `ℝ`. This file
-**reframes** that transfer inside Mathlib's first-order model theory and reduces it to two explicit,
-separable obligations, isolating the genuinely deep part:
+**reframes** that transfer inside Mathlib's first-order model theory and discharges it, `sorry`-free,
+down to a *single named hypothesis*: quantifier elimination for the theory of real closed fields.
+
+The two ingredients:
 
 1. `Artin.ModelTheory.realClosed_elementaryEmbedding` — **model completeness of real closed
    fields**: `ℝ` embeds *elementarily* into any real closed field extending it (language of ordered
-   rings). This is the Tarski–Seidenberg content; it is where a proof that the theory of real closed
-   fields has quantifier elimination plugs in (e.g. the `model-theory/quantifier-elimination`
-   criteria applied to a theory `Theory.RCF`).
+   rings). This is **proved** here from `realize_transfer_of_qe`: given a theory `T` modelled by both
+   `ℝ` and `C` with quantifier elimination (`T.HasQuantifierElimination`, e.g. `T = Theory.RCF`), an
+   ordered-ring embedding of models is elementary. The Tarski–Vaught back-and-forth reduces to QE
+   plus absoluteness of quantifier-free formulas along embeddings (`IsQF.realize_embedding`).
 
-2. `Artin.ModelTheory.elementaryEmbedding_reflect_exists_neg` — the **algebra ↔ logic dictionary**:
-   an elementary embedding reflects the existential inequality `∃ x, f(x) < 0`. To be built from
-   `FirstOrder.Ring`'s polynomial↔term bridge (`termOfFreeCommRing`) plus the order relation, by
-   encoding `∃ x, f(x) < 0` as a first-order formula with the coefficients of `f` as parameters.
+2. The **algebra ↔ logic dictionary** (in `ArtinBridge`): an elementary embedding reflects the
+   existential inequality `∃ x, f(x) < 0`, built from `FirstOrder.Ring`'s polynomial↔term bridge
+   (`termOfFreeCommRing`) plus the order relation.
 
-`exists_neg_eval_of_real_closed` is then **proved** from these two (see the theorem at the end), so
-the remaining work is exactly (1) and (2). Both are currently `sorry`.
+`exists_neg_eval_of_real_closed` is then **proved** (in `ArtinBridge`) from these two, so the only
+remaining mathematical obligation of the whole Artin development is
+`Theory.RCF.HasQuantifierElimination` — the Tarski–Seidenberg core, provable via Sturm's theorem.
 -/
 
 open FirstOrder Language MvPolynomial
@@ -75,17 +80,51 @@ def ringOrderEmbedding {C : Type*} [Field C] [LinearOrder C] [IsStrictOrderedRin
     · cases or
       exact hle (x 0) (x 1)
 
+/-- **From quantifier elimination, an ordered-ring embedding of `ℝ` is elementary.** Let `T` be an
+`orderedRing`-theory modelled by both `ℝ` and an extension `C`, and suppose `T` has quantifier
+elimination. Then the embedding `g : ℝ ↪[orderedRing] C` preserves *and* reflects the realization of
+**every** formula: a quantified formula is `T`-equivalent to a quantifier-free one
+(`hqe`), and quantifier-free formulas are absolute along embeddings (`IsQF.realize_embedding`). This
+is precisely the model-completeness content, reduced to the QE hypothesis on `T`. -/
+theorem realize_transfer_of_qe {C : Type*} [Field C] [LinearOrder C] [IsStrictOrderedRing C]
+    (g : ℝ ↪[orderedRing] C) (T : orderedRing.Theory) [ℝ ⊨ T] [C ⊨ T]
+    (hqe : T.HasQuantifierElimination) {m : ℕ} (χ : orderedRing.BoundedFormula Empty m)
+    (w : Fin m → ℝ) :
+    χ.Realize (default : Empty → C) (g ∘ w) ↔ χ.Realize (default : Empty → ℝ) w := by
+  haveI : Nonempty C := ⟨0⟩
+  haveI : Nonempty ℝ := ⟨0⟩
+  obtain ⟨Θ, hΘqf, hΘeq⟩ := hqe χ.toFormula
+  have hg : (Sum.elim (default : Empty → C) (g ∘ w)) = g ∘ Sum.elim default w := by
+    funext z; rcases z with e | i
+    · exact e.elim
+    · rfl
+  have hemb : Θ.Realize (g ∘ Sum.elim (default : Empty → ℝ) w)
+      ↔ Θ.Realize (Sum.elim default w) := by
+    have e : (g ∘ (default : Fin 0 → ℝ)) = (default : Fin 0 → C) := funext fun i => i.elim0
+    have h := hΘqf.realize_embedding g (v := Sum.elim (default : Empty → ℝ) w) (xs := default)
+    rw [e] at h
+    simpa only [Formula.boundedFormula_realize_eq_realize] using h
+  calc χ.Realize (default : Empty → C) (g ∘ w)
+      ↔ χ.toFormula.Realize (Sum.elim default (g ∘ w)) :=
+        (BoundedFormula.realize_toFormula χ (Sum.elim default (g ∘ w))).symm
+    _ ↔ Θ.Realize (Sum.elim default (g ∘ w)) := hΘeq.realize_iff
+    _ ↔ Θ.Realize (g ∘ Sum.elim default w) := by rw [hg]
+    _ ↔ Θ.Realize (Sum.elim default w) := hemb
+    _ ↔ χ.toFormula.Realize (Sum.elim default w) := hΘeq.realize_iff.symm
+    _ ↔ χ.Realize (default : Empty → ℝ) w :=
+        BoundedFormula.realize_toFormula χ (Sum.elim default w)
+
 /-- **Model completeness of real closed fields.** Every real closed field `C` with a ring embedding
 `ψ` of `ℝ` receives `ℝ` as an *elementary* substructure in the language of ordered rings, and the
 elementary embedding's underlying map is `ψ`.
 
-Reduced, via the Tarski–Vaught test `Embedding.toElementaryEmbedding`, to the **RCF back-and-forth**
-(`realClosed_backAndForth`): an existential witness in `C` over `ℝ`-parameters descends to `ℝ`. That
-is the genuinely deep Tarski–Seidenberg ingredient (equivalent to quantifier elimination for real
-closed fields), still a `sorry`. -/
+Reduced, via the Tarski–Vaught test `Embedding.toElementaryEmbedding` and `realize_transfer_of_qe`,
+to **quantifier elimination for `T`** (`hqe`), where `T` is any `orderedRing`-theory modelled by
+both `ℝ` and `C` (e.g. `Theory.RCF`). That is the genuinely deep Tarski–Seidenberg ingredient. -/
 theorem realClosed_elementaryEmbedding
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
-    (ψ : ℝ →+* C) :
+    (ψ : ℝ →+* C) (T : orderedRing.Theory) [ℝ ⊨ T] [C ⊨ T]
+    (hqe : T.HasQuantifierElimination) :
     ∃ g : ℝ ↪ₑ[orderedRing] C, ∀ r, g r = ψ r := by
   -- A ring hom out of `ℝ` is an order embedding: it preserves nonnegativity (every nonnegative real
   -- is a square) and reflects it (by injectivity).
@@ -104,14 +143,24 @@ theorem realClosed_elementaryEmbedding
       _ ↔ 0 ≤ b - a := h0 (b - a)
       _ ↔ a ≤ b := sub_nonneg
   refine ⟨(ringOrderEmbedding ψ hle).toElementaryEmbedding ?_, fun _ => rfl⟩
-  -- **RCF back-and-forth (the remaining deep obligation).** Tarski–Vaught test: an existential
-  -- witness in `C` over `ℝ`-parameters descends to `ℝ`; equivalent to quantifier elimination for
-  -- real closed fields.
-  intro n φ x a _
-  sorry
+  -- **RCF back-and-forth via quantifier elimination.** Tarski–Vaught test: an existential witness
+  -- in `C` over `ℝ`-parameters descends to `ℝ`. The witness `a` may be transcendental over `ℝ`, but
+  -- QE (`realize_transfer_of_qe`) makes the embedding elementary, so realization transfers freely.
+  set g := ringOrderEmbedding ψ hle with hg
+  intro n φ x a hφa
+  -- Reflect the *existence* of a witness from `C` down to `ℝ`.
+  have hex : (φ.ex).Realize (default : Empty → C) (g ∘ x) :=
+    BoundedFormula.realize_ex.mpr ⟨a, hφa⟩
+  rw [realize_transfer_of_qe g T hqe, BoundedFormula.realize_ex] at hex
+  obtain ⟨b, hb⟩ := hex
+  -- Push the real witness `b` back up into `C`.
+  refine ⟨b, ?_⟩
+  have hpush := (realize_transfer_of_qe g T hqe φ (Fin.snoc x b)).mpr hb
+  rwa [Fin.comp_snoc] at hpush
 
 /-! The eval↔formula bridge and the assembled transfer `exists_neg_eval_of_real_closed` are proved
 in `Mathlib.NumberTheory.Transcendental.ArtinBridge`, which has the free-commutative-ring encoding
-machinery. Only `realClosed_elementaryEmbedding` (RCF model completeness) remains a `sorry`. -/
+machinery. Nothing here is a `sorry`; the whole development is parameterized by the hypothesis
+`Theory.RCF.HasQuantifierElimination`. -/
 
 end Artin.ModelTheory

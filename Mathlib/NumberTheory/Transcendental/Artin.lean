@@ -21,23 +21,24 @@ ingredient, isolated as `Artin.exists_neg_eval_of_real_closed`:
 > if `f`, evaluated through a ring hom into a real closed field `C ⊇ ℝ` at some point of `Cⁿ`, is
 > negative, then `f` is already negative at some *real* point.
 
-That is the **Tarski–Seidenberg transfer principle** (model completeness of real closed fields),
-the one genuinely deep, not-yet-in-Mathlib component. Everything else here is the elementary
-Artin–Schreier reduction, reusing the ordering and real-closure machinery developed for Hilbert's
-17th problem for matrices (`RingPreordering.isSumSq_of_forall_mem`,
-`Hilbert17Blueprint.exists_realClosure`); the reality of `ℝ(xᵢ)` (`IsSemireal`) is proved here by
-clearing denominators and `MvPolynomial.funext`.
+That is the **Tarski–Seidenberg transfer principle** (model completeness of real closed fields).
+Everything else here is the elementary Artin–Schreier reduction, reusing the ordering and
+real-closure machinery developed for Hilbert's 17th problem for matrices
+(`RingPreordering.isSumSq_of_forall_mem`, `Hilbert17Blueprint.exists_realClosure`); the reality of
+`ℝ(xᵢ)` (`IsSemireal`) is proved here by clearing denominators and `MvPolynomial.funext`.
 
-The transfer principle is itself no longer opaque: it is reduced, in
-`Mathlib.NumberTheory.Transcendental.ArtinTransfer`, to model completeness of real closed fields
-plus an eval↔formula dictionary, in Mathlib's first-order model theory. So the whole development
-bottoms out at exactly those two model-theoretic obligations.
+The transfer principle is **proved**, in `Mathlib.NumberTheory.Transcendental.ArtinTransfer` and
+`ArtinBridge`, inside Mathlib's first-order model theory: an ordered-ring embedding of `ℝ` into a
+real closed `C` is elementary whenever the theory `Theory.RCF` has quantifier elimination
+(`realize_transfer_of_qe`), combined with the eval↔formula dictionary. So the whole development is
+`sorry`-free modulo the single hypothesis `Theory.RCF.HasQuantifierElimination` — the deep
+Tarski–Seidenberg content, provable via Sturm's theorem.
 
 ## Main statements
 
-* `Artin.exists_neg_eval_of_real_closed` — the transfer principle (proved in `ArtinTransfer` from
-  model completeness of real closed fields).
-* `Artin.artin` — Artin's theorem, proved modulo the transfer principle.
+* `Artin.exists_neg_eval_of_real_closed` — the transfer principle (proved in `ArtinBridge`, modulo
+  quantifier elimination for `Theory.RCF`).
+* `Artin.artin` — Artin's theorem, proved modulo `Theory.RCF.HasQuantifierElimination`.
 
 ## Architecture of the reduction
 
@@ -63,16 +64,17 @@ real closed field `C` at a point `ξ : σ → C`, takes a negative value, then `
 negative value at some *real* point.
 
 This is the model completeness of the theory of real closed fields (every real closed field is an
-elementary extension of `ℝ`); it is the single genuinely deep, not-yet-in-Mathlib ingredient of
-Artin's theorem. It is **reduced**, in `Mathlib.NumberTheory.Transcendental.ArtinTransfer`, to model
-completeness of real closed fields (`Artin.ModelTheory.realClosed_elementaryEmbedding`) together
-with the eval↔formula dictionary (`Artin.ModelTheory.elementaryEmbedding_reflect_exists_neg`). -/
+elementary extension of `ℝ`). It is **proved**, in `Mathlib.NumberTheory.Transcendental.ArtinTransfer`
+and `ArtinBridge`, from an elementary embedding built via quantifier elimination
+(`realize_transfer_of_qe`) together with the eval↔formula dictionary (`bridge`), leaving as the sole
+hypothesis `hqe : Theory.RCF.HasQuantifierElimination` — the Tarski–Seidenberg core (via Sturm). -/
 theorem exists_neg_eval_of_real_closed [Finite σ]
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
+    (hqe : ModelTheory.Theory.RCF.HasQuantifierElimination)
     (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
     (h : eval₂ ψ ξ f < 0) :
     ∃ a : σ → ℝ, eval a f < 0 :=
-  ModelTheory.exists_neg_eval_of_real_closed C ψ ξ f h
+  ModelTheory.exists_neg_eval_of_real_closed C hqe ψ ξ f h
 
 /-- Evaluating a sum of squares of polynomials at a real point gives a sum of squares in `ℝ`. -/
 private theorem isSumSq_eval {p : MvPolynomial σ ℝ} (hp : IsSumSq p) (pt : σ → ℝ) :
@@ -119,9 +121,11 @@ instance : IsSemireal (RatField σ) where
 /-- **Artin's theorem (scalar Hilbert's 17th problem).** A polynomial `f ∈ ℝ[xᵢ]` that is
 nonnegative at every real point is a sum of squares in the rational function field `ℝ(xᵢ)`.
 
-Proved by the Artin–Schreier reduction modulo `exists_neg_eval_of_real_closed` (the transfer
-principle). -/
-theorem artin [Finite σ] (f : MvPolynomial σ ℝ) (hf : ∀ a : σ → ℝ, 0 ≤ eval a f) :
+Proved by the Artin–Schreier reduction and the model-theoretic transfer principle
+(`exists_neg_eval_of_real_closed`), modulo the single hypothesis `hqe`: quantifier elimination for
+the first-order theory of real closed fields. -/
+theorem artin [Finite σ] (hqe : ModelTheory.Theory.RCF.HasQuantifierElimination)
+    (f : MvPolynomial σ ℝ) (hf : ∀ a : σ → ℝ, 0 ≤ eval a f) :
     IsSumSq (algebraMap (MvPolynomial σ ℝ) (RatField σ) f) := by
   apply RingPreordering.isSumSq_of_forall_mem
   intro O hO
@@ -148,7 +152,7 @@ theorem artin [Finite σ] (f : MvPolynomial σ ℝ) (hf : ∀ a : σ → ℝ, 0 
   have hlt2 : eval₂ (Φ.comp MvPolynomial.C) (fun i => Φ (X i)) f < 0 := by
     rw [key]; exact hemblt
   -- Transfer the negativity to a real point and contradict nonnegativity.
-  obtain ⟨a, ha⟩ := exists_neg_eval_of_real_closed C (Φ.comp MvPolynomial.C)
+  obtain ⟨a, ha⟩ := exists_neg_eval_of_real_closed C hqe (Φ.comp MvPolynomial.C)
     (fun i => Φ (X i)) f hlt2
   exact absurd (hf a) (not_le.2 ha)
 
