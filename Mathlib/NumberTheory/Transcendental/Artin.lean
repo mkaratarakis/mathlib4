@@ -25,11 +25,18 @@ That is the **Tarski–Seidenberg transfer principle** (model completeness of re
 the one genuinely deep, not-yet-in-Mathlib component. Everything else here is the elementary
 Artin–Schreier reduction, reusing the ordering and real-closure machinery developed for Hilbert's
 17th problem for matrices (`RingPreordering.isSumSq_of_forall_mem`,
-`Hilbert17Blueprint.exists_realClosure`).
+`Hilbert17Blueprint.exists_realClosure`); the reality of `ℝ(xᵢ)` (`IsSemireal`) is proved here by
+clearing denominators and `MvPolynomial.funext`.
+
+The transfer principle is itself no longer opaque: it is reduced, in
+`Mathlib.NumberTheory.Transcendental.ArtinTransfer`, to model completeness of real closed fields
+plus an eval↔formula dictionary, in Mathlib's first-order model theory. So the whole development
+bottoms out at exactly those two model-theoretic obligations.
 
 ## Main statements
 
-* `Artin.exists_neg_eval_of_real_closed` — the isolated transfer principle (the single `sorry`).
+* `Artin.exists_neg_eval_of_real_closed` — the transfer principle (proved in `ArtinTransfer` from
+  model completeness of real closed fields).
 * `Artin.artin` — Artin's theorem, proved modulo the transfer principle.
 
 ## Architecture of the reduction
@@ -67,13 +74,47 @@ theorem exists_neg_eval_of_real_closed
     ∃ a : σ → ℝ, eval a f < 0 :=
   ModelTheory.exists_neg_eval_of_real_closed C ψ ξ f h
 
-/-- The rational function field `ℝ(xᵢ)` is formally real.
+/-- Evaluating a sum of squares of polynomials at a real point gives a sum of squares in `ℝ`. -/
+private theorem isSumSq_eval {p : MvPolynomial σ ℝ} (hp : IsSumSq p) (pt : σ → ℝ) :
+    IsSumSq (eval pt p) := by
+  induction hp with
+  | zero => rw [map_zero]; exact IsSumSq.zero
+  | sq_add a _ ih => rw [map_add, map_mul]; exact ih.sq_add _
 
-Elementary (clearing denominators reduces `-1 = Σ sq` to a polynomial identity that
-`MvPolynomial.funext` over the infinite field `ℝ` refutes); isolated here and currently left as a
-`sorry`, separate from the deep transfer principle above. -/
-instance : IsSemireal (RatField σ) := by
-  sorry
+/-- Every sum of squares in `ℝ(xᵢ)` clears denominators: `x · q² = p` for a nonzero polynomial `q`
+and a polynomial sum of squares `p`. -/
+private theorem sumSq_clear {x : RatField σ} (hx : IsSumSq x) :
+    ∃ p q : MvPolynomial σ ℝ, q ≠ 0 ∧ IsSumSq p ∧
+      x * (algebraMap (MvPolynomial σ ℝ) (RatField σ) q) ^ 2
+        = algebraMap (MvPolynomial σ ℝ) (RatField σ) p := by
+  induction hx with
+  | zero => exact ⟨0, 1, one_ne_zero, IsSumSq.zero, by simp⟩
+  | @sq_add a S _ ih =>
+    obtain ⟨p, q, hq, hp, hSeq⟩ := ih
+    obtain ⟨na, da, hda, hna⟩ := IsFractionRing.div_surjective (A := MvPolynomial σ ℝ) a
+    have hda0 : da ≠ 0 := nonZeroDivisors.ne_zero hda
+    have hφda : algebraMap (MvPolynomial σ ℝ) (RatField σ) da ≠ 0 :=
+      (map_ne_zero_iff _ (IsFractionRing.injective _ _)).2 hda0
+    have hna' : algebraMap (MvPolynomial σ ℝ) (RatField σ) na
+        = a * algebraMap (MvPolynomial σ ℝ) (RatField σ) da := (div_eq_iff hφda).1 hna
+    refine ⟨(na * q) * (na * q) + p * (da * da), da * q, mul_ne_zero hda0 hq,
+      (IsSumSq.mul_self _).add (hp.mul (IsSumSq.mul_self da)), ?_⟩
+    simp only [map_add, map_mul]
+    rw [hna', ← hSeq]; ring
+
+instance : IsSemireal (RatField σ) where
+  one_add_ne_zero {s} hs hc := by
+    have hsq : IsSumSq (-1 : RatField σ) := eq_neg_of_add_eq_zero_right hc ▸ hs
+    obtain ⟨p, q, hq, hp, heq⟩ := sumSq_clear hsq
+    have hpq : p = -q ^ 2 := by
+      apply IsFractionRing.injective (MvPolynomial σ ℝ) (RatField σ)
+      rw [map_neg, map_pow, ← heq]; ring
+    refine hq (MvPolynomial.funext fun pt => ?_)
+    have h1 : (0 : ℝ) ≤ eval pt p := (isSumSq_eval hp pt).nonneg
+    rw [hpq, map_neg, map_pow] at h1
+    have h3 : eval pt q ^ 2 = 0 := le_antisymm (by linarith) (sq_nonneg _)
+    rw [map_zero]
+    exact pow_eq_zero_iff (by norm_num) |>.1 h3
 
 /-- **Artin's theorem (scalar Hilbert's 17th problem).** A polynomial `f ∈ ℝ[xᵢ]` that is
 nonnegative at every real point is a sum of squares in the rational function field `ℝ(xᵢ)`.
