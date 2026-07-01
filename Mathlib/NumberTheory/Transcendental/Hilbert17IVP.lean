@@ -174,3 +174,7 @@ theorem intermediate_value_property {f : R[X]} {x y : R}
 end Ordered
 
 end Hilbert17Blueprint
+
+/-- Compatibility alias exposing the intermediate value property under the `IsRealClosed` namespace
+(matching the Sturm–Tarski development's naming). -/
+alias IsRealClosed.intermediate_value_property := Hilbert17Blueprint.intermediate_value_property
