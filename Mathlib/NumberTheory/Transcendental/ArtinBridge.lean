@@ -51,4 +51,41 @@ theorem realize_termPolyFree {M : Type*} [Field M] [LinearOrder M] [IsStrictOrde
       = eval₂ c x f := by
   rw [LHom.realize_onTerm, Ring.realize_termOfFreeCommRing, lift_polyFree]
 
+/-- The ordered-ring formula `∃ (point), f(point) < 0`, with the coefficients of `f` (elements of
+`ℝ`) as free variables. -/
+noncomputable def formulaOfPoly [Finite σ] (f : MvPolynomial σ ℝ) : orderedRing.Formula ℝ :=
+  Formula.iExs σ (Term.lt
+    (Term.relabel (Sum.inl : (ℝ ⊕ σ) → (ℝ ⊕ σ) ⊕ Fin 0)
+      ((LHom.sumInl : Language.ring →ᴸ orderedRing).onTerm
+        (Ring.termOfFreeCommRing (polyFree f))))
+    (Term.relabel (Sum.inl : (ℝ ⊕ σ) → (ℝ ⊕ σ) ⊕ Fin 0)
+      ((LHom.sumInl : Language.ring →ᴸ orderedRing).onTerm 0)))
+
+/-- `formulaOfPoly f`, realized with the coefficient assignment `c` (a ring hom), holds iff `f` is
+negative somewhere. -/
+theorem realize_formulaOfPoly [Finite σ] {M : Type*} [Field M] [LinearOrder M]
+    [IsStrictOrderedRing M] (c : ℝ →+* M) (f : MvPolynomial σ ℝ) :
+    (formulaOfPoly f).Realize (fun r => c r) ↔ ∃ i : σ → M, eval₂ c i f < 0 := by
+  rw [formulaOfPoly, Formula.realize_iExs]
+  refine exists_congr fun i => ?_
+  simp only [Formula.Realize, Term.realize_lt, Term.realize_relabel, Sum.elim_comp_inl,
+    LHom.realize_onTerm, Ring.realize_termOfFreeCommRing, lift_polyFree, Ring.realize_zero]
+
+/-- **The eval↔formula bridge.** An elementary embedding `g : ℝ ↪ₑ C` whose underlying map is the
+ring hom `ψ` reflects the existential inequality `∃ x, f(x) < 0`: negativity of `f` somewhere in `C`
+(through `ψ`) descends to negativity somewhere in `ℝ`. Proved by realizing `formulaOfPoly f` in `C`
+at `⇑g = ψ`, transporting it to `ℝ` by `ElementaryEmbedding.map_formula`, and reading off the real
+witness. -/
+theorem bridge [Finite σ] {C : Type*} [Field C] [LinearOrder C] [IsStrictOrderedRing C]
+    (g : ℝ ↪ₑ[orderedRing] C) (ψ : ℝ →+* C) (hg : ∀ r, g r = ψ r)
+    (ξ : σ → C) (f : MvPolynomial σ ℝ) (h : eval₂ ψ ξ f < 0) :
+    ∃ a : σ → ℝ, eval a f < 0 := by
+  have hC : (formulaOfPoly f).Realize (fun r => (g : ℝ → C) r) := by
+    rw [show (fun r => (g : ℝ → C) r) = (fun r => ψ r) from funext hg, realize_formulaOfPoly]
+    exact ⟨ξ, h⟩
+  have hR := (g.map_formula (formulaOfPoly f) (fun r => (RingHom.id ℝ) r)).mp hC
+  rw [realize_formulaOfPoly] at hR
+  obtain ⟨a, ha⟩ := hR
+  exact ⟨a, by simpa using ha⟩
+
 end Artin.ModelTheory
