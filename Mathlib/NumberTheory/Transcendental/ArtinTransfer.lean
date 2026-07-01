@@ -67,7 +67,7 @@ criteria to a theory `Theory.RCF`). -/
 theorem realClosed_elementaryEmbedding
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C] [IsRealClosed C]
     (ψ : ℝ →+* C) :
-    Nonempty (ℝ ↪ₑ[orderedRing] C) :=
+    ∃ g : ℝ ↪ₑ[orderedRing] C, ∀ r, g r = ψ r :=
   sorry
 
 /-- **The algebra ↔ logic dictionary (separable obligation).** An elementary embedding of ordered
@@ -79,7 +79,8 @@ parameters, via `FirstOrder.Ring.termOfFreeCommRing` and the `≤` relation; ele
 the equivalence of realizations. -/
 theorem elementaryEmbedding_reflect_exists_neg
     (C : Type*) [Field C] [LinearOrder C] [IsStrictOrderedRing C]
-    (g : ℝ ↪ₑ[orderedRing] C) (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
+    (g : ℝ ↪ₑ[orderedRing] C) (ψ : ℝ →+* C) (hg : ∀ r, g r = ψ r)
+    (ξ : σ → C) (f : MvPolynomial σ ℝ)
     (h : eval₂ ψ ξ f < 0) :
     ∃ a : σ → ℝ, eval a f < 0 :=
   sorry
@@ -92,7 +93,7 @@ theorem exists_neg_eval_of_real_closed
     (ψ : ℝ →+* C) (ξ : σ → C) (f : MvPolynomial σ ℝ)
     (h : eval₂ ψ ξ f < 0) :
     ∃ a : σ → ℝ, eval a f < 0 := by
-  obtain ⟨g⟩ := realClosed_elementaryEmbedding C ψ
-  exact elementaryEmbedding_reflect_exists_neg C g ψ ξ f h
+  obtain ⟨g, hg⟩ := realClosed_elementaryEmbedding C ψ
+  exact elementaryEmbedding_reflect_exists_neg C g ψ hg ξ f h
 
 end Artin.ModelTheory
