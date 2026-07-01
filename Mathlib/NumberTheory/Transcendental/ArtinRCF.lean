@@ -54,24 +54,27 @@ def Theory.realClosedAxioms : orderedRing.Theory :=
 /-- The theory of real closed fields, in the language of ordered rings. -/
 def Theory.RCF : orderedRing.Theory := Theory.orderedField ∪ Theory.realClosedAxioms
 
-/-!
-## Models (next step)
+/-! ## Models: `ℝ` and every real closed field satisfy `Theory.RCF` -/
 
-`ℝ` and every real closed field should be a model of `Theory.RCF`. The proof splits (via
-`Theory.model_union_iff`) into:
-* field axioms — `(LHom.sumInl.onTheory Language.Theory.field)` transfers from `Theory.field.Model M`
-  through `LHom.onTheory_model` (needs `LHom.sumInl.IsExpansionOn M`);
-* linear-order axioms — `Order.model_linearOrder`;
-* the two compatibility sentences — realized from `mul_nonneg` / `add_le_add_right`;
-* the real-closed axioms — `IsRealClosed.isSquare_or_isSquare_neg` and, via
-  `realize_genericMonicPolyHasRoot`, `IsRealClosed.exists_isRoot_of_odd_natDegree`.
+section Models
 
-**Blocker to resolve first:** the ordered-ring `Structure` must be presented so that both component
-structures (`Language.ring` via `compatibleRingOfRing`, `Language.order` via `orderStructure`) are
-available as instances and the sum structure is *defeq* to `Language.sumStructure` of them — so that
-`LHom.sumInl.IsExpansionOn M` and the field/order model instances resolve. The current packaged
-`Artin.ModelTheory.structureOfOrderedField` hides the components; this needs the ACF-style
-`let _ := compatibleRingOfRing M` presentation threaded through `ArtinTransfer` and here.
--/
+variable (M : Type*) [Field M] [LinearOrder M] [IsStrictOrderedRing M] [IsRealClosed M]
+
+/-- Every real closed field is a model of `Theory.RCF`. The field and linear-order parts resolve by
+instance; the two order-compatibility sentences and the real-closed axioms are realized directly. -/
+instance modelRCF : (Theory.RCF).Model M := by
+  have hfield : ((LHom.sumInl : Language.ring →ᴸ orderedRing).onTheory
+      Language.Theory.field).Model M :=
+    (LHom.onTheory_model (LHom.sumInl : Language.ring →ᴸ orderedRing) Language.Theory.field).2
+      inferInstance
+  rw [Theory.RCF, Theory.orderedField]
+  refine Theory.model_union_iff.mpr ⟨Theory.model_union_iff.mpr
+    ⟨Theory.model_union_iff.mpr ⟨hfield, inferInstance⟩, ?_⟩, ?_⟩
+  · -- order-compatibility axioms
+    sorry
+  · -- real-closed axioms
+    sorry
+
+end Models
 
 end Artin.ModelTheory

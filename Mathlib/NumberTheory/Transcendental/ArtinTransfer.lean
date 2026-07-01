@@ -42,12 +42,22 @@ abbrev orderedRing : Language := Language.ring.sum Language.order
 
 variable {σ : Type*}
 
-/-- The standard ordered-ring first-order structure on an ordered field. -/
-noncomputable instance structureOfOrderedField (M : Type*) [Field M] [LinearOrder M]
-    [IsStrictOrderedRing M] : orderedRing.Structure M :=
-  letI := Ring.compatibleRingOfRing M
-  letI := Language.orderStructure M
-  Language.sumStructure Language.ring Language.order M
+/-- The ring first-order structure on an ordered field, compatible with its ring operations.
+Presented as the two component structures (rather than a packaged sum structure) so that the sum
+structure `orderedRing.Structure` and `LHom.sumInl.IsExpansionOn` resolve automatically. -/
+noncomputable instance compatibleRingOfOrderedField (M : Type*) [Field M] [LinearOrder M]
+    [IsStrictOrderedRing M] : Ring.CompatibleRing M :=
+  Ring.compatibleRingOfRing M
+
+/-- The order first-order structure on an ordered field. -/
+instance orderStructureOfOrderedField (M : Type*) [Field M] [LinearOrder M]
+    [IsStrictOrderedRing M] : Language.order.Structure M :=
+  Language.orderStructure M
+
+/-- The order structure interprets `≤` as the field's order (so linear-order axioms hold). -/
+instance orderedStructureOfOrderedField (M : Type*) [Field M] [LinearOrder M]
+    [IsStrictOrderedRing M] : orderedRing.OrderedStructure M :=
+  ⟨fun _ => Iff.rfl⟩
 
 /-- **Model completeness of real closed fields (the isolated deep obligation).** Every real closed
 field `C` with a ring embedding of `ℝ` receives `ℝ` as an *elementary* substructure in the language
