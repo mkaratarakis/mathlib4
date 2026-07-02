@@ -81,4 +81,22 @@ theorem ring_term_realize_eq_eval {M : Type*} [CommRing M] [Ring.CompatibleRing 
   | var a => simp
   | func f a ih => cases f <;> simp [ih]
 
+/-- **Equality atom as a sign condition.** An equality of ring terms in one bound variable becomes
+`P(x) = 0` for `P` the difference of the associated polynomials. -/
+theorem realize_eq_iff {M : Type*} [CommRing M] [Ring.CompatibleRing M]
+    (v : α → M) (x : M) (t₁ t₂ : Language.ring.Term (α ⊕ Fin 1)) :
+    (t₁.realize (Sum.elim v (fun _ => x)) = t₂.realize (Sum.elim v (fun _ => x)))
+      ↔ Polynomial.eval₂ (FreeCommRing.lift v) x (atomPoly t₁ - atomPoly t₂) = 0 := by
+  rw [ring_term_realize_eq_eval v x t₁, ring_term_realize_eq_eval v x t₂,
+    Polynomial.eval₂_sub, sub_eq_zero]
+
+/-- **Order atom as a sign condition.** An inequality of ring terms in one bound variable becomes
+`0 ≤ P(x)` for `P` the difference of the associated polynomials. -/
+theorem realize_le_iff {M : Type*} [CommRing M] [LinearOrder M] [IsStrictOrderedRing M]
+    [Ring.CompatibleRing M] (v : α → M) (x : M) (t₁ t₂ : Language.ring.Term (α ⊕ Fin 1)) :
+    (t₁.realize (Sum.elim v (fun _ => x)) ≤ t₂.realize (Sum.elim v (fun _ => x)))
+      ↔ 0 ≤ Polynomial.eval₂ (FreeCommRing.lift v) x (atomPoly t₂ - atomPoly t₁) := by
+  rw [ring_term_realize_eq_eval v x t₁, ring_term_realize_eq_eval v x t₂,
+    Polynomial.eval₂_sub, sub_nonneg]
+
 end Artin.ModelTheory
