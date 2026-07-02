@@ -47,4 +47,107 @@ theorem sturmSeq_map (φ : K →+* L) (f g : K[X]) :
     rw [sturmSeq_cons hf, List.map_cons, sturmSeq_cons hfφ, ih, Polynomial.map_mod,
       Polynomial.map_neg]
 
+section RealClosed
+
+variable [IsStrictOrderedRing K] [IsRealClosed K] [IsStrictOrderedRing L]
+
+/-- A ring hom between real closed fields preserves nonnegativity (nonnegatives are squares). -/
+theorem map_nonneg (φ : K →+* L) {a : K} (ha : 0 ≤ a) : 0 ≤ φ a := by
+  obtain ⟨s, rfl⟩ := IsSquare.of_nonneg ha
+  rw [map_mul]; exact mul_self_nonneg _
+
+/-- A ring hom between real closed fields reflects nonnegativity, hence is an order embedding. -/
+theorem map_nonneg_iff (φ : K →+* L) {a : K} : 0 ≤ φ a ↔ 0 ≤ a := by
+  refine ⟨fun h => ?_, map_nonneg φ⟩
+  by_contra hlt
+  push Not at hlt
+  have h2 : 0 ≤ φ (-a) := map_nonneg φ (by linarith)
+  rw [map_neg] at h2
+  have hφa : φ a = 0 := le_antisymm (by linarith) h
+  exact absurd (φ.injective (hφa.trans (map_zero φ).symm)) (by linarith)
+
+/-- A ring hom between real closed fields preserves and reflects strict positivity. -/
+theorem map_pos (φ : K →+* L) {a : K} : 0 < φ a ↔ 0 < a := by
+  rw [lt_iff_le_and_ne, lt_iff_le_and_ne, map_nonneg_iff, ne_comm, ne_comm (a := (0 : K)),
+    ← map_zero φ, φ.injective.ne_iff]
+
+/-- The `sgn` sign function is preserved by a ring hom between real closed fields. -/
+theorem sgn_map (φ : K →+* L) (a : K) : sgn (φ a) = sgn a := by
+  unfold sgn
+  by_cases hpos : 0 < a
+  · rw [if_pos ((map_pos φ).mpr hpos), if_pos hpos]
+  · by_cases h0 : a = 0
+    · subst h0; simp
+    · have : ¬ 0 < φ a := fun h => hpos ((map_pos φ).mp h)
+      have : φ a ≠ 0 := fun h => h0 (φ.injective (h.trans (map_zero φ).symm))
+      rw [if_neg (by assumption), if_neg (by assumption), if_neg hpos, if_neg h0]
+
+/-- A ring hom between real closed fields preserves and reflects strict negativity. -/
+theorem map_neg_lt (φ : K →+* L) {a : K} : φ a < 0 ↔ a < 0 := by
+  rw [← neg_pos, ← map_neg, map_pos, neg_pos]
+
+/-- The sign at `+∞` is preserved by a ring hom between real closed fields. -/
+theorem sgn_pos_inf_map (φ : K →+* L) (p : K[X]) : sgn_pos_inf (p.map φ) = sgn_pos_inf p := by
+  unfold sgn_pos_inf; rw [Polynomial.leadingCoeff_map, sgn_map]
+
+/-- The sign at `-∞` is preserved by a ring hom between real closed fields. -/
+theorem sgn_neg_inf_map (φ : K →+* L) (p : K[X]) : sgn_neg_inf (p.map φ) = sgn_neg_inf p := by
+  unfold sgn_neg_inf; rw [Polynomial.natDegree_map, Polynomial.leadingCoeff_map, sgn_map]
+
+/-- The sign-variation count of a list is invariant under a ring hom between real closed fields. -/
+theorem seqVar_map (φ : K →+* L) (l : List K) : seqVar (l.map φ) = seqVar l := by
+  induction l using seqVar.induct with
+  | case1 => simp [seqVar]
+  | case2 a => simp [seqVar]
+  | case3 a b as hb ih =>
+    have hbφ : (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢; rw [hb, map_zero]
+    simp only [List.map_cons, seqVar, hb, hbφ, if_true]
+    rw [← List.map_cons]; exact ih
+  | case4 a b as hb hab ih =>
+    have hbφ : ¬ (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢
+      exact fun h => hb (φ.injective (h.trans (map_zero φ).symm))
+    have hltφ : φ a * φ b < 0 := by rw [← map_mul]; exact (map_neg_lt φ).mpr hab
+    rw [List.map_cons, List.map_cons, seqVar, if_neg hbφ, if_pos hltφ, ← List.map_cons, ih,
+      seqVar, if_neg hb, if_pos hab]
+  | case5 a b as hb hab ih =>
+    have hbφ : ¬ (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢
+      exact fun h => hb (φ.injective (h.trans (map_zero φ).symm))
+    have hltφ : ¬ φ a * φ b < 0 := by rw [← map_mul]; rwa [map_neg_lt φ]
+    rw [List.map_cons, List.map_cons, seqVar, if_neg hbφ, if_neg hltφ, ← List.map_cons, ih,
+      seqVar, if_neg hb, if_neg hab]
+
+theorem seq_sgn_pos_inf_map (φ : K →+* L) (P : List K[X]) :
+    seq_sgn_pos_inf (P.map (Polynomial.map φ)) = (seq_sgn_pos_inf P).map φ := by
+  induction P with
+  | nil => rfl
+  | cons p ps ih =>
+    simp only [List.map_cons, seq_sgn_pos_inf, sgn_pos_inf_map, map_intCast, ih]
+
+theorem seq_sgn_neg_inf_map (φ : K →+* L) (P : List K[X]) :
+    seq_sgn_neg_inf (P.map (Polynomial.map φ)) = (seq_sgn_neg_inf P).map φ := by
+  induction P with
+  | nil => rfl
+  | cons p ps ih =>
+    simp only [List.map_cons, seq_sgn_neg_inf, sgn_neg_inf_map, map_intCast, ih]
+
+/-- The total Sturm sign-variation count is invariant under a ring hom between real closed
+fields. -/
+theorem seqVarRSturm_map (φ : K →+* L) (f g : K[X]) :
+    seqVarRSturm (f.map φ) (g.map φ) = seqVarRSturm f g := by
+  unfold seqVarRSturm seqVarR
+  rw [← sturmSeq_map, seq_sgn_neg_inf_map, seq_sgn_pos_inf_map, seqVar_map, seqVar_map]
+
+/-- **Root count is preserved under a real closed field extension.** A polynomial over `K` has the
+same number of distinct roots in `K` as its image has in a real closed extension `L`. -/
+theorem card_roots_map [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
+    (p.map φ).roots.toFinset.card = p.roots.toFinset.card := by
+  have hL := sturm_R (p.map φ)
+  rw [Polynomial.derivative_map, seqVarRSturm_map, ← sturm_R p] at hL
+  exact_mod_cast hL
+
+end RealClosed
+
 end Sturm
