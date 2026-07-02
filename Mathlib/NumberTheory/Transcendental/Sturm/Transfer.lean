@@ -148,6 +148,35 @@ theorem card_roots_map [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
   rw [Polynomial.derivative_map, seqVarRSturm_map, ← sturm_R p] at hL
   exact_mod_cast hL
 
+/-- **Roots do not move under a real closed extension.** The set of roots of `p.map φ` in `L` is
+exactly the `φ`-image of the set of roots of `p` in `K`: the embedded copies exhaust the root count
+given by `card_roots_map`, so no new roots can appear upstairs. -/
+theorem roots_toFinset_map [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
+    (p.map φ).roots.toFinset = p.roots.toFinset.image φ := by
+  have hsub : p.roots.toFinset.image φ ⊆ (p.map φ).roots.toFinset := by
+    intro y hy
+    obtain ⟨x, hx, rfl⟩ := Finset.mem_image.mp hy
+    rw [Multiset.mem_toFinset] at hx ⊢
+    exact Multiset.mem_of_le (Polynomial.map_roots_le_of_injective p φ.injective)
+      (Multiset.mem_map_of_mem _ hx)
+  refine (Finset.eq_of_subset_of_card_le hsub (le_of_eq ?_)).symm
+  rw [card_roots_map φ p, Finset.card_image_of_injective _ φ.injective]
+
+/-- **Root existence descends along a real closed extension**: a polynomial over `K` has a root in
+a real closed extension `L` iff it already has a root in `K`. -/
+theorem exists_isRoot_map_iff [IsRealClosed L] (φ : K →+* L) {p : K[X]} (hp : p ≠ 0) :
+    (∃ y : L, (p.map φ).IsRoot y) ↔ ∃ x : K, p.IsRoot x := by
+  constructor
+  · rintro ⟨y, hy⟩
+    have hy' : y ∈ (p.map φ).roots.toFinset := by
+      rw [Multiset.mem_toFinset, Polynomial.mem_roots']
+      exact ⟨(Polynomial.map_ne_zero_iff φ.injective).mpr hp, hy⟩
+    rw [roots_toFinset_map φ p] at hy'
+    obtain ⟨x, hx, rfl⟩ := Finset.mem_image.mp hy'
+    exact ⟨x, (Polynomial.mem_roots'.mp (Multiset.mem_toFinset.mp hx)).2⟩
+  · rintro ⟨x, hx⟩
+    exact ⟨φ x, hx.map⟩
+
 end RealClosed
 
 end Sturm
