@@ -70,6 +70,36 @@ theorem eval_neg_iff_of_no_root {p : R[X]} {u v : R} (huv : u ≤ v)
     obtain ⟨z, hz, hz0⟩ := IsRealClosed.intermediate_value_property huv hu hv.le
     exact hroot z hz.1 hz.2 hz0
 
+/-- **Sign persistence on a root-free interval**, `sgn` form: if a polynomial has no root on
+`[u, v]`, its sign is the same at `u` and at `v`. -/
+theorem sgn_eval_eq_of_no_root {p : R[X]} {u v : R} (huv : u ≤ v)
+    (hroot : ∀ z, u ≤ z → z ≤ v → ¬ p.IsRoot z) :
+    sgn (p.eval u) = sgn (p.eval v) := by
+  have hu : p.eval u ≠ 0 := hroot u le_rfl huv
+  have hv : p.eval v ≠ 0 := hroot v huv le_rfl
+  have hneg := eval_neg_iff_of_no_root huv hroot
+  unfold sgn
+  rcases lt_trichotomy (p.eval u) 0 with h | h | h
+  · have hv' : p.eval v < 0 := hneg.mp h
+    rw [if_neg (by linarith), if_neg hu, if_neg (by linarith), if_neg hv]
+  · exact absurd h hu
+  · have hv' : 0 < p.eval v := by
+      rcases lt_trichotomy (p.eval v) 0 with h' | h' | h'
+      · exact absurd (hneg.mpr h') (by linarith)
+      · exact absurd h' hv
+      · exact h'
+    rw [if_pos h, if_pos hv']
+
+/-- `sgn_eval_eq_of_no_root` over the unordered interval `Set.uIcc`. -/
+theorem sgn_eval_eq_of_no_root_uIcc {p : R[X]} {u v : R}
+    (hroot : ∀ z ∈ Set.uIcc u v, ¬ p.IsRoot z) :
+    sgn (p.eval u) = sgn (p.eval v) := by
+  rcases le_total u v with h | h
+  · exact sgn_eval_eq_of_no_root h
+      (fun z h1 h2 => hroot z (Set.mem_uIcc.mpr (.inl ⟨h1, h2⟩)))
+  · exact (sgn_eval_eq_of_no_root h
+      (fun z h1 h2 => hroot z (Set.mem_uIcc.mpr (.inr ⟨h1, h2⟩)))).symm
+
 end SignPersistence
 
 section RealClosed
@@ -323,6 +353,100 @@ theorem exists_eval_pos_map_iff [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
     (∃ y : L, 0 < (p.map φ).eval y) ↔ ∃ x : K, 0 < p.eval x := by
   have h := exists_eval_neg_map_iff φ (-p)
   simpa only [Polynomial.map_neg, Polynomial.eval_neg, neg_lt_zero] using h
+
+/-- **Sampling.** For a finite set `S ⊆ K` and a point `y ∈ L` distinct from every embedded point
+of `S`, there is a point `x ∈ K` such that no embedded point of `S` lies between `y` and `φ x`:
+below all of `φ '' S` take `x` below `S`, above take `x` above, and strictly between two
+consecutive embedded points take the midpoint of the corresponding gap of `S`. -/
+theorem exists_sample_of_forall_ne (φ : K →+* L) (S : Finset K) {y : L}
+    (hy : ∀ r ∈ S, φ r ≠ y) :
+    ∃ x : K, ∀ r ∈ S, φ r ∉ Set.uIcc y (φ x) := by
+  rcases S.eq_empty_or_nonempty with hSe | hne
+  · exact ⟨0, by simp [hSe]⟩
+  rcases lt_or_ge y (φ (S.min' hne)) with hlo | hlo
+  · refine ⟨S.min' hne - 1, fun r hr hmem => ?_⟩
+    have h1 : φ (S.min' hne) ≤ φ r := (strictMono_map φ).monotone (S.min'_le r hr)
+    have h2 : φ (S.min' hne - 1) < φ (S.min' hne) := strictMono_map φ (by linarith)
+    rcases Set.mem_uIcc.mp hmem with ⟨_, hzb⟩ | ⟨_, hzb⟩ <;> linarith
+  rcases lt_or_ge (φ (S.max' hne)) y with hhi | hhi
+  · refine ⟨S.max' hne + 1, fun r hr hmem => ?_⟩
+    have h1 : φ r ≤ φ (S.max' hne) := (strictMono_map φ).monotone (S.le_max' r hr)
+    have h2 : φ (S.max' hne) < φ (S.max' hne + 1) := strictMono_map φ (by linarith)
+    rcases Set.mem_uIcc.mp hmem with ⟨hza, _⟩ | ⟨hza, _⟩ <;> linarith
+  · set S₁ := S.filter (fun r => φ r < y) with hS₁
+    set S₂ := S.filter (fun r => y < φ r) with hS₂
+    have h1ne : S₁.Nonempty :=
+      ⟨S.min' hne, Finset.mem_filter.mpr
+        ⟨S.min'_mem hne, lt_of_le_of_ne hlo (hy _ (S.min'_mem hne))⟩⟩
+    have h2ne : S₂.Nonempty :=
+      ⟨S.max' hne, Finset.mem_filter.mpr
+        ⟨S.max'_mem hne, lt_of_le_of_ne hhi (Ne.symm (hy _ (S.max'_mem hne)))⟩⟩
+    set r₁ := S₁.max' h1ne with hr₁def
+    set r₂ := S₂.min' h2ne with hr₂def
+    have hr₁ : φ r₁ < y := (Finset.mem_filter.mp (S₁.max'_mem h1ne)).2
+    have hr₂ : y < φ r₂ := (Finset.mem_filter.mp (S₂.min'_mem h2ne)).2
+    have hr₁₂ : r₁ < r₂ := (strictMono_map φ).lt_iff_lt.mp (hr₁.trans hr₂)
+    have hφ1 : φ r₁ < φ ((r₁ + r₂) / 2) := strictMono_map φ (left_lt_add_div_two.mpr hr₁₂)
+    have hφ2 : φ ((r₁ + r₂) / 2) < φ r₂ := strictMono_map φ (add_div_two_lt_right.mpr hr₁₂)
+    refine ⟨(r₁ + r₂) / 2, fun r hr hmem => ?_⟩
+    have hzlo : φ r₁ < φ r := by
+      rcases Set.mem_uIcc.mp hmem with ⟨hza, _⟩ | ⟨hza, _⟩ <;> linarith
+    have hzhi : φ r < φ r₂ := by
+      rcases Set.mem_uIcc.mp hmem with ⟨_, hzb⟩ | ⟨_, hzb⟩ <;> linarith
+    rcases lt_trichotomy (φ r) y with hry | hry | hry
+    · have hle := S₁.le_max' r (Finset.mem_filter.mpr ⟨hr, hry⟩)
+      have hlt := (strictMono_map φ).lt_iff_lt.mp hzlo
+      linarith
+    · exact hy r hr hry
+    · have hle := S₂.min'_le r (Finset.mem_filter.mpr ⟨hr, hry⟩)
+      have hlt := (strictMono_map φ).lt_iff_lt.mp hzhi
+      linarith
+
+/-- **Tarski transfer in one variable.** The sign vectors realized by a finite family of
+polynomials over `K` are exactly the same in `K` and in any real closed extension `L`: a vector
+`v` of signs is attained simultaneously by the family at some point of `L` iff it is already
+attained at some point of `K`.
+
+This is the semantic content of one-variable quantifier elimination for real closed fields: a
+quantifier-free formula in one variable is (over an ordered field) a Boolean combination of sign
+conditions on polynomials, so its satisfiability is determined by the realizable sign vectors —
+which, by this theorem, do not change when passing to a real closed extension.
+
+If the witness `y ∈ L` is an embedded root, its preimage witnesses in `K`; otherwise sampling
+(`exists_sample_of_forall_ne`) produces a `K`-point separated from `y` by no root of any member of
+the family, and sign persistence (`sgn_eval_eq_of_no_root_uIcc`) transports the whole sign
+vector. -/
+theorem exists_sgn_eval_map_iff [IsRealClosed L] (φ : K →+* L) (ps : List K[X]) (v : List ℤ) :
+    (∃ y : L, ps.map (fun p => sgn ((p.map φ).eval y)) = v) ↔
+    (∃ x : K, ps.map (fun p => sgn (p.eval x)) = v) := by
+  constructor
+  · rintro ⟨y, rfl⟩
+    -- the union of the root sets of the family
+    set S : Finset K := ps.toFinset.biUnion (fun p => p.roots.toFinset) with hSdef
+    by_cases hex : ∃ r ∈ S, φ r = y
+    · -- `y` is an embedded point: its preimage realizes the same sign vector
+      obtain ⟨r₀, _, rfl⟩ := hex
+      exact ⟨r₀, List.map_congr_left fun p _ => by rw [eval_map_apply, sgn_map]⟩
+    · -- otherwise sample a `K`-point separated from `y` by no root of the family
+      push Not at hex
+      obtain ⟨x, hx⟩ := exists_sample_of_forall_ne φ S hex
+      refine ⟨x, List.map_congr_left fun p hpmem => ?_⟩
+      rcases eq_or_ne p 0 with rfl | hp
+      · simp [sgn]
+      have hnr : ∀ z ∈ Set.uIcc y (φ x), ¬ (p.map φ).IsRoot z := by
+        intro z hz hzroot
+        have hz' : z ∈ (p.map φ).roots.toFinset := by
+          rw [Multiset.mem_toFinset, Polynomial.mem_roots']
+          exact ⟨(Polynomial.map_ne_zero_iff φ.injective).mpr hp, hzroot⟩
+        rw [roots_toFinset_map φ p] at hz'
+        obtain ⟨r, hr, rfl⟩ := Finset.mem_image.mp hz'
+        exact hx r (Finset.mem_biUnion.mpr ⟨p, List.mem_toFinset.mpr hpmem, hr⟩) hz
+      calc sgn (p.eval x) = sgn ((p.map φ).eval (φ x)) := by rw [eval_map_apply, sgn_map]
+        _ = sgn ((p.map φ).eval y) := sgn_eval_eq_of_no_root_uIcc fun z hz => by
+              rw [Set.uIcc_comm] at hz
+              exact hnr z hz
+  · rintro ⟨x, rfl⟩
+    exact ⟨φ x, List.map_congr_left fun p _ => by rw [eval_map_apply, sgn_map]⟩
 
 end RealClosed
 
