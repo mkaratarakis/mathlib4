@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 import Mathlib.RingTheory.FreeCommRing
 import Mathlib.Algebra.Polynomial.Eval.Defs
+import Mathlib.ModelTheory.Algebra.Ring.FreeCommRing
 
 /-!
 # Term ↔ polynomial dictionary for one-variable quantifier elimination
@@ -56,5 +57,28 @@ theorem lift_eq_eval_toPoly {M : Type*} [CommRing M] (v : α → M) (x : M)
     · simp
     · fin_cases i; simp
   exact DFunLike.congr_fun h t
+
+open FirstOrder Language
+
+/-- The univariate polynomial (over `FreeCommRing α`) associated to a *ring term* in one bound
+variable: realize the term in the free commutative ring (variables ↦ generators), then view it as a
+polynomial via `toPoly`. -/
+noncomputable def atomPoly (t : Language.ring.Term (α ⊕ Fin 1)) : Polynomial (FreeCommRing α) :=
+  letI : Ring.CompatibleRing (FreeCommRing (α ⊕ Fin 1)) := Ring.compatibleRingOfRing _
+  toPoly (t.realize FreeCommRing.of)
+
+/-- **Atom dictionary.** In any compatible commutative ring, realizing a ring term with parameters
+`v : α → M` and bound value `x` equals evaluating its associated polynomial `atomPoly t`
+(coefficients pushed to `M` via `v`) at `x`. -/
+theorem ring_term_realize_eq_eval {M : Type*} [CommRing M] [Ring.CompatibleRing M]
+    (v : α → M) (x : M) (t : Language.ring.Term (α ⊕ Fin 1)) :
+    t.realize (Sum.elim v (fun _ => x))
+      = Polynomial.eval₂ (FreeCommRing.lift v) x (atomPoly t) := by
+  letI : Ring.CompatibleRing (FreeCommRing (α ⊕ Fin 1)) := Ring.compatibleRingOfRing _
+  rw [atomPoly, ← lift_eq_eval_toPoly]
+  -- Reduce to naturality: `t.realize w = lift w (t.realize of)`, by induction on the term.
+  induction t with
+  | var a => simp
+  | func f a ih => cases f <;> simp [ih]
 
 end Artin.ModelTheory
