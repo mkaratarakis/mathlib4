@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
 import Mathlib.NumberTheory.Transcendental.Sturm.Theorem
+import Mathlib.NumberTheory.Transcendental.Hilbert17IVP
 
 /-!
 # Transfer of Sturm data along a field embedding
@@ -46,6 +47,30 @@ theorem sturmSeq_map (φ : K →+* L) (f g : K[X]) :
     have hfφ : f.map φ ≠ 0 := by rwa [Ne, Polynomial.map_eq_zero_iff φ.injective]
     rw [sturmSeq_cons hf, List.map_cons, sturmSeq_cons hfφ, ih, Polynomial.map_mod,
       Polynomial.map_neg]
+
+section SignPersistence
+
+variable {R : Type*} [Field R] [LinearOrder R] [IsStrictOrderedRing R] [IsRealClosed R]
+
+/-- **Sign persistence on a root-free interval.** If a polynomial has no root on `[u, v]`, then its
+values at `u` and `v` are negative together (by the intermediate value property). -/
+theorem eval_neg_iff_of_no_root {p : R[X]} {u v : R} (huv : u ≤ v)
+    (hroot : ∀ z, u ≤ z → z ≤ v → ¬ p.IsRoot z) :
+    p.eval u < 0 ↔ p.eval v < 0 := by
+  constructor
+  · intro hu
+    by_contra hv
+    push Not at hv
+    obtain ⟨z, hz, hz0⟩ := IsRealClosed.intermediate_value_property (f := -p) huv
+      (by simpa using hu.le) (by simpa using hv)
+    exact hroot z hz.1 hz.2 (by simpa [Polynomial.IsRoot] using hz0)
+  · intro hv
+    by_contra hu
+    push Not at hu
+    obtain ⟨z, hz, hz0⟩ := IsRealClosed.intermediate_value_property huv hu hv.le
+    exact hroot z hz.1 hz.2 hz0
+
+end SignPersistence
 
 section RealClosed
 
@@ -176,6 +201,128 @@ theorem exists_isRoot_map_iff [IsRealClosed L] (φ : K →+* L) {p : K[X]} (hp :
     exact ⟨x, (Polynomial.mem_roots'.mp (Multiset.mem_toFinset.mp hx)).2⟩
   · rintro ⟨x, hx⟩
     exact ⟨φ x, hx.map⟩
+
+/-- A ring hom between real closed fields is strictly monotone. -/
+theorem strictMono_map (φ : K →+* L) : StrictMono φ := fun a b hab => by
+  have h : (0 : L) < φ (b - a) := (map_pos φ).mpr (sub_pos.mpr hab)
+  rw [map_sub] at h
+  linarith
+
+omit [LinearOrder K] [LinearOrder L] [IsStrictOrderedRing K] [IsRealClosed K]
+  [IsStrictOrderedRing L] in
+/-- Evaluating the mapped polynomial at an embedded point computes in `K`. -/
+theorem eval_map_apply (φ : K →+* L) (p : K[X]) (x : K) :
+    (p.map φ).eval (φ x) = φ (p.eval x) := by
+  rw [Polynomial.eval_map, Polynomial.eval₂_at_apply]
+
+/-- If `p.map φ` is negative at `y` and has no root between `y` and the embedded point `φ x`,
+then `p` is negative at `x`. -/
+theorem eval_neg_at_of_no_root_between [IsRealClosed L] (φ : K →+* L) {p : K[X]} {y : L} {x : K}
+    (hy : (p.map φ).eval y < 0)
+    (hroot : ∀ z ∈ Set.uIcc y (φ x), ¬ (p.map φ).IsRoot z) :
+    p.eval x < 0 := by
+  have hφx : (p.map φ).eval (φ x) < 0 := by
+    rcases le_total y (φ x) with h | h
+    · exact (eval_neg_iff_of_no_root h
+        (fun z hz1 hz2 => hroot z (Set.mem_uIcc.mpr (.inl ⟨hz1, hz2⟩)))).mp hy
+    · exact (eval_neg_iff_of_no_root h
+        (fun z hz1 hz2 => hroot z (Set.mem_uIcc.mpr (.inr ⟨hz1, hz2⟩)))).mpr hy
+  rw [eval_map_apply] at hφx
+  exact (map_neg_lt φ).mp hφx
+
+/-- **Negativity descends along a real closed extension**: a polynomial over `K` takes a negative
+value in a real closed extension `L` iff it already takes a negative value in `K`. The witness in
+`K` is found by sampling: beyond all roots if `y` is extreme, or at the midpoint of the two
+consecutive roots surrounding `y` otherwise — sign persistence on root-free intervals
+(`eval_neg_iff_of_no_root`) plus `roots_toFinset_map` (roots do not move) do the rest. This is the
+one-polynomial prototype of sign-condition transfer for quantifier elimination. -/
+theorem exists_eval_neg_map_iff [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
+    (∃ y : L, (p.map φ).eval y < 0) ↔ ∃ x : K, p.eval x < 0 := by
+  constructor
+  · rintro ⟨y, hy⟩
+    rcases eq_or_ne p 0 with rfl | hp
+    · simp at hy
+    set S := p.roots.toFinset with hSdef
+    have hT : (p.map φ).roots.toFinset = S.image φ := roots_toFinset_map φ p
+    -- every root of `p.map φ` is an embedded root, and `y` is not a root
+    have hroot_shape : ∀ z : L, (p.map φ).IsRoot z → ∃ r ∈ S, φ r = z := by
+      intro z hz
+      have hz' : z ∈ (p.map φ).roots.toFinset := by
+        rw [Multiset.mem_toFinset, Polynomial.mem_roots']
+        exact ⟨(Polynomial.map_ne_zero_iff φ.injective).mpr hp, hz⟩
+      rw [hT] at hz'
+      exact Finset.mem_image.mp hz'
+    have hynr : ∀ r ∈ S, φ r ≠ y := by
+      intro r hr hry
+      have hymem : y ∈ (p.map φ).roots.toFinset := by
+        rw [hT, ← hry]
+        exact Finset.mem_image_of_mem φ hr
+      exact hy.ne (Polynomial.mem_roots'.mp (Multiset.mem_toFinset.mp hymem)).2
+    rcases S.eq_empty_or_nonempty with hSe | hne
+    · -- no roots at all: the sign is global; sample at `0`
+      refine ⟨0, eval_neg_at_of_no_root_between φ hy ?_⟩
+      intro z _ hzroot
+      obtain ⟨r, hr, _⟩ := hroot_shape z hzroot
+      simp [hSe] at hr
+    rcases lt_or_ge y (φ (S.min' hne)) with hlo | hlo
+    · -- below all embedded roots: sample below the least root of `p`
+      refine ⟨S.min' hne - 1, eval_neg_at_of_no_root_between φ hy ?_⟩
+      intro z hzmem hzroot
+      obtain ⟨r, hr, rfl⟩ := hroot_shape z hzroot
+      have h1 : φ (S.min' hne) ≤ φ r := (strictMono_map φ).monotone (S.min'_le r hr)
+      have h2 : φ (S.min' hne - 1) < φ (S.min' hne) := strictMono_map φ (by linarith)
+      rcases Set.mem_uIcc.mp hzmem with ⟨_, hzb⟩ | ⟨_, hzb⟩ <;> linarith
+    rcases lt_or_ge (φ (S.max' hne)) y with hhi | hhi
+    · -- above all embedded roots: sample above the greatest root of `p`
+      refine ⟨S.max' hne + 1, eval_neg_at_of_no_root_between φ hy ?_⟩
+      intro z hzmem hzroot
+      obtain ⟨r, hr, rfl⟩ := hroot_shape z hzroot
+      have h1 : φ r ≤ φ (S.max' hne) := (strictMono_map φ).monotone (S.le_max' r hr)
+      have h2 : φ (S.max' hne) < φ (S.max' hne + 1) := strictMono_map φ (by linarith)
+      rcases Set.mem_uIcc.mp hzmem with ⟨hza, _⟩ | ⟨hza, _⟩ <;> linarith
+    · -- strictly between two consecutive embedded roots: sample at the midpoint
+      set S₁ := S.filter (fun r => φ r < y) with hS₁
+      set S₂ := S.filter (fun r => y < φ r) with hS₂
+      have h1ne : S₁.Nonempty := by
+        refine ⟨S.min' hne, Finset.mem_filter.mpr ⟨S.min'_mem hne, ?_⟩⟩
+        exact lt_of_le_of_ne hlo (hynr _ (S.min'_mem hne))
+      have h2ne : S₂.Nonempty := by
+        refine ⟨S.max' hne, Finset.mem_filter.mpr ⟨S.max'_mem hne, ?_⟩⟩
+        exact lt_of_le_of_ne hhi (Ne.symm (hynr _ (S.max'_mem hne)))
+      set r₁ := S₁.max' h1ne with hr₁def
+      set r₂ := S₂.min' h2ne with hr₂def
+      have hr₁ : φ r₁ < y := (Finset.mem_filter.mp (S₁.max'_mem h1ne)).2
+      have hr₂ : y < φ r₂ := (Finset.mem_filter.mp (S₂.min'_mem h2ne)).2
+      have hr₁₂ : r₁ < r₂ := (strictMono_map φ).lt_iff_lt.mp (hr₁.trans hr₂)
+      refine ⟨(r₁ + r₂) / 2, eval_neg_at_of_no_root_between φ hy ?_⟩
+      have hφ1 : φ r₁ < φ ((r₁ + r₂) / 2) := strictMono_map φ (left_lt_add_div_two.mpr hr₁₂)
+      have hφ2 : φ ((r₁ + r₂) / 2) < φ r₂ := strictMono_map φ (add_div_two_lt_right.mpr hr₁₂)
+      intro z hzmem hzroot
+      obtain ⟨r, hr, rfl⟩ := hroot_shape z hzroot
+      -- the root `φ r` lies strictly between `φ r₁` and `φ r₂`
+      have hzlo : φ r₁ < φ r := by
+        rcases Set.mem_uIcc.mp hzmem with ⟨hza, _⟩ | ⟨hza, _⟩ <;> linarith
+      have hzhi : φ r < φ r₂ := by
+        rcases Set.mem_uIcc.mp hzmem with ⟨_, hzb⟩ | ⟨_, hzb⟩ <;> linarith
+      -- but `r₁` and `r₂` are consecutive: no root of `p` sits strictly between them
+      rcases lt_trichotomy (φ r) y with hry | hry | hry
+      · have hrS₁ : r ∈ S₁ := Finset.mem_filter.mpr ⟨hr, hry⟩
+        have hle := S₁.le_max' r hrS₁
+        have hlt := (strictMono_map φ).lt_iff_lt.mp hzlo
+        linarith
+      · exact hynr r hr hry
+      · have hrS₂ : r ∈ S₂ := Finset.mem_filter.mpr ⟨hr, hry⟩
+        have hle := S₂.min'_le r hrS₂
+        have hlt := (strictMono_map φ).lt_iff_lt.mp hzhi
+        linarith
+  · rintro ⟨x, hx⟩
+    exact ⟨φ x, by rw [eval_map_apply]; exact (map_neg_lt φ).mpr hx⟩
+
+/-- **Positivity descends along a real closed extension.** -/
+theorem exists_eval_pos_map_iff [IsRealClosed L] (φ : K →+* L) (p : K[X]) :
+    (∃ y : L, 0 < (p.map φ).eval y) ↔ ∃ x : K, 0 < p.eval x := by
+  have h := exists_eval_neg_map_iff φ (-p)
+  simpa only [Polynomial.map_neg, Polynomial.eval_neg, neg_lt_zero] using h
 
 end RealClosed
 
