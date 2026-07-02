@@ -11,8 +11,8 @@ import Mathlib.NumberTheory.Transcendental.Sturm.Theorem
 A corollary of the ported Sturm–Tarski machinery: over a real closed field, a nonzero polynomial
 has a root iff the Sturm sign-variation count `seqVarRSturm p p'` is positive. This is the
 single-equation core of the sign-condition realizability that drives quantifier elimination
-(`RCF_ex_isQFEquivalent`): the existence of a real solution to `p(x) = 0` is a decidable condition on
-the coefficients, computed by the (algebraic) Sturm sequence.
+(`RCF_ex_isQFEquivalent`): solvability of `p(x) = 0` is a decidable condition on the coefficients,
+computed by the (algebraic) Sturm sequence.
 -/
 
 noncomputable section
