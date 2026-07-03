@@ -102,6 +102,125 @@ theorem sgn_eval_eq_of_no_root_uIcc {p : R[X]} {u v : R}
 
 end SignPersistence
 
+section StrictMonoTransfer
+
+/-! ### Transfer along a monotone embedding of an arbitrary ordered field
+
+The lemmas of the `RealClosed` section below assume the *source* field is real closed, deriving
+monotonicity of the embedding from the fact that nonnegatives are squares. For the semantic
+quantifier-elimination criterion (and for uniqueness of real closures) one needs transfer from a
+merely *ordered* base field along an embedding that is monotone **by hypothesis**: the Sturm data
+of `p ∈ F[X]` is computed entirely inside `F` (polynomial remainders of `F`-polynomials stay in
+`F[X]`), so sign variations — hence root counts in any real closed order-extension — are
+determined by the order of `F` alone. -/
+
+variable [IsStrictOrderedRing K] [IsStrictOrderedRing L] {φ : K →+* L}
+
+omit [IsStrictOrderedRing K] [IsStrictOrderedRing L] in
+/-- A strictly monotone ring hom preserves and reflects positivity. -/
+theorem map_pos_of_strictMono (hφ : StrictMono φ) {a : K} : 0 < φ a ↔ 0 < a := by
+  rw [← map_zero φ]; exact hφ.lt_iff_lt
+
+omit [IsStrictOrderedRing K] [IsStrictOrderedRing L] in
+/-- A strictly monotone ring hom preserves and reflects negativity. -/
+theorem map_lt_zero_of_strictMono (hφ : StrictMono φ) {a : K} : φ a < 0 ↔ a < 0 := by
+  rw [← map_zero φ]; exact hφ.lt_iff_lt
+
+/-- The `sgn` sign function commutes with a strictly monotone ring hom. -/
+theorem sgn_map_of_strictMono (hφ : StrictMono φ) (a : K) : sgn (φ a) = sgn a := by
+  unfold sgn
+  by_cases hpos : 0 < a
+  · rw [if_pos ((map_pos_of_strictMono hφ).mpr hpos), if_pos hpos]
+  · by_cases h0 : a = 0
+    · subst h0; simp
+    · have h1 : ¬ 0 < φ a := fun h => hpos ((map_pos_of_strictMono hφ).mp h)
+      have h2 : φ a ≠ 0 := fun h => h0 (hφ.injective (h.trans (map_zero φ).symm))
+      rw [if_neg h1, if_neg h2, if_neg hpos, if_neg h0]
+
+/-- The sign at `+∞` commutes with a strictly monotone ring hom. -/
+theorem sgn_pos_inf_map_of_strictMono (hφ : StrictMono φ) (p : K[X]) :
+    sgn_pos_inf (p.map φ) = sgn_pos_inf p := by
+  unfold sgn_pos_inf; rw [Polynomial.leadingCoeff_map, sgn_map_of_strictMono hφ]
+
+/-- The sign at `-∞` commutes with a strictly monotone ring hom. -/
+theorem sgn_neg_inf_map_of_strictMono (hφ : StrictMono φ) (p : K[X]) :
+    sgn_neg_inf (p.map φ) = sgn_neg_inf p := by
+  unfold sgn_neg_inf
+  rw [Polynomial.natDegree_map, Polynomial.leadingCoeff_map, sgn_map_of_strictMono hφ]
+
+/-- The sign-variation count of a list commutes with a strictly monotone ring hom. -/
+theorem seqVar_map_of_strictMono (hφ : StrictMono φ) (l : List K) :
+    seqVar (l.map φ) = seqVar l := by
+  induction l using seqVar.induct with
+  | case1 => simp [seqVar]
+  | case2 a => simp [seqVar]
+  | case3 a b as hb ih =>
+    have hbφ : (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢; rw [hb, map_zero]
+    simp only [List.map_cons, seqVar, hb, hbφ, if_true]
+    rw [← List.map_cons]; exact ih
+  | case4 a b as hb hab ih =>
+    have hbφ : ¬ (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢
+      exact fun h => hb (hφ.injective (h.trans (map_zero φ).symm))
+    have hltφ : φ a * φ b < 0 := by
+      rw [← map_mul]; exact (map_lt_zero_of_strictMono hφ).mpr hab
+    rw [List.map_cons, List.map_cons, seqVar, if_neg hbφ, if_pos hltφ, ← List.map_cons, ih,
+      seqVar, if_neg hb, if_pos hab]
+  | case5 a b as hb hab ih =>
+    have hbφ : ¬ (φ b == 0) = true := by
+      rw [beq_iff_eq] at hb ⊢
+      exact fun h => hb (hφ.injective (h.trans (map_zero φ).symm))
+    have hltφ : ¬ φ a * φ b < 0 := by
+      rw [← map_mul]; rwa [map_lt_zero_of_strictMono hφ]
+    rw [List.map_cons, List.map_cons, seqVar, if_neg hbφ, if_neg hltφ, ← List.map_cons, ih,
+      seqVar, if_neg hb, if_neg hab]
+
+theorem seq_sgn_pos_inf_map_of_strictMono (hφ : StrictMono φ) (P : List K[X]) :
+    seq_sgn_pos_inf (P.map (Polynomial.map φ)) = (seq_sgn_pos_inf P).map φ := by
+  induction P with
+  | nil => rfl
+  | cons p ps ih =>
+    simp only [List.map_cons, seq_sgn_pos_inf, sgn_pos_inf_map_of_strictMono hφ, map_intCast, ih]
+
+theorem seq_sgn_neg_inf_map_of_strictMono (hφ : StrictMono φ) (P : List K[X]) :
+    seq_sgn_neg_inf (P.map (Polynomial.map φ)) = (seq_sgn_neg_inf P).map φ := by
+  induction P with
+  | nil => rfl
+  | cons p ps ih =>
+    simp only [List.map_cons, seq_sgn_neg_inf, sgn_neg_inf_map_of_strictMono hφ, map_intCast, ih]
+
+/-- The total Sturm sign-variation count commutes with a strictly monotone ring hom of ordered
+fields: the count for `p ∈ K[X]` in `L` is already determined inside `K`. -/
+theorem seqVarRSturm_map_of_strictMono (hφ : StrictMono φ) (f g : K[X]) :
+    seqVarRSturm (f.map φ) (g.map φ) = seqVarRSturm f g := by
+  unfold seqVarRSturm seqVarR
+  rw [← sturmSeq_map, seq_sgn_neg_inf_map_of_strictMono hφ, seq_sgn_pos_inf_map_of_strictMono hφ,
+    seqVar_map_of_strictMono hφ, seqVar_map_of_strictMono hφ]
+
+/-- **Root counts over any real closed order-extension are determined by the base ordered
+field.** For a monotone embedding `φ` of an ordered field `K` into a real closed field `L`, the
+number of distinct roots in `L` of `p.map φ` equals the Sturm sign-variation count of `p`,
+computed entirely inside `K`. This is the engine for the uniqueness of real closures and for the
+substructure test of the semantic quantifier-elimination criterion. -/
+theorem card_roots_map_of_strictMono [IsRealClosed L] (hφ : StrictMono φ) (p : K[X]) :
+    ((p.map φ).roots.toFinset.card : ℤ) = seqVarRSturm p (Polynomial.derivative p) := by
+  have hL := sturm_R (p.map φ)
+  rwa [Polynomial.derivative_map, seqVarRSturm_map_of_strictMono hφ] at hL
+
+/-- **Two real closed order-extensions see the same number of roots.** The root count of
+`p ∈ K[X]` is the same in every real closed field into which the ordered field `K` embeds
+monotonically — the counting step of the uniqueness of real closures. -/
+theorem card_roots_map_congr {L' : Type*} [Field L'] [LinearOrder L'] [IsStrictOrderedRing L']
+    [IsRealClosed L] [IsRealClosed L'] {φ' : K →+* L'}
+    (hφ : StrictMono φ) (hφ' : StrictMono φ') (p : K[X]) :
+    (p.map φ).roots.toFinset.card = (p.map φ').roots.toFinset.card := by
+  have h := (card_roots_map_of_strictMono hφ p).trans
+    (card_roots_map_of_strictMono hφ' p).symm
+  exact_mod_cast h
+
+end StrictMonoTransfer
+
 section RealClosed
 
 variable [IsStrictOrderedRing K] [IsRealClosed K] [IsStrictOrderedRing L]
