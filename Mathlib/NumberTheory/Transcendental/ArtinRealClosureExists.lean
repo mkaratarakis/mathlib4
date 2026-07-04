@@ -414,4 +414,79 @@ end ZornStep
 
 end RealClosureExists
 
+section RelativeClosure
+
+/-! ### The relative algebraic closure in a real closed field is real closed
+
+Together with `realClosureAlgEquiv`, this gives existence *and* uniqueness of the real closure
+of a subfield of a real closed field, inside that field — the form needed to compare two models
+of RCF over a common substructure. Note that `IsRealClosed` is an order-free predicate, so no
+order hypotheses appear. -/
+
+variable {K L : Type*} [Field K] [Field L] [IsRealClosed L] [Algebra K L]
+
+/-- Sums of squares map to sums of squares under any ring homomorphism. -/
+theorem isSumSq_map {A B : Type*} [CommRing A] [CommRing B] (f : A →+* B) {s : A}
+    (hs : IsSumSq s) : IsSumSq (f s) := by
+  induction hs with
+  | zero => rw [map_zero]; exact IsSumSq.zero
+  | sq_add a hs ih => rw [map_add, map_mul]; exact IsSumSq.sq_add _ ih
+
+open Field in
+/-- **The relative algebraic closure of `K` in a real closed field `L` is real closed.**
+Squares, square roots and roots of odd-degree polynomials taken in `L` are algebraic over the
+closure, hence over `K`, hence already in the closure. -/
+theorem isRealClosed_algebraicClosure : IsRealClosed ↥(algebraicClosure K L) := by
+  haveI : Algebra.IsIntegral K ↥(algebraicClosure K L) :=
+    ⟨fun x => (isIntegral_algebraMap_iff
+      (algebraMap ↥(algebraicClosure K L) L).injective).mp
+        (mem_algebraicClosure_iff'.mp x.2)⟩
+  -- elements of `L` integral over the closure lie in the closure
+  have hmem : ∀ z : L, IsIntegral ↥(algebraicClosure K L) z → z ∈ algebraicClosure K L :=
+    fun z hz => mem_algebraicClosure_iff'.mpr (isIntegral_trans z hz)
+  -- square roots taken in `L` lie in the closure
+  have hsqrt : ∀ (x : ↥(algebraicClosure K L)) (s : L), (x : L) = s * s →
+      s ∈ algebraicClosure K L := by
+    intro x s hxs
+    refine hmem s ⟨Polynomial.X ^ 2 - Polynomial.C x,
+      Polynomial.monic_X_pow_sub_C x two_ne_zero, ?_⟩
+    have hx' : (algebraMap ↥(algebraicClosure K L) L) x = s * s := hxs
+    simp [Polynomial.eval₂_sub, sq, hx']
+  refine { one_add_ne_zero := ?_, isSquare_or_isSquare_neg := ?_,
+           exists_isRoot_of_odd_natDegree := ?_ }
+  · -- semireality restricts along the inclusion
+    intro s hs h0
+    have hs' : IsSumSq ((s : L)) :=
+      isSumSq_map ((algebraicClosure K L).val : ↥(algebraicClosure K L) →+* L) hs
+    refine IsSemireal.one_add_ne_zero hs' ?_
+    have h0' := congrArg ((algebraicClosure K L).val) h0
+    simpa using h0'
+  · -- `x` or `-x` is a square, with the square root caught by algebraicity
+    intro x
+    rcases IsRealClosed.isSquare_or_isSquare_neg ((x : L)) with ⟨s, hs⟩ | ⟨s, hs⟩
+    · exact Or.inl ⟨⟨s, hsqrt x s hs⟩, Subtype.ext (by push_cast; exact hs)⟩
+    · refine Or.inr ⟨⟨s, hsqrt (-x) s (by push_cast; exact hs)⟩,
+        Subtype.ext (by push_cast; exact hs)⟩
+  · -- roots of odd-degree polynomials, likewise
+    intro f hf
+    have hf0 : f ≠ 0 := fun h => by simp [h, Nat.odd_iff] at hf
+    have hmap : Odd ((f.map (algebraMap ↥(algebraicClosure K L) L)).natDegree) := by
+      rwa [Polynomial.natDegree_map]
+    obtain ⟨z, hz⟩ := IsRealClosed.exists_isRoot_of_odd_natDegree hmap
+    have hzmem : z ∈ algebraicClosure K L := hmem z (IsAlgebraic.isIntegral
+      ⟨f, hf0, by rwa [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map]⟩)
+    refine ⟨⟨z, hzmem⟩, Subtype.ext ?_⟩
+    have hcomm := Sturm.eval_map_apply
+      ((algebraMap ↥(algebraicClosure K L) L)) f (⟨z, hzmem⟩ : ↥(algebraicClosure K L))
+    have hzz : (algebraMap ↥(algebraicClosure K L) L)
+        (⟨z, hzmem⟩ : ↥(algebraicClosure K L)) = z := rfl
+    rw [hzz] at hcomm
+    show (algebraMap ↥(algebraicClosure K L) L) (Polynomial.eval (⟨z, hzmem⟩ :
+        ↥(algebraicClosure K L)) f)
+      = (algebraMap ↥(algebraicClosure K L) L) 0
+    rw [← hcomm, map_zero]
+    exact hz
+
+end RelativeClosure
+
 end Hilbert17Blueprint
