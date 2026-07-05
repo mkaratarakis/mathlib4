@@ -24,7 +24,13 @@ open FirstOrder Language
 
 namespace Artin.ModelTheory
 
-variable (M : Type*) [orderedRing.Structure M] [hM : Theory.RCF.Model M]
+/-- The canonical `orderedRing`-structure on an ordered field (the global instance path through
+`compatibleRingOfOrderedField` and `orderStructureOfOrderedField`), named so that realization
+with respect to it can be written explicitly alongside an abstract structure. -/
+noncomputable abbrev canonicalOrderedRingStructure (M : Type*) [Field M] [LinearOrder M]
+    [IsStrictOrderedRing M] : orderedRing.Structure M := inferInstance
+
+variable (M : Type*) [S : orderedRing.Structure M] [hM : Theory.RCF.Model M]
 
 /-- The ring-reduct of an `orderedRing`-structure. -/
 @[reducible] noncomputable def ringReduct : Language.ring.Structure M :=
@@ -47,10 +53,16 @@ theorem RCF_model_linearOrder : M ⊨ orderedRing.linearOrderTheory :=
     exact (Set.subset_union_right.trans Set.subset_union_left).trans Set.subset_union_left)
 
 /-- **Models of `Theory.RCF` are real closed ordered fields**: the packaged instance data.
-Fields: a `Field`, a `LinearOrder`, and proofs of `IsStrictOrderedRing` and `IsRealClosed`
-relative to them, with operations and order induced by the first-order structure. -/
+Fields: a `Field`, a `LinearOrder`, `IsStrictOrderedRing` and `IsRealClosed` relative to them —
+with operations and order induced by the first-order structure — together with the statement
+that realization of formulas in the abstract structure agrees with realization in the canonical
+structure of the resulting ordered field. -/
 noncomputable def rcfModelData :
-    Σ' (_ : Field M) (_ : LinearOrder M), IsStrictOrderedRing M ∧ IsRealClosed M := by
+    Σ' (_ : Field M) (_ : LinearOrder M) (_ : IsStrictOrderedRing M),
+      IsRealClosed M ∧
+        ∀ {β : Type} (φ : orderedRing.Formula β) (v : β → M),
+          @Formula.Realize orderedRing M S β φ v ↔
+            @Formula.Realize orderedRing M (canonicalOrderedRingStructure M) β φ v := by
   classical
   letI ringS := ringReduct M
   haveI hexp : (LHom.sumInl : Language.ring →ᴸ orderedRing).IsExpansionOn M :=
@@ -136,6 +148,42 @@ noncomputable def rcfModelData :
       rcases hx' with hx' | hx'
       · exact hx'
       · exact absurd hx' (inv_ne_zero (Polynomial.leadingCoeff_ne_zero.mpr hg0))
-  exact ⟨f, lo, iso, irc⟩
+  -- realization in the abstract structure agrees with the canonical structure:
+  -- the identity map is an isomorphism of `orderedRing`-structures
+  have hagree : ∀ {β : Type} (φ : orderedRing.Formula β) (v : β → M),
+      @Formula.Realize orderedRing M S β φ v ↔
+        @Formula.Realize orderedRing M (canonicalOrderedRingStructure M) β φ v := by
+    letI Scan : orderedRing.Structure M := canonicalOrderedRingStructure M
+    have hfun : ∀ {n} (fn : orderedRing.Functions n) (x : Fin n → M),
+        @Structure.funMap orderedRing M S n fn x
+          = @Structure.funMap orderedRing M Scan n fn x := by
+      intro n fn x
+      rcases fn with g | g
+      · have hx : x = fun i => x i := rfl
+        cases g with
+        | add => show _ = x 0 + x 1; exact congrArg _ (funext fun i => by fin_cases i <;> rfl)
+        | mul => show _ = x 0 * x 1; exact congrArg _ (funext fun i => by fin_cases i <;> rfl)
+        | neg => show _ = -x 0; exact congrArg _ (funext fun i => by fin_cases i; rfl)
+        | zero => show _ = (0 : M); exact congrArg _ (funext fun i => i.elim0)
+        | one => show _ = (1 : M); exact congrArg _ (funext fun i => i.elim0)
+      · exact g.elim
+    have ostCan : @Language.OrderedStructure orderedRing M _ _ Scan :=
+      orderedStructureOfOrderedField M
+    have hrel : ∀ {n} (r : orderedRing.Relations n) (x : Fin n → M),
+        (@Structure.RelMap orderedRing M S n r x
+          ↔ @Structure.RelMap orderedRing M Scan n r x) := by
+      intro n r
+      rcases r with r | r
+      · exact r.elim
+      · cases r
+        intro x
+        exact (ost.relMap_leSymb x).trans (ostCan.relMap_leSymb x).symm
+    intro β φ v
+    have h1 := @FirstOrder.Language.ElementaryEmbedding.map_formula orderedRing M M S Scan
+      (@FirstOrder.Language.Equiv.toElementaryEmbedding orderedRing M M S Scan
+        (@FirstOrder.Language.Equiv.mk orderedRing M M S Scan (Equiv.refl M)
+          (fun {n} fn x => hfun fn x) (fun {n} r x => (hrel r x).symm))) β φ v
+    exact h1.symm
+  exact ⟨f, lo, iso, irc, fun {β} φ v => hagree φ v⟩
 
 end Artin.ModelTheory

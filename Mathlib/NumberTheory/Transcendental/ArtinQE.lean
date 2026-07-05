@@ -4,6 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
 import Mathlib.NumberTheory.Transcendental.ArtinRCF
+import Mathlib.NumberTheory.Transcendental.ArtinRCFModel
+import Mathlib.NumberTheory.Transcendental.ArtinQECriterion
+import Mathlib.NumberTheory.Transcendental.ArtinQETransfer
 import Mathlib.ModelTheory.QuantifierElimination
 
 /-!
@@ -51,19 +54,57 @@ open FirstOrder Language
 
 namespace Artin.ModelTheory
 
-/-- **The one-existential-quantifier elimination step for `Theory.RCF`** (the remaining obligation).
-For a quantifier-free formula `θ` in a single bound variable over the language of ordered rings, its
-existential closure `θ.ex` is `Theory.RCF`-equivalent to a quantifier-free formula.
+/-- **The one-existential-quantifier elimination step for `Theory.RCF`.**
+For a quantifier-free formula `θ` in a single bound variable over the language of ordered rings,
+its existential closure `θ.ex` is `Theory.RCF`-equivalent to a quantifier-free formula.
 
-This is the Tarski–Seidenberg core: after turning the atomic subformulas into univariate polynomial
-sign conditions, realizability of the resulting system is a quantifier-free condition on the
-parameters, by root counting (**Sturm's theorem**, formalized in the companion RCF project). It is
-the sole `sorry` of the QE reduction, and — via `Theory.RCF_hasQuantifierElimination` — the sole
-remaining mathematical obligation of the whole Artin development. -/
+The proof combines the semantic compactness criterion `isQFEquivalent_of_qf_transfer` with the
+quantifier-free-type transfer for real closed fields `realize_ex_transfer`: models of
+`Theory.RCF` are real closed ordered fields (`rcfModelData`), and parameter tuples with the same
+quantifier-free type in two such fields satisfy the same one-existential formulas — by Sturm-
+theoretic root counting through a common real closure of the field their terms generate. -/
 theorem RCF_ex_isQFEquivalent {α : Type} [Finite α]
     (θ : orderedRing.BoundedFormula α 1) (hθ : θ.IsQF) :
-    Theory.RCF.IsQFEquivalent θ.ex :=
-  sorry
+    Theory.RCF.IsQFEquivalent θ.ex := by
+  apply isQFEquivalent_of_qf_transfer
+  intro M N va vb htype
+  obtain ⟨fM, loM, isoM, ircM, hagreeM⟩ := rcfModelData M
+  obtain ⟨fN, loN, isoN, ircN, hagreeN⟩ := rcfModelData N
+  letI := fM; letI := loM; haveI := isoM; haveI := ircM
+  letI := fN; letI := loN; haveI := isoN; haveI := ircN
+  -- the same-quantifier-free-type hypothesis, over the canonical structures
+  have htypeC : ∀ δ : orderedRing.Formula α, δ.IsQF →
+      (@Formula.Realize orderedRing M (canonicalOrderedRingStructure M) α δ va ↔
+        @Formula.Realize orderedRing N (canonicalOrderedRingStructure N) α δ vb) :=
+    fun δ hδ => (hagreeM δ va).symm.trans ((htype δ hδ).trans (hagreeN δ vb))
+  have hMN : ∀ hva : @Formula.Realize orderedRing M
+      (canonicalOrderedRingStructure M) α θ.ex va,
+      @Formula.Realize orderedRing N (canonicalOrderedRingStructure N) α θ.ex vb := by
+    intro hva
+    have h1 : @BoundedFormula.Realize orderedRing M
+        (canonicalOrderedRingStructure M) α 0 θ.ex va Fin.elim0 := by
+      rw [show (Fin.elim0 : Fin 0 → M) = default from Subsingleton.elim _ _]
+      exact hva
+    have h2 := realize_ex_transfer va vb htypeC hθ h1
+    show @BoundedFormula.Realize orderedRing N
+      (canonicalOrderedRingStructure N) α 0 θ.ex vb default
+    rw [show (default : Fin 0 → N) = Fin.elim0 from Subsingleton.elim _ _]
+    exact h2
+  have hNM : ∀ hvb : @Formula.Realize orderedRing N
+      (canonicalOrderedRingStructure N) α θ.ex vb,
+      @Formula.Realize orderedRing M (canonicalOrderedRingStructure M) α θ.ex va := by
+    intro hvb
+    have h1 : @BoundedFormula.Realize orderedRing N
+        (canonicalOrderedRingStructure N) α 0 θ.ex vb Fin.elim0 := by
+      rw [show (Fin.elim0 : Fin 0 → N) = default from Subsingleton.elim _ _]
+      exact hvb
+    have h2 := realize_ex_transfer vb va (fun δ hδ => (htypeC δ hδ).symm) hθ h1
+    show @BoundedFormula.Realize orderedRing M
+      (canonicalOrderedRingStructure M) α 0 θ.ex va default
+    rw [show (default : Fin 0 → M) = Fin.elim0 from Subsingleton.elim _ _]
+    exact h2
+  exact ⟨fun hva => (hagreeN θ.ex vb).mpr (hMN ((hagreeM θ.ex va).mp hva)),
+    fun hvb => (hagreeM θ.ex va).mpr (hNM ((hagreeN θ.ex vb).mp hvb))⟩
 
 /-- **Quantifier elimination for `Theory.RCF`**, reduced (Marker 3.1.5,
 `hasQuantifierElimination_iff_ex_isQFEquivalent_of_isQF`) to the one-quantifier step
