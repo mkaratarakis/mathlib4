@@ -885,4 +885,214 @@ theorem monogenic_iff_of_prime (hA : Prime A) (hn : 2 < n) (hm : 0 < m) (hmn : m
 
 end Main
 
+/-! ### Remark 1.2 and Examples 1.4, 1.5 of [kaurkumar2023]
+
+Remark 1.2 shows that the hypothesis `gcd (n, m B) = 1` in the Kaur–Kumar theorem cannot be
+dropped.  Example 1.4 treats polynomials `X ^ n + a X ^ 2 + b X + p` with `b ^ 2 = 4 a p`,
+and Example 1.5 the family `X ^ 3 + A (B X + 1) ^ 2` for squarefree `A`.
+
+For the irreducibility claim in Example 1.5 the paper invokes Perron's criterion (under the
+additional hypothesis `4 ≤ |B|`); here we observe that Eisenstein's criterion at any prime
+factor of the squarefree integer `A ≠ ±1` applies instead, so that no hypothesis on the size
+of `B` is needed.
+-/
+
+section Examples
+
+attribute [local instance] Ideal.Quotient.field
+
+variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {n m : ℕ} {A B : ℤ}
+
+/-- `X ^ n + A (B X + 1) ^ m` is irreducible whenever `A` is squarefree and not `±1`, by
+Eisenstein's criterion at any prime factor of `A`. -/
+theorem irreducible_of_squarefree (hA : Squarefree A) (hA1 : A.natAbs ≠ 1)
+    (hn : 0 < n) (hmn : m < n) : Irreducible (X ^ n + C A * (C B * X + 1) ^ m) := by
+  obtain ⟨q, hq, hqA⟩ := Int.exists_prime_and_dvd hA1
+  have hq2 : ¬q ^ 2 ∣ A := fun h => hq.not_unit (hA q (by rwa [← sq]))
+  have hdeg : (X ^ n + C A * (C B * X + 1) ^ m).degree = (n : WithBot ℕ) := degree_jones hmn
+  refine Polynomial.irreducible_of_eisenstein_criterion
+    ((Ideal.span_singleton_prime hq.ne_zero).mpr hq) ?_ ?_ ?_ ?_
+    (monic_jones hmn).isPrimitive
+  · rw [(monic_jones hmn).leadingCoeff, Ideal.mem_span_singleton]
+    exact fun h => hq.not_unit (isUnit_of_dvd_one h)
+  · intro i hi
+    rw [hdeg] at hi
+    rw [coeff_jones_lt (by exact_mod_cast hi), Ideal.mem_span_singleton]
+    exact hqA.mul_right _
+  · rw [hdeg]
+    exact_mod_cast hn
+  · rw [coeff_jones_zero hn, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+    exact hq2
+
+/-- **Remark 1.2** of [kaurkumar2023]: the assumption `gcd (n, m B) = 1` in
+`NumberField.KaurKumar.monogenic_iff` cannot be dropped.  The polynomial
+`x ^ 3 - 6 (3 x + 1)` (that is, `n = 3`, `m = 1`, `A = -6`, `B = 3`, where
+`gcd (n, m B) = 3`) is monogenic, although the quantity
+`n ^ n + (-1) ^ (n + m) B ^ n (n - m) ^ (n - m) m ^ m A = -621 = -(3 ^ 3 * 23)` is not
+squarefree. -/
+theorem remark_1_2 (hθ : minpoly ℤ θ = X ^ 3 + C (-6) * (C 3 * X + 1) ^ 1)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    Algebra.adjoin ℤ {θ} = ⊤ ∧
+      ¬Squarefree ((3 : ℤ) ^ 3 + (-1) ^ (3 + 1) * 3 ^ 3 * ((3 : ℤ) - 1) ^ (3 - 1) * 1 ^ 1
+        * (-6)) := by
+  constructor
+  · rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
+    intro p hp
+    haveI : Fact p.Prime := ⟨hp⟩
+    -- at `p = 2` and `p = 3` the polynomial is Eisenstein
+    rcases eq_or_ne p 2 with rfl | hp2
+    · refine RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt hgen ?_
+      rw [hθ]
+      exact isEisensteinAt_jones hp (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+    rcases eq_or_ne p 3 with rfl | hp3
+    · refine RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt hgen ?_
+      rw [hθ]
+      exact isEisensteinAt_jones hp (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+    rcases eq_or_ne p 23 with rfl | hp23
+    · -- at `p = 23` there is a tame double root at `11`
+      refine RingOfIntegers.not_dvd_exponent_of_sq_not_dvd_eval (r := 11) hgen ?_ ?_ ?_
+      · rw [hθ, eval_jones]
+        norm_num
+      · rw [hθ, eval_derivative_derivative_jones]
+        norm_num
+      · intro 𝔪 h𝔪 hcond hp𝔪
+        obtain ⟨hf, hf'⟩ := quotient_facts hθ hgen hcond
+        have hpF := quotient_intCast_iff h𝔪 hp𝔪
+        set x := Ideal.Quotient.mk 𝔪 θ with hx
+        -- both `θ` and `11` satisfy `36 y + 18 = 0` in the residue field
+        have e1 : (36 : 𝓞 K ⧸ 𝔪) * x + 18 = 0 := by
+          linear_combination (norm := (push_cast; ring_nf)) x * hf' - 3 * hf
+        have e2 : (36 : 𝓞 K ⧸ 𝔪) * ((11 : ℤ) : 𝓞 K ⧸ 𝔪) + 18 = 0 := by
+          have h414 : ((414 : ℤ) : 𝓞 K ⧸ 𝔪) = 0 := (hpF 414).mpr (by norm_num)
+          linear_combination (norm := (push_cast; ring_nf)) h414
+        have h36 : ((36 : ℤ) : 𝓞 K ⧸ 𝔪) ≠ 0 := fun h => by
+          have := (hpF 36).mp h
+          norm_num at this
+        have heq : x = ((11 : ℤ) : 𝓞 K ⧸ 𝔪) := by
+          have h1 : ((36 : ℤ) : 𝓞 K ⧸ 𝔪) * (x - ((11 : ℤ) : 𝓞 K ⧸ 𝔪)) = 0 := by
+            linear_combination (norm := (push_cast; ring_nf)) e1 - e2
+          exact sub_eq_zero.mp ((mul_eq_zero.mp h1).resolve_left h36)
+        rw [← Ideal.Quotient.eq_zero_iff_mem, map_sub, map_intCast, ← hx, heq, sub_self]
+    -- at all other primes `f` has no repeated root mod `p`
+    rw [RingOfIntegers.not_dvd_exponent_iff_conductor_sup_span_eq_top]
+    by_contra hsup
+    obtain ⟨𝔪, h𝔪, hle⟩ := Ideal.exists_le_maximal _ hsup
+    have hcond : conductor ℤ θ ≤ 𝔪 := le_trans le_sup_left hle
+    have hp𝔪 : (p : 𝓞 K) ∈ 𝔪 := hle (Ideal.mem_sup_right (Ideal.mem_span_singleton_self _))
+    obtain ⟨hf, hf'⟩ := quotient_facts hθ hgen hcond
+    have hpF := quotient_intCast_iff h𝔪 hp𝔪
+    set x := Ideal.Quotient.mk 𝔪 θ with hx
+    -- the Bezout identity `(18 - 36 x) f(x) + (12 x² - 6 x - 144) f'(x) = 2484`
+    have h2484 : ((2484 : ℤ) : 𝓞 K ⧸ 𝔪) = 0 := by
+      linear_combination (norm := (push_cast; ring_nf))
+        (18 - 36 * x) * hf + (12 * x ^ 2 - 6 * x - 144) * hf'
+    have hdvd : p ∣ 2484 := by exact_mod_cast (hpF 2484).mp h2484
+    -- `2484 = 2 ^ 2 * 3 ^ 3 * 23`, so `p ∈ {2, 3, 23}`
+    have h1 : p ∣ 2 ^ 2 * (3 ^ 3 * 23) := by
+      rwa [show 2 ^ 2 * (3 ^ 3 * 23) = 2484 by norm_num]
+    rcases (Nat.Prime.dvd_mul hp).mp h1 with h | h
+    · exact hp2 ((Nat.prime_dvd_prime_iff_eq hp Nat.prime_two).mp (hp.dvd_of_dvd_pow h))
+    rcases (Nat.Prime.dvd_mul hp).mp h with h | h
+    · exact hp3 ((Nat.prime_dvd_prime_iff_eq hp Nat.prime_three).mp (hp.dvd_of_dvd_pow h))
+    · exact hp23 ((Nat.prime_dvd_prime_iff_eq hp (by decide)).mp h)
+  · -- `-621` is divisible by `3 ^ 2`
+    intro h
+    have h9 := h 3 (by norm_num)
+    rw [Int.isUnit_iff] at h9
+    norm_num at h9
+
+/-- The decomposition underlying Example 1.4 of [kaurkumar2023]: if `p` is an odd prime and
+`b ^ 2 = 4 a p`, then `a = p B ^ 2` and `b = 2 p B` for some integer `B`. -/
+theorem exists_eq_mul_sq_of_sq_eq {p : ℕ} (hp : p.Prime) (hp2 : p ≠ 2) {a b : ℤ}
+    (hab : b ^ 2 = 4 * a * p) : ∃ B : ℤ, a = p * B ^ 2 ∧ b = 2 * p * B := by
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
+  have hp0 : (p : ℤ) ≠ 0 := by exact_mod_cast hp.ne_zero
+  have hpb : (p : ℤ) ∣ b := hpp.dvd_of_dvd_pow (n := 2) ⟨4 * a, by linarith⟩
+  obtain ⟨c, rfl⟩ := hpb
+  have hpc : (p : ℤ) * c ^ 2 = 4 * a := by
+    have h1 : (p : ℤ) * ((p : ℤ) * c ^ 2) = (p : ℤ) * (4 * a) := by ring_nf; linarith [hab]
+    exact mul_left_cancel₀ hp0 h1
+  have h2c : (2 : ℤ) ∣ c := by
+    have h4 : (4 : ℤ) ∣ (p : ℤ) * c ^ 2 := ⟨a, by linarith⟩
+    have h2p : ¬(2 : ℤ) ∣ (p : ℤ) := by
+      intro h
+      exact hp2 ((Nat.prime_dvd_prime_iff_eq Nat.prime_two hp).mp (by exact_mod_cast h)).symm
+    have hcop : IsCoprime (4 : ℤ) ((p : ℤ)) := by
+      have := (Int.prime_two.coprime_iff_not_dvd.mpr h2p).pow_left (m := 2)
+      norm_num at this
+      exact this
+    have h4c : (4 : ℤ) ∣ c ^ 2 := hcop.dvd_of_dvd_mul_left h4
+    rcases Int.even_or_odd c with h | h
+    · exact h.two_dvd
+    · exfalso
+      obtain ⟨k, rfl⟩ := h
+      obtain ⟨t, ht⟩ := h4c
+      have h1 : 4 * (k ^ 2 + k) + 1 = 4 * t := by linear_combination ht
+      omega
+  obtain ⟨B, rfl⟩ := h2c
+  exact ⟨B, by linarith, by ring⟩
+
+/-- The polynomial of Example 1.4 in the form of the Kaur–Kumar theorem. -/
+private theorem ex14_poly {p : ℕ} {B : ℤ} {n : ℕ} :
+    (X ^ n + C ((p : ℤ) * B ^ 2) * X ^ 2 + C (2 * (p : ℤ) * B) * X + C (p : ℤ) : ℤ[X]) =
+      X ^ n + C (p : ℤ) * (C B * X + 1) ^ 2 := by
+  simp only [eq_intCast]
+  push_cast
+  ring
+
+/-- The irreducibility claim of **Example 1.4** of [kaurkumar2023]:
+`X ^ n + p B ^ 2 X ^ 2 + 2 p B X + p` is irreducible by Eisenstein's criterion. -/
+theorem irreducible_example_1_4 {p : ℕ} (hp : p.Prime) {B : ℤ} {n : ℕ} (hn : 2 < n) :
+    Irreducible
+      (X ^ n + C ((p : ℤ) * B ^ 2) * X ^ 2 + C (2 * (p : ℤ) * B) * X + C (p : ℤ)) := by
+  rw [ex14_poly]
+  exact irreducible_of_prime (Nat.prime_iff_prime_int.mp hp) (by omega) (by omega)
+
+/-- **Example 1.4** of [kaurkumar2023]: let `p` be a prime and `f = X ^ n + a X ^ 2 + b X + p`
+with `b ^ 2 = 4 a p`, so that `a = p B ^ 2` and `b = 2 p B` with `B = b / (2 p)` (see
+`exists_eq_mul_sq_of_sq_eq`).  If `gcd (n, 2 B) = 1`, then `f` is monogenic if and only if
+`n ^ n + (-1) ^ n 4 B ^ n (n - 2) ^ (n - 2) p` is squarefree. -/
+theorem example_1_4 {p : ℕ} (hp : p.Prime) {B : ℤ} {n : ℕ} (hn : 2 < n)
+    (hgcd : IsCoprime (n : ℤ) (2 * B))
+    (hθ : minpoly ℤ θ =
+      X ^ n + C ((p : ℤ) * B ^ 2) * X ^ 2 + C (2 * (p : ℤ) * B) * X + C (p : ℤ))
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔
+      Squarefree ((n : ℤ) ^ n + (-1) ^ n * 4 * B ^ n * ((n : ℤ) - 2) ^ (n - 2) * p) := by
+  rw [monogenic_iff hn (by norm_num) (by omega) (by push_cast; exact hgcd)
+    (hθ.trans ex14_poly) hgen,
+    and_iff_right (Nat.prime_iff_prime_int.mp hp).irreducible.squarefree]
+  have hcongr : ∀ {z w : ℤ}, z = w → (Squarefree z ↔ Squarefree w) := fun h => h ▸ Iff.rfl
+  exact hcongr (by push_cast [pow_add]; ring)
+
+/-- The irreducibility claim of **Example 1.5** of [kaurkumar2023]: for squarefree
+`A ≠ ±1`, the polynomial `X ^ 3 + A (B X + 1) ^ 2` is irreducible.  (The paper uses Perron's
+criterion, assuming moreover `4 ≤ |B|`; Eisenstein's criterion at a prime factor of `A`
+applies without any hypothesis on `B`.) -/
+theorem irreducible_example_1_5 {A B : ℤ} (hA : Squarefree A) (hA1 : A.natAbs ≠ 1) :
+    Irreducible (X ^ 3 + C A * (C B * X + 1) ^ 2) :=
+  irreducible_of_squarefree hA hA1 (by norm_num) (by norm_num)
+
+/-- **Example 1.5** of [kaurkumar2023]: for `3 ∤ B` and squarefree `A`, the polynomial
+`X ^ 3 + A (B X + 1) ^ 2` is monogenic if and only if `4 A B ^ 3 - 27` is squarefree. -/
+theorem example_1_5 (hA : Squarefree A) (hB : ¬(3 : ℤ) ∣ B)
+    (hθ : minpoly ℤ θ = X ^ 3 + C A * (C B * X + 1) ^ 2)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔ Squarefree (4 * A * B ^ 3 - 27) := by
+  have h3 : IsCoprime ((3 : ℕ) : ℤ) (((2 : ℕ) : ℤ) * B) := by
+    push_cast
+    exact Int.prime_three.coprime_iff_not_dvd.mpr fun h =>
+      ((Int.prime_three.dvd_mul.mp h).resolve_left (by norm_num) : (3 : ℤ) ∣ B) |> hB
+  rw [monogenic_iff (by norm_num) (by norm_num) (by norm_num) h3 hθ hgen,
+    and_iff_right hA]
+  have hcongr : ∀ {z w : ℤ}, z = w → (Squarefree z ↔ Squarefree w) := fun h => h ▸ Iff.rfl
+  calc Squarefree (((3 : ℕ) : ℤ) ^ 3 + (-1) ^ (3 + 2) * B ^ 3 *
+        (((3 : ℕ) : ℤ) - ((2 : ℕ) : ℤ)) ^ (3 - 2) * ((2 : ℕ) : ℤ) ^ 2 * A)
+      ↔ Squarefree (-(4 * A * B ^ 3 - 27)) := hcongr (by push_cast; ring)
+    _ ↔ Squarefree (4 * A * B ^ 3 - 27) := by
+        rw [← Int.squarefree_natAbs, Int.natAbs_neg, Int.squarefree_natAbs]
+
+end Examples
+
 end NumberField.KaurKumar
+
