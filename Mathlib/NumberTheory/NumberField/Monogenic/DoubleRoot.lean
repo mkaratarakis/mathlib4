@@ -249,7 +249,9 @@ theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
   omega
 
 omit [NumberField K] in
-private theorem intCast_mem_iff_dvd {𝔪 : Ideal (𝓞 K)} (h𝔪 : 𝔪.IsMaximal)
+/-- If `𝔪` is a maximal ideal of `𝓞 K` containing the rational prime `p`, then an integer
+lies in `𝔪` if and only if it is divisible by `p`. -/
+theorem intCast_mem_iff_dvd {𝔪 : Ideal (𝓞 K)} (h𝔪 : 𝔪.IsMaximal)
     (hp𝔪 : (p : 𝓞 K) ∈ 𝔪) (t : ℤ) : (t : 𝓞 K) ∈ 𝔪 ↔ (p : ℤ) ∣ t := by
   constructor
   · intro ht
