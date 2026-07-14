@@ -10,6 +10,7 @@ public import Mathlib.Data.Matrix.Reflection
 public import Mathlib.LinearAlgebra.GeneralLinearGroup.Basic
 public import Mathlib.LinearAlgebra.Matrix.ToLin
 public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Tactic.LinearCombination
 
 /-!
 # The Unitary Group
@@ -82,6 +83,60 @@ theorem det_of_mem_unitary {A : Matrix n n α} (hA : A ∈ Matrix.unitaryGroup n
   constructor
   · simpa [star, det_transpose] using congr_arg det hA.1
   · simpa [star, det_transpose] using congr_arg det hA.2
+
+/-- A diagonal matrix is unitary if and only if all its diagonal entries are unitary. -/
+theorem diagonal_mem_unitaryGroup_iff {d : n → α} :
+    diagonal d ∈ unitaryGroup n α ↔ ∀ i, d i ∈ unitary α := by
+  simp only [mem_unitaryGroup_iff', star_eq_conjTranspose, diagonal_conjTranspose,
+    diagonal_mul_diagonal, ← diagonal_one, diagonal_eq_diagonal_iff, Pi.star_apply,
+    Unitary.mem_iff_star_mul_self]
+
+/-- A `2 × 2` matrix given entrywise is unitary iff its first row has "unit norm" and its second
+row is obtained from the first by taking star-conjugates and multiplying by a unitary scalar
+(namely, the determinant). This is the standard parameterization of the unitary group `U(2)`;
+compare `Matrix.of_mem_specialOrthogonalGroup_fin_two_iff`. -/
+theorem of_mem_unitaryGroup_fin_two_iff {a b c d : α} :
+    !![a, b; c, d] ∈ Matrix.unitaryGroup (Fin 2) α ↔
+      a * star a + b * star b = 1 ∧
+        ∃ u ∈ unitary α, c = -star b * u ∧ d = star a * u := by
+  constructor
+  · intro hU
+    have h₁ := mem_unitaryGroup_iff.mp hU
+    have h₂ := mem_unitaryGroup_iff'.mp hU
+    have e11 := congr_fun (congr_fun h₁ 0) 0
+    have e21 := congr_fun (congr_fun h₁ 1) 0
+    have f11 := congr_fun (congr_fun h₂ 0) 0
+    have f12 := congr_fun (congr_fun h₂ 0) 1
+    simp only [mul_apply, star_apply, Fin.sum_univ_two, Fin.isValue, of_apply, cons_val',
+      cons_val_zero, cons_val_one, empty_val', cons_val_fin_one, one_apply_eq, one_apply,
+      Fin.reduceEq, if_false] at e11 e21 f11 f12
+    refine ⟨e11, a * d - b * c, ?_, ?_, ?_⟩
+    · have hdet := det_of_mem_unitary hU
+      rwa [det_fin_two_of] at hdet
+    · linear_combination a * e21 - c * e11
+    · linear_combination c * f12 - d * f11
+  · rintro ⟨h, u, hu, rfl, rfl⟩
+    rw [mem_unitaryGroup_iff]
+    ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp only [Fin.mk_zero, Fin.mk_one, mul_apply, star_apply, Fin.sum_univ_two, Fin.isValue,
+        of_apply, cons_val', cons_val_zero, cons_val_one, empty_val', cons_val_fin_one,
+        one_apply_eq, one_apply, Fin.reduceEq, if_false, star_mul', star_neg,
+        star_star]
+    · linear_combination h
+    · ring
+    · ring
+    · linear_combination (u * star u) * h + hu.2
+
+/-- A `2 × 2` matrix is unitary iff its first row has "unit norm" and its second row is obtained
+from the first by taking star-conjugates and multiplying by a unitary scalar (namely, the
+determinant). This is the standard parameterization of the unitary group `U(2)`. -/
+theorem mem_unitaryGroup_fin_two_iff {M : Matrix (Fin 2) (Fin 2) α} :
+    M ∈ Matrix.unitaryGroup (Fin 2) α ↔
+      M 0 0 * star (M 0 0) + M 0 1 * star (M 0 1) = 1 ∧
+        ∃ u ∈ unitary α, M 1 0 = -star (M 0 1) * u ∧ M 1 1 = star (M 0 0) * u := by
+  rw [← M.etaExpand_eq]
+  exact of_mem_unitaryGroup_fin_two_iff
 
 open scoped Kronecker in
 /-- The kronecker product of two unitary matrices is unitary.
@@ -234,6 +289,33 @@ theorem star_eq_inv (A : specialUnitaryGroup n α) : star A = A⁻¹ :=
 
 instance : Group (specialUnitaryGroup n α) where
   inv_mul_cancel A := Subtype.ext A.prop.1.1
+
+/-- A `2 × 2` matrix given entrywise is special unitary iff its first row has "unit norm" and
+its second row is obtained from the first by taking star-conjugates. This is the standard
+parameterization of the special unitary group `SU(2)`; compare
+`Matrix.of_mem_specialOrthogonalGroup_fin_two_iff`. -/
+theorem of_mem_specialUnitaryGroup_fin_two_iff {a b c d : α} :
+    !![a, b; c, d] ∈ Matrix.specialUnitaryGroup (Fin 2) α ↔
+      a * star a + b * star b = 1 ∧ c = -star b ∧ d = star a := by
+  rw [mem_specialUnitaryGroup_iff, of_mem_unitaryGroup_fin_two_iff, det_fin_two_of]
+  constructor
+  · rintro ⟨⟨e, u, hu, rfl, rfl⟩, hdet⟩
+    have hu1 : u = 1 := by linear_combination hdet - u * e
+    subst hu1
+    exact ⟨e, by rw [mul_one], by rw [mul_one]⟩
+  · rintro ⟨e, rfl, rfl⟩
+    refine ⟨⟨e, 1, one_mem _, (mul_one _).symm, (mul_one _).symm⟩, ?_⟩
+    linear_combination e
+
+/-- A `2 × 2` matrix is special unitary iff its first row has "unit norm" and its second row is
+obtained from the first by taking star-conjugates. This is the standard parameterization of the
+special unitary group `SU(2)`. -/
+theorem mem_specialUnitaryGroup_fin_two_iff {M : Matrix (Fin 2) (Fin 2) α} :
+    M ∈ Matrix.specialUnitaryGroup (Fin 2) α ↔
+      M 0 0 * star (M 0 0) + M 0 1 * star (M 0 1) = 1 ∧
+        M 1 0 = -star (M 0 1) ∧ M 1 1 = star (M 0 0) := by
+  rw [← M.etaExpand_eq]
+  exact of_mem_specialUnitaryGroup_fin_two_iff
 
 end specialUnitaryGroup
 

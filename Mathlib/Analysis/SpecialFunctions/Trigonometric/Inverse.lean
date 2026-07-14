@@ -464,6 +464,18 @@ theorem mapsTo_cos_Ioo : MapsTo cos (Ioo 0 π) (Ioo (-1) 1) := cosPartialHomeomo
 lemma arccos_image_Icc : arccos '' Icc (-1) 1 = Icc 0 π := by
   simpa using cosPartialEquiv.symm.image_source_eq_target
 
+/-- A point of the unit circle is `(cos θ, sin θ)` for some angle `θ`. -/
+theorem exists_cos_eq_and_sin_eq {c s : ℝ} (h : c ^ 2 + s ^ 2 = 1) :
+    ∃ θ : ℝ, cos θ = c ∧ sin θ = s := by
+  obtain ⟨hc, hc'⟩ : -1 ≤ c ∧ c ≤ 1 :=
+    ⟨by nlinarith [sq_nonneg s, sq_nonneg (c + 1)], by nlinarith [sq_nonneg s, sq_nonneg (c - 1)]⟩
+  rcases le_or_gt 0 s with hs | hs
+  · exact ⟨arccos c, cos_arccos hc hc', by
+      rw [sin_arccos, show 1 - c ^ 2 = s ^ 2 by linarith, sqrt_sq hs]⟩
+  · exact ⟨-arccos c, by rw [cos_neg, cos_arccos hc hc'], by
+      rw [sin_neg, sin_arccos, show 1 - c ^ 2 = s ^ 2 by linarith, sqrt_sq_eq_abs,
+        abs_of_neg hs, neg_neg]⟩
+
 end Real
 
 open Real
