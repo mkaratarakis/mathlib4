@@ -5875,6 +5875,7 @@ public import Mathlib.NumberTheory.NumberField.InfinitePlace.TotallyRealComplex
 public import Mathlib.NumberTheory.NumberField.Monogenic.DoubleRoot
 public import Mathlib.NumberTheory.NumberField.Monogenic.Exponent
 public import Mathlib.NumberTheory.NumberField.Monogenic.KaurKumar
+public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
 public import Mathlib.NumberTheory.NumberField.Norm
 public import Mathlib.NumberTheory.NumberField.ProductFormula
 public import Mathlib.NumberTheory.NumberField.Units.Basic
