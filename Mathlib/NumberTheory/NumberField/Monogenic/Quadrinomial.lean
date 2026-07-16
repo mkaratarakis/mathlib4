@@ -40,11 +40,23 @@ formalized:
   then follow from the double-root criteria of `DoubleRoot.lean` exactly as in the
   Kaur--Kumar theorem.
 
-The remaining pieces of Theorem 1.1 are future work: the linear-root subcase of the
-necessity of case (2) and the mirror case (3) (`p ∤ a`, `p ∣ c`) are within reach of the
-present tools; the sufficiency halves of the wild cases (2)--(4) are the genuinely open
-formalization problem (they would follow from a general Dedekind criterion, or from a new
-descent argument — the pure-field subfield trick has no analogue here).
+* `NumberField.Quadrinomial.dvd_exponent_of_dvd_of_not_dvd` — **corrected case (3)**: if
+  `p ∣ c` and `p ∤ a` then `p` *always* divides the index (since `B ^ 2 = a c` forces
+  `p ^ 2 ∣ c`, making `0` an obstructing double root).  This **contradicts case (3) of
+  Theorem 1.1 as printed** in [jakharkaurkumar2023]; see the docstring for a concrete
+  counterexample to the printed criterion.
+* `NumberField.Quadrinomial.dvd_exponent_of_dvd_of_dvd_eval` — necessity in case (2), the
+  rational-common-root subcase, completing (with the totally wild subcase above) the
+  necessity half of case (2).
+* `NumberField.Quadrinomial.two_dvd_exponent_of_mod_four` — necessity in **case (4)**
+  (`p = 2`, `n = 2 m`, `a ≡ c ≡ 3 mod 4`), via the exact identity
+  `f = h ^ 2 - 2 (a X + c) h + ((a + a ^ 2) X ^ 2 + (2 a c + 2 B) X + (c + c ^ 2))` with
+  `h = X ^ m + a X + c` and the generalized obstruction lemma.
+
+What remains of Theorem 1.1 is exactly the *sufficiency* halves of the wild cases (2) and
+(4): these are the genuinely open formalization problem (they would follow from a general
+Dedekind criterion, or from a new descent argument — the pure-field subfield trick has no
+analogue here; a single-prime valuation argument provably cannot decide them).
 
 ## References
 
@@ -681,6 +693,150 @@ theorem dvd_exponent_of_sq_dvd_of_sq_dvd {r m : ℕ} (hn : 3 ≤ p ^ r * m)
       rw [← map_pow, ← map_mul, ← hc₂]
     rw [← hsplit]
     linear_combination hkey + X ^ 2 * hca + X * hcB + hcc
+
+/-- **Corrected case (3) of Theorem 1.1**: if `p ∣ c` and `p ∤ a` then `p` *always* divides
+the index `[𝓞 K : ℤ[θ]]`.  Indeed `B ^ 2 = a c` forces `p ∣ B`, hence
+`p ^ 2 ∣ B ^ 2 = a c` and, as `p ∤ a`, `p ^ 2 ∣ c`; the double-root criterion at `0`
+applies since `f(0) = c` and `f'(0) = 2 B`.
+
+Note that this **contradicts case (3) of Theorem 1.1 as printed** in
+[jakharkaurkumar2023], which asserts a nontrivial criterion for `p ∤ [𝓞 K : ℤ[θ]]` in
+this situation.  Concretely, for `f = X ^ 5 + X ^ 2 + 6 X + 9` at `p = 3` the printed
+condition of case (3) is satisfied (`a₁ = 0`, `b₁ = 2`, so `p ∣ a₁` and `p ∤ b₁`), but
+`f ≡ x ^ 2 (x + 1) ^ 3 mod 3` with Dedekind remainder
+`M̄ = x (x ^ 3 + x ^ 2 + 1)`, divisible by the repeated factor `x`, so `3` divides the
+index; the proof of case (3) in [jakharkaurkumar2023] appears to drop the repeated
+factor `x` when applying Dedekind's criterion. -/
+theorem dvd_exponent_of_dvd_of_not_dvd (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
+    (hpa : ¬(p : ℤ) ∣ a) (hpc : (p : ℤ) ∣ c)
+    (hθ : minpoly ℤ θ = X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    p ∣ RingOfIntegers.exponent θ := by
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+  have hpB : (p : ℤ) ∣ B := hpp.dvd_of_dvd_pow (n := 2) (by rw [hB]; exact hpc.mul_left a)
+  have hpc2 : (p : ℤ) ^ 2 ∣ c := by
+    have h1 : (p : ℤ) ^ 2 ∣ a * c := by
+      rw [← hB]
+      exact pow_dvd_pow_of_dvd hpB 2
+    exact ((hpp.coprime_iff_not_dvd.mpr hpa).pow_left).dvd_of_dvd_mul_left h1
+  refine RingOfIntegers.dvd_exponent_of_sq_dvd_eval (r := 0) ?_ ?_ ?_
+  · rw [hθ, show (X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q n a B c from rfl, natDegree_q hn]
+    omega
+  · rw [hθ, show (X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q n a B c from rfl, eval_q]
+    simpa [zero_pow (show n ≠ 0 by omega)] using hpc2
+  · rw [hθ, show (X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q n a B c from rfl, eval_derivative_q]
+    simpa [zero_pow (show n - 1 ≠ 0 by omega)] using hpB.mul_left 2
+
+/-- **Necessity in case (2), rational-common-root subcase**: suppose `p ∣ a`, `n = p ^ r m`
+with `r ≥ 1`, and there is an integer `d` with `p ∣ d ^ m + c` (i.e. `d̄` is a root of the
+repeated factor mod `p`) and `p ^ 2 ∣ (-c) ^ p ^ r + c + a d ^ 2 + 2 B d` (equivalently
+`p ^ 2 ∣ f(d)`).  Then `p` divides the index, by the double-root criterion at `d`.
+Together with `dvd_exponent_of_sq_dvd_of_sq_dvd` this covers the necessity half of case
+(2) of Theorem 1.1 of [jakharkaurkumar2023]. -/
+theorem dvd_exponent_of_dvd_of_dvd_eval {r m : ℕ} (hn : 3 ≤ p ^ r * m) (hr : 1 ≤ r)
+    (hm : m ≠ 0) (hB : B ^ 2 = a * c) (hpa : (p : ℤ) ∣ a) {d : ℤ}
+    (hd : (p : ℤ) ∣ d ^ m + c)
+    (hlin : (p : ℤ) ^ 2 ∣ (-c) ^ p ^ r + c + a * d ^ 2 + 2 * B * d)
+    (hθ : minpoly ℤ θ = X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    p ∣ RingOfIntegers.exponent θ := by
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+  have hpB : (p : ℤ) ∣ B := hpp.dvd_of_dvd_pow (n := 2) (by rw [hB]; exact hpa.mul_right c)
+  have h2 : 2 ≤ p ^ r := by
+    calc 2 ≤ p := hp.out.two_le
+    _ = p ^ 1 := (pow_one p).symm
+    _ ≤ p ^ r := Nat.pow_le_pow_right hp.out.one_lt.le hr
+  -- `p ^ 2 ∣ f(d)` via the key identity evaluated at `d`
+  obtain ⟨T, hT⟩ := Pure.key_identity p r hm (-c)
+  have heval := congrArg (Polynomial.eval d) hT
+  simp only [eval_sub, eval_add, eval_mul, eval_pow, eval_X, eval_C] at heval
+  obtain ⟨k, hk⟩ := hd
+  have hsq : (p : ℤ) ^ 2 ∣ (d ^ m - -c) ^ p ^ r + (p : ℤ) * ((d ^ m - -c) * T.eval d) := by
+    have hdm : d ^ m - -c = (p : ℤ) * k := by linear_combination hk
+    refine dvd_add ?_ ?_
+    · rw [hdm, mul_pow]
+      exact ((pow_dvd_pow (p : ℤ) h2).mul_right _)
+    · rw [hdm]
+      exact ⟨k * T.eval d, by ring⟩
+  have hfd : (p : ℤ) ^ 2 ∣ d ^ (p ^ r * m) + a * d ^ 2 + 2 * B * d + c := by
+    have hre : d ^ (p ^ r * m) + a * d ^ 2 + 2 * B * d + c
+        = ((d ^ m - -c) ^ p ^ r + (p : ℤ) * ((d ^ m - -c) * T.eval d))
+          + ((-c) ^ p ^ r + c + a * d ^ 2 + 2 * B * d) := by
+      linear_combination heval
+    rw [hre]
+    exact dvd_add hsq hlin
+  refine RingOfIntegers.dvd_exponent_of_sq_dvd_eval (r := d) ?_ ?_ ?_
+  · rw [hθ, show (X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q (p ^ r * m) a B c from rfl, natDegree_q hn]
+    omega
+  · rw [hθ, show (X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q (p ^ r * m) a B c from rfl, eval_q]
+    exact hfd
+  · rw [hθ, show (X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c) : ℤ[X])
+        = q (p ^ r * m) a B c from rfl, eval_derivative_q]
+    have hpn : (p : ℤ) ∣ ((p ^ r * m : ℕ) : ℤ) := by
+      push_cast
+      exact (dvd_pow_self (p : ℤ) (by omega : r ≠ 0)).mul_right _
+    exact dvd_add (dvd_add (hpn.mul_right _) ((hpa.mul_left 2).mul_right d))
+      (hpB.mul_left 2)
+
+/-- **Necessity in case (4) of Theorem 1.1** (`p = 2`): if `n = 2 m` and
+`a ≡ c ≡ 3 mod 4`, then `2` divides the index.  This rests on the exact identity
+`f = h ^ 2 - 2 (a X + c) h + ((a + a²) X ^ 2 + (2 a c + 2 B) X + (c + c²))` with
+`h = X ^ m + a X + c`, whose tail is divisible by `4` precisely when
+`a ≡ c ≡ 3 mod 4` (note `B` is odd since `B ^ 2 = a c` is odd), so the generalized
+obstruction lemma applies at the repeated factor `h`. -/
+theorem two_dvd_exponent_of_mod_four {m : ℕ} (hm : 2 ≤ m) (hB : B ^ 2 = a * c)
+    (ha4 : (4 : ℤ) ∣ a + 1) (hc4 : (4 : ℤ) ∣ c + 1)
+    (hθ : minpoly ℤ θ = X ^ (2 * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    2 ∣ RingOfIntegers.exponent θ := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  obtain ⟨a₄, ha₄⟩ := ha4
+  obtain ⟨c₄, hc₄⟩ := hc4
+  -- `B` is odd
+  have hBodd : ∃ B₅ : ℤ, B = 2 * B₅ + 1 := by
+    rcases Int.even_or_odd B with hev | hod
+    · exfalso
+      have h2 : Even (a * c) := by
+        obtain ⟨t, ht⟩ := hev
+        rw [← hB, ht]
+        exact ⟨2 * t * t, by ring⟩
+      rcases Int.even_mul.mp h2 with h3 | h3 <;> obtain ⟨u, hu⟩ := h3 <;> omega
+    · obtain ⟨B₅, hB₅⟩ := hod
+      exact ⟨B₅, by omega⟩
+  obtain ⟨B₅, hB₅⟩ := hBodd
+  have haeq : a = 4 * a₄ - 1 := by omega
+  have hceq : c = 4 * c₄ - 1 := by omega
+  subst haeq hceq hB₅
+  refine RingOfIntegers.dvd_exponent_of_sq_factor (p := 2)
+    (h := X ^ m + (C (4 * a₄ - 1) * X + C (4 * c₄ - 1))) (g := 1)
+    (k := -(C (4 * a₄ - 1) * X + C (4 * c₄ - 1)))
+    (t := C ((4 * a₄ - 1) * a₄) * X ^ 2
+      + C (8 * a₄ * c₄ - 2 * a₄ - 2 * c₄ + B₅ + 1) * X + C ((4 * c₄ - 1) * c₄))
+    ?_ ?_ ?_
+  · rw [mul_one]
+    exact Polynomial.monic_X_pow_add (lt_of_le_of_lt Polynomial.degree_linear_le
+      (by exact_mod_cast (by omega : 1 < m)))
+  · rw [mul_one, hθ, show (X ^ (2 * m) + (C (4 * a₄ - 1) * X ^ 2
+        + C (2 * (2 * B₅ + 1)) * X + C (4 * c₄ - 1)) : ℤ[X])
+        = q (2 * m) (4 * a₄ - 1) (2 * B₅ + 1) (4 * c₄ - 1) from rfl,
+      natDegree_q (by omega)]
+    have hdegh : (X ^ m + (C (4 * a₄ - 1) * X + C (4 * c₄ - 1)) : ℤ[X]).natDegree = m :=
+      Polynomial.natDegree_eq_of_degree_eq_some (by
+        rw [Polynomial.degree_add_eq_left_of_degree_lt (by
+          rw [Polynomial.degree_X_pow]
+          exact lt_of_le_of_lt Polynomial.degree_linear_le
+            (by exact_mod_cast (by omega : 1 < m))), Polynomial.degree_X_pow])
+    rw [hdegh]
+    omega
+  · rw [hθ]
+    have hxx : (X : ℤ[X]) ^ (2 * m) = (X ^ m) ^ 2 := by
+      rw [← pow_mul, mul_comm m 2]
+    rw [hxx]
+    push_cast
+    simp only [map_sub, map_add, map_mul, map_ofNat, map_one]
+    ring
 
 end Main
 
