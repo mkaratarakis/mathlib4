@@ -548,7 +548,7 @@ private theorem adjoin_intermediateField_eq_top (M : IntermediateField ℚ K) {x
 /-- **Sufficiency at the wild prime, general degree** (the tower step).  Let
 `θ` have minimal polynomial `X ^ (p ^ r * m) - C c` with `r ≥ 1`, `p ∤ m` and `p ∤ c`, and
 generate `K` over `ℚ`.  If `p ^ 2 ∤ c ^ p ^ r - c`, then `ℤ[θ]` is `p`-maximal. -/
-theorem not_dvd_exponent_of_sq_not_dvd_of_not_dvd (hm : ¬p ∣ m)
+theorem not_dvd_exponent_of_sq_not_dvd_of_not_dvd {m : ℕ} (hm : ¬p ∣ m)
     (hpc : ¬(p : ℤ) ∣ c) (hc2 : ¬(p : ℤ) ^ 2 ∣ c ^ p ^ r - c)
     (hθ : minpoly ℤ θ = X ^ (p ^ r * m) - C c)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
@@ -740,8 +740,8 @@ theorem not_dvd_exponent_of_sq_not_dvd_of_not_dvd (hm : ¬p ∣ m)
 /-- **The per-prime criterion at `p`, general degree**: for `θ` a root of
 `X ^ (p ^ r * m) - C c` with `r ≥ 1`, `p ∤ m` and `p ∤ c`, the prime `p` divides
 `[𝓞 K : ℤ[θ]]` if and only if `p ^ 2 ∣ c ^ p ^ r - c`. -/
-theorem dvd_exponent_iff_of_not_dvd (hr : 1 ≤ r) (hm : ¬p ∣ m) (hpc : ¬(p : ℤ) ∣ c)
-    (hθ : minpoly ℤ θ = X ^ (p ^ r * m) - C c)
+theorem dvd_exponent_iff_of_not_dvd {m : ℕ} (hr : 1 ≤ r) (hm : ¬p ∣ m)
+    (hpc : ¬(p : ℤ) ∣ c) (hθ : minpoly ℤ θ = X ^ (p ^ r * m) - C c)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
     p ∣ RingOfIntegers.exponent θ ↔ (p : ℤ) ^ 2 ∣ c ^ p ^ r - c := by
   constructor
