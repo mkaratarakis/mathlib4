@@ -259,19 +259,6 @@ private theorem dvd_pow_pow_sub (r : ℕ) (c : ℤ) : (p : ℤ) ∣ c ^ p ^ r - 
     ring
   exact_mod_cast (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp h
 
-omit hp in
-/-- For `p ∣ c` and `2 ≤ p ^ r`, `p ^ 2 ∣ c` if and only if `p ^ 2 ∣ c ^ p ^ r - c`. -/
-private theorem sq_dvd_iff_sq_dvd_pow_sub (hpc : (p : ℤ) ∣ c) (h2 : 2 ≤ p ^ r) :
-    (p : ℤ) ^ 2 ∣ c ↔ (p : ℤ) ^ 2 ∣ c ^ p ^ r - c := by
-  have h1 : (p : ℤ) ^ 2 ∣ c ^ p ^ r := by
-    exact (pow_dvd_pow_of_dvd hpc 2).trans (pow_dvd_pow c h2)
-  constructor
-  · intro h
-    exact dvd_sub h1 h
-  · intro h
-    have h3 := dvd_sub h1 h
-    simpa using h3
-
 /-- `X ^ n - C c` is Eisenstein at `q` when `q ∣ c` and `q ^ 2 ∤ c`. -/
 private theorem isEisensteinAt_pure {q : ℤ} (hq : Prime q) {n : ℕ} (hn : n ≠ 0)
     (hqc : q ∣ c) (hqc2 : ¬q ^ 2 ∣ c) :
