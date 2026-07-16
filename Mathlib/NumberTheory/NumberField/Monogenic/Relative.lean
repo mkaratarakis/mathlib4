@@ -23,8 +23,8 @@ stated over an arbitrary integrally closed base, and the instances relating `�
 * `NumberField.Relative.exists_mul_mem_adjoin_notMem_adjoin_of_factor` and
   `NumberField.Relative.adjoin_ne_top_of_sq_factor`: the generalized obstruction lemma over
   `𝓞 K`: if `f = h ^ 2 g + π (k h) + π ^ 2 t` with `h * g` monic of degree `< deg f`, then
-  `θ - π`-divisibility produces `z ∈ 𝓞 K₁ ∖ 𝓞 K[θ]` with `π z ∈ 𝓞 K[θ]`; in particular
-  `𝓞 K[θ] ≠ 𝓞 K₁`.
+  the quadratic-integrality trick produces `z = h(θ) g(θ) / π ∈ 𝓞 K₁ ∖ 𝓞 K[θ]` with
+  `π z ∈ 𝓞 K[θ]`; in particular `𝓞 K[θ] ≠ 𝓞 K₁`.
 * `NumberField.Relative.key_identity`: the key identity for pure polynomials over any
   domain `R` with a prime element `π` whose residue ring has characteristic `p`:
   `X ^ (p ^ r * m) - C c = (X ^ m - C c) ^ p ^ r + π ((X ^ m - C c) T) + C (c ^ p ^ r - c)`.
