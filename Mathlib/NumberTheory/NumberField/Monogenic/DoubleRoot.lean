@@ -14,9 +14,10 @@ Let `K` be a number field, `θ : 𝓞 K` with minimal polynomial `f` over `ℤ`,
 rational prime.  Suppose `r : ℤ` is a double root of `f` modulo `p`, that is, `p ∣ f(r)` and
 `p ∣ f'(r)`.  This file proves the two halves of Dedekind's index criterion in this situation:
 
-* `RingOfIntegers.adjoin_ne_top_of_sq_dvd_eval` (necessity): if moreover `p ^ 2 ∣ f(r)`, then
-  `ℤ[θ] ≠ 𝓞 K`.  The obstruction is the explicit algebraic integer `(θ - r) * g(θ) / p`,
-  where `f = f(r) + f'(r) (X - r) + (X - r)^2 g`.
+* `RingOfIntegers.dvd_exponent_of_sq_dvd_eval` (necessity): if moreover `p ^ 2 ∣ f(r)`, then
+  `p` divides the exponent of `θ`; in particular `ℤ[θ] ≠ 𝓞 K`
+  (`RingOfIntegers.adjoin_ne_top_of_sq_dvd_eval`).  The obstruction is the explicit algebraic
+  integer `(θ - r) * g(θ) / p`, where `f = f(r) + f'(r) (X - r) + (X - r)^2 g`.
 
 * `RingOfIntegers.not_dvd_exponent_of_sq_not_dvd_eval` (sufficiency, for a "tame" double
   root): if `p ^ 2 ∤ f(r)`, `p ∤ f''(r)` and every maximal ideal above `p` containing the
@@ -121,16 +122,36 @@ namespace RingOfIntegers
 
 variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {p : ℕ} [hp : Fact p.Prime] {r : ℤ}
 
-/-- **Necessity half of Dedekind's criterion at a double root.**
-If `r` is a root of the minimal polynomial `f` of `θ` modulo `p` which is also a root of `f'`
-modulo `p`, and if moreover `p ^ 2 ∣ f(r)`, then `ℤ[θ]` is not the full ring of integers:
-the algebraic integer `(θ - r) g(θ) / p`, where `f = f(r) + f'(r)(X - r) + (X - r)^2 g`,
-does not lie in `ℤ[θ]`. -/
-theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
+omit [NumberField K] in
+/-- The fundamental relation in `𝓞 K` attached to the order-two Taylor decomposition
+`f = f(r) + f'(r) (X - r) + (X - r) ^ 2 g` of the minimal polynomial `f` of `θ`:
+`(θ - r) ^ 2 g(θ) = -(f(r) + f'(r) (θ - r))`. -/
+private theorem sq_mul_aeval_eq_neg {g : ℤ[X]}
+    (hfeq : minpoly ℤ θ = C ((minpoly ℤ θ).eval r) +
+      C ((derivative (minpoly ℤ θ)).eval r) * (X - C r) + (X - C r) ^ 2 * g) :
+    (θ - (r : 𝓞 K)) ^ 2 * aeval θ g =
+      -((((minpoly ℤ θ).eval r : ℤ) : 𝓞 K) +
+        (((derivative (minpoly ℤ θ)).eval r : ℤ) : 𝓞 K) * (θ - (r : 𝓞 K))) := by
+  have h := congrArg (aeval θ) hfeq
+  rw [minpoly.aeval] at h
+  simp only [map_add, map_mul, map_pow, aeval_X, map_sub, eq_intCast, map_intCast] at h
+  linear_combination -h
+
+/-- The `𝔪`-adic multiplicity of a nonzero principal ideal is finite. -/
+private theorem exists_emultiplicity_span_singleton_eq {𝔪 : Ideal (𝓞 K)} (h𝔪 : Prime 𝔪)
+    {x : 𝓞 K} (hx : x ≠ 0) : ∃ k : ℕ, emultiplicity 𝔪 (Ideal.span {x}) = k :=
+  have hfin : FiniteMultiplicity 𝔪 (Ideal.span {x}) :=
+    FiniteMultiplicity.of_prime_left h𝔪 (by
+      rw [Ne, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot]; exact hx)
+  ⟨multiplicity 𝔪 _, hfin.emultiplicity_eq_multiplicity⟩
+
+/-- The obstruction element attached to a double root `r` of the minimal polynomial `f` of
+`θ` modulo `p` with `p ^ 2 ∣ f(r)`: the algebraic integer `z = (θ - r) g(θ) / p`, where
+`f = f(r) + f'(r)(X - r) + (X - r)^2 g`, satisfies `p * z ∈ ℤ[θ]` but `z ∉ ℤ[θ]`. -/
+private theorem exists_mul_mem_adjoin_notMem_adjoin (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
     (h₀ : (p : ℤ) ^ 2 ∣ (minpoly ℤ θ).eval r)
     (h₁ : (p : ℤ) ∣ (derivative (minpoly ℤ θ)).eval r) :
-    Algebra.adjoin ℤ {θ} ≠ ⊤ := by
-  intro htop
+    ∃ z : 𝓞 K, (p : 𝓞 K) * z ∈ Algebra.adjoin ℤ {θ} ∧ z ∉ Algebra.adjoin ℤ {θ} := by
   obtain ⟨g, hfeq, -, hgdeg, hglead⟩ :=
     (minpoly ℤ θ).exists_eq_C_eval_add_X_sub_C_sq_mul r
   obtain ⟨t, ht⟩ := h₀
@@ -139,12 +160,9 @@ theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
   set π : 𝓞 K := θ - (r : ℤ) with hπ
   set S : 𝓞 K := aeval θ g with hS
   -- the fundamental relation `π ^ 2 * S = -(f(r) + f'(r) * π)` in `𝓞 K`
-  have hrel : π ^ 2 * S = -(((f.eval r : ℤ) : 𝓞 K) + (((derivative f).eval r : ℤ) : 𝓞 K) * π) := by
-    have h := congrArg (aeval θ) hfeq
-    rw [minpoly.aeval] at h
-    simp only [map_add, map_mul, map_pow, aeval_X, map_sub, eq_intCast, map_intCast] at h
-    rw [hπ, hS]
-    linear_combination -h
+  have hrel : π ^ 2 * S =
+      -(((f.eval r : ℤ) : 𝓞 K) + (((derivative f).eval r : ℤ) : 𝓞 K) * π) :=
+    sq_mul_aeval_eq_neg hfeq
   -- `y = π * S` satisfies the monic quadratic `y ^ 2 + f'(r) y + f(r) S = 0`
   set y : 𝓞 K := π * S with hydef
   have hy : y ^ 2 + ((p : 𝓞 K) * (k : 𝓞 K)) * y + ((p : 𝓞 K) ^ 2 * (t : 𝓞 K)) * S = 0 := by
@@ -180,10 +198,15 @@ theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
   have hpz' : (p : 𝓞 K) * z' = y := by
     apply FaithfulSMul.algebraMap_injective (𝓞 K) K
     rw [map_mul, hz', map_natCast, hzy]
-  -- `z'` lies in `ℤ[θ]`, so `π S = p c(θ)` with `deg c < deg f`
+  refine ⟨z', ?_, ?_⟩
+  · -- `p * z' = (θ - r) g(θ)` visibly lies in `ℤ[θ]`
+    rw [hpz', hydef, hπ, hS]
+    exact mul_mem (sub_mem (Algebra.self_mem_adjoin_singleton ℤ θ)
+      (Subalgebra.intCast_mem _ r)) (Polynomial.aeval_mem_adjoin_singleton ℤ θ)
+  -- if `z'` were in `ℤ[θ]`, then `π S = p c(θ)` with `deg c < deg f`
+  intro hz'mem
   have hfmonic : f.Monic := hf ▸ minpoly.monic θ.isIntegral
   have haevf : aeval θ f = 0 := hf ▸ minpoly.aeval ℤ θ
-  have hz'mem : z' ∈ Algebra.adjoin ℤ {θ} := htop ▸ Algebra.mem_top
   rw [Algebra.adjoin_singleton_eq_range_aeval] at hz'mem
   obtain ⟨c, hc⟩ := hz'mem
   replace hc : aeval θ c = z' := hc
@@ -248,6 +271,50 @@ theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
   have h2 : (2 : ℤ) ≤ (p : ℤ) := by exact_mod_cast hp.out.two_le
   omega
 
+/-- **Necessity half of Dedekind's criterion at a double root, exponent form.**
+If `r` is a root of the minimal polynomial `f` of `θ` modulo `p` which is also a root of `f'`
+modulo `p`, and if moreover `p ^ 2 ∣ f(r)`, then `p` divides the exponent of `θ` (the index
+`[𝓞 K : ℤ[θ]]`, in the sense of `RingOfIntegers.exponent`): the algebraic integer
+`z = (θ - r) g(θ) / p`, where `f = f(r) + f'(r)(X - r) + (X - r)^2 g`, satisfies
+`p * z ∈ ℤ[θ]` but `z ∉ ℤ[θ]`, so `ℤ[θ]` is not maximal at `p`. -/
+theorem dvd_exponent_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
+    (h₀ : (p : ℤ) ^ 2 ∣ (minpoly ℤ θ).eval r)
+    (h₁ : (p : ℤ) ∣ (derivative (minpoly ℤ θ)).eval r) :
+    p ∣ exponent θ := by
+  obtain ⟨z, hpz, hz⟩ := exists_mul_mem_adjoin_notMem_adjoin hdeg h₀ h₁
+  by_contra hpe
+  -- `p` is coprime to the exponent `e`, so `1 = u p + v e` for some integers `u`, `v`
+  have hpZ : ¬(p : ℤ) ∣ ((exponent θ : ℕ) : ℤ) := fun h =>
+    hpe (Int.natCast_dvd_natCast.mp h)
+  obtain ⟨u, v, huv⟩ : IsCoprime ((p : ℤ)) ((exponent θ : ℤ)) :=
+    (Nat.prime_iff_prime_int.mp hp.out).coprime_iff_not_dvd.mpr hpZ
+  -- `e` lies in the conductor, hence `e * z ∈ ℤ[θ]`; but also `p * z ∈ ℤ[θ]`
+  have hEmem : ((exponent θ : 𝓞 K)) ∈ conductor ℤ θ := Int.absNorm_under_mem (conductor ℤ θ)
+  have hez : ((exponent θ : 𝓞 K)) * z ∈ Algebra.adjoin ℤ {θ} := mem_conductor_iff.mp hEmem z
+  -- so `z = u (p z) + v (e z) ∈ ℤ[θ]`, a contradiction
+  apply hz
+  have hzeq : z = (u : 𝓞 K) * ((p : 𝓞 K) * z) + (v : 𝓞 K) * ((exponent θ : 𝓞 K) * z) := by
+    have h := congrArg (fun t : ℤ => ((t : ℤ) : 𝓞 K)) huv
+    push_cast at h
+    linear_combination -z * h
+  rw [hzeq]
+  exact add_mem (mul_mem (Subalgebra.intCast_mem _ u) hpz)
+    (mul_mem (Subalgebra.intCast_mem _ v) hez)
+
+/-- **Necessity half of Dedekind's criterion at a double root.**
+If `r` is a root of the minimal polynomial `f` of `θ` modulo `p` which is also a root of `f'`
+modulo `p`, and if moreover `p ^ 2 ∣ f(r)`, then `ℤ[θ]` is not the full ring of integers.
+This is the special case "`exponent θ = 1` is impossible" of
+`RingOfIntegers.dvd_exponent_of_sq_dvd_eval`. -/
+theorem adjoin_ne_top_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
+    (h₀ : (p : ℤ) ^ 2 ∣ (minpoly ℤ θ).eval r)
+    (h₁ : (p : ℤ) ∣ (derivative (minpoly ℤ θ)).eval r) :
+    Algebra.adjoin ℤ {θ} ≠ ⊤ := by
+  intro htop
+  have h := dvd_exponent_of_sq_dvd_eval hdeg h₀ h₁
+  rw [exponent_eq_one_iff.mpr htop, Nat.dvd_one] at h
+  exact hp.out.ne_one h
+
 omit [NumberField K] in
 /-- If `𝔪` is a maximal ideal of `𝓞 K` containing the rational prime `p`, then an integer
 lies in `𝔪` if and only if it is divisible by `p`. -/
@@ -301,12 +368,9 @@ theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)}
   set S : 𝓞 K := aeval θ g with hS
   set T : 𝓞 K := aeval θ g₁ with hT
   -- the fundamental relations in `𝓞 K`
-  have hrel : π ^ 2 * S = -(((f.eval r : ℤ) : 𝓞 K) + (((derivative f).eval r : ℤ) : 𝓞 K) * π) := by
-    have h := congrArg (aeval θ) hfeq
-    rw [minpoly.aeval] at h
-    simp only [map_add, map_mul, map_pow, aeval_X, map_sub, eq_intCast, map_intCast] at h
-    rw [hπ, hS]
-    linear_combination -h
+  have hrel : π ^ 2 * S =
+      -(((f.eval r : ℤ) : 𝓞 K) + (((derivative f).eval r : ℤ) : 𝓞 K) * π) :=
+    sq_mul_aeval_eq_neg hfeq
   have hrel' : aeval θ (derivative f) = (((derivative f).eval r : ℤ) : 𝓞 K) + π * T := by
     have h := congrArg (aeval θ) hf'eq
     simp only [map_add, map_mul, aeval_X, map_sub, eq_intCast, map_intCast] at h
@@ -393,25 +457,15 @@ theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)}
     rw [Ideal.span_singleton_pow, Ideal.span_singleton_mul_span_singleton,
       Ideal.span_singleton_mul_span_singleton, helt, Ideal.span_singleton_neg]
   -- extract exact multiplicities
-  have hdvd_iff : ∀ x : 𝓞 K, 𝔪 ∣ Ideal.span {x} ↔ x ∈ 𝔪 := fun x => by
-    rw [Ideal.dvd_iff_le, Ideal.span_singleton_le_iff_mem]
   have hpne : (p : 𝓞 K) ≠ 0 := by
     exact_mod_cast hp.out.ne_zero
-  obtain ⟨w, hw⟩ : ∃ w : ℕ, emultiplicity 𝔪 (Ideal.span {π}) = w := by
-    have hfin : FiniteMultiplicity 𝔪 (Ideal.span {π}) :=
-      FiniteMultiplicity.of_prime_left h𝔪prime (by
-        rw [Ne, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot]; exact hπne)
-    exact ⟨multiplicity 𝔪 _, hfin.emultiplicity_eq_multiplicity⟩
-  obtain ⟨e, he⟩ : ∃ e : ℕ, emultiplicity 𝔪 (Ideal.span {(p : 𝓞 K)}) = e := by
-    have hfin : FiniteMultiplicity 𝔪 (Ideal.span {(p : 𝓞 K)}) :=
-      FiniteMultiplicity.of_prime_left h𝔪prime (by
-        rw [Ne, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot]; exact hpne)
-    exact ⟨multiplicity 𝔪 _, hfin.emultiplicity_eq_multiplicity⟩
+  obtain ⟨w, hw⟩ := exists_emultiplicity_span_singleton_eq h𝔪prime hπne
+  obtain ⟨e, he⟩ := exists_emultiplicity_span_singleton_eq h𝔪prime hpne
   -- `e = 2 w`
   have hmulS : emultiplicity 𝔪 (Ideal.span {S}) = 0 :=
-    emultiplicity_eq_zero.mpr (fun h => hSmem ((hdvd_iff S).mp h))
+    emultiplicity_eq_zero.mpr (fun h => hSmem (Ideal.dvd_span_singleton.mp h))
   have hmulσ : emultiplicity 𝔪 (Ideal.span {σ}) = 0 :=
-    emultiplicity_eq_zero.mpr (fun h => hσmem ((hdvd_iff σ).mp h))
+    emultiplicity_eq_zero.mpr (fun h => hσmem (Ideal.dvd_span_singleton.mp h))
   have he2w : e = 2 * w := by
     have h1 := congrArg (emultiplicity 𝔪) hspan
     rw [emultiplicity_mul h𝔪prime, emultiplicity_mul h𝔪prime, emultiplicity_pow h𝔪prime,
@@ -420,7 +474,7 @@ theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)}
   have hw1 : 1 ≤ w := by
     have : 𝔪 ^ 1 ∣ Ideal.span {π} := by
       rw [pow_one]
-      exact (hdvd_iff π).mpr hπmem
+      exact Ideal.dvd_span_singleton.mpr hπmem
     have := pow_dvd_iff_le_emultiplicity.mp this
     rw [hw] at this
     exact_mod_cast this
@@ -428,23 +482,21 @@ theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)}
   have hπT : ¬ 𝔪 ^ (w + 1) ∣ Ideal.span {π * T} := by
     intro hdvd
     rw [← Ideal.span_singleton_mul_span_singleton] at hdvd
-    have h1 : ¬𝔪 ∣ Ideal.span {T} := fun h => hTmem ((hdvd_iff T).mp h)
+    have h1 : ¬𝔪 ∣ Ideal.span {T} := fun h => hTmem (Ideal.dvd_span_singleton.mp h)
     have h2 : 𝔪 ^ (w + 1) ∣ Ideal.span {π} :=
       h𝔪prime.pow_dvd_of_dvd_mul_right _ h1 hdvd
     have := pow_dvd_iff_le_emultiplicity.mp h2
     rw [hw] at this
     exact absurd (by exact_mod_cast this) (by omega)
-  have hdvd_iff_pow : ∀ (j : ℕ) (x : 𝓞 K), 𝔪 ^ j ∣ Ideal.span {x} ↔ x ∈ 𝔪 ^ j := fun j x => by
-    rw [Ideal.dvd_iff_le, Ideal.span_singleton_le_iff_mem]
   have hppow : (p : 𝓞 K) ∈ 𝔪 ^ (w + 1) := by
     have h1 : 𝔪 ^ e ∣ Ideal.span {(p : 𝓞 K)} :=
       pow_dvd_of_le_emultiplicity (le_of_eq he.symm)
-    have h2 : (p : 𝓞 K) ∈ 𝔪 ^ e := (hdvd_iff_pow e _).mp h1
+    have h2 : (p : 𝓞 K) ∈ 𝔪 ^ e := Ideal.dvd_span_singleton.mp h1
     exact Ideal.pow_le_pow_right (by omega) h2
   have hf'not : aeval θ (derivative f) ∉ 𝔪 ^ (w + 1) := by
     intro hmem
     apply hπT
-    rw [hdvd_iff_pow]
+    rw [Ideal.dvd_span_singleton]
     have hπTeq : π * T = aeval θ (derivative f) - ((p : 𝓞 K) * (k : 𝓞 K)) := by
       rw [hrel', hk]
       push_cast
@@ -470,7 +522,7 @@ theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)}
     rw [hcondmul, show 1 + (e - 1) = e by omega] at h1
     exact h1
   have : aeval θ (derivative f) ∈ 𝔪 ^ (w + 1) :=
-    Ideal.pow_le_pow_right (by omega) ((hdvd_iff_pow e _).mp hfinal)
+    Ideal.pow_le_pow_right (by omega) (Ideal.dvd_span_singleton.mp hfinal)
   exact hf'not this
 
 end RingOfIntegers

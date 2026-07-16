@@ -44,10 +44,6 @@ namespace RingOfIntegers
 
 variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
 
-omit [NumberField K] in
-theorem minpoly_coe_eq (θ : 𝓞 K) : minpoly ℤ ((θ : K)) = minpoly ℤ θ :=
-  minpoly.algebraMap_eq (FaithfulSMul.algebraMap_injective (𝓞 K) K) θ
-
 /-- The derivative of the minimal polynomial of `θ : 𝓞 K`, evaluated at `θ`, is nonzero. -/
 theorem aeval_derivative_minpoly_ne_zero (θ : 𝓞 K) :
     aeval θ (derivative (minpoly ℤ θ)) ≠ 0 := by
@@ -179,9 +175,8 @@ theorem not_dvd_exponent_of_minpoly_isEisensteinAt
   let pb : PowerBasis ℚ K := PowerBasis.ofAdjoinEqTop hint hθ
   have hpbgen : pb.gen = (θ : K) := rfl
   -- `(exponent θ : 𝓞 K)` is in the conductor
-  have hEmem : ((exponent θ : 𝓞 K)) ∈ conductor ℤ θ := by
-    have h1 : ((exponent θ : ℤ)) ∈ (conductor ℤ θ).under ℤ := Ideal.absNorm_mem _
-    rwa [Ideal.under_def, Ideal.mem_comap, map_natCast] at h1
+  have hEmem : ((exponent θ : 𝓞 K)) ∈ conductor ℤ θ :=
+    Int.absNorm_under_mem (conductor ℤ θ)
   have hdmem : ((d : 𝓞 K)) ∈ conductor ℤ θ := by
     rw [mem_conductor_iff]
     intro b
@@ -208,15 +203,11 @@ theorem not_dvd_exponent_of_minpoly_isEisensteinAt
       (B := pb) (Nat.prime_iff_prime_int.mp hp.out) (hpbgen ▸ θ.isIntegral.map
         (IsScalarTower.toAlgHom ℤ (𝓞 K) K))
       (((d : 𝓞 K) * b).isIntegral.map (IsScalarTower.toAlgHom ℤ (𝓞 K) K))
-      (hpbgen ▸ hz) (by rw [hpbgen, minpoly_coe_eq]; exact hei)
+      (hpbgen ▸ hz) (by rw [hpbgen, NumberField.RingOfIntegers.minpoly_coe]; exact hei)
     rwa [hpbgen] at this
   -- conclude: `exponent θ ∣ d`, hence `p ∤ exponent θ`
-  have hdvd : exponent θ ∣ d := by
-    have hmem : ((d : ℤ)) ∈ (conductor ℤ θ).under ℤ := by
-      rw [Ideal.under_def, Ideal.mem_comap, map_natCast]
-      exact hdmem
-    rw [← Int.ideal_span_absNorm_eq_self ((conductor ℤ θ).under ℤ)] at hmem
-    exact_mod_cast Ideal.mem_span_singleton.mp hmem
+  have hdvd : exponent θ ∣ d :=
+    Int.natCast_dvd_natCast.mp (Int.cast_mem_ideal_iff.mp (by push_cast; exact hdmem))
   exact fun hpE ↦ hpd (hpE.trans hdvd)
 
 end RingOfIntegers

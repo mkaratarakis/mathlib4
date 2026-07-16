@@ -6,12 +6,11 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.NumberTheory.NumberField.Monogenic.DoubleRoot
-public import Mathlib.RingTheory.Polynomial.Eisenstein.Criterion
 
 /-!
 # The Kaur–Kumar theorem on monogenicity of `X ^ n + A (B X + 1) ^ m`
 
-Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be irreducible, with `n > 2`, `1 ≤ m < n` and
+Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be irreducible, with `1 ≤ m < n` and
 `gcd (n, m B) = 1`, and let `θ` be a root of `f` generating the number field `K`.  This file
 proves the theorem of Kaur and Kumar [kaurkumar2023], conjectured by Jones [jones2019], that
 `ℤ[θ]` is the full ring of integers of `K` if and only if both `A` and
@@ -19,6 +18,9 @@ proves the theorem of Kaur and Kumar [kaurkumar2023], conjectured by Jones [jone
 
 ## Main results
 
+* `NumberField.KaurKumar.dvd_exponent_iff`: the local (per-prime) refinement of the
+  Kaur–Kumar theorem: a rational prime `p` divides the index `[𝓞 K : ℤ[θ]]` if and only if
+  `p ^ 2 ∣ A` or `p ^ 2 ∣ D`.
 * `NumberField.KaurKumar.monogenic_iff`: the Kaur–Kumar theorem.
 * `NumberField.KaurKumar.irreducible_of_prime`: `X ^ n + A (B X + 1) ^ m` is irreducible
   when `A` is prime (Eisenstein).
@@ -125,52 +127,39 @@ private theorem coeff_jones_zero (hn : 0 < n) :
   rw [coeff_jones_lt hn, Polynomial.coeff_zero_eq_eval_zero]
   simp
 
-/-- If `p ∣ A` and `p ^ 2 ∤ A`, the polynomial is Eisenstein at `p`. -/
-private theorem isEisensteinAt_jones {p : ℕ} (hp : p.Prime)
-    (hn : 0 < n) (hmn : m < n) (hpA : (p : ℤ) ∣ A) (hpA2 : ¬(p : ℤ) ^ 2 ∣ A) :
-    (X ^ n + C A * (C B * X + 1) ^ m).IsEisensteinAt (Submodule.span ℤ {(p : ℤ)}) := by
-  refine ⟨?_, ?_, ?_⟩
-  · rw [(monic_jones hmn).leadingCoeff, Ideal.mem_span_singleton]
-    intro h
-    have := Int.eq_one_of_dvd_one (by positivity) h
-    exact hp.one_lt.ne' (by exact_mod_cast this)
-  · intro i hi
-    rw [natDegree_jones hmn] at hi
-    rw [coeff_jones_lt hi, Ideal.mem_span_singleton]
-    exact hpA.mul_right _
-  · rw [Ideal.span_singleton_pow, Ideal.mem_span_singleton, coeff_jones_zero hn]
-    exact hpA2
+/-- If `q ∣ A` and `q ^ 2 ∤ A`, the polynomial is Eisenstein at `q`. -/
+private theorem isEisensteinAt_jones {q : ℤ} (hq : Prime q) (hmn : m < n)
+    (hqA : q ∣ A) (hqA2 : ¬q ^ 2 ∣ A) :
+    (X ^ n + C A * (C B * X + 1) ^ m).IsEisensteinAt (Submodule.span ℤ {q}) :=
+  (monic_jones hmn).isEisensteinAt_of_mem_of_notMem
+    (fun h => hq.not_unit (isUnit_of_dvd_one
+      (Ideal.mem_span_singleton.mp ((Ideal.eq_top_iff_one _).mp h))))
+    (fun {i} hi => by
+      rw [natDegree_jones hmn] at hi
+      rw [coeff_jones_lt hi, Ideal.mem_span_singleton]
+      exact hqA.mul_right _)
+    (by
+      rw [Ideal.span_singleton_pow, Ideal.mem_span_singleton,
+        coeff_jones_zero (Nat.zero_lt_of_lt hmn)]
+      exact hqA2)
 
 /-- `X ^ n + A (B X + 1) ^ m` is irreducible when `A` is prime (Eisenstein's criterion). -/
-theorem irreducible_of_prime (hA : Prime A) (hn : 0 < n) (hmn : m < n) :
-    Irreducible (X ^ n + C A * (C B * X + 1) ^ m) := by
-  have hA0 : A ≠ 0 := hA.ne_zero
-  have hdeg : (X ^ n + C A * (C B * X + 1) ^ m).degree = (n : WithBot ℕ) :=
-    degree_jones hmn
-  refine Polynomial.irreducible_of_eisenstein_criterion
-    ((Ideal.span_singleton_prime hA0).mpr hA) ?_ ?_ ?_ ?_
-    (monic_jones hmn).isPrimitive
-  · rw [(monic_jones hmn).leadingCoeff, Ideal.mem_span_singleton]
-    exact fun h => hA.not_unit (isUnit_of_dvd_one h)
-  · intro i hi
-    rw [hdeg] at hi
-    rw [coeff_jones_lt (by exact_mod_cast hi), Ideal.mem_span_singleton]
-    exact (dvd_refl A).mul_right _
-  · rw [hdeg]
-    exact_mod_cast hn
-  · rw [coeff_jones_zero hn, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
-    rintro ⟨c, hc⟩
-    rw [sq, mul_assoc] at hc
-    have h1 : A * 1 = A * (A * c) := by rw [mul_one, ← hc]
-    exact hA.not_unit (IsUnit.of_mul_eq_one _ (mul_left_cancel₀ hA.ne_zero h1).symm)
+theorem irreducible_of_prime (hA : Prime A) (hmn : m < n) :
+    Irreducible (X ^ n + C A * (C B * X + 1) ^ m) :=
+  (isEisensteinAt_jones hA hmn dvd_rfl fun h =>
+      hA.not_unit (hA.irreducible.squarefree A (by rwa [← sq]))).irreducible
+    ((Ideal.span_singleton_prime hA.ne_zero).mpr hA) (monic_jones hmn).isPrimitive
+    (by rw [natDegree_jones hmn]; omega)
 
 end PolynomialLemmas
 
 /-! ### The quantity `D` and integer congruences -/
 
-/-- The constant `D = n ^ n + (-1) ^ (n + m) B ^ n (n - m) ^ (n - m) m ^ m A` of the
-Kaur–Kumar theorem. -/
-private def D (n m : ℕ) (A B : ℤ) : ℤ :=
+/-- The discriminant-like constant
+`D = n ^ n + (-1) ^ (n + m) B ^ n (n - m) ^ (n - m) m ^ m A`
+of the Kaur–Kumar theorem: for `f = X ^ n + A (B X + 1) ^ m` with `m < n`, the polynomial
+`f` is monogenic if and only if `A` and `D n m A B` are squarefree, see `monogenic_iff`. -/
+def D (n m : ℕ) (A B : ℤ) : ℤ :=
   (n : ℤ) ^ n + (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A
 
 section IntegerLemmas
@@ -245,9 +234,9 @@ private theorem dvd_eval_iff_dvd_D (hmn : m ≤ n) {a N : ℤ}
       simpa using h3
     exact hcop.dvd_of_dvd_mul_left h2
 
-/-- If `p ∣ D` and `p ∤ A` (with `gcd (n, m B) = 1`), then `p` is coprime to `n`, `B`, `m`
+/-- If `p ∣ D` and `p ∤ A` (with `gcd (n, m B) = 1`), then `p` divides none of `n`, `B`, `m`
 and `n - m`. -/
-private theorem coprime_of_dvd_D (hp : p.Prime) (hm : 0 < m) (hmn : m < n)
+private theorem not_dvd_of_dvd_D (hp : p.Prime) (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B)) (hA : ¬(p : ℤ) ∣ A)
     (hD : (p : ℤ) ∣ D n m A B) :
     (¬(p : ℤ) ∣ (n : ℤ)) ∧ (¬(p : ℤ) ∣ B) ∧ (¬(p : ℤ) ∣ (m : ℤ)) ∧
@@ -300,6 +289,50 @@ private theorem coprime_of_dvd_D (hp : p.Prime) (hm : 0 < m) (hmn : m < n)
     have hnm0 : n - m ≠ 0 := Nat.sub_ne_zero_of_lt hmn
     exact haux ((((hdvd.pow hnm0).mul_left _).mul_right _).mul_right _)
 
+/-- If `p ∣ A` and `p ^ 2 ∣ D` (with `gcd (n, m B) = 1`), then `p ^ 2 ∣ A`: indeed `p` then
+divides `n`, hence `p ^ 2` divides `n ^ n` and therefore the second summand of `D`, all of
+whose factors except `A` are coprime to `p`. -/
+private theorem sq_dvd_A_of_dvd_A_of_sq_dvd_D (hp : p.Prime) (hm : 0 < m) (hmn : m < n)
+    (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B)) (hpA : (p : ℤ) ∣ A)
+    (hD2 : (p : ℤ) ^ 2 ∣ D n m A B) : (p : ℤ) ^ 2 ∣ A := by
+  have hn : 2 ≤ n := by omega
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
+  have hD1 : (p : ℤ) ∣ D n m A B := (dvd_pow_self _ two_ne_zero).trans hD2
+  -- first, `p ∣ n`
+  have hpn : (p : ℤ) ∣ (n : ℤ) := by
+    have hT : (p : ℤ) ∣
+        (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A :=
+      hpA.mul_left _
+    have h1 : (p : ℤ) ∣ (n : ℤ) ^ n := by
+      have h2 := dvd_sub hD1 hT
+      rw [D] at h2
+      simpa using h2
+    exact hpp.dvd_of_dvd_pow h1
+  have hmB : ¬(p : ℤ) ∣ ((m : ℤ) * B) := fun h => hpp.not_unit (hgcd.isUnit_of_dvd' hpn h)
+  have hpB : ¬(p : ℤ) ∣ B := fun h => hmB (h.mul_left _)
+  have hpm : ¬(p : ℤ) ∣ (m : ℤ) := fun h => hmB (h.mul_right _)
+  have hpnm : ¬(p : ℤ) ∣ ((n : ℤ) - m) := fun h =>
+    hpm (by simpa using dvd_sub hpn h)
+  -- `p ^ 2` divides the second summand of `D`
+  have h2 : (p : ℤ) ^ 2 ∣ (n : ℤ) ^ n :=
+    (pow_dvd_pow_of_dvd hpn 2).trans (pow_dvd_pow _ hn)
+  have h3 : (p : ℤ) ^ 2 ∣
+      (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A := by
+    have h4 := dvd_sub hD2 h2
+    rw [D] at h4
+    simpa using h4
+  -- and is coprime to everything but `A`
+  have hu : IsCoprime ((p : ℤ)) ((-1 : ℤ) ^ (n + m)) := by
+    rcases Int.isUnit_iff.mp (isUnit_one.neg.pow (n + m)) with h | h <;> rw [h]
+    · exact isCoprime_one_right
+    · exact isCoprime_one_right.neg_right
+  have hbase : IsCoprime ((p : ℤ))
+      ((-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m) :=
+    ((hu.mul_right ((hpp.coprime_iff_not_dvd.mpr hpB).pow_right)).mul_right
+      ((hpp.coprime_iff_not_dvd.mpr hpnm).pow_right)).mul_right
+      ((hpp.coprime_iff_not_dvd.mpr hpm).pow_right)
+  exact hbase.pow_left.dvd_of_dvd_mul_left h3
+
 /-- A Bezout-style lift: if `p ∤ B (n - m)` there is an integer `a` with
 `p ^ 2 ∣ B (n - m) a + n`. -/
 private theorem exists_lift (hp : p.Prime) (hB : ¬(p : ℤ) ∣ B)
@@ -321,8 +354,7 @@ section ResidueAnalysis
 
 variable {F : Type*} [Field F] {p : ℕ} {n m : ℕ} {A B : ℤ}
 
-/-- If `x` is a common root of `f` and `f'` in a field of characteristic `p ∤ A`, then `p` is
-coprime to `n`, `m`, `B` and `n - m`, the elements `x` and `B x + 1` are nonzero, and
+/-- If `x` is a common root of `f` and `f'` in a field of characteristic `p ∤ A`, then
 `(n - m) B x = -n`. -/
 private theorem residue_analysis (hp : p.Prime)
     (hpF : ∀ t : ℤ, ((t : F) = 0) ↔ (p : ℤ) ∣ t)
@@ -331,9 +363,7 @@ private theorem residue_analysis (hp : p.Prime)
     (hf : x ^ n + (A : F) * ((B : F) * x + 1) ^ m = 0)
     (hf' : (n : F) * x ^ (n - 1) + (m : F) * (A : F) * (B : F) * ((B : F) * x + 1) ^ (m - 1)
       = 0) :
-    (¬(p : ℤ) ∣ (n : ℤ)) ∧ (¬(p : ℤ) ∣ B) ∧ (¬(p : ℤ) ∣ (m : ℤ)) ∧
-      (¬(p : ℤ) ∣ ((n : ℤ) - m)) ∧ x ≠ 0 ∧ (B : F) * x + 1 ≠ 0 ∧
-      ((n : F) - m) * B * x = -(n : F) := by
+    ((n : F) - m) * B * x = -(n : F) := by
   have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
   have hAF : (A : F) ≠ 0 := fun h => hA ((hpF A).mp h)
   have hcast : ∀ t : ℕ, ((t : F) = 0) ↔ (p : ℤ) ∣ (t : ℤ) := fun t => by
@@ -398,20 +428,11 @@ private theorem residue_analysis (hp : p.Prime)
     have hmF : (m : F) = 0 := (hcast m).mpr hdvd
     rw [hmF, zero_mul, zero_mul] at hkey
     exact (mul_eq_zero.mp hkey).elim hnF hune
-  -- `(n - m) B x = -n` and `p ∤ n - m`
-  have hkey2 : ((n : F) - m) * B * x = -(n : F) := by linear_combination hkey
-  have hnmd : ¬(p : ℤ) ∣ ((n : ℤ) - m) := by
-    intro hdvd
-    have h0 : ((n : F) - m) = 0 := by
-      have := (hpF ((n : ℤ) - m)).mpr hdvd
-      push_cast at this
-      exact this
-    rw [h0, zero_mul, zero_mul, eq_comm, neg_eq_zero] at hkey2
-    exact hnF hkey2
-  exact ⟨hnd, hBd, hmd, hnmd, hxne, hune, hkey2⟩
+  -- `(n - m) B x = -n`
+  linear_combination hkey
 
 /-- At a common root of `f` and `f'`, the second derivative of `f` does not vanish. -/
-private theorem residue_second_deriv (hn : 2 ≤ n) (hm : 0 < m)
+private theorem residue_second_deriv (hn : 2 ≤ n)
     (hA : (A : F) ≠ 0) (hB : (B : F) ≠ 0) (hm' : (m : F) ≠ 0)
     {x : F} (hune : (B : F) * x + 1 ≠ 0)
     (hkey2 : ((n : F) - m) * B * x = -(n : F))
@@ -419,6 +440,7 @@ private theorem residue_second_deriv (hn : 2 ≤ n) (hm : 0 < m)
       = 0) :
     (n : F) * ((n - 1 : ℕ) : F) * x ^ (n - 2) +
       (m : F) * ((m - 1 : ℕ) : F) * A * B ^ 2 * ((B : F) * x + 1) ^ (m - 2) ≠ 0 := by
+  have hm : 0 < m := Nat.pos_of_ne_zero fun h => hm' (by simp [h])
   set u : F := (B : F) * x + 1 with hu
   intro hG2
   have hcast1 : (((n - 1 : ℕ) : F)) = (n : F) - 1 := by
@@ -500,13 +522,15 @@ private theorem residue_D_eq_zero (hmn : m ≤ n)
 
 /-- Conversely, if `(n - m) B x = -n` and `D = 0` in `F`, then `x` is a common root of `f`
 and `f'`. -/
-private theorem root_of_D (hn : 2 ≤ n) (hm : 0 < m) (hmn : m < n)
+private theorem root_of_D (hmn : m ≤ n)
     (hn' : (n : F) ≠ 0) (hB : (B : F) ≠ 0) (hm' : (m : F) ≠ 0) (hnm' : (n : F) - m ≠ 0)
     {x : F} (hkey2 : ((n : F) - m) * B * x = -(n : F))
     (hD : ((D n m A B : ℤ) : F) = 0) :
     (x ^ n + (A : F) * ((B : F) * x + 1) ^ m = 0) ∧
       ((n : F) * x ^ (n - 1) + (m : F) * (A : F) * (B : F) * ((B : F) * x + 1) ^ (m - 1)
         = 0) := by
+  have hn : 0 < n := Nat.pos_of_ne_zero fun h => hn' (by simp [h])
+  have hm : 0 < m := Nat.pos_of_ne_zero fun h => hm' (by simp [h])
   set u : F := (B : F) * x + 1 with hu
   set ν : F := (n : F) with hν
   set μ : F := (m : F) with hμ
@@ -522,7 +546,7 @@ private theorem root_of_D (hn : 2 ≤ n) (hm : 0 < m) (hmn : m < n)
   have h1 : ((ν - μ) * (B : F) * x) ^ n = (-ν) ^ n := by rw [hkey2]
   have h2 : ((ν - μ) * u) ^ m = (-μ) ^ m := by rw [e3]
   have hsplit : (ν - μ) ^ n = (ν - μ) ^ (n - m) * (ν - μ) ^ m :=
-    (pow_sub_mul_pow _ hmn.le).symm
+    (pow_sub_mul_pow _ hmn).symm
   have hone : (-1 : F) ^ n * (-1 : F) ^ n = 1 := by
     rw [← mul_pow]; norm_num
   -- from `D = 0`, deduce the expanded relation
@@ -561,6 +585,36 @@ private theorem root_of_D (hn : 2 ≤ n) (hm : 0 < m) (hmn : m < n)
       _ = 0 := by rw [hf, hbr, mul_zero, mul_zero, add_zero]
   exact (mul_eq_zero.mp hmain).resolve_right (mul_ne_zero hxne hune)
 
+/-- If `p ∤ A` and `p ∣ D`, then `f = X ^ n + A (B X + 1) ^ m` has a double root modulo `p`
+at any integer `a` with `p ^ 2 ∣ B (n - m) a + n`, and such an `a` exists. -/
+private theorem exists_lift_double_root {p : ℕ} [Fact p.Prime] (hp : p.Prime) (hm : 0 < m)
+    (hmn : m < n) (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B)) (hA : ¬(p : ℤ) ∣ A)
+    (hD : (p : ℤ) ∣ D n m A B) :
+    ∃ a : ℤ, (p : ℤ) ^ 2 ∣ B * ((n : ℤ) - m) * a + n ∧
+      IsCoprime ((p : ℤ) ^ 2) ((B * ((n : ℤ) - m)) ^ n) ∧
+      ((n : ZMod p) - m) * B * (a : ZMod p) = -(n : ZMod p) ∧
+      ((a : ZMod p) ^ n + (A : ZMod p) * ((B : ZMod p) * (a : ZMod p) + 1) ^ m = 0) ∧
+      ((n : ZMod p) * (a : ZMod p) ^ (n - 1) + (m : ZMod p) * (A : ZMod p) * (B : ZMod p) *
+        ((B : ZMod p) * (a : ZMod p) + 1) ^ (m - 1) = 0) := by
+  obtain ⟨hpn, hpB, hpm, hpnm⟩ := not_dvd_of_dvd_D hp hm hmn hgcd hA hD
+  obtain ⟨a, ha⟩ := exists_lift hp hpB hpnm
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
+  have hcop2 : IsCoprime ((p : ℤ) ^ 2) ((B * ((n : ℤ) - m)) ^ n) :=
+    (hpp.coprime_iff_not_dvd.mpr fun h => (hpp.dvd_mul.mp h).elim hpB hpnm).pow
+  have hpF0 : ∀ t : ℤ, ((t : ZMod p) = 0) ↔ (p : ℤ) ∣ t := fun t =>
+    ZMod.intCast_zmod_eq_zero_iff_dvd t p
+  have hkey2a : ((n : ZMod p) - m) * B * (a : ZMod p) = -(n : ZMod p) := by
+    have h0 : ((B * ((n : ℤ) - m) * a + n : ℤ) : ZMod p) = 0 :=
+      (hpF0 _).mpr ((dvd_pow_self (p : ℤ) two_ne_zero).trans ha)
+    push_cast at h0
+    linear_combination h0
+  have hnZ : ((n : ZMod p)) ≠ 0 := fun h => hpn (by rw [← hpF0]; exact_mod_cast h)
+  have hBZ : ((B : ZMod p)) ≠ 0 := fun h => hpB ((hpF0 B).mp h)
+  have hmZ : ((m : ZMod p)) ≠ 0 := fun h => hpm (by rw [← hpF0]; exact_mod_cast h)
+  have hnmZ : ((n : ZMod p)) - m ≠ 0 := fun h => hpnm (by rw [← hpF0]; push_cast; exact h)
+  obtain ⟨hfa, hf'a⟩ := root_of_D hmn.le hnZ hBZ hmZ hnmZ hkey2a ((hpF0 _).mpr hD)
+  exact ⟨a, ha, hcop2, hkey2a, hfa, hf'a⟩
+
 end ResidueAnalysis
 
 /-! ### The main theorem -/
@@ -571,35 +625,14 @@ attribute [local instance] Ideal.Quotient.field
 
 variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {n m : ℕ} {A B : ℤ}
 
-private theorem not_sq_dvd_of_squarefree {z : ℤ} (hz : Squarefree z) {q : ℕ} (hq : q.Prime) :
-    ¬(q : ℤ) ^ 2 ∣ z := by
-  intro h
-  have h1 := hz (q : ℤ) (by rwa [← sq])
-  rw [Int.isUnit_iff] at h1
-  have := hq.two_le
-  omega
+private theorem sq_dvd_natCast_iff {z : ℤ} {q : ℕ} : (q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs := by
+  rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
 
-private theorem sq_dvd_of_natAbs {z : ℤ} {q : ℕ} (h : q * q ∣ z.natAbs) :
-    (q : ℤ) ^ 2 ∣ z := by
-  have h1 : ((q * q : ℕ) : ℤ) ∣ (z.natAbs : ℤ) := Int.natCast_dvd_natCast.mpr h
-  have h2 : ((z.natAbs : ℕ) : ℤ) ∣ z := Int.natAbs_dvd.mpr dvd_rfl
-  have h3 := h1.trans h2
-  rwa [Nat.cast_mul, ← sq] at h3
-
-private theorem A_ne_zero (hn : 2 ≤ n) (hmn : m < n)
-    (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m) : A ≠ 0 := by
-  rintro rfl
-  have h0 : θ ^ n = 0 := by
-    have h := minpoly.aeval ℤ θ
-    rw [hθ] at h
-    simpa using h
-  have hθ0 : θ = 0 := pow_eq_zero_iff (by omega) |>.mp h0
-  have h1 : minpoly ℤ θ ∣ X := minpoly.isIntegrallyClosed_dvd θ.isIntegral (by simp [hθ0])
-  have h2 : (minpoly ℤ θ).natDegree ≤ 1 := by
-    have := Polynomial.natDegree_le_of_dvd h1 Polynomial.X_ne_zero
-    simpa using this
-  rw [hθ, natDegree_jones hmn] at h2
-  omega
+/-- An integer is squarefree if and only if no prime squared divides it. -/
+private theorem squarefree_int_iff {z : ℤ} :
+    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
+  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
+  exact forall₂_congr fun q hq => not_congr sq_dvd_natCast_iff.symm
 
 omit [NumberField K] in
 /-- The polynomial identity `f(θ) = 0` in `𝓞 K`. -/
@@ -646,34 +679,29 @@ private theorem quotient_facts (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 
     rw [aeval_derivative_eq hθ] at h2
     simpa [map_add, map_mul, map_pow, map_one, map_intCast, map_natCast] using h2
 
-/-- The converse direction: if `A` and `D` are squarefree, no prime divides the exponent. -/
+/-- The converse direction, localized at `p`: if `p ^ 2` divides neither `A` nor `D`, then
+`p` does not divide the exponent. -/
 private theorem not_dvd_exponent_aux {p : ℕ} [hp : Fact p.Prime]
-    (hn : 2 ≤ n) (hm : 0 < m) (hmn : m < n) (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
+    (hm : 0 < m) (hmn : m < n) (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
-    (hsqA : Squarefree A) (hsqD : Squarefree (D n m A B)) :
+    (hA2 : ¬(p : ℤ) ^ 2 ∣ A) (hD2 : ¬(p : ℤ) ^ 2 ∣ D n m A B) :
     ¬p ∣ RingOfIntegers.exponent θ := by
+  have hn : 2 ≤ n := by omega
   by_cases hpA : (p : ℤ) ∣ A
   · -- Case 1: `p ∣ A`, use the Eisenstein criterion
     exact RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt hgen
-      (hθ ▸ isEisensteinAt_jones hp.out (by omega) hmn hpA
-        (not_sq_dvd_of_squarefree hsqA hp.out))
+      (hθ ▸ isEisensteinAt_jones (Nat.prime_iff_prime_int.mp hp.out) hmn hpA hA2)
   by_cases hpD : (p : ℤ) ∣ D n m A B
   · -- Case 2: `p ∤ A`, `p ∣ D`: tame double root at the lift `a`
-    obtain ⟨hpn, hpB, hpm, hpnm⟩ := coprime_of_dvd_D hp.out hm hmn hgcd hpA hpD
-    obtain ⟨a, ha⟩ := exists_lift hp.out hpB hpnm
+    obtain ⟨hpn, hpB, hpm, hpnm⟩ := not_dvd_of_dvd_D hp.out hm hmn hgcd hpA hpD
+    obtain ⟨a, ha, hcop2, hkey2a, hfa, hf'a⟩ :=
+      exists_lift_double_root hp.out hm hmn hgcd hpA hpD
     have hpa : (p : ℤ) ∣ B * ((n : ℤ) - m) * a + n :=
       (dvd_pow_self (p : ℤ) two_ne_zero).trans ha
-    have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
-    have hcop2 : IsCoprime ((p : ℤ) ^ 2) ((B * ((n : ℤ) - m)) ^ n) :=
-      (hpp.coprime_iff_not_dvd.mpr fun h => (hpp.dvd_mul.mp h).elim hpB hpnm).pow
     -- facts about `x = a` in `ZMod p`
     have hpF0 : ∀ t : ℤ, ((t : ZMod p) = 0) ↔ (p : ℤ) ∣ t := fun t =>
       ZMod.intCast_zmod_eq_zero_iff_dvd t p
-    have hkey2a : ((n : ZMod p) - m) * B * (a : ZMod p) = -(n : ZMod p) := by
-      have h0 : ((B * ((n : ℤ) - m) * a + n : ℤ) : ZMod p) = 0 := (hpF0 _).mpr hpa
-      push_cast at h0
-      linear_combination h0
     have hnZ : ((n : ZMod p)) ≠ 0 := fun h => hpn (by
       rw [← hpF0]
       exact_mod_cast h)
@@ -681,25 +709,19 @@ private theorem not_dvd_exponent_aux {p : ℕ} [hp : Fact p.Prime]
     have hmZ : ((m : ZMod p)) ≠ 0 := fun h => hpm (by
       rw [← hpF0]
       exact_mod_cast h)
-    have hnmZ : ((n : ZMod p)) - m ≠ 0 := fun h => hpnm (by
-      rw [← hpF0]
-      push_cast
-      exact h)
     have hAZ : ((A : ZMod p)) ≠ 0 := fun h => hpA ((hpF0 A).mp h)
-    have hDZ : ((D n m A B : ℤ) : ZMod p) = 0 := (hpF0 _).mpr hpD
-    obtain ⟨hfa, hf'a⟩ := root_of_D hn hm hmn hnZ hBZ hmZ hnmZ hkey2a hDZ
     -- apply the double-root criterion
     refine RingOfIntegers.not_dvd_exponent_of_sq_not_dvd_eval (r := a) hgen ?_ ?_ ?_
     · -- `p ^ 2 ∤ f(a)`
       rw [hθ, eval_jones]
       rw [dvd_eval_iff_dvd_D hmn.le ha hcop2]
-      exact not_sq_dvd_of_squarefree hsqD hp.out
+      exact hD2
     · -- `p ∤ f''(a)`
       rw [hθ, eval_derivative_derivative_jones]
       intro hdvd
       have h0 := (hpF0 _).mpr hdvd
       push_cast at h0
-      exact residue_second_deriv hn hm hAZ hBZ hmZ
+      exact residue_second_deriv hn hAZ hBZ hmZ
         (by
           intro h
           rw [h, zero_pow hm.ne', mul_zero, add_zero,
@@ -711,8 +733,7 @@ private theorem not_dvd_exponent_aux {p : ℕ} [hp : Fact p.Prime]
       intro 𝔪 h𝔪 hcond hp𝔪
       obtain ⟨hfθ, hf'θ⟩ := quotient_facts hθ hgen hcond
       have hpF𝔪 := quotient_intCast_iff h𝔪 hp𝔪
-      obtain ⟨-, -, -, -, -, -, hkey2θ⟩ :=
-        residue_analysis hp.out hpF𝔪 hn hm hgcd hpA hfθ hf'θ
+      have hkey2θ := residue_analysis hp.out hpF𝔪 hn hm hgcd hpA hfθ hf'θ
       -- `a` satisfies the same linear relation in the residue field
       have hkey2a' : ((n : 𝓞 K ⧸ 𝔪) - m) * B * ((a : ℤ) : 𝓞 K ⧸ 𝔪) = -(n : 𝓞 K ⧸ 𝔪) := by
         have h0 : ((B * ((n : ℤ) - m) * a + n : ℤ) : 𝓞 K ⧸ 𝔪) = 0 := (hpF𝔪 _).mpr hpa
@@ -738,149 +759,102 @@ private theorem not_dvd_exponent_aux {p : ℕ} [hp : Fact p.Prime]
     have hp𝔪 : (p : 𝓞 K) ∈ 𝔪 := hle (Ideal.mem_sup_right (Ideal.mem_span_singleton_self _))
     obtain ⟨hfθ, hf'θ⟩ := quotient_facts hθ hgen hcond
     have hpF𝔪 := quotient_intCast_iff h𝔪 hp𝔪
-    obtain ⟨-, -, -, -, -, -, hkey2θ⟩ :=
-      residue_analysis hp.out hpF𝔪 hn hm hgcd hpA hfθ hf'θ
+    have hkey2θ := residue_analysis hp.out hpF𝔪 hn hm hgcd hpA hfθ hf'θ
     exact hpD ((hpF𝔪 _).mp (residue_D_eq_zero hmn.le hkey2θ hfθ))
 
-/-- Forward direction: monogenicity forces `A` squarefree. -/
-private theorem squarefree_A_of_monogenic (hn : 2 ≤ n) (hmn : m < n)
+/-- Forward direction at a prime whose square divides `A`: `p` divides the exponent, by the
+double-root criterion at `r = 0`. -/
+private theorem dvd_exponent_of_sq_dvd_A {p : ℕ} [Fact p.Prime] (hn : 2 ≤ n) (hmn : m < n)
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
-    (hmono : Algebra.adjoin ℤ {θ} = ⊤) : Squarefree A := by
-  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
-  intro q hq hdvd
-  haveI : Fact q.Prime := ⟨hq⟩
-  have hq2 : (q : ℤ) ^ 2 ∣ A := sq_dvd_of_natAbs hdvd
-  have hq1 : (q : ℤ) ∣ A := (dvd_pow_self _ two_ne_zero).trans hq2
-  refine RingOfIntegers.adjoin_ne_top_of_sq_dvd_eval (θ := θ) (p := q) (r := 0)
-    ?_ ?_ ?_ hmono
+    (hA2 : (p : ℤ) ^ 2 ∣ A) : p ∣ RingOfIntegers.exponent θ := by
+  have hA1 : (p : ℤ) ∣ A := (dvd_pow_self _ two_ne_zero).trans hA2
+  refine RingOfIntegers.dvd_exponent_of_sq_dvd_eval (r := 0) ?_ ?_ ?_
   · rw [hθ, natDegree_jones hmn]
     exact hn
   · rw [hθ, show (X ^ n + C A * (C B * X + 1) ^ m : ℤ[X]).eval 0 = A by
       rw [eval_jones]
       simp [zero_pow (show n ≠ 0 by omega)]]
-    exact hq2
+    exact hA2
   · rw [hθ, show (derivative (X ^ n + C A * (C B * X + 1) ^ m) : ℤ[X]).eval 0
         = ↑m * A * B by
       rw [eval_derivative_jones]
       simp [zero_pow (show n - 1 ≠ 0 by omega)]]
-    exact (hq1.mul_left _).mul_right _
+    exact (hA1.mul_left _).mul_right _
 
-/-- Forward direction: monogenicity forces `D` squarefree. -/
-private theorem squarefree_D_of_monogenic (hn : 2 ≤ n) (hm : 0 < m) (hmn : m < n)
+/-- **Local refinement of the Kaur–Kumar theorem**: the per-prime index criterion.
+Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be the minimal polynomial of `θ : 𝓞 K`, where
+`1 ≤ m < n` and `gcd (n, m B) = 1`, and suppose `θ` generates `K` over `ℚ`.  A rational
+prime `p` divides the index `[𝓞 K : ℤ[θ]]` — the exponent of `θ`, in the sense of
+`RingOfIntegers.exponent` — if and only if `p ^ 2 ∣ A` or `p ^ 2 ∣ D n m A B`.  The
+Kaur–Kumar theorem `NumberField.KaurKumar.monogenic_iff` follows by localizing
+squarefreeness at each prime. -/
+theorem dvd_exponent_iff {p : ℕ} [hp : Fact p.Prime] (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
-    (hmono : Algebra.adjoin ℤ {θ} = ⊤) : Squarefree (D n m A B) := by
-  have hsqA : Squarefree A := squarefree_A_of_monogenic hn hmn hθ hmono
-  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
-  intro q hq hdvd
-  haveI : Fact q.Prime := ⟨hq⟩
-  have hqq : Prime (q : ℤ) := Nat.prime_iff_prime_int.mp hq
-  have hq2 : (q : ℤ) ^ 2 ∣ D n m A B := sq_dvd_of_natAbs hdvd
-  have hq1 : (q : ℤ) ∣ D n m A B := (dvd_pow_self _ two_ne_zero).trans hq2
-  by_cases hqA : (q : ℤ) ∣ A
-  · -- then `q ^ 2 ∣ A`, contradicting `Squarefree A`
-    apply not_sq_dvd_of_squarefree hsqA hq
-    -- first, `q ∣ n`
-    have hqn : (q : ℤ) ∣ (n : ℤ) := by
-      have hT : (q : ℤ) ∣
-          (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A :=
-        hqA.mul_left _
-      have h1 : (q : ℤ) ∣ (n : ℤ) ^ n := by
-        have h2 := dvd_sub hq1 hT
-        rw [D] at h2
-        simpa using h2
-      exact hqq.dvd_of_dvd_pow h1
-    have hmB : ¬(q : ℤ) ∣ ((m : ℤ) * B) := fun h => hqq.not_unit (hgcd.isUnit_of_dvd' hqn h)
-    have hqB : ¬(q : ℤ) ∣ B := fun h => hmB (h.mul_left _)
-    have hqm : ¬(q : ℤ) ∣ (m : ℤ) := fun h => hmB (h.mul_right _)
-    have hqnm : ¬(q : ℤ) ∣ ((n : ℤ) - m) := fun h =>
-      hqm (by simpa using dvd_sub hqn h)
-    -- `q ^ 2` divides the second summand of `D`
-    have h2 : (q : ℤ) ^ 2 ∣ (n : ℤ) ^ n :=
-      (pow_dvd_pow_of_dvd hqn 2).trans (pow_dvd_pow _ hn)
-    have h3 : (q : ℤ) ^ 2 ∣
-        (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A := by
-      have h4 := dvd_sub hq2 h2
-      rw [D] at h4
-      simpa using h4
-    -- and is coprime to everything but `A`
-    have hu : IsCoprime ((q : ℤ)) ((-1 : ℤ) ^ (n + m)) := by
-      rcases Int.isUnit_iff.mp (isUnit_one.neg.pow (n + m)) with h | h <;> rw [h]
-      · exact isCoprime_one_right
-      · exact isCoprime_one_right.neg_right
-    have hbase : IsCoprime ((q : ℤ))
-        ((-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m) :=
-      ((hu.mul_right ((hqq.coprime_iff_not_dvd.mpr hqB).pow_right)).mul_right
-        ((hqq.coprime_iff_not_dvd.mpr hqnm).pow_right)).mul_right
-        ((hqq.coprime_iff_not_dvd.mpr hqm).pow_right)
-    exact hbase.pow_left.dvd_of_dvd_mul_left h3
-  · -- `q ∤ A`: the forward double-root criterion applies at the lift
-    obtain ⟨hqn, hqB, hqm, hqnm⟩ := coprime_of_dvd_D hq hm hmn hgcd hqA hq1
-    obtain ⟨a, ha⟩ := exists_lift hq hqB hqnm
-    have hqa : (q : ℤ) ∣ B * ((n : ℤ) - m) * a + n :=
-      (dvd_pow_self (q : ℤ) two_ne_zero).trans ha
-    have hcop2 : IsCoprime ((q : ℤ) ^ 2) ((B * ((n : ℤ) - m)) ^ n) :=
-      (hqq.coprime_iff_not_dvd.mpr fun h => (hqq.dvd_mul.mp h).elim hqB hqnm).pow
-    have hpF0 : ∀ t : ℤ, ((t : ZMod q) = 0) ↔ (q : ℤ) ∣ t := fun t =>
-      ZMod.intCast_zmod_eq_zero_iff_dvd t q
-    have hkey2a : ((n : ZMod q) - m) * B * (a : ZMod q) = -(n : ZMod q) := by
-      have h0 : ((B * ((n : ℤ) - m) * a + n : ℤ) : ZMod q) = 0 := (hpF0 _).mpr hqa
-      push_cast at h0
-      linear_combination h0
-    have hnZ : ((n : ZMod q)) ≠ 0 := fun h => hqn (by rw [← hpF0]; exact_mod_cast h)
-    have hBZ : ((B : ZMod q)) ≠ 0 := fun h => hqB ((hpF0 B).mp h)
-    have hmZ : ((m : ZMod q)) ≠ 0 := fun h => hqm (by rw [← hpF0]; exact_mod_cast h)
-    have hnmZ : ((n : ZMod q)) - m ≠ 0 := fun h => hqnm (by
-      rw [← hpF0]
-      push_cast
-      exact h)
-    have hDZ : ((D n m A B : ℤ) : ZMod q) = 0 := (hpF0 _).mpr hq1
-    obtain ⟨hfa, hf'a⟩ := root_of_D hn hm hmn hnZ hBZ hmZ hnmZ hkey2a hDZ
-    refine RingOfIntegers.adjoin_ne_top_of_sq_dvd_eval (θ := θ) (p := q) (r := a)
-      ?_ ?_ ?_ hmono
-    · rw [hθ, natDegree_jones hmn]
-      exact hn
-    · rw [hθ, eval_jones, dvd_eval_iff_dvd_D hmn.le ha hcop2]
-      exact hq2
-    · rw [hθ, eval_derivative_jones]
-      rw [← hpF0]
-      push_cast
-      exact hf'a
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    p ∣ RingOfIntegers.exponent θ ↔ (p : ℤ) ^ 2 ∣ A ∨ (p : ℤ) ^ 2 ∣ D n m A B := by
+  have hn : 2 ≤ n := by omega
+  constructor
+  · intro h
+    by_contra hcon
+    rw [not_or] at hcon
+    exact not_dvd_exponent_aux hm hmn hgcd hθ hgen hcon.1 hcon.2 h
+  · rintro (hA2 | hD2)
+    · exact dvd_exponent_of_sq_dvd_A hn hmn hθ hA2
+    · by_cases hpA : (p : ℤ) ∣ A
+      · -- `p ∣ A` and `p ^ 2 ∣ D` force `p ^ 2 ∣ A`
+        exact dvd_exponent_of_sq_dvd_A hn hmn hθ
+          (sq_dvd_A_of_dvd_A_of_sq_dvd_D hp.out hm hmn hgcd hpA hD2)
+      · -- `p ∤ A`, `p ^ 2 ∣ D`: double-root criterion at the lift `a`
+        have hD1 : (p : ℤ) ∣ D n m A B := (dvd_pow_self _ two_ne_zero).trans hD2
+        obtain ⟨a, ha, hcop2, -, -, hf'a⟩ :=
+          exists_lift_double_root hp.out hm hmn hgcd hpA hD1
+        have hpF0 : ∀ t : ℤ, ((t : ZMod p) = 0) ↔ (p : ℤ) ∣ t := fun t =>
+          ZMod.intCast_zmod_eq_zero_iff_dvd t p
+        refine RingOfIntegers.dvd_exponent_of_sq_dvd_eval (r := a) ?_ ?_ ?_
+        · rw [hθ, natDegree_jones hmn]
+          exact hn
+        · rw [hθ, eval_jones, dvd_eval_iff_dvd_D hmn.le ha hcop2]
+          exact hD2
+        · rw [hθ, eval_derivative_jones]
+          rw [← hpF0]
+          push_cast
+          exact hf'a
 
 /-- **The Kaur–Kumar theorem** (conjectured by L. Jones).
 Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be the minimal polynomial of `θ : 𝓞 K`, where
-`n > 2`, `1 ≤ m < n` and `gcd (n, m B) = 1`, and suppose `θ` generates `K` over `ℚ`.  Then
-`ℤ[θ] = 𝓞 K` if and only if both `A` and
-`n ^ n + (-1) ^ (n + m) B ^ n (n - m) ^ (n - m) m ^ m A` are squarefree. -/
-theorem monogenic_iff (hn : 2 < n) (hm : 0 < m) (hmn : m < n)
+`1 ≤ m < n` and `gcd (n, m B) = 1`, and suppose `θ` generates `K` over `ℚ`.  Then
+`ℤ[θ] = 𝓞 K` if and only if both `A` and `D n m A B` are squarefree.
+
+This is the globalization of the per-prime index criterion
+`NumberField.KaurKumar.dvd_exponent_iff`: `ℤ[θ] = 𝓞 K` iff no prime divides the exponent of
+`θ`, iff no prime squared divides `A` or `D n m A B`, iff `A` and `D n m A B` are
+squarefree. -/
+theorem monogenic_iff (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
-    Algebra.adjoin ℤ {θ} = ⊤ ↔
-      Squarefree A ∧ Squarefree ((n : ℤ) ^ n +
-        (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A) := by
-  have hn2 : 2 ≤ n := by omega
-  constructor
-  · intro hmono
-    exact ⟨squarefree_A_of_monogenic hn2 hmn hθ hmono,
-      squarefree_D_of_monogenic hn2 hm hmn hgcd hθ hmono⟩
-  · rintro ⟨h1, h2⟩
-    rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
-    intro p hp
+    Algebra.adjoin ℤ {θ} = ⊤ ↔ Squarefree A ∧ Squarefree (D n m A B) := by
+  rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
+  have key : ∀ p : ℕ, p.Prime → (¬p ∣ RingOfIntegers.exponent θ ↔
+      ¬(p : ℤ) ^ 2 ∣ A ∧ ¬(p : ℤ) ^ 2 ∣ D n m A B) := fun p hp => by
     haveI : Fact p.Prime := ⟨hp⟩
-    exact not_dvd_exponent_aux hn2 hm hmn hgcd hθ hgen h1 h2
+    rw [dvd_exponent_iff hm hmn hgcd hθ hgen, not_or]
+  constructor
+  · intro h
+    exact ⟨squarefree_int_iff.mpr fun p hp => ((key p hp).mp (h p hp)).1,
+      squarefree_int_iff.mpr fun p hp => ((key p hp).mp (h p hp)).2⟩
+  · rintro ⟨h1, h2⟩ p hp
+    exact (key p hp).mpr ⟨squarefree_int_iff.mp h1 p hp, squarefree_int_iff.mp h2 p hp⟩
 
 /-- **Jones' conjecture** (proved by Kaur and Kumar): for `A` prime, the polynomial
-`X ^ n + A (B X + 1) ^ m` is monogenic if and only if
-`n ^ n + (-1) ^ (n + m) B ^ n (n - m) ^ (n - m) m ^ m A` is squarefree. -/
-theorem monogenic_iff_of_prime (hA : Prime A) (hn : 2 < n) (hm : 0 < m) (hmn : m < n)
+`X ^ n + A (B X + 1) ^ m` is monogenic if and only if `D n m A B` is squarefree. -/
+theorem monogenic_iff_of_prime (hA : Prime A) (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
-    Algebra.adjoin ℤ {θ} = ⊤ ↔
-      Squarefree ((n : ℤ) ^ n +
-        (-1) ^ (n + m) * B ^ n * ((n : ℤ) - m) ^ (n - m) * (m : ℤ) ^ m * A) := by
-  rw [monogenic_iff hn hm hmn hgcd hθ hgen]
+    Algebra.adjoin ℤ {θ} = ⊤ ↔ Squarefree (D n m A B) := by
+  rw [monogenic_iff hm hmn hgcd hθ hgen]
   exact and_iff_right hA.irreducible.squarefree
 
 end Main
@@ -903,26 +877,18 @@ attribute [local instance] Ideal.Quotient.field
 
 variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {n m : ℕ} {A B : ℤ}
 
+private theorem squarefree_congr {z w : ℤ} (h : z = w) : Squarefree z ↔ Squarefree w :=
+  h ▸ Iff.rfl
+
 /-- `X ^ n + A (B X + 1) ^ m` is irreducible whenever `A` is squarefree and not `±1`, by
 Eisenstein's criterion at any prime factor of `A`. -/
 theorem irreducible_of_squarefree (hA : Squarefree A) (hA1 : A.natAbs ≠ 1)
-    (hn : 0 < n) (hmn : m < n) : Irreducible (X ^ n + C A * (C B * X + 1) ^ m) := by
+    (hmn : m < n) : Irreducible (X ^ n + C A * (C B * X + 1) ^ m) := by
   obtain ⟨q, hq, hqA⟩ := Int.exists_prime_and_dvd hA1
-  have hq2 : ¬q ^ 2 ∣ A := fun h => hq.not_unit (hA q (by rwa [← sq]))
-  have hdeg : (X ^ n + C A * (C B * X + 1) ^ m).degree = (n : WithBot ℕ) := degree_jones hmn
-  refine Polynomial.irreducible_of_eisenstein_criterion
-    ((Ideal.span_singleton_prime hq.ne_zero).mpr hq) ?_ ?_ ?_ ?_
-    (monic_jones hmn).isPrimitive
-  · rw [(monic_jones hmn).leadingCoeff, Ideal.mem_span_singleton]
-    exact fun h => hq.not_unit (isUnit_of_dvd_one h)
-  · intro i hi
-    rw [hdeg] at hi
-    rw [coeff_jones_lt (by exact_mod_cast hi), Ideal.mem_span_singleton]
-    exact hqA.mul_right _
-  · rw [hdeg]
-    exact_mod_cast hn
-  · rw [coeff_jones_zero hn, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
-    exact hq2
+  exact (isEisensteinAt_jones hq hmn hqA fun h =>
+      hq.not_unit (hA q (by rwa [← sq]))).irreducible
+    ((Ideal.span_singleton_prime hq.ne_zero).mpr hq) (monic_jones hmn).isPrimitive
+    (by rw [natDegree_jones hmn]; omega)
 
 /-- **Remark 1.2** of [kaurkumar2023]: the assumption `gcd (n, m B) = 1` in
 `NumberField.KaurKumar.monogenic_iff` cannot be dropped.  The polynomial
@@ -932,9 +898,7 @@ theorem irreducible_of_squarefree (hA : Squarefree A) (hA1 : A.natAbs ≠ 1)
 squarefree. -/
 theorem remark_1_2 (hθ : minpoly ℤ θ = X ^ 3 + C (-6) * (C 3 * X + 1) ^ 1)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
-    Algebra.adjoin ℤ {θ} = ⊤ ∧
-      ¬Squarefree ((3 : ℤ) ^ 3 + (-1) ^ (3 + 1) * 3 ^ 3 * ((3 : ℤ) - 1) ^ (3 - 1) * 1 ^ 1
-        * (-6)) := by
+    Algebra.adjoin ℤ {θ} = ⊤ ∧ ¬Squarefree (D 3 1 (-6) 3) := by
   constructor
   · rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
     intro p hp
@@ -943,11 +907,13 @@ theorem remark_1_2 (hθ : minpoly ℤ θ = X ^ 3 + C (-6) * (C 3 * X + 1) ^ 1)
     rcases eq_or_ne p 2 with rfl | hp2
     · refine RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt hgen ?_
       rw [hθ]
-      exact isEisensteinAt_jones hp (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+      exact isEisensteinAt_jones (Nat.prime_iff_prime_int.mp hp) (by norm_num)
+        (by norm_num) (by norm_num)
     rcases eq_or_ne p 3 with rfl | hp3
     · refine RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt hgen ?_
       rw [hθ]
-      exact isEisensteinAt_jones hp (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+      exact isEisensteinAt_jones (Nat.prime_iff_prime_int.mp hp) (by norm_num)
+        (by norm_num) (by norm_num)
     rcases eq_or_ne p 23 with rfl | hp23
     · -- at `p = 23` there is a tame double root at `11`
       refine RingOfIntegers.not_dvd_exponent_of_sq_not_dvd_eval (r := 11) hgen ?_ ?_ ?_
@@ -997,7 +963,7 @@ theorem remark_1_2 (hθ : minpoly ℤ θ = X ^ 3 + C (-6) * (C 3 * X + 1) ^ 1)
     · exact hp23 ((Nat.prime_dvd_prime_iff_eq hp (by decide)).mp h)
   · -- `-621` is divisible by `3 ^ 2`
     intro h
-    have h9 := h 3 (by norm_num)
+    have h9 := h 3 (by rw [D]; norm_num)
     rw [Int.isUnit_iff] at h9
     norm_num at h9
 
@@ -1046,7 +1012,7 @@ theorem irreducible_example_1_4 {p : ℕ} (hp : p.Prime) {B : ℤ} {n : ℕ} (hn
     Irreducible
       (X ^ n + C ((p : ℤ) * B ^ 2) * X ^ 2 + C (2 * (p : ℤ) * B) * X + C (p : ℤ)) := by
   rw [ex14_poly]
-  exact irreducible_of_prime (Nat.prime_iff_prime_int.mp hp) (by omega) (by omega)
+  exact irreducible_of_prime (Nat.prime_iff_prime_int.mp hp) (by omega)
 
 /-- **Example 1.4** of [kaurkumar2023]: let `p` be a prime and `f = X ^ n + a X ^ 2 + b X + p`
 with `b ^ 2 = 4 a p`, so that `a = p B ^ 2` and `b = 2 p B` with `B = b / (2 p)` (see
@@ -1059,11 +1025,10 @@ theorem example_1_4 {p : ℕ} (hp : p.Prime) {B : ℤ} {n : ℕ} (hn : 2 < n)
     (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
     Algebra.adjoin ℤ {θ} = ⊤ ↔
       Squarefree ((n : ℤ) ^ n + (-1) ^ n * 4 * B ^ n * ((n : ℤ) - 2) ^ (n - 2) * p) := by
-  rw [monogenic_iff hn (by norm_num) (by omega) (by push_cast; exact hgcd)
+  rw [monogenic_iff (by norm_num) (by omega) (by push_cast; exact hgcd)
     (hθ.trans ex14_poly) hgen,
     and_iff_right (Nat.prime_iff_prime_int.mp hp).irreducible.squarefree]
-  have hcongr : ∀ {z w : ℤ}, z = w → (Squarefree z ↔ Squarefree w) := fun h => h ▸ Iff.rfl
-  exact hcongr (by push_cast [pow_add]; ring)
+  exact squarefree_congr (by rw [D]; push_cast [pow_add]; ring)
 
 /-- The irreducibility claim of **Example 1.5** of [kaurkumar2023]: for squarefree
 `A ≠ ±1`, the polynomial `X ^ 3 + A (B X + 1) ^ 2` is irreducible.  (The paper uses Perron's
@@ -1071,7 +1036,7 @@ criterion, assuming moreover `4 ≤ |B|`; Eisenstein's criterion at a prime fact
 applies without any hypothesis on `B`.) -/
 theorem irreducible_example_1_5 {A B : ℤ} (hA : Squarefree A) (hA1 : A.natAbs ≠ 1) :
     Irreducible (X ^ 3 + C A * (C B * X + 1) ^ 2) :=
-  irreducible_of_squarefree hA hA1 (by norm_num) (by norm_num)
+  irreducible_of_squarefree hA hA1 (by norm_num)
 
 /-- **Example 1.5** of [kaurkumar2023]: for `3 ∤ B` and squarefree `A`, the polynomial
 `X ^ 3 + A (B X + 1) ^ 2` is monogenic if and only if `4 A B ^ 3 - 27` is squarefree. -/
@@ -1083,12 +1048,10 @@ theorem example_1_5 (hA : Squarefree A) (hB : ¬(3 : ℤ) ∣ B)
     push_cast
     exact Int.prime_three.coprime_iff_not_dvd.mpr fun h =>
       ((Int.prime_three.dvd_mul.mp h).resolve_left (by norm_num) : (3 : ℤ) ∣ B) |> hB
-  rw [monogenic_iff (by norm_num) (by norm_num) (by norm_num) h3 hθ hgen,
+  rw [monogenic_iff (by norm_num) (by norm_num) h3 hθ hgen,
     and_iff_right hA]
-  have hcongr : ∀ {z w : ℤ}, z = w → (Squarefree z ↔ Squarefree w) := fun h => h ▸ Iff.rfl
-  calc Squarefree (((3 : ℕ) : ℤ) ^ 3 + (-1) ^ (3 + 2) * B ^ 3 *
-        (((3 : ℕ) : ℤ) - ((2 : ℕ) : ℤ)) ^ (3 - 2) * ((2 : ℕ) : ℤ) ^ 2 * A)
-      ↔ Squarefree (-(4 * A * B ^ 3 - 27)) := hcongr (by push_cast; ring)
+  calc Squarefree (D 3 2 A B)
+      ↔ Squarefree (-(4 * A * B ^ 3 - 27)) := squarefree_congr (by rw [D]; push_cast; ring)
     _ ↔ Squarefree (4 * A * B ^ 3 - 27) := by
         rw [← Int.squarefree_natAbs, Int.natAbs_neg, Int.squarefree_natAbs]
 
