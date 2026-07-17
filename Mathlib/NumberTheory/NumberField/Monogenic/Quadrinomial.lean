@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
+public import Mathlib.NumberTheory.NumberField.Monogenic.Dedekind
 
 /-!
 # Monogenicity of `X ^ n + a X ^ 2 + 2 B X + c` with `B ^ 2 = a c`
@@ -63,6 +64,8 @@ analogue here; a single-prime valuation argument provably cannot decide them).
 * [A. Jakhar, S. Kaur, S. Kumar, *On power basis of a class of number fields*,
   arXiv:2303.03138 (2023)][jakharkaurkumar2023]
 -/
+
+set_option linter.style.longFile 1700
 
 @[expose] public section
 
@@ -1032,5 +1035,499 @@ theorem dvd_exponent_iff_of_not_dvd (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
       exact hf'd
 
 end Case5
+
+/-! ### Sufficiency in the wild cases (2) and (4) of Theorem 1.1
+
+These use the sufficiency half of Dedekind's index criterion
+(`RingOfIntegers.not_dvd_exponent_of_bezout`), which cannot be replaced by
+single-prime valuation arguments at wild multiplicities. -/
+
+section Sufficiency
+
+variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {p : ℕ} [hp : Fact p.Prime]
+variable {n : ℕ} {a B c : ℤ}
+
+/-- A polynomial over a field is coprime to `X - C d` as soon as it does not vanish
+at `d`. -/
+private theorem isCoprime_X_sub_C_of_eval_ne_zero {F : Type*} [Field F] {f : F[X]} {d : F}
+    (h : f.eval d ≠ 0) : IsCoprime f (X - C d) := by
+  refine ⟨C (f.eval d)⁻¹, -(C (f.eval d)⁻¹ * (f /ₘ (X - C d))), ?_⟩
+  have hmd := modByMonic_add_div f (X - C d)
+  rw [modByMonic_X_sub_C_eq_C_eval] at hmd
+  have hinv : C (f.eval d)⁻¹ * C (f.eval d) = 1 := by
+    rw [← map_mul, inv_mul_cancel₀ h, map_one]
+  linear_combination hinv - C (f.eval d)⁻¹ * hmd
+
+private theorem zmod_intCast_eq {x y : ℤ} {p : ℕ} [NeZero p] (h : (p : ℤ) ∣ x - y) :
+    ((x : ZMod p)) = ((y : ZMod p)) := by
+  rw [← sub_eq_zero, ← Int.cast_sub, ZMod.intCast_zmod_eq_zero_iff_dvd]
+  exact h
+
+/-- In case (4) of Theorem 1.1 (`p = 2`, `a` and `c` odd), if the degree `n` is odd
+then `2` never divides the index: `f` is separable mod `2`. -/
+theorem not_two_dvd_exponent_of_odd_degree (hn : 3 ≤ n) (hodd : ¬2 ∣ n)
+    (ha : ¬(2 : ℤ) ∣ a) (hc : ¬(2 : ℤ) ∣ c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    ¬2 ∣ RingOfIntegers.exponent θ := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  have h2N : (((2 : ℕ) : ZMod 2)) = 0 := ZMod.natCast_self 2
+  have e1 : (((a : ℤ) : ZMod 2)) = ((1 : ℤ) : ZMod 2) := zmod_intCast_eq (by omega)
+  have e2 : (((2 * B : ℤ) : ZMod 2)) = ((0 : ℤ) : ZMod 2) := zmod_intCast_eq ⟨B, by ring⟩
+  have e3 : (((c : ℤ) : ZMod 2)) = ((1 : ℤ) : ZMod 2) := zmod_intCast_eq (by omega)
+  rw [Int.cast_one] at e1 e3
+  rw [Int.cast_zero] at e2
+  refine RingOfIntegers.not_dvd_exponent_of_bezout (p := 2) hgen
+    (g := X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c))
+    (h := 1) (M := 0) ?_ ?_ ?_ ?_
+  · rw [hθ]
+    ring
+  · have hmap : (X ^ n + (C a * X ^ 2 + C (2 * B) * X
+        + C c) : ℤ[X]).map (Int.castRingHom (ZMod 2))
+        = X ^ n + X ^ 2 + 1 := by
+      simp only [Polynomial.map_add, Polynomial.map_pow, Polynomial.map_mul, map_C, map_X,
+        Int.coe_castRingHom, e1, e2, e3, map_one, map_zero]
+      ring
+    rw [hmap]
+    apply Polynomial.Separable.squarefree
+    have hn1 : ((n : ZMod 2)) = 1 := by
+      rw [← Int.cast_natCast (R := ZMod 2), ← Int.cast_one (R := ZMod 2)]
+      exact zmod_intCast_eq (by omega)
+    have hder : derivative (X ^ n + X ^ 2 + 1 : (ZMod 2)[X]) = X ^ (n - 1) := by
+      rw [derivative_add, derivative_add, derivative_one, add_zero, derivative_X_pow,
+        derivative_X_pow, hn1, map_one, one_mul, h2N, map_zero, zero_mul, add_zero]
+    rw [Polynomial.Separable, hder]
+    refine IsCoprime.pow_right ?_
+    refine ⟨1, -(X ^ (n - 1) + X), ?_⟩
+    have hpow : (X : (ZMod 2)[X]) ^ (n - 1) * X = X ^ n := by
+      rw [← pow_succ]
+      congr 1
+      omega
+    linear_combination -hpow
+  · intro q₀ hq₀ hdvd
+    rw [Polynomial.map_one] at hdvd
+    exact absurd (isUnit_of_dvd_one hdvd) hq₀.not_isUnit
+  · exact ⟨0, 1, 0, by simp⟩
+
+/-- **Sufficiency in case (4) of Theorem 1.1** (`p = 2`, `n = 2 m`, `a` and `c` odd):
+if `a` and `c` are not both `≡ 3 mod 4`, then `2` does not divide the index.
+Together with `two_dvd_exponent_of_mod_four` this determines case (4) completely. -/
+theorem not_two_dvd_exponent_of_not_mod_four {m : ℕ} (hm : 2 ≤ m) (hB : B ^ 2 = a * c)
+    (ha : ¬(2 : ℤ) ∣ a) (hc : ¬(2 : ℤ) ∣ c)
+    (h4 : ¬((4 : ℤ) ∣ a + 1 ∧ (4 : ℤ) ∣ c + 1))
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ (2 * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    ¬2 ∣ RingOfIntegers.exponent θ := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  have h2P : ((2 : (ZMod 2)[X])) = 0 := by exact_mod_cast CharP.cast_eq_zero ((ZMod 2)[X]) 2
+  obtain ⟨a₃, ha₃⟩ : ∃ a₃, a = 2 * a₃ + 1 := ⟨(a - 1) / 2, by omega⟩
+  obtain ⟨c₃, hc₃⟩ : ∃ c₃, c = 2 * c₃ + 1 := ⟨(c - 1) / 2, by omega⟩
+  -- `B` is odd since `B ^ 2 = a c` is odd
+  have hBodd : ∃ B₁ : ℤ, B = 2 * B₁ + 1 := by
+    rcases Int.even_or_odd B with hev | hod
+    · exfalso
+      have h2 : Even (a * c) := by
+        obtain ⟨t, ht⟩ := hev
+        rw [← hB, ht]
+        exact ⟨2 * t * t, by ring⟩
+      rcases Int.even_mul.mp h2 with h3 | h3 <;> obtain ⟨u, hu⟩ := h3 <;> omega
+    · obtain ⟨B₁, hB₁⟩ := hod
+      exact ⟨B₁, by omega⟩
+  obtain ⟨B₁, hB₁⟩ := hBodd
+  subst ha₃ hc₃ hB₁
+  -- cast facts for the reductions mod 2
+  have e1 : (((2 * a₃ + 1 : ℤ) : ZMod 2)) = ((1 : ℤ) : ZMod 2) :=
+    zmod_intCast_eq ⟨a₃, by ring⟩
+  have e2 : (((2 * c₃ + 1 : ℤ) : ZMod 2)) = ((1 : ℤ) : ZMod 2) :=
+    zmod_intCast_eq ⟨c₃, by ring⟩
+  have e3 : (((a₃ * (2 * a₃ + 1) : ℤ) : ZMod 2)) = ((a₃ : ZMod 2)) :=
+    zmod_intCast_eq ⟨a₃ ^ 2, by ring⟩
+  have e4 : ((((2 * B₁ + 1) - (2 * a₃ + 1) * (2 * c₃ + 1) : ℤ) : ZMod 2)) = ((0 : ℤ) : ZMod 2) :=
+    zmod_intCast_eq ⟨B₁ - 2 * a₃ * c₃ - a₃ - c₃, by ring⟩
+  have e5 : (((c₃ * (2 * c₃ + 1) : ℤ) : ZMod 2)) = ((c₃ : ZMod 2)) :=
+    zmod_intCast_eq ⟨c₃ ^ 2, by ring⟩
+  rw [Int.cast_one] at e1 e2
+  rw [Int.cast_zero] at e4
+  have hgmap : (X ^ m + C (2 * a₃ + 1) * X + C (2 * c₃ + 1) : ℤ[X]).map
+      (Int.castRingHom (ZMod 2)) = X ^ m + X + 1 := by
+    simp only [Polynomial.map_add, Polynomial.map_pow, Polynomial.map_mul, map_C, map_X,
+      Int.coe_castRingHom, e1, e2, map_one]
+    ring
+  refine RingOfIntegers.not_dvd_exponent_of_bezout (p := 2) hgen
+    (g := X ^ m + C (2 * a₃ + 1) * X + C (2 * c₃ + 1))
+    (h := X ^ m + C (2 * a₃ + 1) * X + C (2 * c₃ + 1))
+    (M := -(X ^ m * (C (2 * a₃ + 1) * X + C (2 * c₃ + 1)))
+      - C (a₃ * (2 * a₃ + 1)) * X ^ 2
+      + C ((2 * B₁ + 1) - (2 * a₃ + 1) * (2 * c₃ + 1)) * X
+      - C (c₃ * (2 * c₃ + 1))) ?_ ?_ ?_ ?_
+  · rw [hθ]
+    have hxx : (X : ℤ[X]) ^ (2 * m) = (X ^ m) ^ 2 := by
+      rw [← pow_mul, mul_comm m 2]
+    rw [hxx]
+    push_cast
+    simp only [map_sub, map_add, map_mul, map_ofNat, map_one]
+    ring
+  · -- `ḡ = X ^ m + X + 1` is separable mod 2
+    rw [hgmap]
+    apply Polynomial.Separable.squarefree
+    rw [Polynomial.Separable]
+    have hder : derivative (X ^ m + X + 1 : (ZMod 2)[X])
+        = C ((m : ZMod 2)) * X ^ (m - 1) + 1 := by
+      rw [derivative_add, derivative_add, derivative_one, add_zero, derivative_X_pow,
+        derivative_X]
+    rw [hder]
+    rcases Nat.even_or_odd m with ⟨k, hk⟩ | ⟨k, hk⟩
+    · have hm0 : ((m : ZMod 2)) = 0 := by
+        rw [← Int.cast_natCast (R := ZMod 2), ← Int.cast_zero (R := ZMod 2)]
+        exact zmod_intCast_eq (by omega)
+      rw [hm0, map_zero, zero_mul, zero_add]
+      exact isCoprime_one_right
+    · have hm1 : ((m : ZMod 2)) = 1 := by
+        rw [← Int.cast_natCast (R := ZMod 2), ← Int.cast_one (R := ZMod 2)]
+        exact zmod_intCast_eq (by omega)
+      rw [hm1, map_one, one_mul]
+      refine ⟨1, -X, ?_⟩
+      have hpow : (X : (ZMod 2)[X]) ^ (m - 1) * X = X ^ m := by
+        rw [← pow_succ]
+        congr 1
+        omega
+      linear_combination -hpow
+  · exact fun q₀ _ hdvd => hdvd
+  · -- the Bézout certificate, by cases on `a, c mod 4`
+    have hMmap : ((-(X ^ m * (C (2 * a₃ + 1) * X + C (2 * c₃ + 1)))
+        - C (a₃ * (2 * a₃ + 1)) * X ^ 2
+        + C ((2 * B₁ + 1) - (2 * a₃ + 1) * (2 * c₃ + 1)) * X
+        - C (c₃ * (2 * c₃ + 1))) : ℤ[X]).map (Int.castRingHom (ZMod 2))
+        = X ^ (m + 1) + X ^ m + C ((a₃ : ZMod 2)) * X ^ 2 + C ((c₃ : ZMod 2)) := by
+      simp only [Polynomial.map_add, Polynomial.map_sub, Polynomial.map_neg,
+        Polynomial.map_pow, Polynomial.map_mul, map_C, map_X, Int.coe_castRingHom,
+        e1, e2, e3, e4, e5, map_one, map_zero]
+      linear_combination (-(X ^ (m + 1) : (ZMod 2)[X]) - X ^ m
+        - C ((a₃ : ZMod 2)) * X ^ 2 - C ((c₃ : ZMod 2))) * h2P
+    -- eval facts for the coprimality certificates
+    have hg0 : (X ^ m + X + 1 : (ZMod 2)[X]).eval 0 ≠ 0 := by
+      simp [zero_pow (by omega : m ≠ 0)]
+    have hg1 : (X ^ m + X + 1 : (ZMod 2)[X]).eval 1 ≠ 0 := by
+      have h3 : ((1 : ZMod 2)) + 1 + 1 = 1 := by
+        have h2M : ((2 : ZMod 2)) = 0 := by exact_mod_cast ZMod.natCast_self 2
+        linear_combination h2M
+      simp only [eval_add, eval_pow, eval_X, eval_one, one_pow]
+      rw [h3]
+      exact one_ne_zero
+    have hcopX : IsCoprime (X ^ m + X + 1 : (ZMod 2)[X]) X := by
+      have h := isCoprime_X_sub_C_of_eval_ne_zero hg0
+      rwa [map_zero, sub_zero] at h
+    have hcopX1 : IsCoprime (X ^ m + X + 1 : (ZMod 2)[X]) (X + 1) := by
+      have h := isCoprime_X_sub_C_of_eval_ne_zero hg1
+      have hrw : (X - C (1 : ZMod 2) : (ZMod 2)[X]) = X + 1 := by
+        rw [map_one]
+        linear_combination -h2P
+      rwa [hrw] at h
+    suffices hcop : IsCoprime
+        ((X ^ m + C (2 * a₃ + 1) * X + C (2 * c₃ + 1) : ℤ[X]).map (Int.castRingHom (ZMod 2)))
+        (((-(X ^ m * (C (2 * a₃ + 1) * X + C (2 * c₃ + 1)))
+          - C (a₃ * (2 * a₃ + 1)) * X ^ 2
+          + C ((2 * B₁ + 1) - (2 * a₃ + 1) * (2 * c₃ + 1)) * X
+          - C (c₃ * (2 * c₃ + 1))) : ℤ[X]).map (Int.castRingHom (ZMod 2))) by
+      obtain ⟨u, w, huw⟩ := hcop
+      exact ⟨u, 0, w, by rw [zero_mul]; linear_combination huw⟩
+    rw [hgmap, hMmap]
+    rcases Int.even_or_odd a₃ with ⟨s, hs⟩ | ⟨s, hs⟩ <;>
+      rcases Int.even_or_odd c₃ with ⟨t, ht⟩ | ⟨t, ht⟩
+    · -- a ≡ 1, c ≡ 1 mod 4 : M̄ = (X+1)² + ḡ (X+1)
+      have hsZ : ((a₃ : ZMod 2)) = 0 := by
+        rw [← Int.cast_zero (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      have htZ : ((c₃ : ZMod 2)) = 0 := by
+        rw [← Int.cast_zero (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      rw [hsZ, htZ, map_zero, zero_mul, add_zero, add_zero]
+      have hMrw : (X ^ (m + 1) + X ^ m : (ZMod 2)[X])
+          = (X + 1) ^ 2 + (X ^ m + X + 1) * (X + 1) := by
+        linear_combination (-(X ^ 2 : (ZMod 2)[X]) - 2 * X - 1) * h2P
+      rw [hMrw]
+      exact (hcopX1.pow_right).add_mul_left_right (X + 1)
+    · -- a ≡ 1, c ≡ 3 mod 4 : M̄ = X² + ḡ (X+1)
+      have hsZ : ((a₃ : ZMod 2)) = 0 := by
+        rw [← Int.cast_zero (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      have htZ : ((c₃ : ZMod 2)) = 1 := by
+        rw [← Int.cast_one (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      rw [hsZ, htZ, map_zero, map_one, zero_mul, add_zero]
+      have hMrw : (X ^ (m + 1) + X ^ m + 1 : (ZMod 2)[X])
+          = X ^ 2 + (X ^ m + X + 1) * (X + 1) := by
+        linear_combination (-(X ^ 2 : (ZMod 2)[X]) - X) * h2P
+      rw [hMrw]
+      exact (hcopX.pow_right).add_mul_left_right (X + 1)
+    · -- a ≡ 3, c ≡ 1 mod 4 : M̄ = 1 + ḡ (X+1)
+      have hsZ : ((a₃ : ZMod 2)) = 1 := by
+        rw [← Int.cast_one (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      have htZ : ((c₃ : ZMod 2)) = 0 := by
+        rw [← Int.cast_zero (R := ZMod 2)]; exact zmod_intCast_eq (by omega)
+      rw [hsZ, htZ, map_one, map_zero, one_mul, add_zero]
+      have hMrw : (X ^ (m + 1) + X ^ m + X ^ 2 : (ZMod 2)[X])
+          = 1 + (X ^ m + X + 1) * (X + 1) := by
+        linear_combination (-X - 1 : (ZMod 2)[X]) * h2P
+      rw [hMrw]
+      exact isCoprime_one_right.add_mul_left_right (X + 1)
+    · -- a ≡ c ≡ 3 mod 4 : excluded
+      exact absurd ⟨⟨s + 1, by omega⟩, ⟨t + 1, by omega⟩⟩ h4
+
+/-- `X ^ m + C s` is squarefree over `ZMod p` when `p ∤ m` and `s ≠ 0`. -/
+private theorem squarefree_X_pow_add_C {m : ℕ} (hm : ¬p ∣ m) {s : ZMod p} (hs : s ≠ 0) :
+    Squarefree (X ^ m + C s : (ZMod p)[X]) := by
+  apply Polynomial.Separable.squarefree
+  rw [Polynomial.Separable]
+  have hm0 : m ≠ 0 := fun h => hm (h ▸ dvd_zero p)
+  have hder : derivative (X ^ m + C s : (ZMod p)[X]) = C ((m : ZMod p)) * X ^ (m - 1) := by
+    rw [derivative_add, derivative_C, add_zero, derivative_X_pow]
+  rw [hder]
+  have hmne : ((m : ZMod p)) ≠ 0 := by
+    intro h0
+    apply hm
+    have h1 : (((m : ℤ)) : ZMod p) = 0 := by rw [Int.cast_natCast]; exact h0
+    exact_mod_cast (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp h1
+  refine IsCoprime.mul_right ⟨0, C ((m : ZMod p))⁻¹, by
+    rw [zero_mul, zero_add, ← map_mul, inv_mul_cancel₀ hmne, map_one]⟩ ?_
+  refine IsCoprime.pow_right ?_
+  have heval : (X ^ m + C s : (ZMod p)[X]).eval 0 ≠ 0 := by
+    simp [zero_pow hm0, hs]
+  have h := isCoprime_X_sub_C_of_eval_ne_zero heval
+  rwa [map_zero, sub_zero] at h
+
+/-- In case (2) of Theorem 1.1 (`p ∣ a`, `p ∤ c`), if moreover `p ∤ n` then `p` never
+divides the index: `f ≡ X ^ n + c mod p` is separable. -/
+theorem not_dvd_exponent_of_not_dvd_degree (_hn : 3 ≤ n) (hpn : ¬p ∣ n)
+    (hB : B ^ 2 = a * c) (hpa : (p : ℤ) ∣ a) (hpc : ¬(p : ℤ) ∣ c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    ¬p ∣ RingOfIntegers.exponent θ := by
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+  have hpB : (p : ℤ) ∣ B := hpp.dvd_of_dvd_pow (n := 2) (by rw [hB]; exact hpa.mul_right c)
+  obtain ⟨a₁, ha₁⟩ := hpa
+  obtain ⟨B₁, hB₁⟩ := hpB
+  refine RingOfIntegers.not_dvd_exponent_of_bezout hgen
+    (g := X ^ n + C c) (h := 1)
+    (M := C a₁ * X ^ 2 + C (2 * B₁) * X) ?_ ?_ ?_ ?_
+  · rw [hθ, ha₁, hB₁]
+    simp only [map_mul, map_ofNat]
+    ring
+  · have hgmap : (X ^ n + C c : ℤ[X]).map (Int.castRingHom (ZMod p))
+        = X ^ n + C ((c : ZMod p)) := by
+      simp only [Polynomial.map_add, Polynomial.map_pow, map_C, map_X, Int.coe_castRingHom]
+    rw [hgmap]
+    have hcne : ((c : ZMod p)) ≠ 0 := fun h0 =>
+      hpc ((ZMod.intCast_zmod_eq_zero_iff_dvd c p).mp h0)
+    exact squarefree_X_pow_add_C hpn hcne
+  · intro q₀ hq₀ hdvd
+    rw [Polynomial.map_one] at hdvd
+    exact absurd (isUnit_of_dvd_one hdvd) hq₀.not_isUnit
+  · exact ⟨0, 1, 0, by simp⟩
+
+/-- **Sufficiency in case (2) of Theorem 1.1**: `p ∣ a`, `p ∤ c`, `n = p ^ r * m` with
+`r ≥ 1` and `p ∤ m`.  If the totally wild obstruction does not occur
+(`¬(p² ∣ 2B ∧ p² ∣ c + (-c) ^ p ^ r)`) and no integer `d` with `p ∣ d ^ m + c`
+satisfies `p² ∣ (-c) ^ p ^ r + c + a d² + 2 B d`, then `p` does not divide the index.
+Together with `dvd_exponent_of_sq_dvd_of_sq_dvd` and `dvd_exponent_of_dvd_of_dvd_eval`
+this determines case (2) completely. -/
+theorem not_dvd_exponent_of_forall_not_dvd_eval {r m : ℕ} (_hn : 3 ≤ p ^ r * m)
+    (_hr : 1 ≤ r) (hm : ¬p ∣ m) (hB : B ^ 2 = a * c) (hpa : (p : ℤ) ∣ a) (hpc : ¬(p : ℤ) ∣ c)
+    (hw : ¬((p : ℤ) ^ 2 ∣ 2 * B ∧ (p : ℤ) ^ 2 ∣ c + (-c) ^ p ^ r))
+    (hlin : ∀ d : ℤ, (p : ℤ) ∣ d ^ m + c →
+      ¬(p : ℤ) ^ 2 ∣ (-c) ^ p ^ r + c + a * d ^ 2 + 2 * B * d)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    ¬p ∣ RingOfIntegers.exponent θ := by
+  have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+  have hm0 : m ≠ 0 := fun h => hm (h ▸ dvd_zero p)
+  -- `p ∣ B` and, since `p ∤ c`, in fact `p ^ 2 ∣ a`
+  have hpB : (p : ℤ) ∣ B := hpp.dvd_of_dvd_pow (n := 2) (by rw [hB]; exact hpa.mul_right c)
+  have hpa2 : (p : ℤ) ^ 2 ∣ a := by
+    have h1 : (p : ℤ) ^ 2 ∣ a * c := by
+      rw [← hB]
+      exact pow_dvd_pow_of_dvd hpB 2
+    exact ((hpp.coprime_iff_not_dvd.mpr hpc).pow_left).dvd_of_dvd_mul_right h1
+  obtain ⟨a₂, ha₂⟩ := hpa2
+  obtain ⟨B₁, hB₁⟩ := hpB
+  -- `p ∣ c + (-c) ^ p ^ r` by Fermat
+  have hpc1 : (p : ℤ) ∣ c + (-c) ^ p ^ r := by
+    have h1 : (((c + (-c) ^ p ^ r : ℤ)) : ZMod p) = 0 := by
+      push_cast
+      rw [ZMod.pow_card_pow]
+      ring
+    exact (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp h1
+  obtain ⟨c₁, hc₁⟩ := hpc1
+  -- the key identity for `X ^ n + C c`, from the pure one at `-c`
+  obtain ⟨T, hT⟩ := Pure.key_identity p r hm0 (-c)
+  have hkey : (X ^ (p ^ r * m) + C c : ℤ[X])
+      = (X ^ m + C c) ^ p ^ r + C (p : ℤ) * ((X ^ m + C c) * T) + C (c + (-c) ^ p ^ r) := by
+    have h := hT
+    rw [show (X ^ (p ^ r * m) - C (-c) : ℤ[X]) = X ^ (p ^ r * m) + C c by
+        rw [map_neg, sub_neg_eq_add],
+      show (X ^ m - C (-c) : ℤ[X]) = X ^ m + C c by rw [map_neg, sub_neg_eq_add],
+      show ((-c : ℤ) ^ p ^ r - -c) = c + (-c) ^ p ^ r by ring] at h
+    exact h
+  have hcne : ((c : ZMod p)) ≠ 0 := fun h0 =>
+    hpc ((ZMod.intCast_zmod_eq_zero_iff_dvd c p).mp h0)
+  have hgmap : (X ^ m + C c : ℤ[X]).map (Int.castRingHom (ZMod p))
+      = X ^ m + C ((c : ZMod p)) := by
+    simp only [Polynomial.map_add, Polynomial.map_pow, map_C, map_X, Int.coe_castRingHom]
+  refine RingOfIntegers.not_dvd_exponent_of_bezout hgen
+    (g := X ^ m + C c) (h := (X ^ m + C c) ^ (p ^ r - 1))
+    (M := (X ^ m + C c) * T + C ((p : ℤ) * a₂) * X ^ 2 + C (2 * B₁) * X + C c₁)
+    ?_ ?_ ?_ ?_
+  · -- the splitting `f = g h + p M`
+    rw [hθ]
+    have hgh : (X ^ m + C c : ℤ[X]) * (X ^ m + C c) ^ (p ^ r - 1)
+        = (X ^ m + C c) ^ p ^ r := by
+      rw [← pow_succ']
+      congr 1
+      have h1 : 1 ≤ p ^ r := Nat.one_le_pow r p hp.out.pos
+      omega
+    have hca : C a = C ((p : ℤ)) * C ((p : ℤ) * a₂) := by
+      rw [← map_mul]
+      congr 1
+      rw [ha₂]
+      ring
+    have hcB : C (2 * B) = C ((p : ℤ)) * C (2 * B₁) := by
+      rw [← map_mul]
+      congr 1
+      rw [hB₁]
+      ring
+    have hcc : C (c + (-c) ^ p ^ r) = C ((p : ℤ)) * C c₁ := by
+      rw [hc₁, map_mul]
+    linear_combination hkey + X ^ 2 * hca + X * hcB + hcc - hgh
+  · -- `ḡ = X ^ m + c̄` is separable
+    rw [hgmap]
+    exact squarefree_X_pow_add_C hm hcne
+  · -- every irreducible factor of `h̄ = ḡ ^ (p ^ r - 1)` divides `ḡ`
+    intro q₀ hq₀ hdvd
+    rw [Polynomial.map_pow] at hdvd
+    exact hq₀.prime.dvd_of_dvd_pow hdvd
+  · -- the Bézout certificate
+    have eB : (((2 * B₁ : ℤ)) : ZMod p) = 2 * ((B₁ : ℤ) : ZMod p) := by
+      push_cast
+      ring
+    have ePa : ((((p : ℤ) * a₂ : ℤ)) : ZMod p) = 0 :=
+      (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mpr ⟨a₂, rfl⟩
+    have hMmap : (((X ^ m + C c) * T + C ((p : ℤ) * a₂) * X ^ 2 + C (2 * B₁) * X
+        + C c₁ : ℤ[X])).map (Int.castRingHom (ZMod p))
+        = C (2 * ((B₁ : ℤ) : ZMod p)) * X + C (((c₁ : ℤ)) : ZMod p)
+          + (X ^ m + C ((c : ZMod p))) * T.map (Int.castRingHom (ZMod p)) := by
+      simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C, map_X,
+        Int.coe_castRingHom, eB, ePa, map_zero]
+      ring
+    suffices hcop : IsCoprime (X ^ m + C ((c : ZMod p)) : (ZMod p)[X])
+        (C (2 * ((B₁ : ℤ) : ZMod p)) * X + C (((c₁ : ℤ)) : ZMod p)) by
+      have hcopM : IsCoprime
+          ((X ^ m + C c : ℤ[X]).map (Int.castRingHom (ZMod p)))
+          ((((X ^ m + C c) * T + C ((p : ℤ) * a₂) * X ^ 2 + C (2 * B₁) * X
+            + C c₁ : ℤ[X])).map (Int.castRingHom (ZMod p))) := by
+        rw [hgmap, hMmap]
+        exact hcop.add_mul_left_right (T.map (Int.castRingHom (ZMod p)))
+      obtain ⟨u, w, huw⟩ := hcopM
+      exact ⟨u, 0, w, by rw [zero_mul]; linear_combination huw⟩
+    by_cases hβ : (2 * ((B₁ : ℤ) : ZMod p)) = 0
+    · -- constant case: `c₁` must be a unit mod `p` by the wildness hypothesis
+      have hγ : (((c₁ : ℤ)) : ZMod p) ≠ 0 := by
+        intro hγ0
+        apply hw
+        constructor
+        · have h1 : (p : ℤ) ∣ 2 * B₁ := by
+            have h2 : (((2 * B₁ : ℤ)) : ZMod p) = 0 := by rw [eB]; exact hβ
+            exact (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp h2
+          obtain ⟨t, ht⟩ := h1
+          exact ⟨t, by linear_combination 2 * hB₁ + (p : ℤ) * ht⟩
+        · have h1 : (p : ℤ) ∣ c₁ := (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp hγ0
+          obtain ⟨t, ht⟩ := h1
+          exact ⟨t, by rw [hc₁, ht]; ring⟩
+      rw [hβ, map_zero, zero_mul, zero_add]
+      exact ⟨0, C (((c₁ : ℤ)) : ZMod p)⁻¹, by
+        rw [zero_mul, zero_add, ← map_mul, inv_mul_cancel₀ hγ, map_one]⟩
+    · -- linear case: the root `d₀ = -c₁ / (2 B₁)` is not a root of `ḡ` by `hlin`
+      have heval : (X ^ m + C ((c : ZMod p)) : (ZMod p)[X]).eval
+          (-(((c₁ : ℤ)) : ZMod p) * (2 * ((B₁ : ℤ) : ZMod p))⁻¹) ≠ 0 := by
+        intro h0
+        simp only [eval_add, eval_pow, eval_X, eval_C] at h0
+        obtain ⟨d, hd⟩ := ZMod.intCast_surjective
+          (-(((c₁ : ℤ)) : ZMod p) * (2 * ((B₁ : ℤ) : ZMod p))⁻¹)
+        have hdc : (p : ℤ) ∣ d ^ m + c := by
+          have h1 : (((d ^ m + c : ℤ)) : ZMod p) = 0 := by
+            push_cast
+            rw [hd]
+            exact h0
+          exact (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp h1
+        refine hlin d hdc ?_
+        have hlincast : (((c₁ + 2 * B₁ * d : ℤ)) : ZMod p) = 0 := by
+          push_cast
+          rw [hd]
+          have hinv := mul_inv_cancel₀ hβ
+          linear_combination -(((c₁ : ℤ) : ZMod p)) * hinv
+        have h1 : (p : ℤ) ∣ c₁ + 2 * B₁ * d :=
+          (ZMod.intCast_zmod_eq_zero_iff_dvd _ p).mp hlincast
+        obtain ⟨t, ht⟩ := h1
+        refine ⟨a₂ * d ^ 2 + t, ?_⟩
+        linear_combination hc₁ + d ^ 2 * ha₂ + 2 * d * hB₁ + (p : ℤ) * ht
+      have hcoplin := isCoprime_X_sub_C_of_eval_ne_zero heval
+      have hd₀mul : (2 * ((B₁ : ℤ) : ZMod p))
+          * (-(((c₁ : ℤ)) : ZMod p) * (2 * ((B₁ : ℤ) : ZMod p))⁻¹)
+          = -(((c₁ : ℤ)) : ZMod p) := by
+        have hinv := mul_inv_cancel₀ hβ
+        linear_combination -(((c₁ : ℤ) : ZMod p)) * hinv
+      have hlineq : C (2 * ((B₁ : ℤ) : ZMod p)) * X + C (((c₁ : ℤ)) : ZMod p)
+          = C (2 * ((B₁ : ℤ) : ZMod p))
+            * (X - C (-(((c₁ : ℤ)) : ZMod p) * (2 * ((B₁ : ℤ) : ZMod p))⁻¹)) := by
+        rw [mul_sub, ← map_mul, hd₀mul, map_neg, sub_neg_eq_add]
+      rw [hlineq]
+      refine IsCoprime.mul_right ⟨0, C (2 * ((B₁ : ℤ) : ZMod p))⁻¹, by
+        rw [zero_mul, zero_add, ← map_mul, inv_mul_cancel₀ hβ, map_one]⟩ hcoplin
+
+/-- **Case (4) of Theorem 1.1 of [jakharkaurkumar2023], complete** (`p = 2`, `a` and `c`
+odd, `n = 2 m`): `2` divides the index `[𝓞 K : ℤ[θ]]` if and only if
+`a ≡ c ≡ 3 mod 4`. -/
+theorem two_dvd_exponent_iff {m : ℕ} (hm : 2 ≤ m) (hB : B ^ 2 = a * c)
+    (ha : ¬(2 : ℤ) ∣ a) (hc : ¬(2 : ℤ) ∣ c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ (2 * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    2 ∣ RingOfIntegers.exponent θ ↔ (4 : ℤ) ∣ a + 1 ∧ (4 : ℤ) ∣ c + 1 := by
+  constructor
+  · intro h
+    by_contra h4
+    exact not_two_dvd_exponent_of_not_mod_four hm hB ha hc h4 hgen hθ h
+  · rintro ⟨ha4, hc4⟩
+    exact two_dvd_exponent_of_mod_four hm hB ha4 hc4 hθ
+
+/-- **Case (2) of Theorem 1.1 of [jakharkaurkumar2023], complete**: for `p ∣ a`,
+`p ∤ c` and `n = p ^ r * m` with `r ≥ 1`, `p ∤ m`, the prime `p` divides the index
+`[𝓞 K : ℤ[θ]]` if and only if either the totally wild obstruction occurs
+(`p² ∣ 2B` and `p² ∣ c + (-c) ^ p ^ r`) or some integer `d` with `p ∣ d ^ m + c`
+satisfies `p² ∣ (-c) ^ p ^ r + c + a d² + 2 B d`. -/
+theorem dvd_exponent_iff_of_dvd_of_not_dvd {r m : ℕ} (hn : 3 ≤ p ^ r * m) (hr : 1 ≤ r)
+    (hm : ¬p ∣ m) (hB : B ^ 2 = a * c) (hpa : (p : ℤ) ∣ a) (hpc : ¬(p : ℤ) ∣ c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    p ∣ RingOfIntegers.exponent θ ↔
+      ((p : ℤ) ^ 2 ∣ 2 * B ∧ (p : ℤ) ^ 2 ∣ c + (-c) ^ p ^ r) ∨
+        ∃ d : ℤ, (p : ℤ) ∣ d ^ m + c ∧
+          (p : ℤ) ^ 2 ∣ (-c) ^ p ^ r + c + a * d ^ 2 + 2 * B * d := by
+  have hm0 : m ≠ 0 := fun h => hm (h ▸ dvd_zero p)
+  constructor
+  · intro h
+    by_contra hcon
+    refine absurd h (not_dvd_exponent_of_forall_not_dvd_eval hn hr hm hB hpa hpc ?_ ?_
+      hgen hθ)
+    · exact fun hwand => hcon (Or.inl hwand)
+    · exact fun d hd hsq => hcon (Or.inr ⟨d, hd, hsq⟩)
+  · rintro (⟨hw1, hw2⟩ | ⟨d, hd, hsq⟩)
+    · -- totally wild necessity; `p ^ 2 ∣ a` is automatic
+      have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+      have hpB : (p : ℤ) ∣ B :=
+        hpp.dvd_of_dvd_pow (n := 2) (by rw [hB]; exact hpa.mul_right c)
+      have hpa2 : (p : ℤ) ^ 2 ∣ a := by
+        have h1 : (p : ℤ) ^ 2 ∣ a * c := by
+          rw [← hB]
+          exact pow_dvd_pow_of_dvd hpB 2
+        exact ((hpp.coprime_iff_not_dvd.mpr hpc).pow_left).dvd_of_dvd_mul_right h1
+      exact dvd_exponent_of_sq_dvd_of_sq_dvd hn hr hm0 hpa2 hw1 hw2 hθ
+    · exact dvd_exponent_of_dvd_of_dvd_eval hn hr hm0 hB hpa hd hsq hθ
+
+end Sufficiency
 
 end NumberField.Quadrinomial
