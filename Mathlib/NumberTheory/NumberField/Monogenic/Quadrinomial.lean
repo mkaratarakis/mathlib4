@@ -1528,6 +1528,121 @@ theorem dvd_exponent_iff_of_dvd_of_not_dvd {r m : ℕ} (hn : 3 ≤ p ^ r * m) (h
       exact dvd_exponent_of_sq_dvd_of_sq_dvd hn hr hm0 hpa2 hw1 hw2 hθ
     · exact dvd_exponent_of_dvd_of_dvd_eval hn hr hm0 hB hpa hd hsq hθ
 
+/-- **Corrected Corollary 1.2 of [jakharkaurkumar2023]** (global monogenicity).  For
+irreducible `f = X ^ n + a X ^ 2 + 2 B X + c` with `B ^ 2 = a c` and root `θ`
+generating `K`, `ℤ[θ] = 𝓞 K` if and only if
+
+1. every prime divisor of `c` divides `a` (the *correction* to the printed
+   Corollary 1.2, forced by the corrected case (3) of Theorem 1.1);
+2. for `p ∣ a`, `p ∣ c`: `p ^ 2 ∤ c`;
+3. for `p ∣ a`, `p ∤ c` and `n = p ^ r * m` with `r ≥ 1`, `p ∤ m`: neither the totally
+   wild obstruction nor a linear-congruence witness occurs;
+4. for `p ∤ 2 B`: `p ^ 2 ∤ D`;
+5. for `p = 2` with `a c` odd and `n` even: not both `a ≡ 3` and `c ≡ 3 mod 4`.
+
+Primes with `p ∣ a`, `p ∤ c`, `p ∤ n`, and the prime `2` when `a c` is odd and `n` is
+odd, never divide the index, so no condition is imposed there. -/
+theorem monogenic_iff (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔
+      (∀ p : ℕ, p.Prime → (p : ℤ) ∣ c → (p : ℤ) ∣ a) ∧
+      (∀ p : ℕ, p.Prime → (p : ℤ) ∣ a → (p : ℤ) ∣ c → ¬(p : ℤ) ^ 2 ∣ c) ∧
+      (∀ p r m : ℕ, p.Prime → n = p ^ r * m → 1 ≤ r → ¬p ∣ m → (p : ℤ) ∣ a →
+        ¬(p : ℤ) ∣ c →
+        ¬(((p : ℤ) ^ 2 ∣ 2 * B ∧ (p : ℤ) ^ 2 ∣ c + (-c) ^ p ^ r) ∨
+          ∃ d : ℤ, (p : ℤ) ∣ d ^ m + c ∧
+            (p : ℤ) ^ 2 ∣ (-c) ^ p ^ r + c + a * d ^ 2 + 2 * B * d)) ∧
+      (∀ p : ℕ, p.Prime → ¬(p : ℤ) ∣ 2 * B → ¬(p : ℤ) ^ 2 ∣ D n B c) ∧
+      (∀ m : ℕ, n = 2 * m → ¬(2 : ℤ) ∣ a * c →
+        ¬((4 : ℤ) ∣ a + 1 ∧ (4 : ℤ) ∣ c + 1)) := by
+  rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
+  constructor
+  · intro hall
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · intro p hpprime hpc
+      by_contra hpa
+      haveI : Fact p.Prime := ⟨hpprime⟩
+      exact hall p hpprime (dvd_exponent_of_dvd_of_not_dvd hn hB hpa hpc hθ)
+    · intro p hpprime hpa hpc hc2
+      haveI : Fact p.Prime := ⟨hpprime⟩
+      exact hall p hpprime ((dvd_exponent_iff_of_dvd_of_dvd hn hB hpa hpc hθ hgen).mpr hc2)
+    · intro p r m hpprime hnm hr hm hpa hpc hcon
+      haveI : Fact p.Prime := ⟨hpprime⟩
+      have hθ' : minpoly ℤ θ = X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c) := by
+        rw [← hnm]
+        exact hθ
+      exact hall p hpprime ((dvd_exponent_iff_of_dvd_of_not_dvd (hnm ▸ hn) hr hm hB hpa
+        hpc hgen hθ').mpr hcon)
+    · intro p hpprime hp2B hD2
+      haveI : Fact p.Prime := ⟨hpprime⟩
+      exact hall p hpprime ((dvd_exponent_iff_of_not_dvd hn hB hp2B hθ hgen).mpr hD2)
+    · intro m hnm h2ac hmod
+      haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+      have h2a : ¬(2 : ℤ) ∣ a := fun h => h2ac (h.mul_right c)
+      have h2c : ¬(2 : ℤ) ∣ c := fun h => h2ac (Dvd.dvd.mul_left h a)
+      have hm2 : 2 ≤ m := by omega
+      have hθ' : minpoly ℤ θ = X ^ (2 * m) + (C a * X ^ 2 + C (2 * B) * X + C c) := by
+        rw [← hnm]
+        exact hθ
+      exact hall 2 Nat.prime_two ((two_dvd_exponent_iff hm2 hB h2a h2c hgen hθ').mpr hmod)
+  · rintro ⟨h3, h1, h2, h5, h4⟩ p hpprime
+    haveI : Fact p.Prime := ⟨hpprime⟩
+    by_cases hp2B : (p : ℤ) ∣ 2 * B
+    · by_cases hpa : (p : ℤ) ∣ a
+      · by_cases hpc : (p : ℤ) ∣ c
+        · rw [dvd_exponent_iff_of_dvd_of_dvd hn hB hpa hpc hθ hgen]
+          exact h1 p hpprime hpa hpc
+        · by_cases hpn : p ∣ n
+          · obtain ⟨r, m, hm, hnm⟩ := Nat.exists_eq_pow_mul_and_not_dvd
+              (by omega : n ≠ 0) p hpprime.ne_one
+            have hr : 1 ≤ r := by
+              rcases Nat.eq_zero_or_pos r with h0 | h0
+              · exfalso
+                rw [h0, pow_zero, one_mul] at hnm
+                exact hm (hnm ▸ hpn)
+              · exact h0
+            have hθ' : minpoly ℤ θ
+                = X ^ (p ^ r * m) + (C a * X ^ 2 + C (2 * B) * X + C c) := by
+              rw [← hnm]
+              exact hθ
+            rw [dvd_exponent_iff_of_dvd_of_not_dvd (hnm ▸ hn) hr hm hB hpa hpc hgen hθ']
+            exact h2 p r m hpprime hnm hr hm hpa hpc
+          · exact not_dvd_exponent_of_not_dvd_degree hn hpn hB hpa hpc hgen hθ
+      · -- `p ∤ a`, hence `p ∤ c` by the corrected case (3), hence `p = 2` with `a c` odd
+        have hpc : ¬(p : ℤ) ∣ c := fun hpc => hpa (h3 p hpprime hpc)
+        have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hpprime
+        have hpB : ¬(p : ℤ) ∣ B := by
+          intro h
+          have hac : (p : ℤ) ∣ a * c := by
+            rw [← hB, sq]
+            exact h.mul_left B
+          rcases hpp.dvd_mul.mp hac with h' | h'
+          exacts [hpa h', hpc h']
+        have hp2 : p = 2 := by
+          rcases hpp.dvd_mul.mp hp2B with h' | h'
+          · have hdvd2 : p ∣ 2 := by exact_mod_cast h'
+            exact (Nat.prime_dvd_prime_iff_eq hpprime Nat.prime_two).mp hdvd2
+          · exact absurd h' hpB
+        subst hp2
+        have h2ac : ¬(2 : ℤ) ∣ a * c := by
+          intro h
+          rcases hpp.dvd_mul.mp h with h' | h'
+          exacts [hpa h', hpc h']
+        rcases Nat.even_or_odd n with ⟨m, hm'⟩ | hodd
+        · have hnm : n = 2 * m := by omega
+          have hm2 : 2 ≤ m := by omega
+          have hθ' : minpoly ℤ θ
+              = X ^ (2 * m) + (C a * X ^ 2 + C (2 * B) * X + C c) := by
+            rw [← hnm]
+            exact hθ
+          rw [two_dvd_exponent_iff hm2 hB hpa hpc hgen hθ']
+          exact h4 m hnm h2ac
+        · obtain ⟨k, hk⟩ := hodd
+          exact not_two_dvd_exponent_of_odd_degree hn (by omega) hpa hpc hgen hθ
+    · rw [dvd_exponent_iff_of_not_dvd hn hB hp2B hθ hgen]
+      exact h5 p hpprime hp2B
+
 end Sufficiency
 
 end NumberField.Quadrinomial
