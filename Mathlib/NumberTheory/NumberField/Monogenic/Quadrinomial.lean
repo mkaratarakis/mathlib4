@@ -1643,6 +1643,51 @@ theorem monogenic_iff (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
     · rw [dvd_exponent_iff_of_not_dvd hn hB hp2B hθ hgen]
       exact h5 p hpprime hp2B
 
+/-- **Corollary 1.4 of [jakharkaurkumar2023]**.  Let `f = X ^ n + a X ^ 2 + 2 B X + c` be
+irreducible with `B ^ 2 = a c`, `c` a squarefree non-unit, the sets of primes dividing
+`a`, `b = 2 B` and `c` all equal, and `2 ∣ c` or `a ≡ 1` or `c ≡ 1 mod 4`.  Then
+`ℤ[θ] = 𝓞 K` if and only if for every prime `p` dividing `D` and not dividing `a` one has
+`p ^ 2 ∤ D`.
+
+Here `D = NumberField.Quadrinomial.D n B c` differs from the paper's discriminant `D_f`
+only by the sign unit `(-1) ^ (n (n-1) / 2)`, so the divisibility conditions coincide.
+Under the hypotheses the same-primes assumption makes cases (2) and (3) of Theorem 1.1
+vacuous, squarefreeness of `c` discharges case (1), and the `mod 4` assumption discharges
+case (4), leaving only case (5). -/
+theorem monogenic_iff_of_squarefree (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
+    (hsf : Squarefree c) (_hcnu : ¬ IsUnit c)
+    (hac : ∀ p : ℕ, p.Prime → ((p : ℤ) ∣ a ↔ (p : ℤ) ∣ c))
+    (hab : ∀ p : ℕ, p.Prime → ((p : ℤ) ∣ a ↔ (p : ℤ) ∣ 2 * B))
+    (hmod : (2 : ℤ) ∣ c ∨ (4 : ℤ) ∣ a - 1 ∨ (4 : ℤ) ∣ c - 1)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ n + (C a * X ^ 2 + C (2 * B) * X + C c)) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔
+      ∀ p : ℕ, p.Prime → (p : ℤ) ∣ D n B c → ¬(p : ℤ) ∣ a → ¬(p : ℤ) ^ 2 ∣ D n B c := by
+  rw [monogenic_iff hn hB hgen hθ]
+  constructor
+  · rintro ⟨_, _, _, hc5, _⟩ p hpprime _ hpa
+    exact hc5 p hpprime (fun h2B => hpa ((hab p hpprime).mpr h2B))
+  · intro hT
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · intro p hpprime hpc
+      exact (hac p hpprime).mpr hpc
+    · intro p hpprime _ _ hp2c
+      have hpp : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hpprime
+      exact hpp.not_unit (hsf (p : ℤ) (by rw [← sq]; exact hp2c))
+    · intro p r m hpprime _ _ _ hpa hpc _
+      exact hpc ((hac p hpprime).mp hpa)
+    · intro p hpprime hp2B
+      have hpa : ¬(p : ℤ) ∣ a := fun h => hp2B ((hab p hpprime).mp h)
+      by_cases hpD : (p : ℤ) ∣ D n B c
+      · exact hT p hpprime hpD hpa
+      · exact fun h => hpD (dvd_trans (dvd_pow_self _ two_ne_zero) h)
+    · intro m _ h2ac
+      have h2c : ¬(2 : ℤ) ∣ c := fun h => h2ac (Dvd.dvd.mul_left h a)
+      rcases hmod with h | h | h
+      · exact absurd h h2c
+      · rintro ⟨ha1, _⟩; omega
+      · rintro ⟨_, hc1⟩; omega
+
 end Sufficiency
 
 end NumberField.Quadrinomial
