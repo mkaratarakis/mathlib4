@@ -91,68 +91,79 @@ namespace Polynomial
 
 variable {p : ℕ} [hp : Fact p.Prime]
 
-/-- A polynomial over `ℤ` reduces to `0` mod `p` if and only if it is divisible by the
-constant polynomial `p`. -/
-theorem map_intCastRingHom_zmod_eq_zero_iff {q : ℤ[X]} :
-    q.map (Int.castRingHom (ZMod p)) = 0 ↔ C (p : ℤ) ∣ q := by
+/-- Univariate analogue of `MvPolynomial.C_dvd_iff_map_hom_eq_zero`. -/
+theorem C_dvd_iff_map_hom_eq_zero {R S : Type*} [CommSemiring R] [Semiring S] (q : R →+* S)
+    (r : R) (hr : ∀ r' : R, q r' = 0 ↔ r ∣ r') (φ : R[X]) : C r ∣ φ ↔ φ.map q = 0 := by
   rw [C_dvd_iff_dvd_coeff, Polynomial.ext_iff]
-  refine forall_congr' fun i => ?_
-  rw [coeff_map, coeff_zero, Int.coe_castRingHom, ZMod.intCast_zmod_eq_zero_iff_dvd]
+  simp [hr]
+
+/-- Univariate analogue of `MvPolynomial.C_dvd_iff_zmod`: a polynomial over `ℤ` is
+divisible by the constant polynomial `n` exactly when it reduces to `0` mod `n`. -/
+theorem C_dvd_iff_zmod (n : ℕ) (φ : ℤ[X]) :
+    C (n : ℤ) ∣ φ ↔ φ.map (Int.castRingHom (ZMod n)) = 0 :=
+  C_dvd_iff_map_hom_eq_zero _ _ (fun r => ZMod.intCast_zmod_eq_zero_iff_dvd r n) _
 
 /-- **The integral Frobenius identity.**  In `ℤ[X]` the constant polynomial `p` divides
 `g(Xᵖ) - g(X)ᵖ`.
 
-Mathlib provides the characteristic-`p` identity `Polynomial.map_frobenius_expand`; this is
-its integral shadow, obtained by reducing mod `p` and using that the Frobenius endomorphism
-of `ZMod p` is the identity. -/
+Mathlib provides the characteristic-`p` identity `ZMod.expand_card`; this is its integral
+shadow, obtained by reducing mod `p`. -/
 theorem C_natCast_dvd_expand_sub_pow (g : ℤ[X]) :
     C (p : ℤ) ∣ expand ℤ p g - g ^ p := by
-  rw [← map_intCastRingHom_zmod_eq_zero_iff, Polynomial.map_sub, Polynomial.map_expand,
-    Polynomial.map_pow, sub_eq_zero]
-  conv_rhs => rw [← map_frobenius_expand (R := ZMod p) p (g.map (Int.castRingHom (ZMod p)))]
-  rw [ZMod.frobenius_zmod, Polynomial.map_id]
+  rw [C_dvd_iff_zmod, Polynomial.map_sub, Polynomial.map_expand,
+    Polynomial.map_pow, ZMod.expand_card, sub_self]
 
 variable {g : ℤ[X]}
 
-/-- If `ḡ` is irreducible mod `p` then `g(Xᵖ)` lies in `⟨p, g⟩`. -/
-theorem expand_mem_span_pair (g : ℤ[X]) :
-    expand ℤ p g ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) := by
-  obtain ⟨c, hc⟩ := C_natCast_dvd_expand_sub_pow (p := p) g
-  have : expand ℤ p g = C (p : ℤ) * c + g ^ p := by linear_combination hc
-  rw [this]
-  refine add_mem (Ideal.mul_mem_right _ _ (Ideal.subset_span (by simp))) ?_
-  exact Ideal.pow_mem_of_mem _ (Ideal.subset_span (by simp)) _ hp.out.pos
-
-/-- If `ḡ` is irreducible mod `p` and `tᵖ ∈ ⟨p, g⟩`, then `t ∈ ⟨p, g⟩`; that is, `⟨p, g⟩`
-is a prime ideal.  Proved concretely, by reducing mod `p` and using that `ḡ` is prime in
-the principal ideal domain `(ZMod p)[X]`. -/
-theorem mem_span_pair_of_pow_mem (hgirr : Irreducible (g.map (Int.castRingHom (ZMod p))))
-    {t : ℤ[X]} {n : ℕ}
-    (ht : t ^ n ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X])) :
-    t ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) := by
+/-- Membership in `⟨p, g⟩` is exactly divisibility of the reductions mod `p`. -/
+theorem mem_span_pair_C_natCast_iff {f : ℤ[X]} :
+    f ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ↔
+      g.map (Int.castRingHom (ZMod p)) ∣ f.map (Int.castRingHom (ZMod p)) := by
   set φ := Int.castRingHom (ZMod p) with hφ
   have hCp : (C (p : ℤ)).map φ = 0 := by simp [hφ]
-  -- Reduce the membership `t ^ n ∈ ⟨p, g⟩` to the divisibility `ḡ ∣ t̄ ^ n`.
-  obtain ⟨c, d, hcd⟩ := Ideal.mem_span_pair.mp ht
-  have hdvd : g.map φ ∣ (t.map φ) ^ n := by
-    refine ⟨d.map φ, ?_⟩
-    have h := congrArg (Polynomial.map φ) hcd
-    rw [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_mul, Polynomial.map_pow,
-      hCp, mul_zero, zero_add] at h
-    rw [← h, mul_comm]
-  -- `ḡ` is irreducible, hence prime, in the principal ideal domain `(ZMod p)[X]`.
-  obtain ⟨e, he⟩ := (irreducible_iff_prime.mp hgirr).dvd_of_dvd_pow hdvd
-  -- Lift `e` back to `ℤ[X]`; then `t - g * E` reduces to `0`, so is divisible by `p`.
-  obtain ⟨E, hE⟩ := Polynomial.map_surjective φ ZMod.intCast_surjective e
-  obtain ⟨c', hc'⟩ : C (p : ℤ) ∣ t - g * E := by
-    rw [← map_intCastRingHom_zmod_eq_zero_iff, Polynomial.map_sub, Polynomial.map_mul,
-      hE, ← he, sub_self]
-  exact Ideal.mem_span_pair.mpr ⟨c', E, by linear_combination -hc'⟩
+  constructor
+  · rintro hf
+    obtain ⟨c, d, rfl⟩ := Ideal.mem_span_pair.mp hf
+    exact ⟨d.map φ, by
+      rw [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_mul, hCp, mul_zero,
+        zero_add, mul_comm]⟩
+  · rintro ⟨e, he⟩
+    obtain ⟨E, hE⟩ := Polynomial.map_surjective φ ZMod.intCast_surjective e
+    obtain ⟨c, hc⟩ : C (p : ℤ) ∣ f - g * E := by
+      rw [C_dvd_iff_zmod, Polynomial.map_sub, Polynomial.map_mul,
+        hE, ← he, sub_self]
+    exact Ideal.mem_span_pair.mpr ⟨c, E, by linear_combination -hc⟩
 
-/-- Membership in `𝔪 ^ 2` only depends on the class modulo `𝔪 ^ 2`. -/
+/-- `⟨p, g⟩` is the contraction of `⟨ḡ⟩` along reduction mod `p`. -/
+theorem span_pair_C_natCast_eq_comap :
+    (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) =
+      Ideal.comap (Polynomial.mapRingHom (Int.castRingHom (ZMod p)))
+        (Ideal.span {g.map (Int.castRingHom (ZMod p))}) := by
+  ext f
+  rw [Ideal.mem_comap, Ideal.mem_span_singleton, mem_span_pair_C_natCast_iff]
+  rfl
+
+/-- If `ḡ` is irreducible mod `p` then `⟨p, g⟩` is a prime ideal of `ℤ[X]`: it is the
+contraction of the prime ideal `⟨ḡ⟩` of `(ZMod p)[X]`. -/
+theorem isPrime_span_pair_C_natCast
+    (hgirr : Irreducible (g.map (Int.castRingHom (ZMod p)))) :
+    (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]).IsPrime := by
+  have : (Ideal.span {g.map (Int.castRingHom (ZMod p))}).IsPrime :=
+    (Ideal.span_singleton_prime hgirr.ne_zero).mpr (irreducible_iff_prime.mp hgirr)
+  rw [span_pair_C_natCast_eq_comap]
+  infer_instance
+
+/-- `g(Xᵖ)` lies in `⟨p, g⟩`, since mod `p` it equals `ḡ ᵖ`. -/
+theorem expand_mem_span_pair (g : ℤ[X]) :
+    expand ℤ p g ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) := by
+  rw [mem_span_pair_C_natCast_iff, Polynomial.map_expand, ZMod.expand_card]
+  exact dvd_pow_self _ hp.out.ne_zero
+
+/-- Membership in `𝔪 ^ 2` depends only on the class modulo `𝔪 ^ 2`. -/
 private theorem mem_sq_iff_of_sub_mem {I : Ideal ℤ[X]} {x y : ℤ[X]} (h : x - y ∈ I ^ 2) :
     x ∈ I ^ 2 ↔ y ∈ I ^ 2 :=
-  ⟨fun hx => by simpa using Ideal.sub_mem _ hx h, fun hy => by simpa using Ideal.add_mem _ h hy⟩
+  ⟨fun hx => (Submodule.sub_mem_iff_right _ hx).mp h,
+    fun hy => (Submodule.sub_mem_iff_left _ hy).mp h⟩
 
 /-- Auxiliary step in Theorem 2.4: if `p * rᵖ ∈ ⟨p, g⟩ ^ 2` then already
 `p * r ∈ ⟨p, g⟩ ^ 2`.  This is the only place where irreducibility of `ḡ` is used. -/
@@ -166,7 +177,7 @@ theorem C_mul_mem_sq_of_C_mul_pow_mem_sq
   obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp h
   -- Reduce mod `p`: the equation collapses to `ḡ ^ 2 * w̄ = 0`, so `p ∣ w`.
   have hwdvd : C (p : ℤ) ∣ w := by
-    rw [← map_intCastRingHom_zmod_eq_zero_iff]
+    rw [C_dvd_iff_zmod]
     have hgw : (g ^ 2 * w).map φ = 0 := by
       have h2 : g ^ 2 * w = C (p : ℤ) * r ^ p - C (p : ℤ) ^ 2 * u - C (p : ℤ) * g * v := by
         linear_combination -huvw
@@ -179,7 +190,7 @@ theorem C_mul_mem_sq_of_C_mul_pow_mem_sq
   have hcancel : r ^ p = C (p : ℤ) * u + g * v + g ^ 2 * w' :=
     mul_left_cancel₀ hCp0 (by linear_combination huvw)
   have hrmem : r ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) :=
-    mem_span_pair_of_pow_mem hgirr
+    (isPrime_span_pair_C_natCast hgirr).mem_of_pow_mem p
       (Ideal.mem_span_pair.mpr ⟨u, v + g * w', by rw [hcancel]; ring⟩)
   rw [sq]
   exact Ideal.mul_mem_mul (Ideal.subset_span (by simp)) hrmem
