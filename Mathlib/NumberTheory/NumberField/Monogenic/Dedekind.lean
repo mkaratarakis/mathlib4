@@ -162,21 +162,28 @@ private theorem map_dvd_map_sub_of_map_dvd {Pi A B g h N M : ℤ[X]} (hPi : Pi.M
   rw [h4]
   exact dvd_sub (Dvd.dvd.mul_right (dvd_pow_self _ two_ne_zero) _) (Dvd.dvd.mul_right dvd_rfl _)
 
-/-- **Dedekind's index criterion (sufficiency).**  Let `θ` generate `K` over `ℚ`, with
-minimal polynomial `f` over `ℤ`, and let `f = g * h + p * M` be a decomposition in
-`ℤ[X]`.  If mod `p` the factor `g` is squarefree, every irreducible factor of `h`
-divides `g`, and `g`, `h`, `M` generate the unit ideal of `𝔽_p[X]`, then `p` does not
-divide the exponent (equivalently, the index `[𝓞 K : ℤ[θ]]`). -/
-theorem not_dvd_exponent_of_bezout (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
-    {g h M : ℤ[X]} (hf : minpoly ℤ θ = g * h + C (p : ℤ) * M)
-    (hsq : Squarefree (g.map (Int.castRingHom (ZMod p))))
-    (hrad : ∀ q : (ZMod p)[X], Irreducible q → q ∣ h.map (Int.castRingHom (ZMod p)) →
-      q ∣ g.map (Int.castRingHom (ZMod p)))
-    (hbez : ∃ u v w : (ZMod p)[X],
-      u * g.map (Int.castRingHom (ZMod p)) + v * h.map (Int.castRingHom (ZMod p)) +
-        w * M.map (Int.castRingHom (ZMod p)) = 1) :
-    ¬ p ∣ exponent θ := by
-  intro hdvd
+/-- **Uchida's obstruction, existence half.**  If the rational prime `p` divides the
+exponent of `θ`, then the minimal polynomial `f` of `θ` admits a splitting
+`f = A * B + p * N` in `ℤ[X]` together with a monic polynomial `π`, irreducible mod `p`,
+dividing the reductions of all three of `A`, `B` and `N`.
+
+Since `π` divides the reductions of `A`, `B` and `N`, this says exactly that `f` lies in
+the square of the maximal ideal `⟨p, π⟩` of `ℤ[X]`, which is the nontrivial half of
+Uchida's criterion; the converse is `RingOfIntegers.dvd_exponent_of_sq_factor`.
+
+The argument is Dedekind's, following K. Conrad's exposition: a bad denominator `β` with
+`p * β = r(θ)` gives, mod `p`, the gcd of the reductions of `r` and `f`, which lifts to a
+polynomial `A` with `A(θ) = p * γ`; scaling the roots of the minimal polynomial of `γ` by
+`p` forces the complementary factor `B` to be nonconstant mod `p`, and any monic
+irreducible factor `π` of that reduction then divides the reduction of `A`, so `π ^ 2`
+divides the reduction of `f`; a second application of the scaled-roots trick shows `π`
+divides the reduction of `N`. -/
+theorem exists_splitting_of_dvd_exponent (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hdvd : p ∣ exponent θ) :
+    ∃ (π : (ZMod p)[X]) (A B N : ℤ[X]), π.Monic ∧ Irreducible π ∧
+      minpoly ℤ θ = A * B + C (p : ℤ) * N ∧
+      π ∣ A.map (Int.castRingHom (ZMod p)) ∧ π ∣ B.map (Int.castRingHom (ZMod p)) ∧
+      π ∣ N.map (Int.castRingHom (ZMod p)) := by
   have hsurj : Function.Surjective (Int.castRingHom (ZMod p)) := ZMod.intCast_surjective
   have hp𝓞 : (p : 𝓞 K) ≠ 0 := Nat.cast_ne_zero.mpr hp.out.pos.ne'
   have hfm : (minpoly ℤ θ).Monic := minpoly.monic θ.isIntegral
@@ -294,35 +301,6 @@ theorem not_dvd_exponent_of_bezout (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
     · have hπpow : π ∣ Abar ^ (d - 1) := hcancel ▸ hπB.mul_right k
       exact hπirr.prime.dvd_of_dvd_pow hπpow
   have hπf : π ∣ fbar := hπA.trans hAdvd_f
-  -- Step 6: π divides ḡ and h̄
-  have hfgh : fbar = g.map (Int.castRingHom (ZMod p)) * h.map (Int.castRingHom (ZMod p)) := by
-    have := congrArg (Polynomial.map (Int.castRingHom (ZMod p))) hf
-    simpa only [Polynomial.map_add, Polynomial.map_mul, map_C, Int.coe_castRingHom,
-      Int.cast_natCast, ZMod.natCast_self, map_zero, C_0, zero_mul, add_zero] using this
-  have hπg : π ∣ g.map (Int.castRingHom (ZMod p)) := by
-    rcases hπirr.prime.dvd_mul.mp (hfgh ▸ hπf) with hcase | hcase
-    · exact hcase
-    · exact hrad π hπirr hcase
-  have hπh : π ∣ h.map (Int.castRingHom (ZMod p)) := by
-    obtain ⟨g₁, hg₁⟩ := hπg
-    have hπ2 : π ^ 2 ∣ fbar := by
-      rw [hBbar, sq]
-      exact mul_dvd_mul hπA hπB
-    have hstep : π ∣ g₁ * h.map (Int.castRingHom (ZMod p)) := by
-      have hh2 : π * (g₁ * h.map (Int.castRingHom (ZMod p))) =
-          g.map (Int.castRingHom (ZMod p)) * h.map (Int.castRingHom (ZMod p)) := by
-        rw [hg₁]; ring
-      have := hfgh ▸ hπ2
-      rw [← hh2, sq] at this
-      exact (mul_dvd_mul_iff_left hπirr.ne_zero).mp this
-    rcases hπirr.prime.dvd_mul.mp hstep with hcase | hcase
-    · exfalso
-      apply hπirr.not_isUnit
-      apply hsq π
-      rw [hg₁]
-      exact mul_dvd_mul_left π hcase
-    · exact hcase
-  -- Step 7: the polynomial N with f = A * B + p * N, and π ∣ N̄
   obtain ⟨B, hBmap⟩ := Polynomial.map_surjective _ hsurj Bbar
   have hN0 : (minpoly ℤ θ - A * B).map (Int.castRingHom (ZMod p)) = 0 := by
     rw [Polynomial.map_sub, Polynomial.map_mul, hAmap, hBmap, ← hfbar, ← hBbar, sub_self]
@@ -386,15 +364,67 @@ theorem not_dvd_exponent_of_bezout (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
       exact this
     have := hπirr.prime.dvd_of_dvd_pow hπpow
     rwa [dvd_neg] at this
-  -- Step 8: change of splitting transfers π ∣ N̄ to π ∣ M̄
+  exact ⟨π, A, B, N, hπmonic, hπirr, by linear_combination hN,
+    by rw [hAmap]; exact hπA, by rw [hBmap]; exact hπB, hπN⟩
+
+/-- **Dedekind's index criterion (sufficiency).**  Let `θ` generate `K` over `ℚ`, with
+minimal polynomial `f` over `ℤ`, and let `f = g * h + p * M` be a decomposition in
+`ℤ[X]`.  If mod `p` the factor `g` is squarefree, every irreducible factor of `h`
+divides `g`, and `g`, `h`, `M` generate the unit ideal of `𝔽_p[X]`, then `p` does not
+divide the exponent (equivalently, the index `[𝓞 K : ℤ[θ]]`). -/
+theorem not_dvd_exponent_of_bezout (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    {g h M : ℤ[X]} (hf : minpoly ℤ θ = g * h + C (p : ℤ) * M)
+    (hsq : Squarefree (g.map (Int.castRingHom (ZMod p))))
+    (hrad : ∀ q : (ZMod p)[X], Irreducible q → q ∣ h.map (Int.castRingHom (ZMod p)) →
+      q ∣ g.map (Int.castRingHom (ZMod p)))
+    (hbez : ∃ u v w : (ZMod p)[X],
+      u * g.map (Int.castRingHom (ZMod p)) + v * h.map (Int.castRingHom (ZMod p)) +
+        w * M.map (Int.castRingHom (ZMod p)) = 1) :
+    ¬ p ∣ exponent θ := by
+  intro hdvd
+  have hsurj : Function.Surjective (Int.castRingHom (ZMod p)) := ZMod.intCast_surjective
+  obtain ⟨π, A, B, N, hπmonic, hπirr, hsplit, hπA, hπB, hπN⟩ :=
+    exists_splitting_of_dvd_exponent hθ hdvd
+  set fbar := (minpoly ℤ θ).map (Int.castRingHom (ZMod p)) with hfbar
+  have hBbar : fbar = A.map (Int.castRingHom (ZMod p)) * B.map (Int.castRingHom (ZMod p)) := by
+    rw [hfbar, hsplit, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_mul, map_C]
+    simp
+  have hπf : π ∣ fbar := by rw [hBbar]; exact hπA.mul_right _
+  have hfgh : fbar = g.map (Int.castRingHom (ZMod p)) * h.map (Int.castRingHom (ZMod p)) := by
+    have := congrArg (Polynomial.map (Int.castRingHom (ZMod p))) hf
+    simpa only [Polynomial.map_add, Polynomial.map_mul, map_C, Int.coe_castRingHom,
+      Int.cast_natCast, ZMod.natCast_self, map_zero, C_0, zero_mul, add_zero] using this
+  have hπg : π ∣ g.map (Int.castRingHom (ZMod p)) := by
+    rcases hπirr.prime.dvd_mul.mp (hfgh ▸ hπf) with hcase | hcase
+    · exact hcase
+    · exact hrad π hπirr hcase
+  have hπh : π ∣ h.map (Int.castRingHom (ZMod p)) := by
+    obtain ⟨g₁, hg₁⟩ := hπg
+    have hπ2 : π ^ 2 ∣ fbar := by
+      rw [hBbar, sq]
+      exact mul_dvd_mul hπA hπB
+    have hstep : π ∣ g₁ * h.map (Int.castRingHom (ZMod p)) := by
+      have hh2 : π * (g₁ * h.map (Int.castRingHom (ZMod p))) =
+          g.map (Int.castRingHom (ZMod p)) * h.map (Int.castRingHom (ZMod p)) := by
+        rw [hg₁]; ring
+      have := hfgh ▸ hπ2
+      rw [← hh2, sq] at this
+      exact (mul_dvd_mul_iff_left hπirr.ne_zero).mp this
+    rcases hπirr.prime.dvd_mul.mp hstep with hcase | hcase
+    · exfalso
+      apply hπirr.not_isUnit
+      apply hsq π
+      rw [hg₁]
+      exact mul_dvd_mul_left π hcase
+    · exact hcase
   obtain ⟨Pi, hPimap, _, hPimonic⟩ :=
     lifts_and_degree_eq_and_monic ((mem_lifts π).mpr
       (Polynomial.map_surjective _ hsurj π)) hπmonic
   have hid : A * B + C (p : ℤ) * N = g * h + C (p : ℤ) * M := by
-    linear_combination hf - hN
+    linear_combination hf - hsplit
   have hπMN : π ∣ M.map (Int.castRingHom (ZMod p)) - N.map (Int.castRingHom (ZMod p)) := by
     have := map_dvd_map_sub_of_map_dvd hPimonic hid
-      (hPimap ▸ (hπA.trans (dvd_of_eq hAmap.symm))) (hPimap ▸ (hπB.trans (dvd_of_eq hBmap.symm)))
+      (hPimap ▸ hπA) (hPimap ▸ hπB)
       (hPimap ▸ hπg) (hPimap ▸ hπh)
     rwa [hPimap] at this
   have hπM : π ∣ M.map (Int.castRingHom (ZMod p)) := by
