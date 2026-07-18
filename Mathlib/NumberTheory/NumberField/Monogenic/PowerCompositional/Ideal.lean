@@ -199,6 +199,36 @@ theorem C_dvd_of_mem_sq_of_natDegree_lt (hg : g.Monic) {r : ℤ[X]}
   rw [(hg.map _).natDegree_pow, hg.natDegree_map] at hle
   exact absurd (hle.trans natDegree_map_le) (by omega)
 
+/-- Reduction mod `p` of `f(X ^ (p ^ u))` is the `p ^ u`-th power of the reduction of `f`. -/
+theorem map_expand_pow_card (u : ℕ) (f : ℤ[X]) :
+    (expand ℤ (p ^ u) f).map (Int.castRingHom (ZMod p)) =
+      (f.map (Int.castRingHom (ZMod p))) ^ p ^ u := by
+  induction u generalizing f with
+  | zero => simp
+  | succ n ih =>
+    rw [show p ^ (n + 1) = p ^ n * p from pow_succ p n, expand_mul, ih (expand ℤ p f),
+      Polynomial.map_expand, ZMod.expand_card, ← pow_mul]
+    congr 1
+    ring
+
+/-- `⟨p, g⟩ ^ 2 ⊆ ⟨p, g ^ 2⟩`: a repeated factor of the square is a repeated factor. -/
+theorem sq_span_pair_le_span_pair_sq :
+    (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2 ≤ Ideal.span {C (p : ℤ), g ^ 2} := by
+  intro z hz
+  obtain ⟨a, b, c, habc⟩ := Ideal.mem_span_pair_sq_iff.mp hz
+  rw [mem_span_pair_C_natCast_iff]
+  exact ⟨c.map (Int.castRingHom (ZMod p)), by
+    rw [habc]; simp [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow]⟩
+
+/-- The hypothesis of Theorem 2.4 is stable under `X ↦ X ^ p`, so the theorem can be
+iterated. -/
+theorem expand_mem_span_pair_sq_of_mem_span_pair_sq {f : ℤ[X]}
+    (hf : f ∈ (Ideal.span {C (p : ℤ), g ^ 2} : Ideal ℤ[X])) :
+    expand ℤ p f ∈ (Ideal.span {C (p : ℤ), g ^ 2} : Ideal ℤ[X]) := by
+  rw [mem_span_pair_C_natCast_iff] at hf ⊢
+  rw [Polynomial.map_expand, ZMod.expand_card]
+  exact hf.trans (dvd_pow_self _ hp.out.ne_zero)
+
 omit hp in
 /-- Substituting `X ^ ℓ` carries `⟨p, g⟩ ^ 2` into `⟨p, g(X ^ ℓ)⟩ ^ 2`, since `expand` is a
 ring homomorphism fixing the constants. -/
@@ -291,5 +321,24 @@ theorem mem_sq_span_iff_expand_mem_sq_span
     rw [hpow]
     exact Ideal.mul_mem_right _ _ hpr
   rw [step1, step2, step3, step4]
+
+/-- **Corollary 2.5** at the level of ideals: iterating Theorem 2.4.  If `f ∈ ⟨p, g ^ 2⟩`
+then for every `u`,
+`f ∈ ⟨p, g⟩ ^ 2 ↔ f(X ^ (p ^ u)) ∈ ⟨p, g⟩ ^ 2`.
+
+This is what makes membership independent of the exponent of `p`. -/
+theorem mem_sq_span_iff_expand_pow_mem_sq_span
+    (hgirr : Irreducible (g.map (Int.castRingHom (ZMod p)))) :
+    ∀ (u : ℕ) {f : ℤ[X]}, f ∈ (Ideal.span {C (p : ℤ), g ^ 2} : Ideal ℤ[X]) →
+      (f ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2 ↔
+        expand ℤ (p ^ u) f ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2) := by
+  intro u
+  induction u with
+  | zero => intro f _; simp
+  | succ n ih =>
+    intro f hf
+    rw [show p ^ (n + 1) = p ^ n * p from pow_succ p n, expand_mul,
+      mem_sq_span_iff_expand_mem_sq_span hgirr hf]
+    exact ih (expand_mem_span_pair_sq_of_mem_span_pair_sq hf)
 
 end Polynomial

@@ -13,7 +13,8 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Uchi
 This file proves Lemma 2.6 of S. Kaur, S. Kumar and L. Remete,
 *On the index of power compositional polynomials*,
 Finite Fields Appl. **107** (2025), 102642: a prime dividing the index of `f` also divides
-the index of `f(X ^ ℓ)`.
+the index of `f(X ^ ℓ)`; and Corollary 2.5, that the index at `p` cannot distinguish
+`f(X ^ p)` from `f(X ^ (p ^ u))`.
 
 Both statements are about roots in *different* number fields — a root of `f` and a root of
 `f(X ^ ℓ)` — so the results below take two algebraic integers `θ` and `ω` together with
@@ -26,6 +27,9 @@ field.
   admits a monic `h` whose reduction is an irreducible factor of its own reduction.
 
 * `RingOfIntegers.dvd_exponent_expand_of_dvd_exponent`: Lemma 2.6.
+
+* `RingOfIntegers.dvd_exponent_expand_pow_iff`: Corollary 2.5 --- `p` divides the index of
+  `f(X ^ p)` iff it divides the index of `f(X ^ (p ^ u))`.
 
 ## References
 
@@ -107,5 +111,44 @@ theorem dvd_exponent_expand_of_dvd_exponent {f : ℤ[X]} {ℓ : ℕ} (hℓ : 0 <
   rw [hmω]
   exact Ideal.pow_right_mono (span_pair_le_of_map_dvd hhdvd) 2
     (expand_mem_sq_span_of_mem_sq_span hmem)
+
+/-- **Corollary 2.5** of Kaur–Kumar–Remete.  For a monic `f`, the prime `p` divides the
+index of `f(X ^ p)` if and only if it divides the index of `f(X ^ (p ^ u))`, for every
+`u ≥ 1`.
+
+So the monogenicity question at `p` does not see the exponent of `p` in `k`; this is what
+lets Theorem 1.1 depend only on `rad k`.  Both sides are rewritten by Uchida's criterion,
+after which the statement is the iterated Theorem 2.4,
+`Polynomial.mem_sq_span_iff_expand_pow_mem_sq_span`. -/
+theorem dvd_exponent_expand_pow_iff {f : ℤ[X]} {u : ℕ} (hu : 0 < u)
+    (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤) (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmθ : minpoly ℤ θ = expand ℤ p f) (hmω : minpoly ℤ ω = expand ℤ (p ^ u) f) :
+    p ∣ exponent θ ↔ p ∣ exponent ω := by
+  -- Peeling off one `expand` from `p ^ u`.
+  have hexp : expand ℤ (p ^ (u - 1)) (expand ℤ p f) = expand ℤ (p ^ u) f := by
+    rw [← expand_mul, ← pow_succ, Nat.sub_add_cancel hu]
+  rw [dvd_exponent_iff_exists_monic_irreducible_minpoly_mem_sq hθ,
+    dvd_exponent_iff_exists_monic_irreducible_minpoly_mem_sq hω, hmθ, hmω]
+  constructor
+  · rintro ⟨Pi, hm, hirr, hmem⟩
+    refine ⟨Pi, hm, hirr, ?_⟩
+    rw [← hexp]
+    exact (mem_sq_span_iff_expand_pow_mem_sq_span hirr (u - 1)
+      (sq_span_pair_le_span_pair_sq hmem)).mp hmem
+  · rintro ⟨Pi, hm, hirr, hmem⟩
+    refine ⟨Pi, hm, hirr, ?_⟩
+    -- `f(X ^ p)` still has the reduction of `Pi` as a repeated factor.
+    have hsq : expand ℤ p f ∈ (Ideal.span {C (p : ℤ), Pi ^ 2} : Ideal ℤ[X]) := by
+      have h1 : (Pi.map (Int.castRingHom (ZMod p))) ^ 2 ∣
+          (f.map (Int.castRingHom (ZMod p))) ^ p ^ u := by
+        have h := sq_span_pair_le_span_pair_sq hmem
+        rwa [mem_span_pair_C_natCast_iff, map_expand_pow_card, Polynomial.map_pow] at h
+      have h2 : Pi.map (Int.castRingHom (ZMod p)) ∣ f.map (Int.castRingHom (ZMod p)) :=
+        (irreducible_iff_prime.mp hirr).dvd_of_dvd_pow
+          ((dvd_pow_self _ two_ne_zero).trans h1)
+      rw [mem_span_pair_C_natCast_iff, Polynomial.map_expand, ZMod.expand_card,
+        Polynomial.map_pow]
+      exact (pow_dvd_pow_of_dvd h2 2).trans (pow_dvd_pow _ hp.out.two_le)
+    exact (mem_sq_span_iff_expand_pow_mem_sq_span hirr (u - 1) hsq).mpr (by rw [hexp]; exact hmem)
 
 end RingOfIntegers
