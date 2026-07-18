@@ -341,4 +341,46 @@ theorem mem_sq_span_iff_expand_pow_mem_sq_span
       mem_sq_span_iff_expand_mem_sq_span hgirr hf]
     exact ih (expand_mem_span_pair_sq_of_mem_span_pair_sq hf)
 
+/-- **Lemma 2.1** of Kaur–Kumar–Remete: `⟨p, g⟩ ^ 2 = ⟨p ^ 2, g⟩ ⊓ ⟨p, g ^ 2⟩`.
+
+The published proof deduces the nontrivial inclusion from primality of `⟨g⟩` in `ℤ[X]`,
+which needs `g` monic with irreducible reduction.  Reducing mod `p` instead gives it
+directly from nonvanishing of the reduction of `g`: comparing the two decompositions of
+`z` forces that reduction to divide the cofactor of `g`. -/
+theorem span_pair_sq_eq_inf (hg0 : g.map (Int.castRingHom (ZMod p)) ≠ 0) :
+    (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2 =
+      Ideal.span {C (p : ℤ) ^ 2, g} ⊓ Ideal.span {C (p : ℤ), g ^ 2} := by
+  refine le_antisymm (fun z hz => ?_) (fun z hz => ?_)
+  · obtain ⟨a, b, c, habc⟩ := Ideal.mem_span_pair_sq_iff.mp hz
+    exact ⟨Ideal.mem_span_pair.mpr ⟨a, C (p : ℤ) * b + g * c, by rw [habc]; ring⟩,
+      Ideal.mem_span_pair.mpr ⟨C (p : ℤ) * a + g * b, c, by rw [habc]; ring⟩⟩
+  · obtain ⟨hz1, hz2⟩ := hz
+    obtain ⟨a, b, hab⟩ := Ideal.mem_span_pair.mp hz1
+    obtain ⟨c, d, hcd⟩ := Ideal.mem_span_pair.mp hz2
+    -- Modulo `p` the two decompositions of `z` agree; cancelling the reduction of `g`
+    -- shows it divides the reduction of `b`.
+    have hb : b ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) := by
+      rw [mem_span_pair_C_natCast_iff]
+      have h := congrArg (Polynomial.map (Int.castRingHom (ZMod p))) (hab.trans hcd.symm)
+      simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+        Int.coe_castRingHom, Int.cast_natCast, ZMod.natCast_self, C_0] at h
+      refine Dvd.intro (d.map (Int.castRingHom (ZMod p))) ?_
+      have hcancel : b.map (Int.castRingHom (ZMod p)) =
+          d.map (Int.castRingHom (ZMod p)) * g.map (Int.castRingHom (ZMod p)) :=
+        mul_right_cancel₀ hg0 (by linear_combination h)
+      linear_combination -hcancel
+    obtain ⟨e', e, he⟩ := Ideal.mem_span_pair.mp hb
+    exact Ideal.mem_span_pair_sq_iff.mpr ⟨a, e', e, by rw [← hab, ← he]; ring⟩
+
+/-- **Corollary 2.2** of Kaur–Kumar–Remete.  If the reduction of `g` is a repeated factor
+of that of `f`, then
+membership of `f` in `⟨p, g⟩ ^ 2` is decided by the remainder of `f` on division by `g`
+being a multiple of `p ^ 2`. -/
+theorem mem_sq_span_iff_mem_span_C_sq (hg0 : g.map (Int.castRingHom (ZMod p)) ≠ 0)
+    {f : ℤ[X]} (hf : f ∈ (Ideal.span {C (p : ℤ), g ^ 2} : Ideal ℤ[X])) :
+    f ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2 ↔
+      f ∈ (Ideal.span {C (p : ℤ) ^ 2, g} : Ideal ℤ[X]) := by
+  rw [span_pair_sq_eq_inf hg0]
+  exact ⟨fun h => h.1, fun h => ⟨h, hf⟩⟩
+
 end Polynomial
