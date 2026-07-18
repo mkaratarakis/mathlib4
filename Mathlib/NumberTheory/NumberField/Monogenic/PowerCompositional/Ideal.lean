@@ -199,6 +199,25 @@ theorem C_dvd_of_mem_sq_of_natDegree_lt (hg : g.Monic) {r : ℤ[X]}
   rw [(hg.map _).natDegree_pow, hg.natDegree_map] at hle
   exact absurd (hle.trans natDegree_map_le) (by omega)
 
+omit hp in
+/-- Substituting `X ^ ℓ` carries `⟨p, g⟩ ^ 2` into `⟨p, g(X ^ ℓ)⟩ ^ 2`, since `expand` is a
+ring homomorphism fixing the constants. -/
+theorem expand_mem_sq_span_of_mem_sq_span {ℓ : ℕ} {f : ℤ[X]}
+    (hf : f ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2) :
+    expand ℤ ℓ f ∈ (Ideal.span {C (p : ℤ), expand ℤ ℓ g} : Ideal ℤ[X]) ^ 2 := by
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hf
+  refine Ideal.mem_span_pair_sq_iff.mpr ⟨expand ℤ ℓ u, expand ℤ ℓ v, expand ℤ ℓ w, ?_⟩
+  rw [huvw]
+  simp only [map_add, map_mul, map_pow, expand_C]
+
+/-- If the reduction of `h` divides that of `G`, then `⟨p, G⟩ ⊆ ⟨p, h⟩`. -/
+theorem span_pair_le_of_map_dvd {G h : ℤ[X]}
+    (hdvd : h.map (Int.castRingHom (ZMod p)) ∣ G.map (Int.castRingHom (ZMod p))) :
+    (Ideal.span {C (p : ℤ), G} : Ideal ℤ[X]) ≤ Ideal.span {C (p : ℤ), h} := by
+  intro x hx
+  rw [mem_span_pair_C_natCast_iff] at hx ⊢
+  exact hdvd.trans hx
+
 /-- Membership in `𝔪 ^ 2` depends only on the class modulo `𝔪 ^ 2`. -/
 private theorem mem_sq_iff_of_sub_mem {I : Ideal ℤ[X]} {x y : ℤ[X]} (h : x - y ∈ I ^ 2) :
     x ∈ I ^ 2 ↔ y ∈ I ^ 2 :=
