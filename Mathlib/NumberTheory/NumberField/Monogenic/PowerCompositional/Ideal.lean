@@ -443,4 +443,25 @@ theorem dvd_expand_derivative_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) 
       exact hirr.not_isUnit (isUnit_of_dvd_unit hu hunit)
     · exact hX (hprime.dvd_of_dvd_pow hxp)
 
+/-- Third step toward Proposition 2.10.  If `h ^ 2` divides `q(X ^ ℓ)` for some irreducible
+`h` not dividing `X`, and `p ∤ ℓ`, then `q` is not separable.
+
+Indeed `h` divides both `q(X ^ ℓ)` and `q'(X ^ ℓ)`, so applying `expand` to a Bézout
+identity `u q + v q' = 1` would exhibit `h` as a unit. -/
+theorem not_separable_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ)
+    {q h : (ZMod p)[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
+    (hsq : h ^ 2 ∣ expand (ZMod p) ℓ q) :
+    ¬ q.Separable := by
+  intro hsep
+  obtain ⟨u, v, huv⟩ := hsep
+  have h1 : h ∣ expand (ZMod p) ℓ q := (dvd_pow_self h two_ne_zero).trans hsq
+  have h2 : h ∣ expand (ZMod p) ℓ (derivative q) :=
+    dvd_expand_derivative_of_sq_dvd_expand hℓ hirr hX hsq
+  have hone : h ∣ 1 := by
+    have hexp := congrArg (expand (ZMod p) ℓ) huv
+    rw [map_add, map_mul, map_mul, map_one] at hexp
+    rw [← hexp]
+    exact dvd_add (h1.mul_left _) (h2.mul_left _)
+  exact hirr.not_isUnit (isUnit_of_dvd_one hone)
+
 end Polynomial
