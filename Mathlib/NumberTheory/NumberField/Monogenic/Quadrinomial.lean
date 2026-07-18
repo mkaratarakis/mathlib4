@@ -65,7 +65,7 @@ analogue here; a single-prime valuation argument provably cannot decide them).
   arXiv:2303.03138 (2023)][jakharkaurkumar2023]
 -/
 
-set_option linter.style.longFile 1700
+set_option linter.style.longFile 1900
 
 @[expose] public section
 
@@ -1687,6 +1687,84 @@ theorem monogenic_iff_of_squarefree (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
       · exact absurd h h2c
       · rintro ⟨ha1, _⟩; omega
       · rintro ⟨_, hc1⟩; omega
+
+/-! ### Example 4.2 of [jakharkaurkumar2023] -/
+
+private theorem sq_dvd_natCast_iff' {z : ℤ} {q : ℕ} : (q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs := by
+  rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
+
+private theorem squarefree_int_iff' {z : ℤ} :
+    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
+  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
+  exact forall₂_congr fun q hq => not_congr sq_dvd_natCast_iff'.symm
+
+/-- **Example 4.2 of [jakharkaurkumar2023]** in degree `5`: for squarefree `c` and `θ` a
+root of `X ^ 5 + c (X ^ 2 + 2 X + 1)` generating `K`, the set `{1, θ, θ², θ³, θ⁴}` is an
+integral basis of `K` if and only if `3125 - 108 c` is squarefree.
+
+Here `a = c` and `b = 2 c`, so `b ^ 2 = 4 a c` holds, and
+`D 5 c c = c ^ 4 (3125 - 108 c)`.  The paper's standing hypotheses `c ≡ 1 mod 4` and
+`c ≠ ±1` are not needed in odd degree: case (4) of Theorem 1.1 concerns only even degree,
+and the primes dividing `2 c` are handled by squarefreeness of `c` directly. -/
+theorem monogenic_iff_example_4_2 (hsf : Squarefree c)
+    (hgen : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hθ : minpoly ℤ θ = X ^ 5 + (C c * X ^ 2 + C (2 * c) * X + C c)) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔ Squarefree (3125 - 108 * c) := by
+  have hD : D 5 c c = c ^ 4 * (3125 - 108 * c) := by
+    simp only [D]
+    norm_num
+    ring
+  rw [monogenic_iff (n := 5) (a := c) (B := c) (c := c) (by norm_num) (by ring) hgen hθ]
+  constructor
+  · rintro ⟨-, -, -, h5, -⟩
+    rw [squarefree_int_iff']
+    intro q hq hq2
+    have hqp : Prime (q : ℤ) := Nat.prime_iff_prime_int.mp hq
+    by_cases hq2c : (q : ℤ) ∣ 2 * c
+    · rcases hqp.dvd_mul.mp hq2c with h2 | hc
+      · -- `q = 2`, but `3125 - 108 c` is odd
+        have hq2' : q ∣ 2 := by exact_mod_cast h2
+        have : q = 2 := (Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp hq2'
+        subst this
+        have h4 : (4 : ℤ) ∣ 3125 - 108 * c := by
+          have := hq2
+          norm_num at this
+          exact this
+        omega
+      · -- `q ∣ c`, so `q ∣ 3125 = 5 ^ 5`, hence `q = 5`; squarefreeness of `c` gives `25 ∤ c`
+        have hq1 : (q : ℤ) ∣ 3125 - 108 * c := (dvd_pow_self _ two_ne_zero).trans hq2
+        have h3125 : (q : ℤ) ∣ 3125 := by
+          have h := dvd_add hq1 (Dvd.dvd.mul_left hc 108)
+          rw [show (3125 : ℤ) - 108 * c + 108 * c = 3125 by ring] at h
+          exact h
+        have hq5 : q ∣ 5 ^ 5 := by
+          have : q ∣ 3125 := by exact_mod_cast h3125
+          simpa using this
+        have : q = 5 := (Nat.prime_dvd_prime_iff_eq hq Nat.prime_five).mp
+          (hq.dvd_of_dvd_pow hq5)
+        subst this
+        have h25 : ¬(25 : ℤ) ∣ c := by
+          have := squarefree_int_iff'.mp hsf 5 Nat.prime_five
+          norm_num at this
+          exact this
+        have h25' : (25 : ℤ) ∣ 3125 - 108 * c := by
+          have := hq2
+          norm_num at this
+          exact this
+        omega
+    · exact h5 q hq hq2c (by rw [hD]; exact Dvd.dvd.mul_left hq2 _)
+  · intro hsq
+    refine ⟨fun p _ h => h, ?_, fun p r m _ _ _ _ hpa hpc => absurd hpa hpc, ?_, ?_⟩
+    · exact fun p hp _ _ => squarefree_int_iff'.mp hsf p hp
+    · intro p hp hp2c hdvd
+      rw [hD] at hdvd
+      have hpc : ¬(p : ℤ) ∣ c := fun h => hp2c (Dvd.dvd.mul_left h 2)
+      have hpc4 : ¬(p : ℤ) ∣ c ^ 4 := fun h =>
+        hpc ((Nat.prime_iff_prime_int.mp hp).dvd_of_dvd_pow h)
+      exact squarefree_int_iff'.mp hsq p hp
+        ((Nat.prime_iff_prime_int.mp hp).pow_dvd_of_dvd_mul_left 2 hpc4 hdvd)
+    · intro m hm
+      exact absurd hm (by omega)
 
 end Sufficiency
 
