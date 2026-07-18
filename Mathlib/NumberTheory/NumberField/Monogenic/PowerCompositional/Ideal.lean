@@ -159,6 +159,46 @@ theorem expand_mem_span_pair (g : ℤ[X]) :
   rw [mem_span_pair_C_natCast_iff, Polynomial.map_expand, ZMod.expand_card]
   exact dvd_pow_self _ hp.out.ne_zero
 
+/-- If `p * s` lies in `⟨p, g⟩ ^ 2` then `s` already lies in `⟨p, g⟩`.  Only nonvanishing of
+the reduction of `g` is needed, not irreducibility. -/
+theorem mem_span_pair_of_C_mul_mem_sq (hg0 : g.map (Int.castRingHom (ZMod p)) ≠ 0) {s : ℤ[X]}
+    (hs : C (p : ℤ) * s ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2) :
+    s ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) := by
+  have hCp0 : (C (p : ℤ) : ℤ[X]) ≠ 0 := by
+    simpa using Int.natCast_ne_zero.mpr hp.out.ne_zero
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hs
+  -- Reduce mod `p`: the equation collapses to `g ^ 2 * w = 0`, so `p ∣ w`.
+  have hwdvd : C (p : ℤ) ∣ w := by
+    rw [C_dvd_iff_zmod]
+    have hgw : (g ^ 2 * w).map (Int.castRingHom (ZMod p)) = 0 := by
+      have h2 : g ^ 2 * w = C (p : ℤ) * s - C (p : ℤ) ^ 2 * u - C (p : ℤ) * g * v := by
+        linear_combination -huvw
+      rw [h2]
+      simp [Polynomial.map_sub, Polynomial.map_mul]
+    rw [Polynomial.map_mul, Polynomial.map_pow] at hgw
+    exact (mul_eq_zero.mp hgw).resolve_left (pow_ne_zero _ hg0)
+  obtain ⟨w', rfl⟩ := hwdvd
+  -- Cancel one factor of `p`.
+  have hcancel : s = C (p : ℤ) * u + g * v + g ^ 2 * w' :=
+    mul_left_cancel₀ hCp0 (by linear_combination huvw)
+  exact Ideal.mem_span_pair.mpr ⟨u, v + g * w', by rw [hcancel]; ring⟩
+
+/-- An element of `⟨p, g⟩ ^ 2` whose degree is below `2 * deg g` is divisible by `p`:
+modulo `p` it is a multiple of the reduction of `g ^ 2`, which has degree `2 * deg g`. -/
+theorem C_dvd_of_mem_sq_of_natDegree_lt (hg : g.Monic) {r : ℤ[X]}
+    (hr : r ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2)
+    (hdeg : r.natDegree < 2 * g.natDegree) : C (p : ℤ) ∣ r := by
+  rw [C_dvd_iff_zmod]
+  by_contra hne
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hr
+  have hdvd : (g.map (Int.castRingHom (ZMod p))) ^ 2 ∣ r.map (Int.castRingHom (ZMod p)) := by
+    refine ⟨w.map (Int.castRingHom (ZMod p)), ?_⟩
+    rw [huvw]
+    simp [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow]
+  have hle := Polynomial.natDegree_le_of_dvd hdvd hne
+  rw [(hg.map _).natDegree_pow, hg.natDegree_map] at hle
+  exact absurd (hle.trans natDegree_map_le) (by omega)
+
 /-- Membership in `𝔪 ^ 2` depends only on the class modulo `𝔪 ^ 2`. -/
 private theorem mem_sq_iff_of_sub_mem {I : Ideal ℤ[X]} {x y : ℤ[X]} (h : x - y ∈ I ^ 2) :
     x ∈ I ^ 2 ↔ y ∈ I ^ 2 :=
@@ -172,27 +212,9 @@ theorem C_mul_mem_sq_of_C_mul_pow_mem_sq
     (hgirr : Irreducible (g.map (Int.castRingHom (ZMod p)))) {r : ℤ[X]}
     (h : C (p : ℤ) * r ^ p ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2) :
     C (p : ℤ) * r ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) ^ 2 := by
-  set φ := Int.castRingHom (ZMod p) with hφ
-  have hCp0 : (C (p : ℤ) : ℤ[X]) ≠ 0 := by
-    simpa using Int.natCast_ne_zero.mpr hp.out.ne_zero
-  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp h
-  -- Reduce mod `p`: the equation collapses to `g ^ 2 * w = 0`, so `p ∣ w`.
-  have hwdvd : C (p : ℤ) ∣ w := by
-    rw [C_dvd_iff_zmod]
-    have hgw : (g ^ 2 * w).map φ = 0 := by
-      have h2 : g ^ 2 * w = C (p : ℤ) * r ^ p - C (p : ℤ) ^ 2 * u - C (p : ℤ) * g * v := by
-        linear_combination -huvw
-      rw [h2]
-      simp [Polynomial.map_sub, Polynomial.map_mul]
-    rw [Polynomial.map_mul, Polynomial.map_pow] at hgw
-    exact (mul_eq_zero.mp hgw).resolve_left (pow_ne_zero _ hgirr.ne_zero)
-  obtain ⟨w', rfl⟩ := hwdvd
-  -- Cancel one factor of `p` to see that `rᵖ ∈ ⟨p, g⟩`, hence `r ∈ ⟨p, g⟩`.
-  have hcancel : r ^ p = C (p : ℤ) * u + g * v + g ^ 2 * w' :=
-    mul_left_cancel₀ hCp0 (by linear_combination huvw)
   have hrmem : r ∈ (Ideal.span {C (p : ℤ), g} : Ideal ℤ[X]) :=
     (isPrime_span_pair_C_natCast hgirr).mem_of_pow_mem p
-      (Ideal.mem_span_pair.mpr ⟨u, v + g * w', by rw [hcancel]; ring⟩)
+      (mem_span_pair_of_C_mul_mem_sq hgirr.ne_zero h)
   rw [sq]
   exact Ideal.mul_mem_mul (Ideal.subset_span (by simp)) hrmem
 
