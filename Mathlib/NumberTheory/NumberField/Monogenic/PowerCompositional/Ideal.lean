@@ -383,4 +383,64 @@ theorem mem_sq_span_iff_mem_span_C_sq (hg0 : g.map (Int.castRingHom (ZMod p)) �
   rw [span_pair_sq_eq_inf hg0]
   exact ⟨fun h => h.1, fun h => ⟨h, hf⟩⟩
 
+omit hp in
+/-- Membership in `⟨p ^ 2, X⟩` is divisibility of the constant term by `p ^ 2`. -/
+theorem mem_span_pair_C_sq_X_iff {f : ℤ[X]} :
+    f ∈ (Ideal.span {C (p : ℤ) ^ 2, X} : Ideal ℤ[X]) ↔ (p : ℤ) ^ 2 ∣ f.coeff 0 := by
+  constructor
+  · rintro hf
+    obtain ⟨a, b, rfl⟩ := Ideal.mem_span_pair.mp hf
+    simp [coeff_zero_eq_eval_zero]
+  · rintro ⟨c, hc⟩
+    obtain ⟨q, hq⟩ : (X : ℤ[X]) ∣ f - C (f.coeff 0) := by
+      rw [X_dvd_iff]; simp
+    refine Ideal.mem_span_pair.mpr ⟨C c, q, ?_⟩
+    have : C (f.coeff 0) = C (p : ℤ) ^ 2 * C c := by rw [hc, map_mul, map_pow]
+    linear_combination -hq - this
+
+/-- First sub-case of Proposition 2.10: if `p ^ 2` does not divide the constant term, then
+`f` avoids `⟨p, X⟩ ^ 2`.  Combined with `span_pair_sq_eq_inf`, since the reduction of `X`
+is nonzero. -/
+theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero {f : ℤ[X]}
+    (h : ¬ (p : ℤ) ^ 2 ∣ f.coeff 0) :
+    f ∉ (Ideal.span {C (p : ℤ), X} : Ideal ℤ[X]) ^ 2 := by
+  have hX0 : (X : ℤ[X]).map (Int.castRingHom (ZMod p)) ≠ 0 := by
+    rw [Polynomial.map_X]; exact X_ne_zero
+  rw [span_pair_sq_eq_inf hX0]
+  exact fun hm => h (mem_span_pair_C_sq_X_iff.mp hm.1)
+
+omit hp in
+/-- A repeated factor divides the derivative. -/
+theorem dvd_derivative_of_sq_dvd {R : Type*} [CommRing R] {h E : R[X]} (hd : h ^ 2 ∣ E) :
+    h ∣ derivative E := by
+  obtain ⟨m, rfl⟩ := hd
+  refine ⟨C 2 * derivative h * m + h * derivative m, ?_⟩
+  rw [derivative_mul, derivative_pow]
+  push_cast
+  ring
+
+/-- Second step toward Proposition 2.10.  Let `p ∤ ℓ` and let `h` be irreducible mod `p`,
+not dividing `X`.  If `h ^ 2` divides `q(X ^ ℓ)` then `h` divides `q'(X ^ ℓ)`.
+
+The derivative of `q(X ^ ℓ)` is `q'(X ^ ℓ) · ℓ X ^ (ℓ - 1)`; the factor `ℓ` is a unit
+because `p ∤ ℓ`, and `h` misses `X ^ (ℓ - 1)` because it is prime and does not divide `X`. -/
+theorem dvd_expand_derivative_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ)
+    {q h : (ZMod p)[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
+    (hsq : h ^ 2 ∣ expand (ZMod p) ℓ q) :
+    h ∣ expand (ZMod p) ℓ (derivative q) := by
+  have h1 : h ∣ expand (ZMod p) ℓ (derivative q) * ((ℓ : (ZMod p)[X]) * X ^ (ℓ - 1)) := by
+    rw [← derivative_expand]; exact dvd_derivative_of_sq_dvd hsq
+  have hprime := irreducible_iff_prime.mp hirr
+  -- `h` divides neither `ℓ` (a unit) nor `X ^ (ℓ - 1)`.
+  rcases hprime.dvd_mul.mp h1 with hcase | hcase
+  · exact hcase
+  · exfalso
+    rcases hprime.dvd_mul.mp hcase with hu | hxp
+    · have hne : ((ℓ : ZMod p)) ≠ 0 := by rwa [Ne, ZMod.natCast_eq_zero_iff]
+      have hunit : IsUnit ((ℓ : (ZMod p)[X])) := by
+        rw [show ((ℓ : (ZMod p)[X])) = C ((ℓ : ZMod p)) by simp]
+        exact isUnit_C.mpr hne.isUnit
+      exact hirr.not_isUnit (isUnit_of_dvd_unit hu hunit)
+    · exact hX (hprime.dvd_of_dvd_pow hxp)
+
 end Polynomial
