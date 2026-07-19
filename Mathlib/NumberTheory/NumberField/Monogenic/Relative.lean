@@ -750,6 +750,44 @@ theorem adjoin_eq_top_of_forall_prime_saturated [IsPrincipalIdealRing (𝓞 K)]
   refine eq_top_iff.mpr fun β _ => ?_
   exact hP d₀ hd₀ne β (hclear β)
 
+omit [NumberField K] [NumberField K₁] in
+/-- **Local–global criterion for relative monogenity, with no class number hypothesis.**
+`𝓞 K[θ] = 𝓞 K₁` if and only if, for every maximal ideal `𝔭` of `𝓞 K`, the conductor of `θ`
+and the extended ideal `𝔭 · 𝓞 K₁` are comaximal.
+
+This replaces the denominator-clearing argument of
+`adjoin_eq_top_of_forall_prime_saturated`, which requires `𝓞 K` to be a principal ideal
+domain, by a statement valid over an arbitrary number field base: if the conductor were
+proper it would lie in some maximal ideal `𝔮` of `𝓞 K₁`, and then `𝔭 = 𝔮 ∩ 𝓞 K` is maximal
+and both the conductor and `𝔭 · 𝓞 K₁` lie in `𝔮`, contradicting comaximality. -/
+theorem adjoin_eq_top_iff_forall_maximal_conductor_sup_eq_top :
+    Algebra.adjoin (𝓞 K) {θ} = ⊤ ↔
+      ∀ 𝔭 : Ideal (𝓞 K), 𝔭.IsMaximal →
+        conductor (𝓞 K) θ ⊔ Ideal.map (algebraMap (𝓞 K) (𝓞 K₁)) 𝔭 = ⊤ := by
+  constructor
+  · intro h 𝔭 _
+    rw [conductor_eq_top_of_adjoin_eq_top h, top_sup_eq]
+  · intro h
+    by_contra hne
+    -- the conductor is proper, since otherwise `θ` would generate
+    have hc : conductor (𝓞 K) θ ≠ ⊤ := by
+      intro hc
+      refine hne (Algebra.eq_top_iff.mpr fun b => ?_)
+      rw [Ideal.eq_top_iff_one, mem_conductor_iff] at hc
+      simpa using hc b
+    obtain ⟨𝔮, h𝔮max, h𝔮le⟩ := Ideal.exists_le_maximal _ hc
+    haveI : 𝔮.IsMaximal := h𝔮max
+    -- its contraction is maximal, the extension being integral
+    have h𝔭max : (𝔮.comap (algebraMap (𝓞 K) (𝓞 K₁))).IsMaximal :=
+      Ideal.isMaximal_comap_of_isIntegral_of_isMaximal 𝔮
+    have hle : Ideal.map (algebraMap (𝓞 K) (𝓞 K₁))
+        (𝔮.comap (algebraMap (𝓞 K) (𝓞 K₁))) ≤ 𝔮 :=
+      Ideal.map_le_iff_le_comap.mpr le_rfl
+    have hsup : conductor (𝓞 K) θ ⊔ Ideal.map (algebraMap (𝓞 K) (𝓞 K₁))
+        (𝔮.comap (algebraMap (𝓞 K) (𝓞 K₁))) ≤ 𝔮 := sup_le h𝔮le hle
+    rw [h _ h𝔭max, top_le_iff] at hsup
+    exact h𝔮max.ne_top hsup
+
 end GlobalPackaging
 
 end NumberField.Relative
