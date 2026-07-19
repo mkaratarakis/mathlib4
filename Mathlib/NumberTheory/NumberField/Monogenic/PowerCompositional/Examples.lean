@@ -43,6 +43,10 @@ subsume.
   "all of them", whereas for `f = X - A` the same condition reads `p ^ 2 ∣ A ^ p - A` and
   the set of such `p` is the set of Wieferich primes to the base `A`.
 
+* `RingOfIntegers.adjoin_eq_top_expand_simplestCubic_iff`: **Proposition 4.3** for the
+  simplest cubics, with the splitting hypothesis stated explicitly (see its docstring for
+  what the paper derives from Galois theory and what is left out).
+
 * `RingOfIntegers.not_isIndexDivisor_expand_cyclotomic`: **Problem 1 has an empty answer for
   cyclotomic `f`**, which is the kind of example the paper asks for.  Supporting this,
   `RingOfIntegers.forall_not_isIndexDivisor_cyclotomic` records that no prime is an index
@@ -439,6 +443,44 @@ theorem isIndexDivisor_expand_of_dvd_X_pow_sub_one {f g : ℤ[X]} (hfm : f.Monic
   have hcop : IsCoprime ((p : ℤ) ^ 2) (g.eval (r ^ p)) :=
     (hpZ.coprime_iff_not_dvd.mpr hgrp).pow_left
   exact hcop.dvd_of_dvd_mul_right (by rw [← hev]; exact h2)
+
+
+/-! ### Proposition 4.3: the simplest cubics -/
+
+/-- **Proposition 4.3** of Kaur–Kumar–Remete for the simplest cubics
+`f = X ^ 3 - m X ^ 2 - (m + 3) X - 1`, with the splitting hypothesis stated explicitly.
+
+Since `f(0) = -1` is a unit, condition (3) of Theorem 1.1 is automatic, so monogenity of
+`f(X ^ k)` reduces to monogenity of `f` together with one finite congruence check per prime
+divisor of `k`.
+
+The paper obtains the splitting hypothesis from the Galois group of `f` being cyclic of
+order three, so that reducibility mod `p` already forces complete splitting; that step is
+not formalised here, and is the reason the hypothesis appears explicitly.
+
+Note also that `f` is irreducible modulo `2` for every `m` — its reduction is `X ^ 3 + X + 1`
+or `X ^ 3 + X ^ 2 + 1`, neither of which has a root — so the splitting hypothesis is
+satisfiable only for odd `k`.  The paper treats `p = 2` by a separate computation, showing
+that `2` never divides the index; that computation is not formalised here either. -/
+theorem adjoin_eq_top_expand_simplestCubic_iff (m : ℤ) {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1))))
+    (hsplit : ∀ q : ℕ, q.Prime → q ∣ k →
+      Splits (((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X])).map (Int.castRingHom (ZMod q))))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmω : minpoly ℤ ω = expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔
+      (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) ∧
+      (∀ q : ℕ, q.Prime → q ∣ k → ∀ r : ℕ, r < q →
+        ¬ (q : ℤ) ^ 2 ∣ ((r : ℤ) ^ q) ^ 3 - m * ((r : ℤ) ^ q) ^ 2
+          - (m + 3) * ((r : ℤ) ^ q) - 1) := by
+  have hfm : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).Monic := by monicity!
+  have hc0 : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).coeff 0 = -1 := by simp
+  rw [adjoin_eq_top_expand_iff_of_splits hfm hk hirr hsplit hω hmω]
+  have hsf : Squarefree ((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).coeff 0) := by
+    rw [hc0]
+    exact (isUnit_one.neg).squarefree
+  simp only [and_iff_left hsf, eval_sub, eval_pow, eval_X, eval_mul, eval_C, eval_one]
 
 
 /-! ### Problem 1 for cyclotomic polynomials: the answer is empty -/
