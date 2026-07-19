@@ -28,6 +28,12 @@ subsume.
   to squarefreeness of `A` and of `D d m A B`, plus one condition per prime divisor of `k`;
   and when `rad k ∣ rad A` the latter conditions disappear.
 
+* `RingOfIntegers.adjoin_eq_top_expand_iff_of_splits`: **Proposition 4.2** --- when `f`
+  splits completely modulo every prime divisor of `k`, condition (2) of Theorem 1.1 becomes
+  the finite check `p ^ 2 ∤ f(r ^ p)` for `r = 0, …, p - 1`.
+
+* `RingOfIntegers.example_1_6`: **Example 1.6**, the necessity of condition (3).
+
 * `RingOfIntegers.example_1_7` and `RingOfIntegers.example_1_9`: **Examples 1.7 and 1.9**,
   both instances of the `rad k ∣ rad A` form: `X ^ 3 + 6 (X + 1) ^ 2` with `k = 2 ^ u 3 ^ v`
   and `X ^ 2 + 2 (X + 1)` with `k = 2 ^ u` are monogenic for every such `k`.
@@ -234,7 +240,149 @@ theorem adjoin_eq_top_expand_jones_iff_of_dvd_radical (hm : 0 < m) (hmd : m < d)
 
 end Jones
 
-/-! ### Examples 1.7 and 1.9 -/
+/-! ### Proposition 4.2: polynomials that split completely -/
+
+/-- If `p ^ 2` divides `f(r ^ p)` for some integer `r`, then `p` is an index divisor of
+`f(X ^ p)`.
+
+Writing `f(X ^ p) = f ^ p + p * T`, the hypothesis forces `p ∣ f(r)` and hence `p ∣ T(r)`,
+so `X - r` divides both reductions and they are not coprime. -/
+theorem isIndexDivisor_expand_of_sq_dvd_eval {f : ℤ[X]} (hfm : f.Monic) {r : ℤ}
+    (hr : (p : ℤ) ^ 2 ∣ f.eval (r ^ p)) : IsIndexDivisor p (expand ℤ p f) := by
+  obtain ⟨T, hT⟩ := exists_expand_eq_pow_add_C_mul (p := p) f
+  have hval : f.eval (r ^ p) = (f.eval r) ^ p + (p : ℤ) * T.eval r := by
+    have h := congrArg (Polynomial.eval r) hT
+    rwa [expand_eval, eval_add, eval_mul, eval_pow, eval_C] at h
+  -- `p` divides `f(r)`
+  have hpf : (p : ℤ) ∣ f.eval r := by
+    have hp1 : (p : ℤ) ∣ (f.eval r) ^ p := by
+      have : (p : ℤ) ∣ f.eval (r ^ p) := (dvd_pow_self _ two_ne_zero).trans hr
+      rw [hval] at this
+      exact (dvd_add_right (Dvd.intro _ rfl)).mp (by rwa [add_comm] at this)
+    exact (Int.Prime.dvd_pow' hp.out hp1)
+  -- hence `p` divides `T(r)`
+  have hpT : (p : ℤ) ∣ T.eval r := by
+    have hsq : (p : ℤ) ^ 2 ∣ (f.eval r) ^ p := by
+      refine dvd_trans (pow_dvd_pow (p : ℤ) hp.out.two_le) (pow_dvd_pow_of_dvd hpf p)
+    have h2 : (p : ℤ) ^ 2 ∣ (p : ℤ) * T.eval r := by
+      have := dvd_sub hr hsq
+      rwa [hval, add_sub_cancel_left] at this
+    rw [sq] at h2
+    exact (mul_dvd_mul_iff_left (Int.natCast_ne_zero.mpr hp.out.ne_zero)).mp h2
+  -- so `X - r` divides both reductions
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hT]
+  intro hcop
+  have hev : ∀ g : ℤ[X], (g.map (Int.castRingHom (ZMod p))).eval ((r : ZMod p)) =
+      ((g.eval r : ℤ) : ZMod p) := fun g => by
+    rw [Polynomial.eval_map]
+    exact Polynomial.eval₂_at_apply (Int.castRingHom (ZMod p)) r
+  have hfr : (f.map (Int.castRingHom (ZMod p))).eval ((r : ZMod p)) = 0 := by
+    rw [hev, ZMod.intCast_zmod_eq_zero_iff_dvd]; exact_mod_cast hpf
+  have hTr : (T.map (Int.castRingHom (ZMod p))).eval ((r : ZMod p)) = 0 := by
+    rw [hev, ZMod.intCast_zmod_eq_zero_iff_dvd]; exact_mod_cast hpT
+  refine (irreducible_X_sub_C ((r : ZMod p))).not_isUnit (hcop.isUnit_of_dvd' ?_ ?_)
+  · exact dvd_iff_isRoot.mpr hfr
+  · exact dvd_iff_isRoot.mpr hTr
+
+/-- Conversely, if `f` splits completely mod `p` and `p ^ 2 ∤ f(r ^ p)` for every
+`r = 0, …, p - 1`, then `p` is not an index divisor of `f(X ^ p)`.
+
+Splitting is what makes a common factor of the two reductions produce an actual residue
+`r`: the gcd of the reductions is a nonunit dividing a split polynomial, hence has a root. -/
+theorem not_isIndexDivisor_expand_of_splits {f : ℤ[X]} (hfm : f.Monic)
+    (hsplit : Splits (f.map (Int.castRingHom (ZMod p))))
+    (hr : ∀ r : ℕ, r < p → ¬ (p : ℤ) ^ 2 ∣ f.eval ((r : ℤ) ^ p)) :
+    ¬ IsIndexDivisor p (expand ℤ p f) := by
+  obtain ⟨T, hT⟩ := exists_expand_eq_pow_add_C_mul (p := p) f
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hT, not_not]
+  by_contra hcop
+  set F := f.map (Int.castRingHom (ZMod p)) with hF
+  set G := T.map (Int.castRingHom (ZMod p)) with hG
+  have hF0 : F ≠ 0 := (hfm.map _).ne_zero
+  set d := EuclideanDomain.gcd F G with hd
+  have hdunit : ¬ IsUnit d := fun h => hcop (EuclideanDomain.gcd_isUnit_iff.mp h)
+  have hdsplit : Polynomial.Splits d :=
+    Polynomial.Splits.of_dvd hsplit hF0 (EuclideanDomain.gcd_dvd_left F G)
+  have hdeg : d.degree ≠ 0 := fun h => hdunit (isUnit_iff_degree_eq_zero.mpr h)
+  obtain ⟨a, ha⟩ := hdsplit.exists_eval_eq_zero hdeg
+  -- `a` is a common root of the two reductions
+  have hFa : F.eval a = 0 := by
+    obtain ⟨c, hc⟩ := EuclideanDomain.gcd_dvd_left F G
+    rw [hc, eval_mul, ha, zero_mul]
+  have hGa : G.eval a = 0 := by
+    obtain ⟨c, hc⟩ := EuclideanDomain.gcd_dvd_right F G
+    rw [hc, eval_mul, ha, zero_mul]
+  -- lift it to a residue `r < p`
+  obtain ⟨r, hrlt, hcast⟩ : ∃ r : ℕ, r < p ∧ ((r : ℤ) : ZMod p) = a :=
+    ⟨a.val, ZMod.val_lt a, by rw [Int.cast_natCast]; exact ZMod.natCast_rightInverse a⟩
+  refine hr r hrlt ?_
+  have hev : ∀ g : ℤ[X], (g.map (Int.castRingHom (ZMod p))).eval a =
+      ((g.eval (r : ℤ) : ℤ) : ZMod p) := fun g => by
+    rw [Polynomial.eval_map, ← hcast]
+    exact Polynomial.eval₂_at_apply (Int.castRingHom (ZMod p)) ((r : ℤ))
+  have hpf : (p : ℤ) ∣ f.eval (r : ℤ) := by
+    rw [← ZMod.intCast_zmod_eq_zero_iff_dvd, ← hev]; exact hFa
+  have hpT : (p : ℤ) ∣ T.eval (r : ℤ) := by
+    rw [← ZMod.intCast_zmod_eq_zero_iff_dvd, ← hev]; exact hGa
+  have hval : f.eval ((r : ℤ) ^ p) =
+      (f.eval (r : ℤ)) ^ p + (p : ℤ) * T.eval (r : ℤ) := by
+    have h := congrArg (Polynomial.eval ((r : ℤ))) hT
+    rwa [expand_eval, eval_add, eval_mul, eval_pow, eval_C] at h
+  rw [hval]
+  refine dvd_add ?_ ?_
+  · exact dvd_trans (pow_dvd_pow (p : ℤ) hp.out.two_le) (pow_dvd_pow_of_dvd hpf p)
+  · rw [sq]; exact mul_dvd_mul_left _ hpT
+
+/-- **Proposition 4.2** of Kaur–Kumar–Remete.  If `f` splits completely modulo every prime
+divisor of `k`, and `f(X ^ k)` is irreducible with `k ≥ 2`, then `f(X ^ k)` is monogenic if
+and only if
+
+1. `f` is monogenic,
+2. `p ^ 2 ∤ f(r ^ p)` for every prime `p ∣ k` and every `r = 0, …, p - 1`, and
+3. `f(0)` is squarefree.
+
+This makes condition (2) of Theorem 1.1 a finite check for split families. -/
+theorem adjoin_eq_top_expand_iff_of_splits {f : ℤ[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k f)))
+    (hsplit : ∀ q : ℕ, q.Prime → q ∣ k → Splits (f.map (Int.castRingHom (ZMod q))))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ k f) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔
+      (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f) ∧
+      (∀ q : ℕ, q.Prime → q ∣ k → ∀ r : ℕ, r < q → ¬ (q : ℤ) ^ 2 ∣ f.eval ((r : ℤ) ^ q)) ∧
+      Squarefree (f.coeff 0) := by
+  rw [adjoin_eq_top_expand_iff hfm hk hirr hω hmω]
+  refine and_congr_right fun _ => and_congr_left fun _ => ?_
+  refine forall_congr' fun q => imp_congr_right fun hq => imp_congr_right fun hqk => ?_
+  haveI : Fact q.Prime := ⟨hq⟩
+  exact ⟨fun hnot r hrq hdvd => hnot (isIndexDivisor_expand_of_sq_dvd_eval hfm hdvd),
+    fun h => not_isIndexDivisor_expand_of_splits hfm (hsplit q hq hqk) h⟩
+
+/-! ### Examples 1.6, 1.7 and 1.9 -/
+
+/-- **Example 1.6** of Kaur–Kumar–Remete: `f = X ^ 2 + X + 20`.  Although `f` is monogenic
+and `3` does not divide the index of `f(X ^ 3)`, no `f(X ^ k)` with `k ≥ 2` is monogenic,
+because `2 ^ 2` divides `f(0) = 20`.  This is the necessity of condition (3) of
+Theorem 1.1. -/
+theorem example_1_6 {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k (X ^ 2 + X + C 20))))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmω : minpoly ℤ ω = expand ℤ k (X ^ 2 + X + C 20)) :
+    ¬ (Algebra.adjoin ℤ {ω} = ⊤) := by
+  have hfm : (X ^ 2 + X + C 20 : ℤ[X]).Monic := by
+    rw [show (X ^ 2 + X + C 20 : ℤ[X]) = X ^ 2 + (X + C 20) by ring]
+    refine monic_X_pow_add (lt_of_le_of_lt (degree_add_le _ _) (max_lt ?_ ?_))
+    · rw [degree_X]; exact_mod_cast one_lt_two
+    · exact lt_of_le_of_lt degree_C_le (by exact_mod_cast two_pos)
+  rw [adjoin_eq_top_expand_iff hfm hk hirr hω hmω]
+  rintro ⟨-, -, h3⟩
+  rw [show (X ^ 2 + X + C 20 : ℤ[X]).coeff 0 = 20 by simp] at h3
+  have h2 := h3 2 ⟨5, by norm_num⟩
+  rw [Int.isUnit_iff] at h2
+  omega
+
+
 
 private theorem squarefree_two_int : Squarefree (2 : ℤ) :=
   Int.prime_two.irreducible.squarefree
