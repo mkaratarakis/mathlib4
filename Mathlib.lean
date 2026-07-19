@@ -5882,6 +5882,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Expa
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Ideal
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
+public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Relative
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Uchida
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
 public import Mathlib.NumberTheory.NumberField.Monogenic.Quadrinomial
