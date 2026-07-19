@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.NumberTheory.Basic
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
 
 /-!
@@ -33,6 +34,13 @@ subsume.
   the finite check `p ^ 2 ∤ f(r ^ p)` for `r = 0, …, p - 1`.
 
 * `RingOfIntegers.example_1_6`: **Example 1.6**, the necessity of condition (3).
+
+* `RingOfIntegers.isIndexDivisor_expand_of_dvd_X_pow_sub_one`: for a divisor of
+  `X ^ n - 1`, every prime `p ∤ n` at which `f` has a root divides the index of `f(X ^ p)`.
+  This settles Problem 1 of the paper for such `f`, and locates its difficulty: the
+  mechanism is that `r ^ n ≡ 1 mod p` forces `(r ^ p) ^ n ≡ 1 mod p ^ 2`, so the answer is
+  "all of them", whereas for `f = X - A` the same condition reads `p ^ 2 ∣ A ^ p - A` and
+  the set of such `p` is the set of Wieferich primes to the base `A`.
 
 * `RingOfIntegers.example_1_7` and `RingOfIntegers.example_1_9`: **Examples 1.7 and 1.9**,
   both instances of the `rad k ∣ rad A` form: `X ^ 3 + 6 (X + 1) ^ 2` with `k = 2 ^ u 3 ^ v`
@@ -357,6 +365,73 @@ theorem adjoin_eq_top_expand_iff_of_splits {f : ℤ[X]} (hfm : f.Monic) {k : ℕ
   haveI : Fact q.Prime := ⟨hq⟩
   exact ⟨fun hnot r hrq hdvd => hnot (isIndexDivisor_expand_of_sq_dvd_eval hfm hdvd),
     fun h => not_isIndexDivisor_expand_of_splits hfm (hsplit q hq hqk) h⟩
+
+/-! ### Problem 1: divisors of `X ^ n - 1` always produce index divisors -/
+
+/-- **Roots of unity force index divisors.**  If `f` divides `X ^ n - 1` with `p ∤ n`, and
+`f` has a root `r` modulo `p`, then `p` divides the index of `f(X ^ p)`.
+
+This is the obstruction underlying Problem 1 of Kaur–Kumar–Remete.  A root `r` of `f` mod
+`p` satisfies `r ^ n ≡ 1 mod p`, hence `(r ^ p) ^ n ≡ 1 mod p ^ 2` — raising to the `p`-th
+power doubles the precision.  Separability of `X ^ n - 1` mod `p`, which is where `p ∤ n`
+enters, transfers this from `X ^ n - 1` to the factor `f`, so `p ^ 2 ∣ f(r ^ p)` and
+`RingOfIntegers.isIndexDivisor_expand_of_sq_dvd_eval` applies.
+
+So for every divisor of `X ^ n - 1` the answer to Problem 1 is "every prime that has a root
+and does not divide `n`" — the difficulty of the problem lies entirely in the polynomials
+whose roots are not roots of unity. -/
+theorem isIndexDivisor_expand_of_dvd_X_pow_sub_one {f g : ℤ[X]} (hfm : f.Monic) {n : ℕ}
+    (hn : ¬ (p : ℕ) ∣ n) (hfg : (X : ℤ[X]) ^ n - 1 = f * g) {r : ℤ}
+    (hr : (p : ℤ) ∣ f.eval r) : IsIndexDivisor p (expand ℤ p f) := by
+  have hpZ : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp.out
+  have hn0 : n ≠ 0 := by rintro rfl; exact hn (dvd_zero p)
+  have hev : ∀ x : ℤ, x ^ n - 1 = f.eval x * g.eval x := fun x => by
+    have h := congrArg (Polynomial.eval x) hfg
+    simpa using h
+  refine isIndexDivisor_expand_of_sq_dvd_eval (r := r) hfm ?_
+  -- `p ∣ r ^ n - 1`, hence `p ^ 2 ∣ (r ^ p) ^ n - 1`
+  have h1 : (p : ℤ) ∣ r ^ n - 1 := by rw [hev]; exact Dvd.dvd.mul_right hr _
+  have h2 : (p : ℤ) ^ 2 ∣ (r ^ p) ^ n - 1 := by
+    have h := dvd_sub_pow_of_dvd_sub (p := p) (a := r ^ n) (b := 1) (by simpa using h1) 1
+    rw [pow_one, one_pow] at h
+    push_cast at h
+    rw [← pow_mul, mul_comm n p] at h
+    rwa [← pow_mul]
+  -- `p` does not divide `r`
+  have hpr : ¬ (p : ℤ) ∣ r := by
+    intro hdvd
+    have : (p : ℤ) ∣ (1 : ℤ) := by
+      have hrn : (p : ℤ) ∣ r ^ n := dvd_pow hdvd hn0
+      simpa using dvd_sub hrn h1
+    exact hpZ.not_unit (isUnit_of_dvd_one this)
+  -- `r` is a simple root of `X ^ n - 1` mod `p`, so `p ∤ g(r)`
+  have hgr : ¬ (p : ℤ) ∣ g.eval r := by
+    intro hg
+    have hder := congrArg (Polynomial.eval r) (congrArg derivative hfg)
+    rw [derivative_sub, derivative_X_pow, derivative_one, sub_zero, derivative_mul,
+      eval_add, eval_mul, eval_mul, eval_mul, eval_pow, eval_X, eval_C] at hder
+    have hdvd : (p : ℤ) ∣ (n : ℤ) * r ^ (n - 1) := by
+      rw [hder]
+      exact dvd_add (Dvd.dvd.mul_left hg _) (Dvd.dvd.mul_right hr _)
+    rcases hpZ.dvd_mul.mp hdvd with hpn | hprn
+    · exact hn (by exact_mod_cast hpn)
+    · exact hpr (hpZ.dvd_of_dvd_pow hprn)
+  -- `g(r ^ p) ≡ g(r) mod p`, since `r ^ p ≡ r mod p`
+  have hfermat : (p : ℤ) ∣ r ^ p - r := by
+    rw [← ZMod.intCast_zmod_eq_zero_iff_dvd]
+    push_cast
+    rw [ZMod.pow_card, sub_self]
+  have hgrp : ¬ (p : ℤ) ∣ g.eval (r ^ p) := by
+    intro hdvd
+    refine hgr ?_
+    have hsub : (p : ℤ) ∣ g.eval (r ^ p) - g.eval r :=
+      dvd_trans hfermat (sub_dvd_eval_sub (r ^ p) r g)
+    simpa using dvd_sub hdvd hsub
+  -- conclude from `p ^ 2 ∣ f(r ^ p) * g(r ^ p)`
+  have hcop : IsCoprime ((p : ℤ) ^ 2) (g.eval (r ^ p)) :=
+    (hpZ.coprime_iff_not_dvd.mpr hgrp).pow_left
+  exact hcop.dvd_of_dvd_mul_right (by rw [← hev]; exact h2)
+
 
 /-! ### Examples 1.6, 1.7 and 1.9 -/
 
