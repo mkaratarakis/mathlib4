@@ -52,16 +52,19 @@ minimal polynomial of `θ` exactly when `𝓞 K[θ]` fails to be `π`-saturated 
 
 ## What is missing for Problem 2
 
-Uchida's criterion is now available relatively, so what remains is Section 2 itself.  Two
-points where the relative case genuinely differs from the absolute one, and which any
-solution of Problem 2 must address:
+Uchida's criterion is now available relatively, and the Frobenius twist is settled by
+`NumberField.Relative.dvd_expand_iff_map_frobenius_dvd`: it is real — the absolute identity
+`f(X ^ p) = f ^ p` mod `π` fails as soon as the residue field is not prime — but harmless,
+because `g ↦ g ^ σ` is a *bijection* on the irreducibles.  Consequently every statement of
+Section 2 that quantifies existentially over the witnessing prime survives verbatim, and only
+those stated for a fixed `g`, such as Theorem 2.4, need the twist inserted.
 
-* the residue field `𝓞 K ⧸ (π)` need not be prime, so the identity `f(X ^ p) ≡ f ^ p` modulo
-  `π` used throughout Section 2 becomes a Frobenius *twist* `f(X ^ p) ≡ (f ^ σ) ^ p`, where
-  `σ` is the inverse of the Frobenius of the residue field;
+That leaves one genuine obstacle:
+
 * the base need not be principal, so a prime *element* `π` need not exist at all; the global
   packaging `NumberField.Relative.adjoin_eq_top_of_forall_prime_saturated` currently assumes
-  `IsPrincipalIdealRing (𝓞 K)`.
+  `IsPrincipalIdealRing (𝓞 K)`.  Over a general Dedekind base the whole development would
+  have to be redone with prime *ideals* and localisation.
 
 ## References
 
@@ -359,6 +362,72 @@ theorem isIndexDivisor_iff_exists_notMem {π : 𝓞 K} (hπ : Prime π) :
       · exact h
     exact isIndexDivisor_of_splitting hπ (minpoly.monic (IsIntegral.tower_top θ.isIntegral))
       hPim hPid hsplit hPiA hPiB hPiN
+
+
+/-! ### The Frobenius twist at a residue field that is not prime
+
+Over `𝔽ₚ` one has `F(X ^ p) = F ^ p`, and Section 2 of Kaur–Kumar–Remete uses this
+throughout.  Over a residue field `𝔽_q` with `q = p ^ s`, `s > 1`, it fails: the correct
+identity is `F(X ^ p) = (F ^ σ⁻¹) ^ p`, where `σ` is the Frobenius `x ↦ x ^ p` acting on
+coefficients (`Polynomial.map_frobenius_expand`).  Concretely, for `a ∈ 𝔽_{p ^ 2} ∖ 𝔽ₚ` the
+polynomial `X - a` divides neither `X ^ p - a = (X - a)(X ^ p)`'s reduction nor, more to the
+point, does the absolute lemma `Polynomial.expand_mem_span_pair` survive.
+
+What does survive is the following exact statement, which shows the twist is a *bijection*
+on the irreducible factors: `g` divides `F(X ^ p)` exactly when `g ^ σ` divides `F`.  Since
+`σ` is an automorphism of a perfect field, `g ↦ g ^ σ` permutes the monic irreducibles, so
+every statement that quantifies existentially over the witnessing prime — Lemma 2.6,
+Corollary 2.5, and Theorem 1.1 itself — is unaffected; only results stated for a *fixed* `g`,
+such as Theorem 2.4, acquire an explicit twist. -/
+
+section FrobeniusTwist
+
+variable {k : Type*} [Field k] {p : ℕ} [Fact p.Prime] [CharP k p] [PerfectRing k p]
+
+/-- **The Frobenius twist.**  Over a perfect field of characteristic `p`, an irreducible `g`
+divides `F(X ^ p)` if and only if its Frobenius twist `g ^ σ` divides `F`.
+
+Over `𝔽ₚ` the twist is the identity and this is the familiar statement; over a larger
+residue field it is not, and this is the precise correction needed in the relative case. -/
+theorem dvd_expand_iff_map_frobenius_dvd {g F : k[X]} (hg : Irreducible g) :
+    g ∣ Polynomial.expand k p F ↔ g.map (frobenius k p) ∣ F := by
+  have hmapeq : ∀ q : k[X], (Polynomial.mapEquiv (frobeniusEquiv k p)) q
+      = q.map (frobenius k p) := fun q => rfl
+  have hexp : (Polynomial.mapEquiv (frobeniusEquiv k p)) (Polynomial.expand k p F) = F ^ p := by
+    rw [hmapeq]
+    exact Polynomial.map_frobenius_expand p F
+  constructor
+  · intro hdvd
+    have h1 : (Polynomial.mapEquiv (frobeniusEquiv k p)) g ∣ F ^ p := by
+      rw [← hexp]
+      exact _root_.map_dvd (Polynomial.mapEquiv (frobeniusEquiv k p)) hdvd
+    rw [hmapeq] at h1
+    have hirr : Irreducible (g.map (frobenius k p)) := by
+      rw [← hmapeq]
+      exact (MulEquiv.irreducible_iff (Polynomial.mapEquiv (frobeniusEquiv k p)).toMulEquiv).mpr hg
+    exact (irreducible_iff_prime.mp hirr).dvd_of_dvd_pow h1
+  · intro hdvd
+    have h1 : (Polynomial.mapEquiv (frobeniusEquiv k p)) (g ^ p) ∣
+        (Polynomial.mapEquiv (frobeniusEquiv k p)) (Polynomial.expand k p F) := by
+      rw [hexp, map_pow, hmapeq]
+      exact pow_dvd_pow_of_dvd hdvd p
+    have h2 : g ^ p ∣ Polynomial.expand k p F := by
+      obtain ⟨c, hc⟩ := h1
+      obtain ⟨c', rfl⟩ : ∃ c', (Polynomial.mapEquiv (frobeniusEquiv k p)) c' = c :=
+        ⟨(Polynomial.mapEquiv (frobeniusEquiv k p)).symm c,
+          (Polynomial.mapEquiv (frobeniusEquiv k p)).apply_symm_apply c⟩
+      refine ⟨c', (Polynomial.mapEquiv (frobeniusEquiv k p)).injective ?_⟩
+      rw [map_mul]
+      exact hc
+    exact (dvd_pow_self g (Fact.out : p.Prime).ne_zero).trans h2
+
+/-- The Frobenius twist is a bijection on polynomials, so it permutes the monic irreducibles
+of `k[X]`.  This is why every existentially quantified index-divisor statement survives
+unchanged at a residue field that is not prime. -/
+theorem map_frobenius_bijective : Function.Bijective (fun q : k[X] => q.map (frobenius k p)) :=
+  (Polynomial.mapEquiv (frobeniusEquiv k p)).bijective
+
+end FrobeniusTwist
 
 
 /-! ### Necessity of the conditions of Theorem 1.1 over a number field base -/
