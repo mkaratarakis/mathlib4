@@ -18,10 +18,10 @@ number field base, rather than over `ℚ`.  This file proves the *necessity* hal
 relative analogue of their Theorem 1.1.
 
 The organising notion is `NumberField.Relative.IsIndexDivisor π f`: a decomposition
-`f = h ^ 2 g + π (k h) + π ^ 2 t` with `h * g` monic of degree `< deg f`.  Over `ℤ` this is,
-by Uchida's criterion, equivalent to `p` dividing the index; over a general base only one
-implication is available (`NumberField.Relative.adjoin_ne_top_of_isIndexDivisor`), and that
-is the direction the results below use.
+`f = h ^ 2 g + π (k h) + π ^ 2 t` with `h * g` monic of degree `< deg f`.  Both directions of
+Uchida's criterion are available relatively
+(`NumberField.Relative.isIndexDivisor_iff_exists_notMem`): `π` is an index divisor of the
+minimal polynomial of `θ` exactly when `𝓞 K[θ]` fails to be `π`-saturated in `𝓞 K₁`.
 
 ## Main results
 
@@ -41,13 +41,20 @@ is the direction the results below use.
 * `NumberField.Relative.adjoin_ne_top_of_isIndexDivisor_expand`: likewise condition (1) is
   necessary: an index divisor of `f` obstructs monogenity of `f(X ^ k)`.
 
+## Main results, continued
+
+* `NumberField.Relative.isIndexDivisor_iff_exists_notMem`: **Uchida's criterion over a
+  number field base**.  The forward direction is the obstruction lemma; the backward
+  direction combines `NumberField.Relative.exists_splitting_of_not_saturated` --- the
+  existence half, extracted from the proof of relative Dedekind sufficiency, where it was
+  already present --- with `NumberField.Relative.isIndexDivisor_of_splitting`, which
+  normalises a splitting into the required shape.
+
 ## What is missing for Problem 2
 
-The converse direction needs the existence half of Uchida's criterion over `𝓞 K` --- that
-`π` dividing the index *produces* a decomposition --- which is
-`RingOfIntegers.exists_splitting_of_dvd_exponent` in the absolute case and is not yet
-available relatively.  Two further points where the relative case genuinely differs from the
-absolute one, and which any solution of Problem 2 must address:
+Uchida's criterion is now available relatively, so what remains is Section 2 itself.  Two
+points where the relative case genuinely differs from the absolute one, and which any
+solution of Problem 2 must address:
 
 * the residue field `𝓞 K ⧸ (π)` need not be prime, so the identity `f(X ^ p) ≡ f ^ p` modulo
   `π` used throughout Section 2 becomes a Frobenius *twist* `f(X ^ p) ≡ (f ^ σ) ^ p`, where
@@ -165,6 +172,194 @@ theorem isIndexDivisor_expand_of_sq_dvd_coeff_zero {π : 𝓞 K} (hπ : Prime π
     rw [hF0, hc, map_mul, map_pow]
   rw [← hCF0]
   linear_combination hG
+
+/-! ### Uchida's criterion over a number field base -/
+
+section Uchida
+
+attribute [local instance] Ideal.Quotient.field
+
+variable {π : 𝓞 K}
+
+omit [NumberField K] in
+/-- Membership in `⟨π, P⟩` is divisibility of the reductions modulo `π`. -/
+theorem mem_span_pair_iff_map_dvd {P x : (𝓞 K)[X]} :
+    x ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) ↔
+      P.map (Ideal.Quotient.mk (Ideal.span {π})) ∣
+        x.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+  constructor
+  · rintro hx
+    obtain ⟨a, b, rfl⟩ := Ideal.mem_span_pair.mp hx
+    refine ⟨b.map (Ideal.Quotient.mk (Ideal.span {π})), ?_⟩
+    simp only [Polynomial.map_add, Polynomial.map_mul, map_C,
+      Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0]
+    ring
+  · rintro ⟨y₁, hy₁⟩
+    obtain ⟨y, hy⟩ := Polynomial.map_surjective _ Ideal.Quotient.mk_surjective y₁
+    have hzero : (x - P * y).map (Ideal.Quotient.mk (Ideal.span {π})) = 0 := by
+      rw [Polynomial.map_sub, Polynomial.map_mul, hy, ← hy₁, sub_self]
+    obtain ⟨z, hz⟩ := map_quotient_span_eq_zero_iff.mp hzero
+    exact Ideal.mem_span_pair.mpr ⟨z, y, by linear_combination -hz⟩
+
+/-- If `π * s` lies in `⟨π, P⟩ ^ 2` then `s` lies in `⟨π, P⟩`. -/
+theorem mem_span_pair_of_C_mul_mem_sq (hπ : Prime π) {P s : (𝓞 K)[X]}
+    (hP0 : P.map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0)
+    (hs : C π * s ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) ^ 2) :
+    s ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hCπ0 : (C π : (𝓞 K)[X]) ≠ 0 := fun h => hπ.ne_zero (by simpa using congrArg (·.coeff 0) h)
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hs
+  have hwdvd : (C π : (𝓞 K)[X]) ∣ w := by
+    rw [← map_quotient_span_eq_zero_iff]
+    have hPw : (P ^ 2 * w).map (Ideal.Quotient.mk (Ideal.span {π})) = 0 := by
+      have h2 : P ^ 2 * w = C π * s - C π ^ 2 * u - C π * P * v := by linear_combination -huvw
+      rw [h2]
+      simp only [Polynomial.map_sub, Polynomial.map_mul, Polynomial.map_pow, map_C,
+        Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+        zero_pow two_ne_zero, sub_self]
+    rw [Polynomial.map_mul, Polynomial.map_pow] at hPw
+    exact (mul_eq_zero.mp hPw).resolve_left (pow_ne_zero _ hP0)
+  obtain ⟨w', rfl⟩ := hwdvd
+  have hcancel : s = C π * u + P * v + P ^ 2 * w' :=
+    mul_left_cancel₀ hCπ0 (by linear_combination huvw)
+  exact Ideal.mem_span_pair.mpr ⟨u, v + P * w', by rw [hcancel]; ring⟩
+
+/-- An element of `⟨π, P⟩ ^ 2` of degree below `2 deg P` is divisible by `π`. -/
+theorem C_dvd_of_mem_sq_of_natDegree_lt (hπ : Prime π) {P r : (𝓞 K)[X]} (hPm : P.Monic)
+    (hr : r ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) ^ 2)
+    (hdeg : r.natDegree < 2 * P.natDegree) : (C π : (𝓞 K)[X]) ∣ r := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  rw [← map_quotient_span_eq_zero_iff]
+  by_contra hne
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hr
+  have hdvd : (P.map (Ideal.Quotient.mk (Ideal.span {π}))) ^ 2 ∣
+      r.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    refine ⟨w.map (Ideal.Quotient.mk (Ideal.span {π})), ?_⟩
+    rw [huvw]
+    simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+      Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+      zero_pow two_ne_zero, zero_add]
+  have hle := Polynomial.natDegree_le_of_dvd hdvd hne
+  rw [(hPm.map _).natDegree_pow, hPm.natDegree_map] at hle
+  exact absurd (hle.trans natDegree_map_le) (by omega)
+
+/-- **Normalisation of a splitting.**  A splitting `f = A B + π N` whose three factors are
+divisible, modulo `π`, by a common monic irreducible `Pi` can be rewritten in the shape
+required by the obstruction lemma, so `π` is an index divisor of `f`.
+
+Dividing `f` by the monic `P ^ 2`, where `P` lifts `Pi`, the remainder has degree below
+`2 deg P` and is therefore divisible by `π`; dividing it by `π` lands in `⟨π, P⟩`, and the
+quotient is monic because `P ^ 2 q = f - r` is. -/
+theorem isIndexDivisor_of_splitting (hπ : Prime π) {f : (𝓞 K)[X]} (hfm : f.Monic)
+    {Pi : (𝓞 K ⧸ Ideal.span {π})[X]} (hPim : Pi.Monic) (hPid : 0 < Pi.natDegree)
+    {A B N : (𝓞 K)[X]} (hsplit : f = A * B + C π * N)
+    (hA : Pi ∣ A.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hB : Pi ∣ B.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hN : Pi ∣ N.map (Ideal.Quotient.mk (Ideal.span {π}))) :
+    IsIndexDivisor π f := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  obtain ⟨P, hPmap, -, hPm⟩ := lifts_and_degree_eq_and_monic
+    ((mem_lifts Pi).mpr (Polynomial.map_surjective _ Ideal.Quotient.mk_surjective Pi)) hPim
+  have hPdeg : P.natDegree = Pi.natDegree := by rw [← hPmap, hPm.natDegree_map]
+  have hP0 : P.map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0 := by
+    rw [hPmap]; exact hPim.ne_zero
+  -- `f` lies in the square of `⟨π, P⟩`
+  have hmemP : (C π : (𝓞 K)[X]) ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) :=
+    Ideal.subset_span (by simp)
+  have hfmem : f ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) ^ 2 := by
+    rw [hsplit, sq]
+    exact Ideal.add_mem _
+      (Ideal.mul_mem_mul (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hA))
+        (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hB)))
+      (Ideal.mul_mem_mul hmemP (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hN)))
+  -- divide by `P ^ 2`
+  have hP2m : (P ^ 2).Monic := hPm.pow 2
+  set q := f /ₘ P ^ 2 with hqdef
+  set r := f %ₘ P ^ 2 with hrdef
+  have hdiv : r + P ^ 2 * q = f := modByMonic_add_div f (P ^ 2)
+  have hdvdmap : (P.map (Ideal.Quotient.mk (Ideal.span {π}))) ^ 2 ∣
+      f.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hfmem
+    refine ⟨w.map (Ideal.Quotient.mk (Ideal.span {π})), ?_⟩
+    rw [huvw]
+    simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+      Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+      zero_pow two_ne_zero, zero_add]
+  have hle : 2 * P.natDegree ≤ f.natDegree := by
+    have h := Polynomial.natDegree_le_of_dvd hdvdmap (hfm.map _).ne_zero
+    rwa [(hPm.map _).natDegree_pow, hPm.natDegree_map, hfm.natDegree_map] at h
+  have hrdegPi : r.degree < (P ^ 2).degree := degree_modByMonic_lt _ hP2m
+  have hrdegf : r.degree < f.degree := by
+    refine hrdegPi.trans_le ?_
+    rw [degree_eq_natDegree hP2m.ne_zero, degree_eq_natDegree hfm.ne_zero, hPm.natDegree_pow]
+    exact_mod_cast hle
+  have hrmem : r ∈ (Ideal.span {C π, P} : Ideal ((𝓞 K)[X])) ^ 2 := by
+    have hsub : r = f - P ^ 2 * q := by linear_combination hdiv
+    rw [hsub]
+    refine Ideal.sub_mem _ hfmem (Ideal.mul_mem_right _ _ ?_)
+    rw [sq, sq]
+    exact Ideal.mul_mem_mul (Ideal.subset_span (by simp)) (Ideal.subset_span (by simp))
+  have hrsmall : r.natDegree < 2 * P.natDegree := by
+    have hne1 : P ^ 2 ≠ 1 := fun h => by
+      have h0 : (P ^ 2).natDegree = 0 := by rw [h]; simp
+      rw [hPm.natDegree_pow, hPdeg] at h0; omega
+    have h := natDegree_modByMonic_lt f hP2m hne1
+    rwa [hPm.natDegree_pow] at h
+  obtain ⟨s, hs⟩ := C_dvd_of_mem_sq_of_natDegree_lt hπ hPm hrmem hrsmall
+  obtain ⟨c, k, hck⟩ := Ideal.mem_span_pair.mp
+    (mem_span_pair_of_C_mul_mem_sq hπ hP0 (hs ▸ hrmem))
+  -- the quotient is monic of the right degree
+  have hP2q : (P ^ 2 * q).Monic := by
+    have heq : P ^ 2 * q = f - r := by linear_combination hdiv
+    rw [heq]; exact hfm.sub_of_left hrdegf
+  have hqm : q.Monic := hP2m.of_mul_monic_left hP2q
+  have hdegeq : (P ^ 2 * q).natDegree = f.natDegree := by
+    have heq : P ^ 2 * q = f - r := by linear_combination hdiv
+    rw [heq]
+    exact natDegree_eq_of_degree_eq (degree_sub_eq_left_of_degree_lt hrdegf)
+  refine ⟨P, q, k, c, hPm.mul hqm, ?_, ?_⟩
+  · rw [hPm.natDegree_mul hqm]
+    rw [hP2m.natDegree_mul hqm, hPm.natDegree_pow] at hdegeq
+    omega
+  · linear_combination -hdiv + hs - C π * hck
+
+
+end Uchida
+
+
+
+/-- **Uchida's criterion over a number field base, in the saturation form.**  `𝓞 K[θ]` fails
+to be `π`-saturated in `𝓞 K₁` exactly when `π` is an index divisor of the minimal polynomial
+of `θ`.
+
+The forward direction is `NumberField.Relative.exists_splitting_of_not_saturated` followed by
+the normalisation of the splitting into the shape of `IsIndexDivisor`; the backward direction
+is the obstruction lemma. -/
+theorem isIndexDivisor_iff_exists_notMem {π : 𝓞 K} (hπ : Prime π) :
+    IsIndexDivisor π (minpoly (𝓞 K) θ) ↔
+      ∃ β : 𝓞 K₁, algebraMap (𝓞 K) (𝓞 K₁) π * β ∈ Algebra.adjoin (𝓞 K) {θ} ∧
+        β ∉ Algebra.adjoin (𝓞 K) {θ} := by
+  constructor
+  · rintro ⟨a, b, c, d, hm, hdeg, heq⟩
+    obtain ⟨z, hz, hznot⟩ := exists_mul_mem_adjoin_notMem_adjoin_of_factor hπ hm hdeg heq
+    exact ⟨z, hz, hznot⟩
+  · rintro ⟨β, hβ, hβnot⟩
+    obtain ⟨Pi, A, B, N, hPim, hPiirr, hsplit, hPiA, hPiB, hPiN⟩ :=
+      exists_splitting_of_not_saturated hπ hβnot hβ
+    have hPid : 0 < Pi.natDegree := by
+      rcases Nat.eq_zero_or_pos Pi.natDegree with h0 | h
+      · rw [eq_one_of_monic_natDegree_zero hPim h0] at hPiirr
+        exact absurd hPiirr not_irreducible_one
+      · exact h
+    exact isIndexDivisor_of_splitting hπ (minpoly.monic (IsIntegral.tower_top θ.isIntegral))
+      hPim hPid hsplit hPiA hPiB hPiN
+
 
 /-! ### Necessity of the conditions of Theorem 1.1 over a number field base -/
 

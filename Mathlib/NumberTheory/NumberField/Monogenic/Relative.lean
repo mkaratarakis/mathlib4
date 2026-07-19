@@ -294,7 +294,9 @@ section DedekindSufficiency
 
 attribute [local instance] Ideal.Quotient.field
 
-private theorem map_quotient_span_eq_zero_iff {R : Type*} [CommRing R] {π : R} {q : R[X]} :
+/-- A polynomial over `R` reduces to zero modulo a prime element `π` exactly when `C π`
+divides it. -/
+theorem map_quotient_span_eq_zero_iff {R : Type*} [CommRing R] {π : R} {q : R[X]} :
     q.map (Ideal.Quotient.mk (Ideal.span {π})) = 0 ↔ C π ∣ q := by
   rw [C_dvd_iff_dvd_coeff, Polynomial.ext_iff]
   refine forall_congr' fun i => ?_
@@ -376,29 +378,31 @@ private theorem map_dvd_map_sub_of_map_dvd {R : Type*} [CommRing R] [IsDomain R]
     (Dvd.dvd.mul_right dvd_rfl _)
 
 omit [NumberField K₁] in
-/-- **Relative Dedekind criterion, sufficiency (saturation form).**  Let `θ : 𝓞 K₁`
-generate `K₁` over `K`, let `π` be a prime element of `𝓞 K`, and suppose
-`minpoly (𝓞 K) θ = g h + π M` where, modulo `π`, the factor `g` is squarefree, every
-irreducible factor of `h` divides `g`, and `g`, `h`, `M` generate the unit ideal.
-Then `𝓞 K[θ]` is `π`-saturated in `𝓞 K₁`: any `β` with
-`π β ∈ 𝓞 K[θ]` already lies in `𝓞 K[θ]`.  This is the relative version of the
-sufficiency half of Dedekind's criterion
-(`RingOfIntegers.not_dvd_exponent_of_bezout`). -/
-theorem mem_adjoin_of_algebraMap_mul_mem {π : 𝓞 K} (hπ : Prime π)
-    {g h M : (𝓞 K)[X]}
-    (hf : minpoly (𝓞 K) θ = g * h + C π * M)
-    (hsq : Squarefree (g.map (Ideal.Quotient.mk (Ideal.span {π}))))
-    (hrad : ∀ q : (𝓞 K ⧸ Ideal.span {π})[X], Irreducible q →
-      q ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) →
-      q ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})))
-    (hbez : ∃ u v w : (𝓞 K ⧸ Ideal.span {π})[X],
-      u * g.map (Ideal.Quotient.mk (Ideal.span {π})) +
-        v * h.map (Ideal.Quotient.mk (Ideal.span {π})) +
-        w * M.map (Ideal.Quotient.mk (Ideal.span {π})) = 1)
-    {β : 𝓞 K₁} (hβ : algebraMap (𝓞 K) (𝓞 K₁) π * β ∈ Algebra.adjoin (𝓞 K) {θ}) :
-    β ∈ Algebra.adjoin (𝓞 K) {θ} := by
+/-- **The existence half of Uchida's criterion over a number field base.**  If `𝓞 K[θ]`
+fails to be `π`-saturated in `𝓞 K₁` — that is, some `β ∉ 𝓞 K[θ]` has `π β ∈ 𝓞 K[θ]` —
+then the minimal polynomial of `θ` admits a splitting `f = A B + π N` in which a single
+monic irreducible `Pi` of `(𝓞 K ⧸ (π))[X]` divides the reductions of `A`, `B` and `N`.
+
+Equivalently: `f` lies in the square of the maximal ideal `⟨π, Pi⟩` of `(𝓞 K)[X]`.  This is
+the relative form of `RingOfIntegers.exists_splitting_of_dvd_exponent`, and the direction of
+Uchida's criterion that was previously unavailable over a general base.
+
+The proof is the elementary argument of Dedekind: a bad denominator `β` produces a numerator
+`r` of degree `< deg f`; the gcd of the reductions of `r` and `f` lifts to `A` with
+`A(θ) = π γ`; the minimal polynomial of `γ`, scaled by `π`, shows that the reduction of `f`
+divides the `d`-th power of that gcd, so the complementary factor is a nonunit and any monic
+irreducible factor of it divides the gcd as well; finally a resultant-style combination of
+`B` and `N` vanishes at `θ`, which forces the same irreducible to divide the reduction of
+`N`. -/
+theorem exists_splitting_of_not_saturated {π : 𝓞 K} (hπ : Prime π) {β : 𝓞 K₁}
+    (hβnot : β ∉ Algebra.adjoin (𝓞 K) {θ})
+    (hβ : algebraMap (𝓞 K) (𝓞 K₁) π * β ∈ Algebra.adjoin (𝓞 K) {θ}) :
+    ∃ (Pi : (𝓞 K ⧸ Ideal.span {π})[X]) (A B N : (𝓞 K)[X]), Pi.Monic ∧ Irreducible Pi ∧
+      minpoly (𝓞 K) θ = A * B + C π * N ∧
+      Pi ∣ A.map (Ideal.Quotient.mk (Ideal.span {π})) ∧
+      Pi ∣ B.map (Ideal.Quotient.mk (Ideal.span {π})) ∧
+      Pi ∣ N.map (Ideal.Quotient.mk (Ideal.span {π})) := by
   classical
-  by_contra hβnot
   haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
     ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
       (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
@@ -530,38 +534,6 @@ theorem mem_adjoin_of_algebraMap_mul_mem {π : 𝓞 K} (hπ : Prime π)
     · have hπpow : πb ∣ Abar ^ (d - 1) := hcancel ▸ hπbB.mul_right k
       exact hπbirr.prime.dvd_of_dvd_pow hπpow
   have hπbf : πb ∣ fbar := hπbA.trans hAdvd_f
-  -- `π̄` divides `ḡ` and `h̄`
-  have hfgh : fbar = g.map (Ideal.Quotient.mk (Ideal.span {π}))
-      * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
-    have := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π}))) hf
-    simpa only [Polynomial.map_add, Polynomial.map_mul, map_C, hzπ, map_zero, C_0,
-      zero_mul, add_zero] using this
-  have hπbg : πb ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})) := by
-    rcases hπbirr.prime.dvd_mul.mp (hfgh ▸ hπbf) with hcase | hcase
-    · exact hcase
-    · exact hrad πb hπbirr hcase
-  have hπbh : πb ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
-    obtain ⟨g₁, hg₁⟩ := hπbg
-    have hπ2 : πb ^ 2 ∣ fbar := by
-      rw [hBbar, sq]
-      exact mul_dvd_mul hπbA hπbB
-    have hstep : πb ∣ g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
-      have hh2 : πb * (g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π}))) =
-          g.map (Ideal.Quotient.mk (Ideal.span {π}))
-            * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
-        rw [hg₁]
-        ring
-      have := hfgh ▸ hπ2
-      rw [← hh2, sq] at this
-      exact (mul_dvd_mul_iff_left hπbirr.ne_zero).mp this
-    rcases hπbirr.prime.dvd_mul.mp hstep with hcase | hcase
-    · exfalso
-      apply hπbirr.not_isUnit
-      apply hsq πb
-      rw [hg₁]
-      exact mul_dvd_mul_left πb hcase
-    · exact hcase
-  -- the polynomial `N` with `f = A B + π N`, and `π̄ ∣ N̄`
   obtain ⟨B, hBmap⟩ := Polynomial.map_surjective _ hsurj Bbar
   have hN0 : (minpoly (𝓞 K) θ - A * B).map (Ideal.Quotient.mk (Ideal.span {π})) = 0 := by
     rw [Polynomial.map_sub, Polynomial.map_mul, hAmap, hBmap, ← hfbar, ← hBbar, sub_self]
@@ -627,6 +599,82 @@ theorem mem_adjoin_of_algebraMap_mul_mem {π : 𝓞 K} (hπ : Prime π)
       exact this
     have := hπbirr.prime.dvd_of_dvd_pow hπbpow
     rwa [dvd_neg] at this
+  exact ⟨πb, A, B, N, hπbmonic, hπbirr, by linear_combination hN,
+    by rw [hAmap]; exact hπbA, by rw [hBmap]; exact hπbB, hπbN⟩
+
+omit [NumberField K₁] in
+/-- **Relative Dedekind criterion, sufficiency (saturation form).**  Let `θ : 𝓞 K₁`
+generate `K₁` over `K`, let `π` be a prime element of `𝓞 K`, and suppose
+`minpoly (𝓞 K) θ = g h + π M` where, modulo `π`, the factor `g` is squarefree, every
+irreducible factor of `h` divides `g`, and `g`, `h`, `M` generate the unit ideal.
+Then `𝓞 K[θ]` is `π`-saturated in `𝓞 K₁`: any `β` with
+`π β ∈ 𝓞 K[θ]` already lies in `𝓞 K[θ]`.  This is the relative version of the
+sufficiency half of Dedekind's criterion
+(`RingOfIntegers.not_dvd_exponent_of_bezout`). -/
+theorem mem_adjoin_of_algebraMap_mul_mem {π : 𝓞 K} (hπ : Prime π)
+    {g h M : (𝓞 K)[X]}
+    (hf : minpoly (𝓞 K) θ = g * h + C π * M)
+    (hsq : Squarefree (g.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hrad : ∀ q : (𝓞 K ⧸ Ideal.span {π})[X], Irreducible q →
+      q ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) →
+      q ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hbez : ∃ u v w : (𝓞 K ⧸ Ideal.span {π})[X],
+      u * g.map (Ideal.Quotient.mk (Ideal.span {π})) +
+        v * h.map (Ideal.Quotient.mk (Ideal.span {π})) +
+        w * M.map (Ideal.Quotient.mk (Ideal.span {π})) = 1)
+    {β : 𝓞 K₁} (hβ : algebraMap (𝓞 K) (𝓞 K₁) π * β ∈ Algebra.adjoin (𝓞 K) {θ}) :
+    β ∈ Algebra.adjoin (𝓞 K) {θ} := by
+  classical
+  by_contra hβnot
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hsurj : Function.Surjective (Ideal.Quotient.mk (Ideal.span {π} : Ideal (𝓞 K))) :=
+    Ideal.Quotient.mk_surjective
+  have hzπ : Ideal.Quotient.mk (Ideal.span {π}) π = 0 :=
+    Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π)
+  obtain ⟨πb, A, B, N, hπbmonic, hπbirr, hN, hπbA, hπbB, hπbN⟩ :=
+    exists_splitting_of_not_saturated hπ hβnot hβ
+  set fbar := (minpoly (𝓞 K) θ).map (Ideal.Quotient.mk (Ideal.span {π})) with hfbar
+  set Abar := A.map (Ideal.Quotient.mk (Ideal.span {π})) with hAmap
+  set Bbar := B.map (Ideal.Quotient.mk (Ideal.span {π})) with hBmap
+  have hBbar : fbar = Abar * Bbar := by
+    rw [hfbar, hAmap, hBmap, hN]
+    simp only [Polynomial.map_add, Polynomial.map_mul, map_C, hzπ, map_zero,
+      zero_mul, add_zero]
+  have hπbf : πb ∣ fbar := hBbar ▸ hπbA.mul_right Bbar
+  -- `π̄` divides `ḡ` and `h̄`
+  have hfgh : fbar = g.map (Ideal.Quotient.mk (Ideal.span {π}))
+      * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    have := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π}))) hf
+    simpa only [Polynomial.map_add, Polynomial.map_mul, map_C, hzπ, map_zero, C_0,
+      zero_mul, add_zero] using this
+  have hπbg : πb ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    rcases hπbirr.prime.dvd_mul.mp (hfgh ▸ hπbf) with hcase | hcase
+    · exact hcase
+    · exact hrad πb hπbirr hcase
+  have hπbh : πb ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    obtain ⟨g₁, hg₁⟩ := hπbg
+    have hπ2 : πb ^ 2 ∣ fbar := by
+      rw [hBbar, sq]
+      exact mul_dvd_mul hπbA hπbB
+    have hstep : πb ∣ g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+      have hh2 : πb * (g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π}))) =
+          g.map (Ideal.Quotient.mk (Ideal.span {π}))
+            * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+        rw [hg₁]
+        ring
+      have := hfgh ▸ hπ2
+      rw [← hh2, sq] at this
+      exact (mul_dvd_mul_iff_left hπbirr.ne_zero).mp this
+    rcases hπbirr.prime.dvd_mul.mp hstep with hcase | hcase
+    · exfalso
+      apply hπbirr.not_isUnit
+      apply hsq πb
+      rw [hg₁]
+      exact mul_dvd_mul_left πb hcase
+    · exact hcase
+  -- the polynomial `N` with `f = A B + π N`, and `π̄ ∣ N̄`
   -- change of splitting transfers `π̄ ∣ N̄` to `π̄ ∣ M̄`
   obtain ⟨Pi, hPimap, _, hPimonic⟩ :=
     lifts_and_degree_eq_and_monic ((mem_lifts πb).mpr
@@ -649,6 +697,7 @@ theorem mem_adjoin_of_algebraMap_mul_mem {π : 𝓞 K} (hπ : Prime π)
   apply isUnit_of_dvd_one
   rw [← hbez']
   exact dvd_add (dvd_add (hπbg.mul_left u') (hπbh.mul_left v')) (hπbM.mul_left w')
+
 
 end DedekindSufficiency
 
