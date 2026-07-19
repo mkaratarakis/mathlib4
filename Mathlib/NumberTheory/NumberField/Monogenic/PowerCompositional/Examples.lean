@@ -44,8 +44,11 @@ subsume.
   the set of such `p` is the set of Wieferich primes to the base `A`.
 
 * `RingOfIntegers.adjoin_eq_top_expand_simplestCubic_iff`: **Proposition 4.3** for the
-  simplest cubics, with the splitting hypothesis stated explicitly (see its docstring for
-  what the paper derives from Galois theory and what is left out).
+  simplest cubics `X ^ 3 - m X ^ 2 - (m + 3) X - 1`.  The splitting of `f` modulo the odd
+  primes dividing `k` is a hypothesis (the paper derives it from the cyclic cubic Galois
+  group); the prime `2` needs no hypothesis, by
+  `RingOfIntegers.not_isIndexDivisor_two_simplestCubic`, which checks the four classes of
+  `m` mod `4` by explicit Bezout identities over `𝔽₂`.
 
 * `RingOfIntegers.not_isIndexDivisor_expand_cyclotomic`: **Problem 1 has an empty answer for
   cyclotomic `f`**, which is the kind of example the paper asks for.  Supporting this,
@@ -447,41 +450,269 @@ theorem isIndexDivisor_expand_of_dvd_X_pow_sub_one {f g : ℤ[X]} (hfm : f.Monic
 
 /-! ### Proposition 4.3: the simplest cubics -/
 
+/-! ### Proposition 4.3 at `p = 2` -/
+
+private theorem cast_even (d : ℤ) : (((2*d : ℤ)) : ZMod 2) = 0 := by
+  push_cast
+  rw [show ((2 : ZMod 2)) = 0 from by decide]
+  ring
+
+private theorem cast_odd (d : ℤ) : (((2*d + 1 : ℤ)) : ZMod 2) = 1 := by
+  push_cast
+  rw [show ((2 : ZMod 2)) = 0 from by decide]
+  ring
+
+private theorem two_zmod_two : ((2 : (ZMod 2)[X])) = 0 := CharTwo.two_eq_zero
+
+private theorem three_zmod_two : ((3 : (ZMod 2)[X])) = 1 := by
+  rw [show (3 : (ZMod 2)[X]) = 2 + 1 by norm_num, two_zmod_two, zero_add]
+
+private theorem four_zmod_two : ((4 : (ZMod 2)[X])) = 0 := by
+  rw [show (4 : (ZMod 2)[X]) = 2 * 2 by norm_num, two_zmod_two, zero_mul]
+
+private theorem five_zmod_two : ((5 : (ZMod 2)[X])) = 1 := by
+  rw [show (5 : (ZMod 2)[X]) = 4 + 1 by norm_num, four_zmod_two, zero_add]
+
+private theorem six_zmod_two : ((6 : (ZMod 2)[X])) = 0 := by
+  rw [show (6 : (ZMod 2)[X]) = 2 * 3 by norm_num, two_zmod_two, zero_mul]
+
+private theorem map_C_zmod_two (z : ℤ) :
+    ((C z : ℤ[X]).map (Int.castRingHom (ZMod 2))) = C ((z : ZMod 2)) := by
+  rw [Polynomial.map_C]; rfl
+
+/-- Proposition 4.3 at `p = 2`, for `m ≡ 0` mod `4`: the reduction of `f` mod `2` is
+irreducible and coprime to `(f(X ^ 2) - f ^ 2) / 2`, so `2` is not an index divisor. -/
+private theorem not_isIndexDivisor_two_simplestCubic_0 (j : ℤ) :
+    ¬ IsIndexDivisor 2 (expand ℤ 2 (X ^ 3 - C (4*j) * X ^ 2 - C (4*j + 3) * X - 1)) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  set f : ℤ[X] := X ^ 3 - C (4*j) * X ^ 2 - C (4*j + 3) * X - 1 with hf
+  set T : ℤ[X] := C (4*j) * X ^ 5 + C (-8*j^2+2*j+3) * X ^ 4
+      + C (-16*j^2-12*j+1) * X ^ 3 + C (-8*j^2-18*j-6) * X ^ 2 + C (-(4*j+3)) * X - 1 with hT
+  have hfm : f.Monic := by rw [hf]; monicity!
+  have hid : expand ℤ 2 f = f ^ 2 + C 2 * T := by
+    simp only [hf, hT, map_sub, map_mul, map_pow, map_one, map_add, map_neg, map_ofNat,
+      expand_C, expand_X]
+    ring
+  have ea : (((4*j : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j : ℤ)) = 2*(2*j) from by ring, cast_even]
+  have eb : (((4*j + 3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j + 3 : ℤ)) = 2*(2*j+1) + 1 from by ring, cast_odd]
+  have e0 : (((4*j : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j : ℤ)) = 2*(2*j) from by ring, cast_even]
+  have e1 : (((-8*j^2+2*j+3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-8*j^2+2*j+3 : ℤ)) = 2*(-4*j^2+j+1) + 1 from by ring, cast_odd]
+  have e2 : (((-16*j^2-12*j+1 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-16*j^2-12*j+1 : ℤ)) = 2*(-8*j^2-6*j) + 1 from by ring, cast_odd]
+  have e3 : (((-8*j^2-18*j-6 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-8*j^2-18*j-6 : ℤ)) = 2*(-4*j^2-9*j-3) from by ring, cast_even]
+  have e4 : (((-(4*j+3) : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-(4*j+3) : ℤ)) = 2*(-2*j-2) + 1 from by ring, cast_odd]
+  have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X + 1 := by
+    rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 4 + X ^ 3 + X + 1 := by
+    rw [hT]
+    simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero,
+      zero_add]
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
+  refine ⟨X ^ 2, X + 1, ?_⟩
+  ring_nf
+  simp [two_zmod_two]
+
+/-- Proposition 4.3 at `p = 2`, for `m ≡ 1` mod `4`: the reduction of `f` mod `2` is
+irreducible and coprime to `(f(X ^ 2) - f ^ 2) / 2`, so `2` is not an index divisor. -/
+private theorem not_isIndexDivisor_two_simplestCubic_1 (j : ℤ) :
+    ¬ IsIndexDivisor 2 (expand ℤ 2 (X ^ 3 - C (4*j + 1) * X ^ 2 - C (4*j + 4) * X - 1)) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  set f : ℤ[X] := X ^ 3 - C (4*j + 1) * X ^ 2 - C (4*j + 4) * X - 1 with hf
+  set T : ℤ[X] := C (4*j+1) * X ^ 5 + C (-8*j^2-2*j+3) * X ^ 4
+      + C (-16*j^2-20*j-3) * X ^ 3 + C (-8*j^2-22*j-11) * X ^ 2 + C (-(4*j+4)) * X - 1 with hT
+  have hfm : f.Monic := by rw [hf]; monicity!
+  have hid : expand ℤ 2 f = f ^ 2 + C 2 * T := by
+    simp only [hf, hT, map_sub, map_mul, map_pow, map_one, map_add, map_neg, map_ofNat,
+      expand_C, expand_X]
+    ring
+  have ea : (((4*j + 1 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j + 1 : ℤ)) = 2*(2*j) + 1 from by ring, cast_odd]
+  have eb : (((4*j + 4 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j + 4 : ℤ)) = 2*(2*j+2) from by ring, cast_even]
+  have e0 : (((4*j+1 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j+1 : ℤ)) = 2*(2*j) + 1 from by ring, cast_odd]
+  have e1 : (((-8*j^2-2*j+3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-8*j^2-2*j+3 : ℤ)) = 2*(-4*j^2-j+1) + 1 from by ring, cast_odd]
+  have e2 : (((-16*j^2-20*j-3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-16*j^2-20*j-3 : ℤ)) = 2*(-8*j^2-10*j-2) + 1 from by ring, cast_odd]
+  have e3 : (((-8*j^2-22*j-11 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-8*j^2-22*j-11 : ℤ)) = 2*(-4*j^2-11*j-6) + 1 from by ring, cast_odd]
+  have e4 : (((-(4*j+4) : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-(4*j+4) : ℤ)) = 2*(-2*j-2) from by ring, cast_even]
+  have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + 1 := by
+    rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 5 + X ^ 4 + X ^ 3 + X ^ 2 + 1 := by
+    rw [hT]
+    simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
+  refine ⟨X ^ 3 + X ^ 2 + X, X + 1, ?_⟩
+  ring_nf
+  simp [two_zmod_two, four_zmod_two]
+
+/-- Proposition 4.3 at `p = 2`, for `m ≡ 2` mod `4`: the reduction of `f` mod `2` is
+irreducible and coprime to `(f(X ^ 2) - f ^ 2) / 2`, so `2` is not an index divisor. -/
+private theorem not_isIndexDivisor_two_simplestCubic_2 (j : ℤ) :
+    ¬ IsIndexDivisor 2 (expand ℤ 2 (X ^ 3 - C (4*j + 2) * X ^ 2 - C (4*j + 5) * X - 1)) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  set f : ℤ[X] := X ^ 3 - C (4*j + 2) * X ^ 2 - C (4*j + 5) * X - 1 with hf
+  set T : ℤ[X] := C (4*j+2) * X ^ 5 + C (-8*j^2-6*j+2) * X ^ 4
+      + C (-16*j^2-28*j-9) * X ^ 3 + C (-8*j^2-26*j-17) * X ^ 2 + C (-(4*j+5)) * X - 1 with hT
+  have hfm : f.Monic := by rw [hf]; monicity!
+  have hid : expand ℤ 2 f = f ^ 2 + C 2 * T := by
+    simp only [hf, hT, map_sub, map_mul, map_pow, map_one, map_add, map_neg, map_ofNat,
+      expand_C, expand_X]
+    ring
+  have ea : (((4*j + 2 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j + 2 : ℤ)) = 2*(2*j+1) from by ring, cast_even]
+  have eb : (((4*j + 5 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j + 5 : ℤ)) = 2*(2*j+2) + 1 from by ring, cast_odd]
+  have e0 : (((4*j+2 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j+2 : ℤ)) = 2*(2*j+1) from by ring, cast_even]
+  have e1 : (((-8*j^2-6*j+2 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-8*j^2-6*j+2 : ℤ)) = 2*(-4*j^2-3*j+1) from by ring, cast_even]
+  have e2 : (((-16*j^2-28*j-9 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-16*j^2-28*j-9 : ℤ)) = 2*(-8*j^2-14*j-5) + 1 from by ring, cast_odd]
+  have e3 : (((-8*j^2-26*j-17 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-8*j^2-26*j-17 : ℤ)) = 2*(-4*j^2-13*j-9) + 1 from by ring, cast_odd]
+  have e4 : (((-(4*j+5) : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-(4*j+5) : ℤ)) = 2*(-2*j-3) + 1 from by ring, cast_odd]
+  have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X + 1 := by
+    rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + X + 1 := by
+    rw [hT]
+    simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero,
+      zero_add]
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
+  refine ⟨X ^ 2, X ^ 2 + X + 1, ?_⟩
+  ring_nf
+  simp [two_zmod_two, four_zmod_two]
+
+/-- Proposition 4.3 at `p = 2`, for `m ≡ 3` mod `4`: the reduction of `f` mod `2` is
+irreducible and coprime to `(f(X ^ 2) - f ^ 2) / 2`, so `2` is not an index divisor. -/
+private theorem not_isIndexDivisor_two_simplestCubic_3 (j : ℤ) :
+    ¬ IsIndexDivisor 2 (expand ℤ 2 (X ^ 3 - C (4*j + 3) * X ^ 2 - C (4*j + 6) * X - 1)) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  set f : ℤ[X] := X ^ 3 - C (4*j + 3) * X ^ 2 - C (4*j + 6) * X - 1 with hf
+  set T : ℤ[X] := C (4*j+3) * X ^ 5 + C (-8*j^2-10*j) * X ^ 4
+      + C (-16*j^2-36*j-17) * X ^ 3 + C (-8*j^2-30*j-24) * X ^ 2 + C (-(4*j+6)) * X - 1 with hT
+  have hfm : f.Monic := by rw [hf]; monicity!
+  have hid : expand ℤ 2 f = f ^ 2 + C 2 * T := by
+    simp only [hf, hT, map_sub, map_mul, map_pow, map_one, map_add, map_neg, map_ofNat,
+      expand_C, expand_X]
+    ring
+  have ea : (((4*j + 3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j + 3 : ℤ)) = 2*(2*j+1) + 1 from by ring, cast_odd]
+  have eb : (((4*j + 6 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((4*j + 6 : ℤ)) = 2*(2*j+3) from by ring, cast_even]
+  have e0 : (((4*j+3 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((4*j+3 : ℤ)) = 2*(2*j+1) + 1 from by ring, cast_odd]
+  have e1 : (((-8*j^2-10*j : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-8*j^2-10*j : ℤ)) = 2*(-4*j^2-5*j) from by ring, cast_even]
+  have e2 : (((-16*j^2-36*j-17 : ℤ)) : ZMod 2) = 1 := by
+    rw [show ((-16*j^2-36*j-17 : ℤ)) = 2*(-8*j^2-18*j-9) + 1 from by ring, cast_odd]
+  have e3 : (((-8*j^2-30*j-24 : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-8*j^2-30*j-24 : ℤ)) = 2*(-4*j^2-15*j-12) from by ring, cast_even]
+  have e4 : (((-(4*j+6) : ℤ)) : ZMod 2) = 0 := by
+    rw [show ((-(4*j+6) : ℤ)) = 2*(-2*j-3) from by ring, cast_even]
+  have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + 1 := by
+    rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 5 + X ^ 3 + 1 := by
+    rw [hT]
+    simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+    simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
+  refine ⟨X ^ 4 + X ^ 3 + X ^ 2, X ^ 2 + 1, ?_⟩
+  ring_nf
+  simp [two_zmod_two, four_zmod_two]
+
+/-- **Proposition 4.3 at `p = 2`.**  For every `m`, the prime `2` is not an index divisor of
+`f(X ^ 2)`, where `f = X ^ 3 - m X ^ 2 - (m + 3) X - 1`.
+
+The reduction of `f` mod `2` is `X ^ 3 + X + 1` or `X ^ 3 + X ^ 2 + 1` according to the parity
+of `m`, and in each of the four classes of `m` mod `4` an explicit Bezout identity shows that
+it is coprime to `(f(X ^ 2) - f ^ 2) / 2`; the class of `m` mod `4`, not just mod `2`, is what
+matters because the coefficients of that quotient involve `m (m + 1) / 2`. -/
+theorem not_isIndexDivisor_two_simplestCubic (m : ℤ) :
+    ¬ IsIndexDivisor 2 (expand ℤ 2 (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) := by
+  obtain ⟨j, r, hr0, hr4, rfl⟩ : ∃ j r : ℤ, 0 ≤ r ∧ r < 4 ∧ m = 4 * j + r :=
+    ⟨m / 4, m % 4, Int.emod_nonneg m (by norm_num), Int.emod_lt_of_pos m (by norm_num), by omega⟩
+  interval_cases r
+  · rw [show (4*j + 0 : ℤ) = 4*j from by ring]
+    exact not_isIndexDivisor_two_simplestCubic_0 j
+  · rw [show (4*j + 1 + 3 : ℤ) = 4*j + 4 from by ring]
+    exact not_isIndexDivisor_two_simplestCubic_1 j
+  · rw [show (4*j + 2 + 3 : ℤ) = 4*j + 5 from by ring]
+    exact not_isIndexDivisor_two_simplestCubic_2 j
+  · rw [show (4*j + 3 + 3 : ℤ) = 4*j + 6 from by ring]
+    exact not_isIndexDivisor_two_simplestCubic_3 j
+
 /-- **Proposition 4.3** of Kaur–Kumar–Remete for the simplest cubics
-`f = X ^ 3 - m X ^ 2 - (m + 3) X - 1`, with the splitting hypothesis stated explicitly.
+`f = X ^ 3 - m X ^ 2 - (m + 3) X - 1`.
 
 Since `f(0) = -1` is a unit, condition (3) of Theorem 1.1 is automatic, so monogenity of
-`f(X ^ k)` reduces to monogenity of `f` together with one finite congruence check per prime
-divisor of `k`.
+`f(X ^ k)` reduces to monogenity of `f` together with one finite congruence check per odd
+prime divisor of `k`.  The prime `2` needs no condition at all: it is never an index divisor
+of `f(X ^ 2)`, by `RingOfIntegers.not_isIndexDivisor_two_simplestCubic`.
 
-The paper obtains the splitting hypothesis from the Galois group of `f` being cyclic of
-order three, so that reducibility mod `p` already forces complete splitting; that step is
-not formalised here, and is the reason the hypothesis appears explicitly.
-
-Note also that `f` is irreducible modulo `2` for every `m` — its reduction is `X ^ 3 + X + 1`
-or `X ^ 3 + X ^ 2 + 1`, neither of which has a root — so the splitting hypothesis is
-satisfiable only for odd `k`.  The paper treats `p = 2` by a separate computation, showing
-that `2` never divides the index; that computation is not formalised here either. -/
+The splitting of `f` modulo the odd primes dividing `k` is a hypothesis here.  The paper
+derives it from the Galois group of `f` being cyclic of order three, so that reducibility
+mod `p` already forces complete splitting; that step is not formalised.  Note that `f` is
+irreducible modulo `2` for every `m` — its reduction is `X ^ 3 + X + 1` or `X ^ 3 + X ^ 2 + 1`
+— which is why the hypothesis excludes `q = 2` and that prime is handled separately. -/
 theorem adjoin_eq_top_expand_simplestCubic_iff (m : ℤ) {k : ℕ} (hk : 2 ≤ k)
     (hirr : Irreducible (ratMap (expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1))))
-    (hsplit : ∀ q : ℕ, q.Prime → q ∣ k →
+    (hsplit : ∀ q : ℕ, q.Prime → q ∣ k → q ≠ 2 →
       Splits (((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X])).map (Int.castRingHom (ZMod q))))
     {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
     (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
     (hmω : minpoly ℤ ω = expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) :
     Algebra.adjoin ℤ {ω} = ⊤ ↔
       (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) ∧
-      (∀ q : ℕ, q.Prime → q ∣ k → ∀ r : ℕ, r < q →
+      (∀ q : ℕ, q.Prime → q ∣ k → q ≠ 2 → ∀ r : ℕ, r < q →
         ¬ (q : ℤ) ^ 2 ∣ ((r : ℤ) ^ q) ^ 3 - m * ((r : ℤ) ^ q) ^ 2
           - (m + 3) * ((r : ℤ) ^ q) - 1) := by
   have hfm : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).Monic := by monicity!
   have hc0 : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).coeff 0 = -1 := by simp
-  rw [adjoin_eq_top_expand_iff_of_splits hfm hk hirr hsplit hω hmω]
   have hsf : Squarefree ((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).coeff 0) := by
-    rw [hc0]
-    exact (isUnit_one.neg).squarefree
-  simp only [and_iff_left hsf, eval_sub, eval_pow, eval_X, eval_mul, eval_C, eval_one]
-
+    rw [hc0]; exact (isUnit_one.neg).squarefree
+  have heval : ∀ x : ℤ, (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X]).eval x
+      = x ^ 3 - m * x ^ 2 - (m + 3) * x - 1 := by
+    intro x; simp
+  rw [adjoin_eq_top_expand_iff hfm hk hirr hω hmω, and_iff_left hsf]
+  refine and_congr_right fun _ => ⟨fun h q hq hqk hq2 r hrq hdvd => ?_, fun h q hq hqk => ?_⟩
+  · haveI : Fact q.Prime := ⟨hq⟩
+    exact h q hq hqk (isIndexDivisor_expand_of_sq_dvd_eval hfm (by rw [heval]; exact hdvd))
+  · haveI : Fact q.Prime := ⟨hq⟩
+    by_cases hq2 : q = 2
+    · subst hq2
+      exact not_isIndexDivisor_two_simplestCubic m
+    · exact not_isIndexDivisor_expand_of_splits hfm (hsplit q hq hqk hq2)
+        fun r hrq => by rw [heval]; exact h q hq hqk hq2 r hrq
 
 /-! ### Problem 1 for cyclotomic polynomials: the answer is empty -/
 
