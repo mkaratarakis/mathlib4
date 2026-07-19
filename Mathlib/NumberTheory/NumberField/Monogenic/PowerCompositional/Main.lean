@@ -434,6 +434,62 @@ theorem eq_of_prime_dvd_exponent_expand_pow {f : ℤ[X]} (hfm : f.Monic) {u : �
   · exact h1 q hq hA
   · exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp h3 q hq hB
 
+/-! ### Monogenity in terms of index divisors -/
+
+/-- A generator is monogenic exactly when no prime is an index divisor of its minimal
+polynomial.  This is `RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent` read
+through Uchida's criterion, and is how conditions (1) of the theorems below are used. -/
+theorem forall_not_isIndexDivisor_iff_adjoin_eq_top {K : Type*} [Field K] [NumberField K]
+    {θ : 𝓞 K} (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q (minpoly ℤ θ)) ↔ Algebra.adjoin ℤ {θ} = ⊤ := by
+  rw [adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
+  refine forall_congr' fun q => imp_congr_right fun hq => ?_
+  haveI : Fact q.Prime := ⟨hq⟩
+  exact (not_congr (dvd_exponent_iff_isIndexDivisor hθ)).symm
+
+/-- **Remark 1.2** of Kaur–Kumar–Remete: if `f(X ^ k)` is monogenic then so is `f(X ^ t)`
+for every divisor `t` of `k`, since an index divisor of `f(X ^ t)` is one of
+`f(X ^ k) = f(X ^ t)(X ^ (k / t))` by Lemma 2.6. -/
+theorem adjoin_eq_top_expand_of_dvd {f : ℤ[X]} (hfm : f.Monic) {k t : ℕ} (hk0 : 0 < k)
+    (ht : t ∣ k) (ht0 : 0 < t) (hirr : Irreducible (ratMap (expand ℤ k f)))
+    {L L' : Type*} [Field L] [NumberField L] [Field L'] [NumberField L']
+    {ω : 𝓞 L} {ν : 𝓞 L'}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ k f)
+    (hν : Algebra.adjoin ℚ {(ν : L')} = ⊤) (hmν : minpoly ℤ ν = expand ℤ t f)
+    (hmono : Algebra.adjoin ℤ {ω} = ⊤) : Algebra.adjoin ℤ {ν} = ⊤ := by
+  rw [← forall_not_isIndexDivisor_iff_adjoin_eq_top hω, hmω] at hmono
+  rw [← forall_not_isIndexDivisor_iff_adjoin_eq_top hν, hmν]
+  obtain ⟨s, hs⟩ := ht
+  have hs0 : 0 < s := by rcases Nat.eq_zero_or_pos s with rfl | h; · simp at hs; omega
+                         · exact h
+  have hexp : expand ℤ s (expand ℤ t f) = expand ℤ k f := by
+    rw [expand_expand, hs, mul_comm]
+  have hirrt : Irreducible (ratMap (expand ℤ t f)) :=
+    irreducible_ratMap_expand_of_dvd hk0 ⟨s, hs⟩ hirr
+  intro q hq hIdx
+  haveI : Fact q.Prime := ⟨hq⟩
+  refine hmono q hq ?_
+  rw [← hexp]
+  exact isIndexDivisor_expand_of_isIndexDivisor (hfm.expand ht0) hs0 hirrt
+    (by rw [hexp]; exact hirr) hIdx
+
+/-- A monic polynomial of degree at most one has no index divisor: its reduction cannot have
+a repeated factor. -/
+theorem not_isIndexDivisor_of_natDegree_le_one {g : ℤ[X]} (hgm : g.Monic)
+    (hg : g.natDegree ≤ 1) : ¬ IsIndexDivisor p g := by
+  rintro ⟨Pi, hPim, hPiirr, hmem⟩
+  have hdvd : (Pi.map (Int.castRingHom (ZMod p))) ^ 2 ∣ g.map (Int.castRingHom (ZMod p)) := by
+    have h := sq_span_pair_le_span_pair_sq hmem
+    rwa [mem_span_pair_C_natCast_iff, Polynomial.map_pow] at h
+  have hPid : 0 < (Pi.map (Int.castRingHom (ZMod p))).natDegree := by
+    rcases Nat.eq_zero_or_pos (Pi.map (Int.castRingHom (ZMod p))).natDegree with h0 | h
+    · rw [eq_one_of_monic_natDegree_zero (hPim.map _) h0] at hPiirr
+      exact absurd hPiirr not_irreducible_one
+    · exact h
+  have hle := Polynomial.natDegree_le_of_dvd hdvd (hgm.map _).ne_zero
+  rw [(hPim.map _).natDegree_pow, hgm.natDegree_map] at hle
+  omega
+
 /-! ### Eisenstein polynomials -/
 
 /-- Being Eisenstein is preserved by `X ↦ X ^ ℓ`: the coefficients only move to positions
