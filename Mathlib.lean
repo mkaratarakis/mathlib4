@@ -5879,6 +5879,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.KaurKumar
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Basic
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Expand
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Ideal
+public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Uchida
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
 public import Mathlib.NumberTheory.NumberField.Monogenic.Quadrinomial
