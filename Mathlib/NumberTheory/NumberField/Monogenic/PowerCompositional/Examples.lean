@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.NumberTheory.Basic
+public import Mathlib.NumberTheory.NumberField.Cyclotomic.Basic
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
 
 /-!
@@ -41,6 +42,13 @@ subsume.
   mechanism is that `r ^ n ≡ 1 mod p` forces `(r ^ p) ^ n ≡ 1 mod p ^ 2`, so the answer is
   "all of them", whereas for `f = X - A` the same condition reads `p ^ 2 ∣ A ^ p - A` and
   the set of such `p` is the set of Wieferich primes to the base `A`.
+
+* `RingOfIntegers.not_isIndexDivisor_expand_cyclotomic`: **Problem 1 has an empty answer for
+  cyclotomic `f`**, which is the kind of example the paper asks for.  Supporting this,
+  `RingOfIntegers.forall_not_isIndexDivisor_cyclotomic` records that no prime is an index
+  divisor of a cyclotomic polynomial — cyclotomic fields are monogenic — and
+  `RingOfIntegers.dvd_of_irreducible_expand_cyclotomic` that irreducibility of `Φ n (X ^ p)`
+  forces `p ∣ n`.
 
 * `RingOfIntegers.example_1_7` and `RingOfIntegers.example_1_9`: **Examples 1.7 and 1.9**,
   both instances of the `rad k ∣ rad A` form: `X ^ 3 + 6 (X + 1) ^ 2` with `k = 2 ^ u 3 ^ v`
@@ -432,6 +440,104 @@ theorem isIndexDivisor_expand_of_dvd_X_pow_sub_one {f g : ℤ[X]} (hfm : f.Monic
     (hpZ.coprime_iff_not_dvd.mpr hgrp).pow_left
   exact hcop.dvd_of_dvd_mul_right (by rw [← hev]; exact h2)
 
+
+/-! ### Problem 1 for cyclotomic polynomials: the answer is empty -/
+
+/-- If `ℤ[θ]` is the integral closure of `ℤ` in `K`, then `θ`, viewed in `𝓞 K`, generates
+it. -/
+theorem adjoin_eq_top_of_isIntegralClosure {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
+    (h : IsIntegralClosure (Algebra.adjoin ℤ ({(θ : K)} : Set K)) ℤ K) :
+    Algebra.adjoin ℤ ({θ} : Set (𝓞 K)) = ⊤ := by
+  have hinj : Function.Injective (algebraMap (𝓞 K) K) := FaithfulSMul.algebraMap_injective _ _
+  refine Algebra.eq_top_iff.mpr fun x => ?_
+  obtain ⟨y, hy⟩ := h.isIntegral_iff.mp (RingOfIntegers.isIntegral_coe x)
+  have hxmem : (algebraMap (𝓞 K) K x) ∈ Algebra.adjoin ℤ ({(θ : K)} : Set K) := by
+    rw [← hy]; exact y.2
+  have himg : Algebra.adjoin ℤ ({(θ : K)} : Set K) =
+      (Algebra.adjoin ℤ ({θ} : Set (𝓞 K))).map (IsScalarTower.toAlgHom ℤ (𝓞 K) K) := by
+    rw [← Algebra.adjoin_image]
+    congr 1
+    simp
+  rw [himg] at hxmem
+  obtain ⟨x', hx'mem, hx'eq⟩ := hxmem
+  rwa [← hinj hx'eq]
+
+/-- **No prime is an index divisor of a cyclotomic polynomial**: cyclotomic fields are
+monogenic, `ℤ[ζ] = 𝓞 ℚ(ζ)`, which in the vocabulary of Uchida's criterion says exactly
+this. -/
+theorem forall_not_isIndexDivisor_cyclotomic {m : ℕ} (hm : 0 < m) :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q (cyclotomic m ℤ) := by
+  haveI : NeZero m := ⟨hm.ne'⟩
+  haveI : NeZero ((m : ℕ) : ℚ) := ⟨by exact_mod_cast hm.ne'⟩
+  haveI : IsCyclotomicExtension {m} ℚ (CyclotomicField m ℚ) :=
+    CyclotomicField.isCyclotomicExtension _ _
+  haveI := IsCyclotomicExtension.numberField {m} ℚ (CyclotomicField m ℚ)
+  set ζ := IsCyclotomicExtension.zeta m ℚ (CyclotomicField m ℚ) with hζdef
+  have hζ : IsPrimitiveRoot ζ m := IsCyclotomicExtension.zeta_spec m ℚ (CyclotomicField m ℚ)
+  have hint : IsIntegral ℤ ζ := hζ.isIntegral hm
+  set θ : 𝓞 (CyclotomicField m ℚ) := ⟨ζ, hint⟩ with hθ
+  have hcoe : (θ : CyclotomicField m ℚ) = ζ := rfl
+  have hmin : minpoly ℤ θ = cyclotomic m ℤ := by
+    rw [← RingOfIntegers.minpoly_coe, hcoe]
+    exact (cyclotomic_eq_minpoly hζ hm).symm
+  have hgen : Algebra.adjoin ℚ {(θ : CyclotomicField m ℚ)} = ⊤ := by
+    rw [hcoe]; exact IsCyclotomicExtension.adjoin_primitive_root_eq_top hζ
+  have htop : Algebra.adjoin ℤ ({θ} : Set (𝓞 (CyclotomicField m ℚ))) = ⊤ :=
+    adjoin_eq_top_of_isIntegralClosure
+      (by rw [hcoe]; exact IsCyclotomicExtension.Rat.isIntegralClosure_adjoin_singleton hζ)
+  have hall := (forall_not_isIndexDivisor_iff_adjoin_eq_top hgen).mpr htop
+  rwa [hmin] at hall
+
+/-- If `Φ n (X ^ p)` is irreducible then `p ∣ n`, since otherwise
+`Φ n (X ^ p) = Φ (n p) * Φ n`. -/
+theorem dvd_of_irreducible_expand_cyclotomic {n : ℕ} (hn : 0 < n)
+    (hirr : Irreducible (ratMap (expand ℤ p (cyclotomic n ℤ)))) : p ∣ n := by
+  by_contra hdvd
+  rw [cyclotomic_expand_eq_cyclotomic_mul hp.out hdvd ℤ] at hirr
+  have hmap : ratMap (cyclotomic (n * p) ℤ * cyclotomic n ℤ) =
+      cyclotomic (n * p) ℚ * cyclotomic n ℚ := by
+    simp [ratMap, Polynomial.map_mul, map_cyclotomic]
+  rw [hmap] at hirr
+  have hdeg1 : (cyclotomic (n * p) ℚ).natDegree = (n * p).totient := natDegree_cyclotomic _ _
+  have hdeg2 : (cyclotomic n ℚ).natDegree = n.totient := natDegree_cyclotomic _ _
+  have hpos1 : 0 < (n * p).totient := Nat.totient_pos.mpr (Nat.mul_pos hn hp.out.pos)
+  have hpos2 : 0 < n.totient := Nat.totient_pos.mpr hn
+  rcases hirr.isUnit_or_isUnit rfl with hu | hu
+  · exact absurd (natDegree_eq_zero_of_isUnit hu) (by omega)
+  · exact absurd (natDegree_eq_zero_of_isUnit hu) (by omega)
+
+/-- **Problem 1 of Kaur–Kumar–Remete has an empty answer for cyclotomic polynomials.**  For
+`f = Φ n` and any prime `p` such that `f(X ^ p)` is irreducible, `p` does not divide the
+index of `f(X ^ p)`.
+
+The paper asks for one family of `f` for which the set of primes in Problem 1 can be
+determined; for cyclotomic `f` it is empty, and the reason is a dichotomy.  If `p ∤ n` then
+`Φ n (X ^ p) = Φ (n p) * Φ n` is reducible, so `p` is excluded by the irreducibility
+requirement — and these are exactly the primes that
+`RingOfIntegers.isIndexDivisor_expand_of_dvd_X_pow_sub_one` shows *do* divide the index.  If
+`p ∣ n` then `Φ n (X ^ p) = Φ (n p)`, whose root generates a cyclotomic field, and cyclotomic
+fields are monogenic, so no prime at all divides the index.
+
+The two cases together are what makes the problem tractable here and hard in general: where
+the index divisors are computable the power compositional polynomial falls apart, and where
+it stays irreducible the ring of integers is already known. -/
+theorem not_isIndexDivisor_expand_cyclotomic {n : ℕ} (hn : 0 < n)
+    (hirr : Irreducible (ratMap (expand ℤ p (cyclotomic n ℤ)))) :
+    ¬ IsIndexDivisor p (expand ℤ p (cyclotomic n ℤ)) := by
+  rw [cyclotomic_expand_eq_cyclotomic hp.out (dvd_of_irreducible_expand_cyclotomic hn hirr) ℤ]
+  exact forall_not_isIndexDivisor_cyclotomic (Nat.mul_pos hn hp.out.pos) p hp.out
+
+/-- The same statement in terms of rings of integers: whenever `Φ n (X ^ p)` is irreducible,
+a root of it generates the full ring of integers. -/
+theorem adjoin_eq_top_expand_cyclotomic {n : ℕ} (hn : 0 < n)
+    (hirr : Irreducible (ratMap (expand ℤ p (cyclotomic n ℤ))))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmω : minpoly ℤ ω = expand ℤ p (cyclotomic n ℤ)) :
+    Algebra.adjoin ℤ {ω} = ⊤ := by
+  rw [← forall_not_isIndexDivisor_iff_adjoin_eq_top hω, hmω,
+    cyclotomic_expand_eq_cyclotomic hp.out (dvd_of_irreducible_expand_cyclotomic hn hirr) ℤ]
+  exact forall_not_isIndexDivisor_cyclotomic (Nat.mul_pos hn hp.out.pos)
 
 /-! ### Examples 1.6, 1.7 and 1.9 -/
 
