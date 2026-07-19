@@ -810,6 +810,118 @@ theorem adjoin_eq_top_expand_simplestCubic_iff_of_reducible (m : ℤ) {k : ℕ} 
   exact simplestCubic_splits_of_not_irreducible _ (by rw [← hmap]; exact hred q hq hqk hq2)
 
 
+/-- **Problem 1 for divisors of `X ^ n - 1`, without the root hypothesis.**  If `f` is a
+monic divisor of `X ^ n - 1` of positive degree and `p ∤ n`, then `p` divides the index of
+`f(X ^ p)`.  No assumption that `f` has a root modulo `p` is needed.
+
+`isIndexDivisor_expand_of_dvd_X_pow_sub_one` exploits a factor of `f` of degree one, via
+the congruence `r ^ n ≡ 1 mod p ⇒ (r ^ p) ^ n ≡ 1 mod p ^ 2`.  The argument here works with
+an arbitrary irreducible factor `π` of `f mod p` instead.  Writing
+`X ^ p - 1 = (X - 1) ^ p + p V` and evaluating at `1` gives `V(1) = 0`, so `X - 1` divides
+`V` and hence `X ^ n - 1` divides `V(X ^ n)`.  Expanding `X ^ (n p) - 1` in the two
+available ways gives `T g ^ p + T' f ^ p + p T T' = V(X ^ n)`, where
+`f(X ^ p) = f ^ p + p T` and `g(X ^ p) = g ^ p + p T'`.  Modulo `π` — which divides `f`,
+hence `V(X ^ n)` — this leaves `π ∣ T ḡ ^ p`, and `π ∤ ḡ` because `X ^ n - 1` is separable
+mod `p`.  So `π ∣ T̄`, and `f` and `T` are not coprime mod `p`. -/
+theorem isIndexDivisor_expand_of_dvd_X_pow_sub_one_of_natDegree_pos {f g : ℤ[X]}
+    (hfm : f.Monic) {n : ℕ} (hn : ¬ (p : ℕ) ∣ n) (hfg : (X : ℤ[X]) ^ n - 1 = f * g)
+    (hdeg : 0 < f.natDegree) :
+    IsIndexDivisor p (expand ℤ p f) := by
+  obtain ⟨T, hT⟩ := exists_expand_eq_pow_add_C_mul (p := p) f
+  obtain ⟨T', hT'⟩ := exists_expand_eq_pow_add_C_mul (p := p) g
+  obtain ⟨V, hV⟩ := exists_expand_eq_pow_add_C_mul (p := p) (X - 1 : ℤ[X])
+  have hpne : (p : ℤ) ≠ 0 := Nat.cast_ne_zero.mpr hp.out.ne_zero
+  have hexp1 : expand ℤ p (X - 1 : ℤ[X]) = X ^ p - 1 := by
+    rw [map_sub, expand_X, map_one]
+  have hXp : (X : ℤ[X]) ^ p - 1 = ((X : ℤ[X]) - 1) ^ p + C (p : ℤ) * V := by
+    rw [← hexp1, hV]
+  -- `V(1) = 0`, hence `X - 1 ∣ V`
+  have hV1 : V.eval 1 = 0 := by
+    have h := congrArg (Polynomial.eval (1 : ℤ)) hXp
+    simp only [eval_sub, eval_pow, eval_X, eval_one, eval_add, eval_mul, eval_C, one_pow,
+      sub_self, zero_pow hp.out.ne_zero, zero_add] at h
+    exact (mul_eq_zero.mp h.symm).resolve_left hpne
+  have hXV : (X - 1 : ℤ[X]) ∣ V := by
+    have h := dvd_iff_isRoot.mpr (show V.IsRoot 1 from hV1)
+    rwa [map_one] at h
+  -- hence `X ^ n - 1 ∣ V(X ^ n)`
+  have hUdvd : (X : ℤ[X]) ^ n - 1 ∣ expand ℤ n V := by
+    have h := map_dvd (expand ℤ n) hXV
+    rwa [map_sub, expand_X, map_one] at h
+  -- the two expansions of `X ^ (n p) - 1`
+  have hboth : expand ℤ p ((X : ℤ[X]) ^ n - 1) = expand ℤ n ((X : ℤ[X]) ^ p - 1) := by
+    rw [map_sub, map_sub, map_pow, map_pow, expand_X, expand_X, map_one, map_one,
+      ← pow_mul, ← pow_mul, Nat.mul_comm]
+  have hL : expand ℤ p ((X : ℤ[X]) ^ n - 1)
+      = (f ^ p + C (p : ℤ) * T) * (g ^ p + C (p : ℤ) * T') := by
+    rw [hfg, map_mul, hT, hT']
+  have hR : expand ℤ n ((X : ℤ[X]) ^ p - 1)
+      = ((X : ℤ[X]) ^ n - 1) ^ p + C (p : ℤ) * expand ℤ n V := by
+    rw [hXp, map_add, map_pow, map_mul, map_sub, expand_X, map_one, expand_C]
+  have hkey : T * g ^ p + T' * f ^ p + C (p : ℤ) * (T * T') = expand ℤ n V := by
+    have heq : (f ^ p + C (p : ℤ) * T) * (g ^ p + C (p : ℤ) * T')
+        = (f * g) ^ p + C (p : ℤ) * expand ℤ n V := by
+      rw [← hL, hboth, hR, hfg]
+    rw [mul_pow] at heq
+    have hCp : (C (p : ℤ) : ℤ[X]) ≠ 0 := fun h => hpne (by simpa using congrArg (coeff · 0) h)
+    apply mul_left_cancel₀ hCp
+    linear_combination heq
+  -- reduce modulo `p`
+  have hzero : ((C (p : ℤ) : ℤ[X])).map (Int.castRingHom (ZMod p)) = 0 := by
+    rw [map_C]
+    simp
+  have hmap : T.map (Int.castRingHom (ZMod p)) * (g.map (Int.castRingHom (ZMod p))) ^ p
+      + (T'.map (Int.castRingHom (ZMod p))) * (f.map (Int.castRingHom (ZMod p))) ^ p
+      = (expand ℤ n V).map (Int.castRingHom (ZMod p)) := by
+    have h := congrArg (Polynomial.map (Int.castRingHom (ZMod p))) hkey
+    rw [Polynomial.map_add, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, hzero, zero_mul,
+      add_zero] at h
+    exact h
+  -- an irreducible factor of `f` mod `p`
+  have hfbar0 : f.map (Int.castRingHom (ZMod p)) ≠ 0 := (hfm.map _).ne_zero
+  have hfbardeg : 0 < (f.map (Int.castRingHom (ZMod p))).natDegree := by
+    rwa [hfm.natDegree_map]
+  have hfbarnu : ¬ IsUnit (f.map (Int.castRingHom (ZMod p))) := by
+    intro hu
+    rw [natDegree_eq_zero_of_isUnit hu] at hfbardeg
+    exact absurd hfbardeg (by omega)
+  obtain ⟨π, hπirr, hπf⟩ := WfDvdMonoid.exists_irreducible_factor hfbarnu hfbar0
+  -- `π` divides `V(X ^ n)` mod `p`, since `f` does
+  have hfU : f ∣ expand ℤ n V := (Dvd.intro g hfg.symm).trans hUdvd
+  have hπU : π ∣ (expand ℤ n V).map (Int.castRingHom (ZMod p)) :=
+    hπf.trans (Polynomial.map_dvd _ hfU)
+  -- `π` does not divide `g` mod `p`, by separability of `X ^ n - 1`
+  have hsep : ((X : (ZMod p)[X]) ^ n - 1).Separable := by
+    have h := separable_X_pow_sub_C' p n (1 : ZMod p) hn one_ne_zero
+    rwa [map_one] at h
+  have hfgmap : f.map (Int.castRingHom (ZMod p)) * g.map (Int.castRingHom (ZMod p))
+      = (X : (ZMod p)[X]) ^ n - 1 := by
+    have h := congrArg (Polynomial.map (Int.castRingHom (ZMod p))) hfg
+    rw [Polynomial.map_sub, Polynomial.map_pow, Polynomial.map_X, Polynomial.map_one,
+      Polynomial.map_mul] at h
+    exact h.symm
+  have hcopfg : IsCoprime (f.map (Int.castRingHom (ZMod p)))
+      (g.map (Int.castRingHom (ZMod p))) := (hfgmap ▸ hsep).isCoprime
+  have hπg : ¬ π ∣ g.map (Int.castRingHom (ZMod p)) := fun h =>
+    hπirr.not_isUnit (hcopfg.isUnit_of_dvd' hπf h)
+  -- therefore `π ∣ T` mod `p`
+  have hπT : π ∣ T.map (Int.castRingHom (ZMod p)) := by
+    have h1 : π ∣ T.map (Int.castRingHom (ZMod p)) *
+        (g.map (Int.castRingHom (ZMod p))) ^ p := by
+      have hrw : T.map (Int.castRingHom (ZMod p)) * (g.map (Int.castRingHom (ZMod p))) ^ p
+          = (expand ℤ n V).map (Int.castRingHom (ZMod p))
+            - (T'.map (Int.castRingHom (ZMod p))) *
+              (f.map (Int.castRingHom (ZMod p))) ^ p := by
+        linear_combination hmap
+      rw [hrw]
+      exact dvd_sub hπU ((dvd_pow hπf hp.out.ne_zero).mul_left _)
+    rcases hπirr.prime.dvd_mul.mp h1 with h | h
+    · exact h
+    · exact absurd (hπirr.prime.dvd_of_dvd_pow h) hπg
+  rw [isIndexDivisor_expand_iff_not_isCoprime hfm hT]
+  exact fun hcop => hπirr.not_isUnit (hcop.isUnit_of_dvd' hπf hπT)
+
 /-! ### Problem 1 for cyclotomic polynomials: the answer is empty -/
 
 /-- If `ℤ[θ]` is the integral closure of `ℤ` in `K`, then `θ`, viewed in `𝓞 K`, generates
