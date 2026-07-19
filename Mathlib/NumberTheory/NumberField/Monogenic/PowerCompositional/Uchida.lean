@@ -28,6 +28,10 @@ each of `A`, `B`, `N` lies in `⟨p, π⟩` by `Polynomial.mem_span_pair_C_natCa
 * `RingOfIntegers.exists_monic_irreducible_minpoly_mem_sq_of_dvd_exponent`: existence half.
 * `RingOfIntegers.dvd_exponent_of_minpoly_mem_sq`: sufficiency half.
 * `RingOfIntegers.dvd_exponent_iff_exists_monic_irreducible_minpoly_mem_sq`: the criterion.
+* `Polynomial.IsIndexDivisor`: the right-hand side of the criterion, packaged as a property
+  of the polynomial alone, together with the bridges
+  `RingOfIntegers.dvd_exponent_iff_isIndexDivisor` and
+  `RingOfIntegers.dvd_exponent_iff_of_minpoly_eq`.
 
 ## Implementation notes
 
@@ -50,6 +54,20 @@ because `Pi ^ 2 * q = f - r` is.
 noncomputable section
 
 open Polynomial NumberField
+
+namespace Polynomial
+
+/-- `p` **is an index divisor of** `g`: the polynomial side of Uchida's criterion, namely
+`g ∈ ⟨p, Pi⟩ ^ 2` for some `Pi : ℤ[X]` monic and irreducible mod `p`.
+
+By `RingOfIntegers.dvd_exponent_iff_isIndexDivisor` this holds exactly when `p` divides the
+index `[𝓞 K : ℤ[θ]]` for a root `θ` of `g` generating `K` over `ℚ`; stating it as a property
+of `g` avoids carrying a root, and hence an irreducibility hypothesis, around. -/
+def IsIndexDivisor (p : ℕ) (g : ℤ[X]) : Prop :=
+  ∃ Pi : ℤ[X], Pi.Monic ∧ Irreducible (Pi.map (Int.castRingHom (ZMod p))) ∧
+    g ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) ^ 2
+
+end Polynomial
 
 namespace RingOfIntegers
 
@@ -165,5 +183,20 @@ theorem dvd_exponent_iff_exists_monic_irreducible_minpoly_mem_sq
     simp only [Polynomial.map_one] at hPiirr
     exact absurd hPiirr not_irreducible_one
   · exact h
+
+/-- **Uchida's criterion**, in terms of `Polynomial.IsIndexDivisor`: a rational prime `p`
+divides the index `[𝓞 K : ℤ[θ]]` exactly when it is an index divisor of the minimal
+polynomial of `θ`. -/
+theorem dvd_exponent_iff_isIndexDivisor (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤) :
+    p ∣ exponent θ ↔ IsIndexDivisor p (minpoly ℤ θ) :=
+  dvd_exponent_iff_exists_monic_irreducible_minpoly_mem_sq hθ
+
+/-- The index divisors of a generator depend only on its minimal polynomial, even across
+different number fields. -/
+theorem dvd_exponent_iff_of_minpoly_eq {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤) (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmin : minpoly ℤ θ = minpoly ℤ ω) :
+    p ∣ exponent θ ↔ p ∣ exponent ω := by
+  rw [dvd_exponent_iff_isIndexDivisor hθ, dvd_exponent_iff_isIndexDivisor hω, hmin]
 
 end RingOfIntegers

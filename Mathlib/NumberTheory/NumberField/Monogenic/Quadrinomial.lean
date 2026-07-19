@@ -1690,14 +1690,6 @@ theorem monogenic_iff_of_squarefree (hn : 3 ≤ n) (hB : B ^ 2 = a * c)
 
 /-! ### Example 4.2 of [jakharkaurkumar2023] -/
 
-private theorem sq_dvd_natCast_iff' {z : ℤ} {q : ℕ} : (q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs := by
-  rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
-
-private theorem squarefree_int_iff' {z : ℤ} :
-    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
-  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
-  exact forall₂_congr fun q hq => not_congr sq_dvd_natCast_iff'.symm
-
 /-- **Example 4.2 of [jakharkaurkumar2023]** in degree `5`: for squarefree `c` and `θ` a
 root of `X ^ 5 + c (X ^ 2 + 2 X + 1)` generating `K`, the set `{1, θ, θ², θ³, θ⁴}` is an
 integral basis of `K` if and only if `3125 - 108 c` is squarefree.
@@ -1717,7 +1709,7 @@ theorem monogenic_iff_example_4_2 (hsf : Squarefree c)
   rw [monogenic_iff (n := 5) (a := c) (B := c) (c := c) (by norm_num) (by ring) hgen hθ]
   constructor
   · rintro ⟨-, -, -, h5, -⟩
-    rw [squarefree_int_iff']
+    rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
     intro q hq hq2
     have hqp : Prime (q : ℤ) := Nat.prime_iff_prime_int.mp hq
     by_cases hq2c : (q : ℤ) ∣ 2 * c
@@ -1744,7 +1736,7 @@ theorem monogenic_iff_example_4_2 (hsf : Squarefree c)
           (hq.dvd_of_dvd_pow hq5)
         subst this
         have h25 : ¬(25 : ℤ) ∣ c := by
-          have := squarefree_int_iff'.mp hsf 5 Nat.prime_five
+          have := Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsf 5 Nat.prime_five
           norm_num at this
           exact this
         have h25' : (25 : ℤ) ∣ 3125 - 108 * c := by
@@ -1755,13 +1747,13 @@ theorem monogenic_iff_example_4_2 (hsf : Squarefree c)
     · exact h5 q hq hq2c (by rw [hD]; exact Dvd.dvd.mul_left hq2 _)
   · intro hsq
     refine ⟨fun p _ h => h, ?_, fun p r m _ _ _ _ hpa hpc => absurd hpa hpc, ?_, ?_⟩
-    · exact fun p hp _ _ => squarefree_int_iff'.mp hsf p hp
+    · exact fun p hp _ _ => Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsf p hp
     · intro p hp hp2c hdvd
       rw [hD] at hdvd
       have hpc : ¬(p : ℤ) ∣ c := fun h => hp2c (Dvd.dvd.mul_left h 2)
       have hpc4 : ¬(p : ℤ) ∣ c ^ 4 := fun h =>
         hpc ((Nat.prime_iff_prime_int.mp hp).dvd_of_dvd_pow h)
-      exact squarefree_int_iff'.mp hsq p hp
+      exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsq p hp
         ((Nat.prime_iff_prime_int.mp hp).pow_dvd_of_dvd_mul_left 2 hpc4 hdvd)
     · intro m hm
       exact absurd hm (by omega)

@@ -755,13 +755,6 @@ end Tower
 
 /-! ### The global criterion -/
 
-private theorem sq_dvd_natCast_iff {z : ℤ} {q : ℕ} : (q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs := by
-  rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
-
-private theorem squarefree_int_iff {z : ℤ} :
-    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
-  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
-  exact forall₂_congr fun q hq => not_congr sq_dvd_natCast_iff.symm
 
 /-- **The Jhorar–Khanduja criterion for prime-power degree** (Corollary 1.3 of
 [jakharkaurkumar2023] in the case `n = p ^ r`): for `θ` with minimal polynomial
@@ -777,7 +770,7 @@ theorem monogenic_iff_prime_pow (hr : 1 ≤ r)
   rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
   constructor
   · intro h
-    refine ⟨squarefree_int_iff.mpr fun q hq hq2 => ?_,
+    refine ⟨Int.squarefree_iff_forall_prime_sq_not_dvd.mpr fun q hq hq2 => ?_,
       fun hc2 => h p hp.out ((dvd_exponent_iff_prime_pow hr hθ hgen).mpr hc2)⟩
     haveI : Fact q.Prime := ⟨hq⟩
     have hqc : (q : ℤ) ∣ c := (dvd_pow_self _ two_ne_zero).trans hq2
@@ -788,7 +781,7 @@ theorem monogenic_iff_prime_pow (hr : 1 ≤ r)
     · exact fun h => hc2 ((dvd_exponent_iff_prime_pow hr hθ hgen).mp h)
     · by_cases hqc : (q : ℤ) ∣ c
       · rw [dvd_exponent_iff_of_dvd (p := q) h2 hqc hθ hgen]
-        exact squarefree_int_iff.mp hsf q hq
+        exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsf q hq
       · refine not_dvd_exponent_of_not_dvd (p := q) (by omega) ?_ hqc hθ hgen
         intro hdvd
         have h3 : q ∣ p ^ r := by exact_mod_cast hdvd
@@ -808,7 +801,7 @@ theorem monogenic_iff {n : ℕ} (hn : 2 ≤ n)
   rw [RingOfIntegers.adjoin_eq_top_iff_forall_prime_not_dvd_exponent]
   constructor
   · intro h
-    refine ⟨squarefree_int_iff.mpr fun q hq hq2 => ?_,
+    refine ⟨Int.squarefree_iff_forall_prime_sq_not_dvd.mpr fun q hq hq2 => ?_,
       fun q r m hq hr hm hn' hqc hc2 => ?_⟩
     · haveI : Fact q.Prime := ⟨hq⟩
       exact h q hq ((dvd_exponent_iff_of_dvd (p := q) hn
@@ -820,7 +813,7 @@ theorem monogenic_iff {n : ℕ} (hn : 2 ≤ n)
     haveI : Fact q.Prime := ⟨hq⟩
     by_cases hqc : (q : ℤ) ∣ c
     · rw [dvd_exponent_iff_of_dvd (p := q) hn hqc hθ hgen]
-      exact squarefree_int_iff.mp hsf q hq
+      exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsf q hq
     · by_cases hqn : q ∣ n
       · obtain ⟨r, m, hm, hn'⟩ := Nat.exists_eq_pow_mul_and_not_dvd
           (show n ≠ 0 by omega) q hq.ne_one

@@ -211,3 +211,19 @@ theorem not_dvd_exponent_of_minpoly_isEisensteinAt
   exact fun hpE ↦ hpd (hpE.trans hdvd)
 
 end RingOfIntegers
+
+namespace Int
+
+/-- An integer is squarefree exactly when no square of a rational prime divides it.
+
+The `Squarefree` predicate quantifies over all integer divisors; this restates it over the
+natural primes, which is the form in which squarefreeness of a coefficient is checked. -/
+theorem squarefree_iff_forall_prime_sq_not_dvd {z : ℤ} :
+    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
+  have h : ∀ {q : ℕ}, ((q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs) := by
+    intro q
+    rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
+  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
+  exact forall₂_congr fun q hq => not_congr h.symm
+
+end Int

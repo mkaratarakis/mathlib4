@@ -625,15 +625,6 @@ attribute [local instance] Ideal.Quotient.field
 
 variable {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K} {n m : ℕ} {A B : ℤ}
 
-private theorem sq_dvd_natCast_iff {z : ℤ} {q : ℕ} : (q : ℤ) ^ 2 ∣ z ↔ q * q ∣ z.natAbs := by
-  rw [← Int.natAbs_dvd_natAbs, Int.natAbs_pow, Int.natAbs_natCast, sq]
-
-/-- An integer is squarefree if and only if no prime squared divides it. -/
-private theorem squarefree_int_iff {z : ℤ} :
-    Squarefree z ↔ ∀ q : ℕ, q.Prime → ¬(q : ℤ) ^ 2 ∣ z := by
-  rw [← Int.squarefree_natAbs, Nat.squarefree_iff_prime_squarefree]
-  exact forall₂_congr fun q hq => not_congr sq_dvd_natCast_iff.symm
-
 omit [NumberField K] in
 /-- The polynomial identity `f(θ) = 0` in `𝓞 K`. -/
 private theorem aeval_root (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m) :
@@ -842,10 +833,11 @@ theorem monogenic_iff (hm : 0 < m) (hmn : m < n)
     rw [dvd_exponent_iff hm hmn hgcd hθ hgen, not_or]
   constructor
   · intro h
-    exact ⟨squarefree_int_iff.mpr fun p hp => ((key p hp).mp (h p hp)).1,
-      squarefree_int_iff.mpr fun p hp => ((key p hp).mp (h p hp)).2⟩
+    exact ⟨Int.squarefree_iff_forall_prime_sq_not_dvd.mpr fun p hp => ((key p hp).mp (h p hp)).1,
+      Int.squarefree_iff_forall_prime_sq_not_dvd.mpr fun p hp => ((key p hp).mp (h p hp)).2⟩
   · rintro ⟨h1, h2⟩ p hp
-    exact (key p hp).mpr ⟨squarefree_int_iff.mp h1 p hp, squarefree_int_iff.mp h2 p hp⟩
+    exact (key p hp).mpr ⟨Int.squarefree_iff_forall_prime_sq_not_dvd.mp h1 p hp,
+      Int.squarefree_iff_forall_prime_sq_not_dvd.mp h2 p hp⟩
 
 /-- **Jones' conjecture** (proved by Kaur and Kumar): for `A` prime, the polynomial
 `X ^ n + A (B X + 1) ^ m` is monogenic if and only if `D n m A B` is squarefree. -/
