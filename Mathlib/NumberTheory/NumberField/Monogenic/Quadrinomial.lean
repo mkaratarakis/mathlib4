@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
+public import Mathlib.Algebra.Polynomial.Eval.Irreducible
 public import Mathlib.NumberTheory.NumberField.Monogenic.Dedekind
 
 /-!
@@ -1759,5 +1760,101 @@ theorem monogenic_iff_example_4_2 (hsf : Squarefree c)
       exact absurd hm (by omega)
 
 end Sufficiency
+
+/-! ### Irreducibility of the counterexample to the printed case (3) -/
+
+section Counterexample
+
+/-- A monic quadratic is determined by its two lower coefficients. -/
+private theorem monic_eq_X_sq_add {F : Type*} [Field F] {r : F[X]} (hm : r.Monic)
+    (hd : r.natDegree = 2) : r = X ^ 2 + C (r.coeff 1) * X + C (r.coeff 0) := by
+  have h2 : r.coeff 2 = 1 := by rw [← hd]; exact hm.coeff_natDegree
+  ext n
+  match n with
+  | 0 => simp
+  | 1 => simp
+  | 2 => simp [h2]
+  | (k + 3) =>
+      have hL : r.coeff (k + 3) = 0 := coeff_eq_zero_of_natDegree_lt (by omega)
+      simp [hL]
+
+/-- `X ^ 5 + X ^ 2 + 1` is irreducible over `𝔽₂`: it has no root, and the only monic
+irreducible quadratic over `𝔽₂` is `X ^ 2 + X + 1`, which leaves remainder `1`. -/
+private theorem irreducible_X_pow_five_add : Irreducible (X ^ 5 + X ^ 2 + 1 : (ZMod 2)[X]) := by
+  have hchar : (2 : (ZMod 2)[X]) = 0 := by
+    exact_mod_cast CharP.cast_eq_zero ((ZMod 2)[X]) 2
+  have hpm : (X ^ 5 + X ^ 2 + 1 : (ZMod 2)[X]).Monic := by monicity!
+  have hdeg : (X ^ 5 + X ^ 2 + 1 : (ZMod 2)[X]).natDegree = 5 := by compute_degree!
+  have hne1 : (X ^ 5 + X ^ 2 + 1 : (ZMod 2)[X]) ≠ 1 := by
+    intro h
+    rw [h, natDegree_one] at hdeg
+    exact absurd hdeg (by omega)
+  -- no roots
+  have hroot : ∀ r : ZMod 2, ¬ (X ^ 5 + X ^ 2 + 1 : (ZMod 2)[X]).IsRoot r := by
+    intro r
+    simp only [IsRoot.def, eval_add, eval_pow, eval_X, eval_one]
+    revert r
+    decide
+  rw [hpm.irreducible_iff_lt_natDegree_lt hne1]
+  intro r hrm hrmem hdvd
+  rw [hdeg] at hrmem
+  simp only [Finset.mem_Ioc] at hrmem
+  obtain ⟨hr0, hr2⟩ := hrmem
+  interval_cases hrd : r.natDegree
+  · -- degree one: `r = X + C (r.coeff 0)` has a root, hence so does the quintic
+    rw [hrm.eq_X_add_C hrd, show (X + C (r.coeff 0) : (ZMod 2)[X])
+      = X - C (-(r.coeff 0)) by rw [map_neg, sub_neg_eq_add], dvd_iff_isRoot] at hdvd
+    exact hroot _ hdvd
+  · -- degree two
+    by_cases hrr : ∃ t : ZMod 2, r.IsRoot t
+    · obtain ⟨t, ht⟩ := hrr
+      exact hroot t (dvd_iff_isRoot.mp ((dvd_iff_isRoot.mpr ht).trans hdvd))
+    · push Not at hrr
+      have hrq := monic_eq_X_sq_add hrm hrd
+      have e0 : r.eval 0 = r.coeff 0 := by rw [hrq]; simp
+      have e1 : r.eval 1 = 1 + r.coeff 1 + r.coeff 0 := by rw [hrq]; simp
+      have hone : ∀ x : ZMod 2, x ≠ 0 → x = 1 := by decide
+      have hb : r.coeff 0 = 1 := hone _ (fun h => hrr 0 (by rw [IsRoot.def, e0, h]))
+      have ha : r.coeff 1 = 1 := by
+        refine hone _ fun h => hrr 1 ?_
+        rw [IsRoot.def, e1, h, hb]
+        decide
+      -- `r = X ^ 2 + X + 1`, which leaves remainder `1`
+      have hreq : r = X ^ 2 + X + 1 := by rw [hrq, ha, hb, map_one]; ring
+      have hid : (1 : (ZMod 2)[X])
+          = (X ^ 5 + X ^ 2 + 1) - r * (X ^ 3 + X ^ 2) := by
+        rw [hreq]
+        linear_combination (X ^ 4 + X ^ 3) * hchar
+      have hr1 : r ∣ 1 := by
+        rw [hid]
+        exact dvd_sub hdvd (dvd_mul_right r _)
+      rw [natDegree_eq_zero_of_isUnit (isUnit_of_dvd_one hr1)] at hrd
+      exact absurd hrd (by omega)
+
+/-- **Irreducibility of the counterexample.**  The polynomial
+`X ^ 5 + X ^ 2 + 6 X + 9`, which is the member `a = 1`, `B = 3`, `c = 9`, `n = 5` of the
+family, is irreducible over `ℤ`: its reduction mod `2` is `X ^ 5 + X ^ 2 + 1`, which is
+irreducible over `𝔽₂`.
+
+Together with `dvd_exponent_of_dvd_of_not_dvd` (applied with `p = 3`, which divides
+`c = 9` but not `a = 1`) this exhibits a genuine counterexample to case (3) of
+Theorem 1.1 of [jakharkaurkumar2023] as printed: that case predicts
+`3 ∤ [𝓞 K : ℤ[θ]]`, whereas in fact `3` divides the index. -/
+theorem irreducible_counterexample :
+    Irreducible (X ^ 5 + (C (1 : ℤ) * X ^ 2 + C (2 * 3) * X + C 9) : ℤ[X]) := by
+  have hmonic : (X ^ 5 + (C (1 : ℤ) * X ^ 2 + C (2 * 3) * X + C 9) : ℤ[X]).Monic :=
+    monic_q (n := 5) (a := 1) (B := 3) (c := 9) (by norm_num)
+  refine Monic.irreducible_of_irreducible_map (Int.castRingHom (ZMod 2)) _ hmonic ?_
+  have e2 : ((2 * 3 : ℤ) : ZMod 2) = 0 := by decide
+  have e3 : ((9 : ℤ) : ZMod 2) = 1 := by decide
+  have hmap : (X ^ 5 + (C (1 : ℤ) * X ^ 2 + C (2 * 3) * X + C 9) : ℤ[X]).map
+      (Int.castRingHom (ZMod 2)) = X ^ 5 + X ^ 2 + 1 := by
+    simp only [Polynomial.map_add, Polynomial.map_pow, Polynomial.map_mul, map_C, map_X,
+      Int.coe_castRingHom, e2, e3, map_one, map_zero, Polynomial.map_one]
+    ring
+  rw [hmap]
+  exact irreducible_X_pow_five_add
+
+end Counterexample
 
 end NumberField.Quadrinomial
