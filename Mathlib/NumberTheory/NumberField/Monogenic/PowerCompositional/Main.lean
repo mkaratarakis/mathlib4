@@ -11,7 +11,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.Witness
 /-!
 # Monogenity of power compositional polynomials
 
-This file proves Theorem 1.1 and Corollary 1.4 of S. Kaur, S. Kumar and L. Remete,
+This file proves Theorems 1.1 and 1.11 and Corollary 1.4 of S. Kaur, S. Kumar and L. Remete,
 *On the index of power compositional polynomials*, Finite Fields Appl. **107** (2025), 102642:
 for `k ≥ 2` with `f(X ^ k)` irreducible, the polynomial `f(X ^ k)` is monogenic if and only if
 
@@ -40,6 +40,14 @@ statement free of the auxiliary number fields in which those roots live: only th
 
 * `RingOfIntegers.dvd_coeff_zero_of_isIndexDivisor_expand`: **Corollary 1.4** --- under
   conditions (1) and (2), every prime dividing the index of `f(X ^ k)` divides `f(0)`.
+
+* `RingOfIntegers.not_isIndexDivisor_expand_pow_iff_isCoprime`: **Theorem 1.11 (2)**, the
+  effective form of condition (2) --- `p` does not divide the index of `f(X ^ (p ^ u))` if
+  and only if `(f(X ^ p) - f ^ p) / p` is coprime to `f` mod `p`, a gcd computation in
+  `𝔽ₚ[X]`.
+
+* `RingOfIntegers.eq_of_prime_dvd_exponent_expand_pow`: **Theorem 1.11 (1)** --- if `f` is
+  monogenic and `f(0)` is squarefree, the index of `f(X ^ (p ^ u))` is a power of `p`.
 
 ## Implementation notes
 
@@ -293,5 +301,123 @@ theorem dvd_coeff_zero_of_isIndexDivisor_expand {f : ℤ[X]} (hfm : f.Monic) {k 
     · exact ((isIndexDivisor_expand_iff_of_not_dvd hfm hk hirr hpk).mp hIdx).resolve_left
         (h1 p hp.out)
   exact dvd_trans (dvd_pow_self _ two_ne_zero) hsq
+
+/-! ### Theorem 1.11: the effective criterion at a single prime -/
+
+/-- The integral Frobenius identity in the form used below: `f(X ^ p) = f ^ p + p * T` for
+some `T : ℤ[X]`, by `Polynomial.C_natCast_dvd_expand_sub_pow`. -/
+theorem exists_expand_eq_pow_add_C_mul (f : ℤ[X]) :
+    ∃ T : ℤ[X], expand ℤ p f = f ^ p + C (p : ℤ) * T := by
+  obtain ⟨T, hT⟩ := C_natCast_dvd_expand_sub_pow (p := p) f
+  exact ⟨T, by linear_combination hT⟩
+
+/-- **Theorem 1.11 (2)** of Kaur–Kumar–Remete, at `u = 1`.  Writing
+`f(X ^ p) = f ^ p + p * T`, the prime `p` is an index divisor of `f(X ^ p)` exactly when the
+reductions of `f` and `T` mod `p` fail to be coprime.
+
+This is the effective form of the criterion: both reductions are explicit polynomials over
+`𝔽ₚ`, so the condition is a gcd computation.  In one direction a common irreducible factor
+`Pi` of the two reductions puts `f ^ p` into `⟨p, Pi⟩ ^ p ⊆ ⟨p, Pi⟩ ^ 2` and `p * T` into
+`⟨p, Pi⟩ ^ 2`; in the other, an index divisor `Pi` divides `f ^ p` mod `p`, hence `f`, and
+then `p * T = f(X ^ p) - f ^ p` lies in `⟨p, Pi⟩ ^ 2`, so `Pi` divides `T` mod `p`. -/
+theorem isIndexDivisor_expand_iff_not_isCoprime {f T : ℤ[X]} (hfm : f.Monic)
+    (hT : expand ℤ p f = f ^ p + C (p : ℤ) * T) :
+    IsIndexDivisor p (expand ℤ p f) ↔
+      ¬ IsCoprime (f.map (Int.castRingHom (ZMod p))) (T.map (Int.castRingHom (ZMod p))) := by
+  constructor
+  · rintro ⟨Pi, hPim, hPiirr, hmem⟩ hcop
+    -- `Pi` divides the reduction of `f`, because it divides that of `f ^ p`.
+    have hPif : Pi.map (Int.castRingHom (ZMod p)) ∣ f.map (Int.castRingHom (ZMod p)) := by
+      have h := sq_span_pair_le_span_pair_sq hmem
+      rw [mem_span_pair_C_natCast_iff, Polynomial.map_expand, ZMod.expand_card,
+        Polynomial.map_pow] at h
+      exact (irreducible_iff_prime.mp hPiirr).dvd_of_dvd_pow
+        ((dvd_pow_self _ two_ne_zero).trans h)
+    have hfmem : f ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr hPif
+    -- hence `f ^ p ∈ ⟨p, Pi⟩ ^ 2`, and `p * T` is the difference of two such elements.
+    have hfp : f ^ p ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) ^ 2 :=
+      Ideal.pow_le_pow_right hp.out.two_le (Ideal.pow_mem_pow hfmem p)
+    have hCT : C (p : ℤ) * T ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) ^ 2 := by
+      have hsub : C (p : ℤ) * T = expand ℤ p f - f ^ p := by linear_combination -hT
+      rw [hsub]
+      exact Ideal.sub_mem _ hmem hfp
+    have hPiT : Pi.map (Int.castRingHom (ZMod p)) ∣ T.map (Int.castRingHom (ZMod p)) :=
+      mem_span_pair_C_natCast_iff.mp (mem_span_pair_of_C_mul_mem_sq (hPim.map _).ne_zero hCT)
+    exact hPiirr.not_isUnit (hcop.isUnit_of_dvd' hPif hPiT)
+  · intro hncop
+    -- A common irreducible factor of the two reductions, normalised and lifted.
+    obtain ⟨π, hπirr, hπf, hπT⟩ :
+        ∃ π : (ZMod p)[X], Irreducible π ∧ π ∣ f.map (Int.castRingHom (ZMod p)) ∧
+          π ∣ T.map (Int.castRingHom (ZMod p)) := by
+      set d := EuclideanDomain.gcd (f.map (Int.castRingHom (ZMod p)))
+        (T.map (Int.castRingHom (ZMod p))) with hd
+      have hdunit : ¬ IsUnit d := fun h => hncop (EuclideanDomain.gcd_isUnit_iff.mp h)
+      have hd0 : d ≠ 0 := by
+        intro h0
+        exact (hfm.map _).ne_zero (EuclideanDomain.gcd_eq_zero_iff.mp h0).1
+      obtain ⟨π, hπirr, hπd⟩ := WfDvdMonoid.exists_irreducible_factor hdunit hd0
+      exact ⟨π, hπirr, hπd.trans (EuclideanDomain.gcd_dvd_left _ _),
+        hπd.trans (EuclideanDomain.gcd_dvd_right _ _)⟩
+    have hπmonic : (normalize π).Monic := monic_normalize hπirr.ne_zero
+    have hassoc : Associated (normalize π) π := normalize_associated π
+    have hsurj : Function.Surjective (Int.castRingHom (ZMod p)) := ZMod.intCast_surjective
+    obtain ⟨Pi, hPimap, -, hPimonic⟩ := lifts_and_degree_eq_and_monic
+      ((mem_lifts (normalize π)).mpr (Polynomial.map_surjective _ hsurj _)) hπmonic
+    refine ⟨Pi, hPimonic, by rw [hPimap]; exact hassoc.symm.irreducible hπirr, ?_⟩
+    have hfmem : f ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr (by rw [hPimap]; exact hassoc.dvd.trans hπf)
+    have hTmem : T ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr (by rw [hPimap]; exact hassoc.dvd.trans hπT)
+    have hpmem : (C (p : ℤ) : ℤ[X]) ∈ (Ideal.span {C (p : ℤ), Pi} : Ideal ℤ[X]) :=
+      Ideal.subset_span (by simp)
+    rw [hT]
+    refine Ideal.add_mem _ (Ideal.pow_le_pow_right hp.out.two_le (Ideal.pow_mem_pow hfmem p)) ?_
+    rw [show (2 : ℕ) = 1 + 1 from rfl, pow_add, pow_one]
+    exact Ideal.mul_mem_mul hpmem hTmem
+
+/-- **Theorem 1.11 (2)** of Kaur–Kumar–Remete.  For `u ≥ 1` and `f(X ^ (p ^ u))` irreducible,
+the prime `p` fails to divide the index of `f(X ^ (p ^ u))` exactly when the reductions of
+`f` and of `(f(X ^ p) - f ^ p) / p` are coprime mod `p`.
+
+The exponent `u` is irrelevant, by Corollary 2.5. -/
+theorem not_isIndexDivisor_expand_pow_iff_isCoprime {f T : ℤ[X]} (hfm : f.Monic) {u : ℕ}
+    (hu : 0 < u) (hT : expand ℤ p f = f ^ p + C (p : ℤ) * T)
+    (hirr : Irreducible (ratMap (expand ℤ (p ^ u) f))) :
+    ¬ IsIndexDivisor p (expand ℤ (p ^ u) f) ↔
+      IsCoprime (f.map (Int.castRingHom (ZMod p))) (T.map (Int.castRingHom (ZMod p))) := by
+  have hppos : 0 < p := hp.out.pos
+  have hpu : p ∣ p ^ u := dvd_pow_self p hu.ne'
+  have hirrp : Irreducible (ratMap (expand ℤ p f)) :=
+    irreducible_ratMap_expand_of_dvd (pow_pos hppos u) hpu hirr
+  rw [← isIndexDivisor_expand_pow_iff hfm hu hirrp hirr,
+    isIndexDivisor_expand_iff_not_isCoprime hfm hT, not_not]
+
+/-- **Theorem 1.11 (1)** of Kaur–Kumar–Remete.  If `f` is monogenic and `f(0)` is squarefree,
+then the index of `f(X ^ (p ^ u))` is a power of `p`: no other prime divides it.
+
+Every prime `q ≠ p` is prime to `p ^ u`, so Proposition 2.10 confines it to the two excluded
+conditions. -/
+theorem eq_of_prime_dvd_exponent_expand_pow {f : ℤ[X]} (hfm : f.Monic) {u : ℕ} (hu : 0 < u)
+    (hirr : Irreducible (ratMap (expand ℤ (p ^ u) f)))
+    (h1 : ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f) (h3 : Squarefree (f.coeff 0))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ (p ^ u) f)
+    {q : ℕ} (hq : q.Prime) (hdvd : q ∣ exponent ω) :
+    q = p := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  by_contra hqp
+  have hk : 2 ≤ p ^ u := by
+    calc 2 ≤ p := hp.out.two_le
+    _ = p ^ 1 := (pow_one p).symm
+    _ ≤ p ^ u := Nat.pow_le_pow_right hp.out.pos hu
+  -- `q ≠ p` is prime to `p ^ u`.
+  have hqk : ¬ q ∣ p ^ u := fun h => hqp ((Nat.prime_dvd_prime_iff_eq hq hp.out).mp
+    (hq.dvd_of_dvd_pow h))
+  have hIdx : IsIndexDivisor q (expand ℤ (p ^ u) f) := by
+    rw [← hmω]; exact (dvd_exponent_iff_isIndexDivisor hω).mp hdvd
+  rcases (isIndexDivisor_expand_iff_of_not_dvd hfm hk hirr hqk).mp hIdx with hA | hB
+  · exact h1 q hq hA
+  · exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp h3 q hq hB
 
 end RingOfIntegers
