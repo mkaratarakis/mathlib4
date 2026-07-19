@@ -11,7 +11,8 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.Witness
 /-!
 # Monogenity of power compositional polynomials
 
-This file proves Theorems 1.1 and 1.11 and Corollary 1.4 of S. Kaur, S. Kumar and L. Remete,
+This file proves Theorems 1.1, 1.11 and 1.14 and Corollaries 1.4, 1.8 and 1.13 of
+S. Kaur, S. Kumar and L. Remete,
 *On the index of power compositional polynomials*, Finite Fields Appl. **107** (2025), 102642:
 for `k ≥ 2` with `f(X ^ k)` irreducible, the polynomial `f(X ^ k)` is monogenic if and only if
 
@@ -48,6 +49,19 @@ statement free of the auxiliary number fields in which those roots live: only th
 
 * `RingOfIntegers.eq_of_prime_dvd_exponent_expand_pow`: **Theorem 1.11 (1)** --- if `f` is
   monogenic and `f(0)` is squarefree, the index of `f(X ^ (p ^ u))` is a power of `p`.
+
+* `RingOfIntegers.not_isIndexDivisor_of_isEisensteinAt`: **Lemma 2.13** --- a prime is not
+  an index divisor of a monic polynomial Eisenstein at it.
+
+* `RingOfIntegers.adjoin_eq_top_expand_iff_of_eq_pow_add`: **Theorem 1.14** --- for
+  `f = X ^ d + A * h` with `d ≥ 2`, `deg h < d` and `h(0)` a unit, condition (3) of
+  Theorem 1.1 is redundant: it follows from (1).
+
+* `RingOfIntegers.adjoin_eq_top_expand_iff_of_dvd_radical`: **Corollary 1.8** --- for that
+  family, if `rad k ∣ rad A` then `f(X ^ k)` is monogenic exactly when `f` is.
+
+* `RingOfIntegers.adjoin_eq_top_expand_pow_iff_of_isEisensteinAt`: **Corollary 1.13** ---
+  the same for `f` Eisenstein at `p` with `f(0)` squarefree, and `k = p ^ u`.
 
 ## Implementation notes
 
@@ -419,5 +433,192 @@ theorem eq_of_prime_dvd_exponent_expand_pow {f : ℤ[X]} (hfm : f.Monic) {u : �
   rcases (isIndexDivisor_expand_iff_of_not_dvd hfm hk hirr hqk).mp hIdx with hA | hB
   · exact h1 q hq hA
   · exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp h3 q hq hB
+
+/-! ### Eisenstein polynomials -/
+
+/-- Being Eisenstein is preserved by `X ↦ X ^ ℓ`: the coefficients only move to positions
+that are multiples of `ℓ`, and the constant term does not move at all. -/
+theorem _root_.Polynomial.IsEisensteinAt.expand {R : Type*} [CommSemiring R] {𝓟 : Ideal R}
+    {f : R[X]} {ℓ : ℕ} (hℓ : 0 < ℓ) (hf : f.IsEisensteinAt 𝓟) (hfm : f.Monic) :
+    (Polynomial.expand R ℓ f).IsEisensteinAt 𝓟 := by
+  refine ⟨?_, ?_, ?_⟩
+  · have h1 := hf.leading
+    rwa [hfm.leadingCoeff, ← (hfm.expand hℓ).leadingCoeff] at h1
+  · intro n hn
+    rw [natDegree_expand] at hn
+    rw [coeff_expand hℓ]
+    split_ifs with hdvd
+    · exact hf.mem (Nat.div_lt_of_lt_mul (by rwa [mul_comm] at hn))
+    · exact Submodule.zero_mem _
+  · have h0 := hf.notMem
+    rwa [show (Polynomial.expand R ℓ f).coeff 0 = f.coeff 0 by
+      rw [coeff_expand hℓ, if_pos (dvd_zero ℓ), Nat.zero_div]]
+
+/-- **Lemma 2.13** of Kaur–Kumar–Remete, in polynomial form: a prime is not an index divisor
+of a monic polynomial that is Eisenstein at it.
+
+Eisenstein polynomials are irreducible, so the criterion may be tested at the canonical
+root, where it is `RingOfIntegers.not_dvd_exponent_of_minpoly_isEisensteinAt`. -/
+theorem not_isIndexDivisor_of_isEisensteinAt {g : ℤ[X]} (hgm : g.Monic) (hgd : 0 < g.natDegree)
+    (hei : g.IsEisensteinAt (Submodule.span ℤ {(p : ℤ)})) : ¬ IsIndexDivisor p g := by
+  have hprime : Ideal.IsPrime (Submodule.span ℤ {(p : ℤ)}) :=
+    (Ideal.span_singleton_prime (Int.natCast_ne_zero.mpr hp.out.ne_zero)).mpr
+      (Nat.prime_iff_prime_int.mp hp.out)
+  have hirrZ : Irreducible g := hei.irreducible hprime hgm.isPrimitive hgd
+  have hirrQ : Irreducible (ratMap g) :=
+    (Polynomial.IsPrimitive.Int.irreducible_iff_irreducible_map_cast hgm.isPrimitive).mp hirrZ
+  haveI : Fact (Irreducible (ratMap g)) := ⟨hirrQ⟩
+  have hei' : (minpoly ℤ (rootOfMonic g hgm)).IsEisensteinAt (Submodule.span ℤ {(p : ℤ)}) := by
+    rw [minpoly_rootOfMonic]; exact hei
+  rw [isIndexDivisor_iff_dvd_exponent_rootOfMonic hgm]
+  exact not_dvd_exponent_of_minpoly_isEisensteinAt (adjoin_rootOfMonic g hgm) hei'
+
+/-! ### Theorem 1.14 and its corollaries: the family `X ^ d + A * h` -/
+
+section EqPowAdd
+
+variable {f h : ℤ[X]} {A : ℤ} {d : ℕ}
+
+/-- For `f = X ^ d + A * h` with `deg h < d`, the polynomial `f` is monic of degree `d`. -/
+theorem monic_of_eq_pow_add (hhd : h.natDegree < d) (hfeq : f = X ^ d + C A * h) :
+    f.Monic := by
+  rw [hfeq]
+  refine monic_X_pow_add (lt_of_le_of_lt degree_le_natDegree ?_)
+  exact_mod_cast lt_of_le_of_lt (natDegree_C_mul_le A h) hhd
+
+/-- The degree of `f = X ^ d + A * h` is `d`. -/
+theorem natDegree_of_eq_pow_add (hhd : h.natDegree < d)
+    (hfeq : f = X ^ d + C A * h) : f.natDegree = d := by
+  have hlt : (C A * h).degree < (X ^ d : ℤ[X]).degree := by
+    rw [degree_X_pow]
+    exact lt_of_le_of_lt degree_le_natDegree
+      (by exact_mod_cast lt_of_le_of_lt (natDegree_C_mul_le A h) hhd)
+  rw [hfeq]
+  refine natDegree_eq_of_degree_eq_some ?_
+  rw [degree_add_eq_left_of_degree_lt hlt, degree_X_pow]
+
+/-- The constant term of `f = X ^ d + A * h` is `A * h(0)`, for `d ≥ 1`. -/
+theorem coeff_zero_of_eq_pow_add (hd : 0 < d) (hfeq : f = X ^ d + C A * h) :
+    f.coeff 0 = A * h.coeff 0 := by
+  rw [hfeq, coeff_add, coeff_X_pow, if_neg (by omega), coeff_C_mul, zero_add]
+
+/-- For `f = X ^ d + A * h` with `d ≥ 2` and `h(0)` a unit, monogenity of `f` already forces
+`f(0)` to be squarefree: if `q ^ 2 ∣ f(0) = A * h(0)` then `q ^ 2 ∣ A`, so `f` reduces to
+`X ^ d` mod `q` and lies in `⟨q, X⟩ ^ 2`, making `q` an index divisor of `f`. -/
+theorem squarefree_coeff_zero_of_forall_not_isIndexDivisor (hd : 2 ≤ d)
+    (hh0 : IsUnit (h.coeff 0)) (hfeq : f = X ^ d + C A * h)
+    (H : ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f) : Squarefree (f.coeff 0) := by
+  have hf0 : f.coeff 0 = A * h.coeff 0 := coeff_zero_of_eq_pow_add (by omega) hfeq
+  refine Int.squarefree_iff_forall_prime_sq_not_dvd.mpr fun q hq hq2 => ?_
+  haveI : Fact q.Prime := ⟨hq⟩
+  refine H q hq ⟨X, monic_X, by rw [Polynomial.map_X]; exact irreducible_X, ?_⟩
+  -- `h(0)` is a unit, so the square divides `A` itself
+  have hq2' : (q : ℤ) ^ 2 ∣ A * h.coeff 0 := by rw [← hf0]; exact hq2
+  have hqA : (q : ℤ) ^ 2 ∣ A := (hh0.dvd_mul_right).mp hq2'
+  have hqAdvd : (q : ℤ) ∣ A := (dvd_pow_self _ two_ne_zero).trans hqA
+  have hmapf : f.map (Int.castRingHom (ZMod q)) = X ^ d := by
+    have hA0 : ((A : ZMod q)) = 0 := by
+      rw [ZMod.intCast_zmod_eq_zero_iff_dvd]; exact_mod_cast hqAdvd
+    have hCA : (C A).map (Int.castRingHom (ZMod q)) = 0 := by
+      rw [Polynomial.map_C]
+      have : (Int.castRingHom (ZMod q)) A = 0 := hA0
+      rw [this, map_zero]
+    rw [hfeq, Polynomial.map_add, Polynomial.map_pow, Polynomial.map_X, Polynomial.map_mul,
+      hCA, zero_mul, add_zero]
+  rw [span_pair_sq_eq_inf (g := X) (by rw [Polynomial.map_X]; exact X_ne_zero), Ideal.mem_inf]
+  refine ⟨mem_span_pair_C_sq_X_iff.mpr hq2, ?_⟩
+  rw [mem_span_pair_C_natCast_iff, Polynomial.map_pow, Polynomial.map_X, hmapf]
+  exact pow_dvd_pow X hd
+
+/-- **Theorem 1.14** of Kaur–Kumar–Remete.  For `f = X ^ d + A * h` with `d ≥ 2`,
+`deg h < d` and `h(0)` a unit, and for `k ≥ 2` with `f(X ^ k)` irreducible, the polynomial
+`f(X ^ k)` is monogenic if and only if
+
+1. `f` is monogenic, and
+2. no prime `p ∣ k` is an index divisor of `f(X ^ p)`.
+
+Compared with Theorem 1.1 the squarefreeness of `f(0)` has disappeared: for this shape of
+`f` it is implied by (1), by
+`RingOfIntegers.squarefree_coeff_zero_of_forall_not_isIndexDivisor`.  Condition (2) becomes
+a coprimality mod `p` by `RingOfIntegers.isIndexDivisor_expand_iff_not_isCoprime`, which is
+how the paper states it. -/
+theorem adjoin_eq_top_expand_iff_of_eq_pow_add (hd : 2 ≤ d) (hhd : h.natDegree < d)
+    (hh0 : IsUnit (h.coeff 0)) (hfeq : f = X ^ d + C A * h) {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k f)))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ k f) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔
+      (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f) ∧
+      (∀ q : ℕ, q.Prime → q ∣ k → ¬ IsIndexDivisor q (expand ℤ q f)) := by
+  have hfm : f.Monic := monic_of_eq_pow_add hhd hfeq
+  rw [adjoin_eq_top_expand_iff hfm hk hirr hω hmω]
+  exact ⟨fun hall => ⟨hall.1, hall.2.1⟩, fun hall => ⟨hall.1, hall.2,
+    squarefree_coeff_zero_of_forall_not_isIndexDivisor hd hh0 hfeq hall.1⟩⟩
+
+/-- **Corollary 1.8** of Kaur–Kumar–Remete.  If moreover every prime divisor of `k` divides
+`A` — that is, `rad k ∣ rad A` — then `f(X ^ k)` is monogenic exactly when `f` is.
+
+Monogenity of `f` makes `A` squarefree, so at a prime `p ∣ k` the polynomial `f` — and with
+it `f(X ^ p)` — is Eisenstein at `p`, and Lemma 2.13 rules `p` out of condition (2). -/
+theorem adjoin_eq_top_expand_iff_of_dvd_radical (hd : 2 ≤ d) (hhd : h.natDegree < d)
+    (hh0 : IsUnit (h.coeff 0)) (hfeq : f = X ^ d + C A * h) {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k f)))
+    (hrad : ∀ q : ℕ, q.Prime → q ∣ k → (q : ℤ) ∣ A)
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ k f) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔ ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f := by
+  have hfm : f.Monic := monic_of_eq_pow_add hhd hfeq
+  have hfd : f.natDegree = d := natDegree_of_eq_pow_add hhd hfeq
+  rw [adjoin_eq_top_expand_iff_of_eq_pow_add hd hhd hh0 hfeq hk hirr hω hmω]
+  refine ⟨fun hall => hall.1, fun h1 => ⟨h1, fun q hq hqk => ?_⟩⟩
+  haveI : Fact q.Prime := ⟨hq⟩
+  -- `f(0)` is squarefree, so `q ^ 2 ∤ f(0)`, and `q ∣ A` divides every lower coefficient
+  have hsf := squarefree_coeff_zero_of_forall_not_isIndexDivisor hd hh0 hfeq h1
+  have hqA : (q : ℤ) ∣ A := hrad q hq hqk
+  have hei : f.IsEisensteinAt (Submodule.span ℤ {(q : ℤ)}) := by
+    refine ⟨?_, ?_, ?_⟩
+    · rw [hfm.leadingCoeff, Ideal.mem_span_singleton]
+      intro hdvd
+      have h1 : (q : ℤ) ≤ 1 := Int.le_of_dvd one_pos hdvd
+      have h2 : (2 : ℤ) ≤ (q : ℤ) := by exact_mod_cast hq.two_le
+      omega
+    · intro n hn
+      rw [hfd] at hn
+      rw [hfeq, coeff_add, coeff_X_pow, if_neg (by omega), zero_add, coeff_C_mul,
+        Ideal.mem_span_singleton]
+      exact Dvd.dvd.mul_right hqA _
+    · rw [Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+      exact Int.squarefree_iff_forall_prime_sq_not_dvd.mp hsf q hq
+  exact not_isIndexDivisor_of_isEisensteinAt (hfm.expand hq.pos)
+    (by rw [natDegree_expand, hfd]; exact Nat.mul_pos (by omega) hq.pos)
+    (hei.expand hq.pos hfm)
+
+end EqPowAdd
+
+/-- **Corollary 1.13** of Kaur–Kumar–Remete.  For a monic polynomial `f` that is Eisenstein
+at `p` and has `f(0)` squarefree, and `u ≥ 1` with `f(X ^ (p ^ u))` irreducible, the
+polynomial `f(X ^ (p ^ u))` is monogenic exactly when `f` is.
+
+The only prime dividing `k = p ^ u` is `p`, and `f(X ^ p)` is again Eisenstein at `p`, so
+condition (2) of Theorem 1.1 holds automatically. -/
+theorem adjoin_eq_top_expand_pow_iff_of_isEisensteinAt {f : ℤ[X]} (hfm : f.Monic)
+    (hfd : 0 < f.natDegree) (hei : f.IsEisensteinAt (Submodule.span ℤ {(p : ℤ)}))
+    (hsf : Squarefree (f.coeff 0)) {u : ℕ} (hu : 0 < u)
+    (hirr : Irreducible (ratMap (expand ℤ (p ^ u) f)))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤) (hmω : minpoly ℤ ω = expand ℤ (p ^ u) f) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔ ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q f := by
+  have hk : 2 ≤ p ^ u := by
+    calc 2 ≤ p := hp.out.two_le
+    _ = p ^ 1 := (pow_one p).symm
+    _ ≤ p ^ u := Nat.pow_le_pow_right hp.out.pos hu
+  rw [adjoin_eq_top_expand_iff hfm hk hirr hω hmω]
+  refine ⟨fun hall => hall.1, fun h1 => ⟨h1, fun q hq hqk => ?_, hsf⟩⟩
+  -- the only prime dividing `p ^ u` is `p`
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hqp : q = p := (Nat.prime_dvd_prime_iff_eq hq hp.out).mp (hq.dvd_of_dvd_pow hqk)
+  subst hqp
+  exact not_isIndexDivisor_of_isEisensteinAt (hfm.expand hq.pos)
+    (by rw [natDegree_expand]; exact Nat.mul_pos hfd hq.pos) (hei.expand hq.pos hfm)
 
 end RingOfIntegers
