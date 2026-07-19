@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.Algebra.Polynomial.SpecificDegree
 public import Mathlib.NumberTheory.Basic
 public import Mathlib.NumberTheory.NumberField.Cyclotomic.Basic
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
@@ -43,12 +44,14 @@ subsume.
   "all of them", whereas for `f = X - A` the same condition reads `p ^ 2 ∣ A ^ p - A` and
   the set of such `p` is the set of Wieferich primes to the base `A`.
 
-* `RingOfIntegers.adjoin_eq_top_expand_simplestCubic_iff`: **Proposition 4.3** for the
-  simplest cubics `X ^ 3 - m X ^ 2 - (m + 3) X - 1`.  The splitting of `f` modulo the odd
-  primes dividing `k` is a hypothesis (the paper derives it from the cyclic cubic Galois
-  group); the prime `2` needs no hypothesis, by
-  `RingOfIntegers.not_isIndexDivisor_two_simplestCubic`, which checks the four classes of
-  `m` mod `4` by explicit Bezout identities over `𝔽₂`.
+* `RingOfIntegers.adjoin_eq_top_expand_simplestCubic_iff_of_reducible`: **Proposition 4.3**
+  for the simplest cubics `X ^ 3 - m X ^ 2 - (m + 3) X - 1`, with the paper's own hypothesis
+  that `f` is reducible modulo every odd prime divisor of `k`.  Two ingredients replace the
+  paper's Galois-theoretic and computational steps:
+  `RingOfIntegers.simplestCubic_eq_prod`, which writes the other two roots explicitly as
+  `-1 / (a + 1)` and `-(a + 1) / a` so that reducible implies split with no Galois group in
+  sight, and `RingOfIntegers.not_isIndexDivisor_two_simplestCubic`, which disposes of `p = 2`
+  by explicit Bezout identities over `𝔽₂` in the four classes of `m` mod `4`.
 
 * `RingOfIntegers.not_isIndexDivisor_expand_cyclotomic`: **Problem 1 has an empty answer for
   cyclotomic `f`**, which is the kind of example the paper asks for.  Supporting this,
@@ -476,8 +479,8 @@ private theorem five_zmod_two : ((5 : (ZMod 2)[X])) = 1 := by
 private theorem six_zmod_two : ((6 : (ZMod 2)[X])) = 0 := by
   rw [show (6 : (ZMod 2)[X]) = 2 * 3 by norm_num, two_zmod_two, zero_mul]
 
-private theorem map_C_zmod_two (z : ℤ) :
-    ((C z : ℤ[X]).map (Int.castRingHom (ZMod 2))) = C ((z : ZMod 2)) := by
+private theorem map_C_zmod (q : ℕ) (z : ℤ) :
+    ((C z : ℤ[X]).map (Int.castRingHom (ZMod q))) = C ((z : ZMod q)) := by
   rw [Polynomial.map_C]; rfl
 
 /-- Proposition 4.3 at `p = 2`, for `m ≡ 0` mod `4`: the reduction of `f` mod `2` is
@@ -510,12 +513,12 @@ private theorem not_isIndexDivisor_two_simplestCubic_0 (j : ℤ) :
   have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X + 1 := by
     rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
       Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
-      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+      Polynomial.map_one, map_C_zmod, map_C_zmod, ea, eb]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 4 + X ^ 3 + X + 1 := by
     rw [hT]
     simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
-      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod, e0, e1, e2, e3, e4]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero,
       zero_add]
   rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
@@ -553,12 +556,12 @@ private theorem not_isIndexDivisor_two_simplestCubic_1 (j : ℤ) :
   have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + 1 := by
     rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
       Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
-      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+      Polynomial.map_one, map_C_zmod, map_C_zmod, ea, eb]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 5 + X ^ 4 + X ^ 3 + X ^ 2 + 1 := by
     rw [hT]
     simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
-      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod, e0, e1, e2, e3, e4]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
   refine ⟨X ^ 3 + X ^ 2 + X, X + 1, ?_⟩
@@ -595,12 +598,12 @@ private theorem not_isIndexDivisor_two_simplestCubic_2 (j : ℤ) :
   have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X + 1 := by
     rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
       Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
-      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+      Polynomial.map_one, map_C_zmod, map_C_zmod, ea, eb]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + X + 1 := by
     rw [hT]
     simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
-      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod, e0, e1, e2, e3, e4]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero,
       zero_add]
   rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
@@ -638,12 +641,12 @@ private theorem not_isIndexDivisor_two_simplestCubic_3 (j : ℤ) :
   have hfmap : f.map (Int.castRingHom (ZMod 2)) = X ^ 3 + X ^ 2 + 1 := by
     rw [hf, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
       Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
-      Polynomial.map_one, map_C_zmod_two, map_C_zmod_two, ea, eb]
+      Polynomial.map_one, map_C_zmod, map_C_zmod, ea, eb]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   have hTmap : T.map (Int.castRingHom (ZMod 2)) = X ^ 5 + X ^ 3 + 1 := by
     rw [hT]
     simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
-      Polynomial.map_X, Polynomial.map_one, map_C_zmod_two, e0, e1, e2, e3, e4]
+      Polynomial.map_X, Polynomial.map_one, map_C_zmod, e0, e1, e2, e3, e4]
     simp only [map_zero, C_1, zero_mul, one_mul, sub_eq_add_neg, CharTwo.neg_eq, add_zero]
   rw [isIndexDivisor_expand_iff_not_isCoprime hfm hid, not_not, hfmap, hTmap]
   refine ⟨X ^ 4 + X ^ 3 + X ^ 2, X ^ 2 + 1, ?_⟩
@@ -670,6 +673,66 @@ theorem not_isIndexDivisor_two_simplestCubic (m : ℤ) :
     exact not_isIndexDivisor_two_simplestCubic_2 j
   · rw [show (4*j + 3 + 3 : ℤ) = 4*j + 6 from by ring]
     exact not_isIndexDivisor_two_simplestCubic_3 j
+
+/-! ### The simplest cubics split wherever they are reducible -/
+
+/-- **Shanks' simplest cubic cycles its roots.**  If `a` is a root of
+`X ^ 3 - m X ^ 2 - (m + 3) X - 1` over a field, then so are `-1 / (a + 1)` and
+`-(a + 1) / a`, and the polynomial is the product of the three corresponding linear factors.
+
+This is the cyclic structure of the simplest cubics — the map `a ↦ -1 / (a + 1)` has order
+three — and it is what replaces the Galois-theoretic input of the paper: no Galois group is
+needed, the two other roots are written down. -/
+theorem simplestCubic_eq_prod {K : Type*} [Field K] (m : K) {a : K}
+    (ha : a ^ 3 - m * a ^ 2 - (m + 3) * a - 1 = 0) :
+    (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X])
+      = (X - C a) * (X - C (-1 / (a + 1))) * (X - C (-(a + 1) / a)) := by
+  have ha0 : a ≠ 0 := by rintro rfl; simp at ha
+  have ha1 : a + 1 ≠ 0 := by
+    intro h
+    have hval : a = -1 := by linear_combination h
+    subst hval
+    exact one_ne_zero (by linear_combination ha : (1 : K) = 0)
+  set b := -1 / (a + 1) with hb
+  set c := -(a + 1) / a with hc
+  have hs1 : a + b + c = m := by rw [hb, hc]; field_simp; linear_combination ha
+  have hs2 : a * b + b * c + c * a = -(m + 3) := by
+    rw [hb, hc]; field_simp; linear_combination -ha
+  have hs3 : a * b * c = 1 := by rw [hb, hc]; field_simp
+  rw [show (X - C a) * (X - C b) * (X - C c)
+      = X ^ 3 - (C a + C b + C c) * X ^ 2 + (C a * C b + C b * C c + C c * C a) * X
+        - C a * C b * C c from by ring]
+  simp only [← C_add, ← C_mul]
+  rw [hs1, hs2, hs3, C_neg, C_1]
+  ring
+
+/-- The simplest cubic splits over any field in which it has a root. -/
+theorem simplestCubic_splits_of_root {K : Type*} [Field K] (m : K) {a : K}
+    (ha : a ^ 3 - m * a ^ 2 - (m + 3) * a - 1 = 0) :
+    Splits (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X]) := by
+  rw [simplestCubic_eq_prod m ha]
+  exact ((Splits.X_sub_C _).mul (Splits.X_sub_C _)).mul (Splits.X_sub_C _)
+
+/-- **Reducible implies split, for the simplest cubics.**  Over any field, if
+`X ^ 3 - m X ^ 2 - (m + 3) X - 1` is not irreducible then it splits completely.
+
+A cubic that is not irreducible has a root, and by `simplestCubic_splits_of_root` one root
+produces the other two. -/
+theorem simplestCubic_splits_of_not_irreducible {K : Type*} [Field K] (m : K)
+    (h : ¬ Irreducible (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X])) :
+    Splits (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X]) := by
+  have hm : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X]).Monic := by monicity!
+  have hd : (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : K[X]).natDegree = 3 := by
+    compute_degree!
+  rw [Polynomial.Monic.irreducible_iff_roots_eq_zero_of_degree_le_three hm (by omega)
+    (by omega)] at h
+  obtain ⟨a, hmem⟩ := Multiset.exists_mem_of_ne_zero h
+  rw [mem_roots hm.ne_zero, IsRoot.def] at hmem
+  refine simplestCubic_splits_of_root (a := a) m ?_
+  have := hmem
+  simp only [eval_sub, eval_pow, eval_mul, eval_C, eval_X, eval_one] at this
+  linear_combination this
+
 
 /-- **Proposition 4.3** of Kaur–Kumar–Remete for the simplest cubics
 `f = X ^ 3 - m X ^ 2 - (m + 3) X - 1`.
@@ -713,6 +776,39 @@ theorem adjoin_eq_top_expand_simplestCubic_iff (m : ℤ) {k : ℕ} (hk : 2 ≤ k
       exact not_isIndexDivisor_two_simplestCubic m
     · exact not_isIndexDivisor_expand_of_splits hfm (hsplit q hq hqk hq2)
         fun r hrq => by rw [heval]; exact h q hq hqk hq2 r hrq
+
+/-- **Proposition 4.3** of Kaur–Kumar–Remete, with the paper's own hypothesis: `f` is
+*reducible* modulo every odd prime divisor of `k`.
+
+For the simplest cubics reducible implies split (`simplestCubic_splits_of_not_irreducible`),
+so no Galois theory and no splitting hypothesis is needed; and the prime `2` is handled by
+`not_isIndexDivisor_two_simplestCubic`.  This is the full statement of the paper's
+Proposition 4.3, with condition (ii) in the undivided form `q ^ 2 ∤ f(r ^ q)`. -/
+theorem adjoin_eq_top_expand_simplestCubic_iff_of_reducible (m : ℤ) {k : ℕ} (hk : 2 ≤ k)
+    (hirr : Irreducible (ratMap (expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1))))
+    (hred : ∀ q : ℕ, q.Prime → q ∣ k → q ≠ 2 →
+      ¬ Irreducible (((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X])).map
+        (Int.castRingHom (ZMod q))))
+    {L : Type*} [Field L] [NumberField L] {ω : 𝓞 L}
+    (hω : Algebra.adjoin ℚ {(ω : L)} = ⊤)
+    (hmω : minpoly ℤ ω = expand ℤ k (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) :
+    Algebra.adjoin ℤ {ω} = ⊤ ↔
+      (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q (X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1)) ∧
+      (∀ q : ℕ, q.Prime → q ∣ k → q ≠ 2 → ∀ r : ℕ, r < q →
+        ¬ (q : ℤ) ^ 2 ∣ ((r : ℤ) ^ q) ^ 3 - m * ((r : ℤ) ^ q) ^ 2
+          - (m + 3) * ((r : ℤ) ^ q) - 1) := by
+  refine adjoin_eq_top_expand_simplestCubic_iff m hk hirr (fun q hq hqk hq2 => ?_) hω hmω
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hmap : ((X ^ 3 - C m * X ^ 2 - C (m + 3) * X - 1 : ℤ[X])).map (Int.castRingHom (ZMod q))
+      = X ^ 3 - C ((m : ZMod q)) * X ^ 2 - C (((m : ZMod q) + 3)) * X - 1 := by
+    rw [Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_sub, Polynomial.map_mul,
+      Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_one, map_C_zmod, map_C_zmod]
+    push_cast
+    ring
+  rw [hmap]
+  exact simplestCubic_splits_of_not_irreducible _ (by rw [← hmap]; exact hred q hq hqk hq2)
+
 
 /-! ### Problem 1 for cyclotomic polynomials: the answer is empty -/
 
