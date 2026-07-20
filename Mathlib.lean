@@ -5878,6 +5878,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.Dedekind
 public import Mathlib.NumberTheory.NumberField.Monogenic.DedekindBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.DoubleRoot
 public import Mathlib.NumberTheory.NumberField.Monogenic.Exponent
+public import Mathlib.NumberTheory.NumberField.Monogenic.GlobalCriterion
 public import Mathlib.NumberTheory.NumberField.Monogenic.KaurKumar
 public import Mathlib.NumberTheory.NumberField.Monogenic.Localization
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Basic
