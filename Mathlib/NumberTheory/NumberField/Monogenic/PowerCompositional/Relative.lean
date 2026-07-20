@@ -417,6 +417,77 @@ theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero (hπ : Prime π) {f : (�
 
 
 
+/-- A monic nonconstant `G : (𝓞 K)[X]` admits a monic `h` whose reduction is an irreducible
+factor of the reduction of `G`. -/
+theorem exists_monic_map_irreducible_dvd (hπ : Prime π) {G : (𝓞 K)[X]} (hG : G.Monic)
+    (hGd : 0 < G.natDegree) :
+    ∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+      h.map (Ideal.Quotient.mk (Ideal.span {π})) ∣ G.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+  classical
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hsurj : Function.Surjective (Ideal.Quotient.mk (Ideal.span {π} : Ideal (𝓞 K))) :=
+    Ideal.Quotient.mk_surjective
+  have hGm : (G.map (Ideal.Quotient.mk (Ideal.span {π}))).Monic := hG.map _
+  have hGd' : 0 < (G.map (Ideal.Quotient.mk (Ideal.span {π}))).natDegree := by
+    rwa [hG.natDegree_map]
+  obtain ⟨π₀, hπ₀irr, hπ₀dvd⟩ := WfDvdMonoid.exists_irreducible_factor
+    (not_isUnit_of_natDegree_pos _ hGd') hGm.ne_zero
+  have hirr : Irreducible (normalize π₀) := (associated_normalize π₀).irreducible hπ₀irr
+  obtain ⟨h, hhmap, -, hhmonic⟩ := lifts_and_degree_eq_and_monic
+    ((mem_lifts (normalize π₀)).mpr (Polynomial.map_surjective _ hsurj _))
+    (monic_normalize hπ₀irr.ne_zero)
+  exact ⟨h, hhmonic, by rw [hhmap]; exact hirr,
+    by rw [hhmap, normalize_dvd_iff]; exact hπ₀dvd⟩
+
+/-- **Lemma 2.6 relatively, in ideal form.** -/
+theorem exists_expand_mem_sq (hπ : Prime π) {f g : (𝓞 K)[X]} (hgm : g.Monic)
+    (hgd : 0 < g.natDegree) {ℓ : ℕ} (hℓ : 0 < ℓ)
+    (hmem : f ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2) :
+    ∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+      Polynomial.expand (𝓞 K) ℓ f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2 := by
+  have hEm : (Polynomial.expand (𝓞 K) ℓ g).Monic := hgm.expand hℓ
+  have hEd : 0 < (Polynomial.expand (𝓞 K) ℓ g).natDegree := by
+    rw [natDegree_expand]; positivity
+  obtain ⟨h, hhm, hhirr, hhdvd⟩ := exists_monic_map_irreducible_dvd hπ hEm hEd
+  refine ⟨h, hhm, hhirr, Ideal.pow_right_mono (span_pair_le_of_map_dvd hhdvd) 2 ?_⟩
+  obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hmem
+  refine Ideal.mem_span_pair_sq_iff.mpr ⟨Polynomial.expand (𝓞 K) ℓ u,
+    Polynomial.expand (𝓞 K) ℓ v, Polynomial.expand (𝓞 K) ℓ w, ?_⟩
+  rw [huvw]
+  simp only [map_add, map_mul, map_pow, expand_C]
+
+/-- **Proposition 2.3 relatively, in ideal form.** -/
+theorem expand_mem_sq_of_sq_dvd_coeff_zero (hπ : Prime π) {f : (𝓞 K)[X]} {ℓ : ℕ} (hℓ : 2 ≤ ℓ)
+    (hπ2 : π ^ 2 ∣ f.coeff 0) :
+    Polynomial.expand (𝓞 K) ℓ f ∈ (Ideal.span {C π, X} : Ideal ((𝓞 K)[X])) ^ 2 := by
+  have hℓ0 : 0 < ℓ := by omega
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hX0 : (X : (𝓞 K)[X]).map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0 := by
+    rw [Polynomial.map_X]; exact X_ne_zero
+  rw [span_pair_sq_eq_inf hπ hX0, Ideal.mem_inf]
+  constructor
+  · refine mem_span_pair_C_sq_X_iff.mpr ?_
+    rwa [coeff_expand hℓ0, if_pos (dvd_zero ℓ), Nat.zero_div]
+  · rw [mem_span_pair_iff_map_dvd, Polynomial.map_pow, Polynomial.map_X,
+      Polynomial.map_expand, X_pow_dvd_iff]
+    intro d hd
+    rw [coeff_expand hℓ0]
+    split_ifs with hdvd
+    · interval_cases d
+      · have : (f.map (Ideal.Quotient.mk (Ideal.span {π}))).coeff 0 = 0 := by
+          rw [coeff_map, Ideal.Quotient.eq_zero_iff_mem, Ideal.mem_span_singleton]
+          exact (dvd_pow_self π two_ne_zero).trans hπ2
+        simpa using this
+      · exfalso
+        have hl1 : ℓ = 1 := Nat.dvd_one.mp hdvd
+        omega
+    · rfl
+
+
 /-! ### Proposition 2.10 over a number field base -/
 
 /-- **Proposition 2.10 over a number field base**, in ideal form.  Let `π` be a prime element
@@ -558,6 +629,41 @@ theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ} [Fact p.Pr
     have hfin := mem_span_pair_of_C_mul_mem_sq hπ hhm'.ne_zero hEs
     rw [mem_span_pair_iff_map_dvd, Polynomial.map_expand] at hfin
     exact hfin
+
+
+/-- **The relative criterion at a prime not dividing `k`.**  Let `π` be a prime element of
+`𝓞 K` whose residue field has characteristic `p`, and let `k ≥ 2` be prime to `p`.  Then `π`
+is an index divisor of `f(X ^ k)` if and only if it is an index divisor of `f`, or
+`π ^ 2` divides `f(0)`.
+
+This is Theorem 1.1 of Kaur–Kumar–Remete, at the primes prime to `k`, over an arbitrary
+number field base.  Combined with
+`NumberField.Relative.isIndexDivisor_iff_exists_notMem` it decides `π`-saturation, and hence
+— via `NumberField.Relative.adjoin_eq_top_of_forall_maximal_saturated` — contributes the
+corresponding condition to relative monogenity. -/
+theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
+    (hpk : ¬ p ∣ k) :
+    (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) k f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) ↔
+      (∃ g : (𝓞 K)[X], g.Monic ∧ Irreducible (g.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        f ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2) ∨ π ^ 2 ∣ f.coeff 0 := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  constructor
+  · rintro ⟨h, hhm, hhirr, hmem⟩
+    exact exists_mem_sq_or_sq_dvd_coeff_zero hπ hfm (by omega) hpk hhm hhirr hmem
+  · rintro (⟨g, hgm, hgirr, hmem⟩ | h2)
+    · have hgd : 0 < g.natDegree := by
+        rcases Nat.eq_zero_or_pos g.natDegree with h0 | hpos
+        · rw [eq_one_of_monic_natDegree_zero hgm h0, Polynomial.map_one] at hgirr
+          exact absurd hgirr not_irreducible_one
+        · exact hpos
+      exact exists_expand_mem_sq hπ hgm hgd (by omega) hmem
+    · exact ⟨X, monic_X, by rw [Polynomial.map_X]; exact irreducible_X,
+        expand_mem_sq_of_sq_dvd_coeff_zero hπ hk h2⟩
+
 
 
 end Uchida
