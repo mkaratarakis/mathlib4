@@ -463,6 +463,105 @@ general Dedekind base the assembly needs localisation and is left open. -/
 
 
 
+
+section GlobalBase
+
+variable {R S K L : Type*}
+variable [CommRing R] [IsDomain R] [IsIntegrallyClosed R]
+variable [Field K] [Algebra R K] [IsFractionRing R K]
+variable [Field L] [Algebra K L] [Algebra.IsSeparable K L] [Module.Finite K L]
+variable [CommRing S] [IsDomain S] [Algebra R S] [Algebra S L] [Algebra R L]
+variable [IsScalarTower R S L] [IsScalarTower R K L] [FaithfulSMul S L]
+variable [Algebra.IsIntegral R S] {θ : S}
+
+private theorem mem_adjoin_of_algebraMap_mem' {β : S}
+    (h : algebraMap S L β ∈
+      Algebra.adjoin R {algebraMap S L θ}) :
+    β ∈ Algebra.adjoin R {θ} := by
+  have hmap : (Algebra.adjoin R {θ}).map (IsScalarTower.toAlgHom R S L)
+      = Algebra.adjoin R {algebraMap S L θ} := by
+    rw [AlgHom.map_adjoin, Set.image_singleton, IsScalarTower.coe_toAlgHom']
+  rw [← hmap] at h
+  obtain ⟨x, hx, hxeq⟩ := Subalgebra.mem_map.mp h
+  rw [IsScalarTower.coe_toAlgHom'] at hxeq
+  rwa [FaithfulSMul.algebraMap_injective S L hxeq] at hx
+
+/-- **Relative monogenicity over a principal ideal base.**  Let `θ : S` generate `L`
+over `K`, and suppose `R` is a principal ideal ring.  If `R[θ]` is `π`-saturated in
+`S` for *every* prime element `π` of `R` — the hypothesis discharged at each `π` by
+`mem_adjoin_of_algebraMap_mul_mem` — then `R[θ] = S`.
+
+The proof clears denominators with the discriminant (`discr_mul_isIntegral_mem_adjoin`):
+every `β : S` satisfies `d • β ∈ R[θ]` for a fixed nonzero `d : R`, and the
+prime factorisation of `d` is peeled off one prime at a time using the saturation
+hypothesis. -/
+theorem adjoin_eq_top_of_forall_prime_saturated' [IsPrincipalIdealRing R]
+    (hgen : Algebra.adjoin K {algebraMap S L θ} = ⊤)
+    (hsat : ∀ π : R, Prime π → ∀ y : S,
+      algebraMap R S π * y ∈ Algebra.adjoin R {θ} →
+      y ∈ Algebra.adjoin R {θ}) :
+    Algebra.adjoin R {θ} = ⊤ := by
+  classical
+  -- integrality of the generator, over `R` and over `K`
+  have hintθZ : IsIntegral R θ := Algebra.IsIntegral.isIntegral θ
+  have hint𝓞 : IsIntegral R (algebraMap S L θ) :=
+    hintθZ.map (IsScalarTower.toAlgHom R S L)
+  have hintK : IsIntegral K (algebraMap S L θ) := hint𝓞.tower_top
+  -- the power basis of `θ` over `K`
+  set B : PowerBasis K L := PowerBasis.ofAdjoinEqTop hintK hgen with hB
+  have hBgen : B.gen = algebraMap S L θ := PowerBasis.ofAdjoinEqTop_gen hintK hgen
+  have hintgen : IsIntegral R B.gen := by rw [hBgen]; exact hint𝓞
+  -- the discriminant is a nonzero element of `R`
+  have hbint : ∀ i, IsIntegral R (B.basis i) := fun i => by
+    rw [B.basis_eq_pow]; exact hintgen.pow _
+  have hd : IsIntegral R (Algebra.discr K B.basis) :=
+    Algebra.discr_isIntegral (R := R) (K := K) (L := L) hbint
+  obtain ⟨d₀, hd₀⟩ := IsIntegrallyClosed.isIntegral_iff.mp hd
+  have hdne : Algebra.discr K B.basis ≠ 0 := Algebra.discr_not_zero_of_basis K B.basis
+  have hd₀ne : d₀ ≠ 0 := by
+    intro h0
+    apply hdne
+    rw [← hd₀, h0, map_zero]
+  -- the discriminant clears denominators: `d₀ * β ∈ R[θ]` for every `β`
+  have hclear : ∀ β : S,
+      algebraMap R S d₀ * β ∈ Algebra.adjoin R {θ} := by
+    intro β
+    have hz : IsIntegral R (algebraMap S L β) :=
+      (Algebra.IsIntegral.isIntegral β).map (IsScalarTower.toAlgHom R S L)
+    have hmem := Algebra.discr_mul_isIntegral_mem_adjoin (R := R) (K := K) (L := L)
+      hintgen hz
+    rw [hBgen] at hmem
+    apply mem_adjoin_of_algebraMap_mem'
+    have heq : algebraMap S L (algebraMap R S d₀ * β)
+        = Algebra.discr K B.basis • algebraMap S L β := by
+      rw [map_mul, Algebra.smul_def, ← hd₀,
+        ← IsScalarTower.algebraMap_apply R S L,
+        ← IsScalarTower.algebraMap_apply R K L]
+    rw [heq]
+    exact hmem
+  -- peel the prime factorisation of `d₀` using saturation
+  have hP : ∀ x : R, x ≠ 0 → ∀ β : S,
+      algebraMap R S x * β ∈ Algebra.adjoin R {θ} →
+      β ∈ Algebra.adjoin R {θ} := by
+    intro x
+    refine UniqueFactorizationMonoid.induction_on_prime x ?_ ?_ ?_
+    · intro h0
+      exact absurd rfl h0
+    · intro u hu _ β hβ
+      obtain ⟨v, rfl⟩ := hu
+      have hkey : algebraMap R S (↑v⁻¹) *
+          (algebraMap R S (↑v) * β) = β := by
+        rw [← mul_assoc, ← map_mul, Units.inv_mul, map_one, one_mul]
+      rw [← hkey]
+      exact Subalgebra.mul_mem _ (Subalgebra.algebraMap_mem _ _) hβ
+    · intro a q ha hq hPa _ β hβ
+      rw [map_mul, mul_assoc] at hβ
+      exact hPa ha β (hsat q hq _ hβ)
+  refine eq_top_iff.mpr fun β _ => ?_
+  exact hP d₀ hd₀ne β (hclear β)
+
+end GlobalBase
+
 end Monogenic
 
 end
