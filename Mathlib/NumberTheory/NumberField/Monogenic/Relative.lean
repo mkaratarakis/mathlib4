@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.NumberTheory.NumberField.Monogenic.DedekindBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
 public import Mathlib.RingTheory.Discriminant
 
@@ -80,110 +81,8 @@ theorem exists_mul_mem_adjoin_notMem_adjoin_of_factor {π : 𝓞 K} (hπ : Prime
     (hdeg : (h * g).natDegree < (minpoly (𝓞 K) θ).natDegree)
     (hfeq : minpoly (𝓞 K) θ = h ^ 2 * g + C π * (k * h) + C π ^ 2 * t) :
     ∃ z : 𝓞 K₁, algebraMap (𝓞 K) (𝓞 K₁) π * z ∈ Algebra.adjoin (𝓞 K) {θ} ∧
-      z ∉ Algebra.adjoin (𝓞 K) {θ} := by
-  have hint : IsIntegral (𝓞 K) θ := IsIntegral.tower_top θ.isIntegral
-  set f : (𝓞 K)[X] := minpoly (𝓞 K) θ with hf
-  set πι : 𝓞 K₁ := algebraMap (𝓞 K) (𝓞 K₁) π with hπι
-  set πK : K₁ := algebraMap (𝓞 K₁) K₁ πι with hπK
-  have hπKeq : πK = algebraMap (𝓞 K) K₁ π := by
-    rw [hπK, hπι]
-    exact (IsScalarTower.algebraMap_apply (𝓞 K) (𝓞 K₁) K₁ π).symm
-  have hπK0 : πK ≠ 0 := by
-    rw [hπKeq, IsScalarTower.algebraMap_apply (𝓞 K) K K₁]
-    simp only [ne_eq, map_eq_zero]
-    exact fun h0 =>
-      hπ.ne_zero (FaithfulSMul.algebraMap_injective (𝓞 K) K (by simpa using h0))
-  -- the fundamental relation `πS ^ 2 S + π kθ πS + π ^ 2 tθ = 0` in `𝓞 K₁`
-  set πS : 𝓞 K₁ := aeval θ h with hπSdef
-  set S : 𝓞 K₁ := aeval θ g with hS
-  set kθ : 𝓞 K₁ := aeval θ k with hk
-  set tθ : 𝓞 K₁ := aeval θ t with ht
-  have hrel : πS ^ 2 * S + πι * (kθ * πS) + πι ^ 2 * tθ = 0 := by
-    have h1 : aeval θ f = 0 := hf ▸ minpoly.aeval (𝓞 K) θ
-    rw [hfeq] at h1
-    simp only [map_add, map_mul, map_pow, aeval_C] at h1
-    rw [hπSdef, hS, hk, ht, hπι]
-    linear_combination h1
-  set y : 𝓞 K₁ := πS * S with hydef
-  have hy : y ^ 2 + (πι * kθ) * y + (πι ^ 2 * tθ) * S = 0 := by
-    rw [hydef]
-    linear_combination S * hrel
-  -- `z = y / π ∈ K₁` is integral over `𝓞 K₁`, so `y = π * z'` with `z' : 𝓞 K₁`
-  set z : K₁ := algebraMap (𝓞 K₁) K₁ y / πK with hz
-  have hzy : πK * z = algebraMap (𝓞 K₁) K₁ y := by
-    rw [hz]
-    field_simp
-  have hzint : IsIntegral (𝓞 K₁) z := by
-    refine ⟨X ^ 2 + (C kθ * X + C (tθ * S)), ?_, ?_⟩
-    · exact Polynomial.monic_X_pow_add
-        (lt_of_le_of_lt Polynomial.degree_linear_le (by norm_num))
-    · simp only [eval₂_add, eval₂_mul, eval₂_pow, eval₂_X, eval₂_C]
-      have hyK := congrArg (algebraMap (𝓞 K₁) K₁) hy
-      simp only [map_add, map_mul, map_pow, map_zero] at hyK
-      rw [← hzy, ← hπK] at hyK
-      have hp2 : πK ^ 2 ≠ 0 := pow_ne_zero _ hπK0
-      have hgoal : πK ^ 2 *
-          (z ^ 2 + (algebraMap (𝓞 K₁) K₁ kθ * z +
-            algebraMap (𝓞 K₁) K₁ tθ * algebraMap (𝓞 K₁) K₁ S)) = 0 := by
-        linear_combination hyK
-      have h2 := (mul_eq_zero.mp hgoal).resolve_left hp2
-      rw [map_mul]
-      linear_combination h2
-  have hzint' : IsIntegral ℤ z := isIntegral_trans z hzint
-  obtain ⟨z', hz'⟩ := IsIntegralClosure.isIntegral_iff (A := 𝓞 K₁) |>.mp hzint'
-  have hpz' : πι * z' = y := by
-    apply FaithfulSMul.algebraMap_injective (𝓞 K₁) K₁
-    rw [map_mul, hz', ← hπK, hzy]
-  refine ⟨z', ?_, ?_⟩
-  · rw [hpz', hydef, hπSdef, hS]
-    exact mul_mem (Polynomial.aeval_mem_adjoin_singleton _ θ)
-      (Polynomial.aeval_mem_adjoin_singleton _ θ)
-  -- if `z'` were in `𝓞 K[θ]`, then `h(θ) g(θ) = π c(θ)` with `deg c < deg f`
-  intro hz'mem
-  have hfmonic : f.Monic := hf ▸ minpoly.monic hint
-  have haevf : aeval θ f = 0 := hf ▸ minpoly.aeval (𝓞 K) θ
-  rw [Algebra.adjoin_singleton_eq_range_aeval] at hz'mem
-  obtain ⟨c, hc⟩ := hz'mem
-  replace hc : aeval θ c = z' := hc
-  set c' : (𝓞 K)[X] := c %ₘ f with hc'
-  have haevalc' : aeval θ c' = z' := by
-    rw [hc', Polynomial.modByMonic_eq_sub_mul_div c f, map_sub,
-      map_mul, haevf, zero_mul, sub_zero, hc]
-  have hdegc' : c'.degree < f.degree :=
-    Polynomial.degree_modByMonic_lt c hfmonic
-  set W : (𝓞 K)[X] := h * g with hWdef
-  have haevalW : aeval θ W = y := by
-    rw [hWdef, map_mul, hydef, hπSdef, hS]
-  have hann : aeval θ (W - C π * c') = 0 := by
-    rw [map_sub, haevalW, map_mul, aeval_C, haevalc', ← hpz', hπι]
-    ring
-  have hfne : f ≠ 0 := minpoly.ne_zero hint
-  have hdegW : W.degree < f.degree := by
-    rw [Polynomial.degree_eq_natDegree hW.ne_zero, Polynomial.degree_eq_natDegree hfne]
-    exact_mod_cast hdeg
-  have hdeglt : (W - C π * c').degree < f.degree := by
-    apply lt_of_le_of_lt (Polynomial.degree_sub_le _ _)
-    rw [max_lt_iff]
-    refine ⟨hdegW, lt_of_le_of_lt (Polynomial.degree_mul_le _ _) ?_⟩
-    rw [Polynomial.degree_C hπ.ne_zero, zero_add]
-    exact hdegc'
-  have hWeq : W = C π * c' := by
-    by_contra hne
-    have hsubne : W - C π * c' ≠ 0 := sub_ne_zero_of_ne hne
-    have hmapne : (W - C π * c').map (algebraMap (𝓞 K) K) ≠ 0 := by
-      rwa [Ne, Polynomial.map_eq_zero_iff (IsFractionRing.injective (𝓞 K) K)]
-    have haev : Polynomial.aeval ((θ : K₁)) ((W - C π * c').map (algebraMap (𝓞 K) K)) = 0 := by
-      rw [aeval_map_algebraMap, aeval_algebraMap_apply, hann, map_zero]
-    have hge := minpoly.degree_le_of_ne_zero K ((θ : K₁)) hmapne haev
-    rw [minpoly.isIntegrallyClosed_eq_field_fractions K K₁ hint,
-      Polynomial.degree_map_eq_of_injective (IsFractionRing.injective (𝓞 K) K),
-      Polynomial.degree_map_eq_of_injective (IsFractionRing.injective (𝓞 K) K)] at hge
-    exact absurd (hge.trans_lt hdeglt) (lt_irrefl _)
-  -- comparing leading coefficients makes `π` a unit, contradiction
-  have hlead : (1 : 𝓞 K) = π * c'.leadingCoeff := by
-    have h1 := congrArg Polynomial.leadingCoeff hWeq
-    rwa [hW.leadingCoeff, Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_C] at h1
-  exact hπ.not_unit (isUnit_of_dvd_one ⟨c'.leadingCoeff, hlead⟩)
+      z ∉ Algebra.adjoin (𝓞 K) {θ} :=
+  Monogenic.exists_mul_mem_adjoin_notMem_adjoin_of_factor (K := K) (L := K₁) hπ hW hdeg hfeq
 
 /-- **Relative non-maximality from a repeated-factor decomposition.**  Under the hypotheses
 of the obstruction lemma, `𝓞 K[θ]` is not the full ring of integers of `K₁`. -/

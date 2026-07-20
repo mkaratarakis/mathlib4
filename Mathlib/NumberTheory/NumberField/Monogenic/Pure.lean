@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.NumberTheory.NumberField.Monogenic.DedekindBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.DoubleRoot
 
 /-!
@@ -76,106 +77,9 @@ private theorem exists_mul_mem_adjoin_notMem_adjoin_of_factor {h g k t : ℤ[X]}
     (hW : (h * g).Monic) (hdeg : (h * g).natDegree < (minpoly ℤ θ).natDegree)
     (hfeq : minpoly ℤ θ = h ^ 2 * g + C (p : ℤ) * (k * h) + C (p : ℤ) ^ 2 * t) :
     ∃ z : 𝓞 K, (p : 𝓞 K) * z ∈ Algebra.adjoin ℤ {θ} ∧ z ∉ Algebra.adjoin ℤ {θ} := by
-  set f : ℤ[X] := minpoly ℤ θ with hf
-  set π : 𝓞 K := aeval θ h with hπ
-  set S : 𝓞 K := aeval θ g with hS
-  set kθ : 𝓞 K := aeval θ k with hk
-  set tθ : 𝓞 K := aeval θ t with ht
-  -- the fundamental relation `π ^ 2 S + p kθ π + p ^ 2 tθ = 0` in `𝓞 K`
-  have hrel : π ^ 2 * S + (p : 𝓞 K) * (kθ * π) + (p : 𝓞 K) ^ 2 * tθ = 0 := by
-    have h1 : aeval θ f = 0 := hf ▸ minpoly.aeval ℤ θ
-    rw [hfeq] at h1
-    simp only [map_add, map_mul, map_pow, map_natCast] at h1
-    rw [hπ, hS, hk, ht]
-    linear_combination h1
-  -- `y = π * S` satisfies the monic quadratic `y ^ 2 + p kθ y + p ^ 2 tθ S = 0`
-  set y : 𝓞 K := π * S with hydef
-  have hy : y ^ 2 + ((p : 𝓞 K) * kθ) * y + ((p : 𝓞 K) ^ 2 * tθ) * S = 0 := by
-    rw [hydef]
-    linear_combination S * hrel
-  -- hence `z = y / p ∈ K` is integral over `𝓞 K`, so `y = p * z'` with `z' : 𝓞 K`
-  have hpK : ((p : ℕ) : K) ≠ 0 := by
-    exact_mod_cast hp.out.ne_zero
-  set z : K := algebraMap (𝓞 K) K y / p with hz
-  have hzy : (p : K) * z = algebraMap (𝓞 K) K y := by
-    rw [hz]; field_simp
-  have hzint : IsIntegral (𝓞 K) z := by
-    refine ⟨X ^ 2 + (C kθ * X + C (tθ * S)), ?_, ?_⟩
-    · exact Polynomial.monic_X_pow_add
-        (lt_of_le_of_lt Polynomial.degree_linear_le (by norm_num))
-    · simp only [eval₂_add, eval₂_mul, eval₂_pow, eval₂_X, eval₂_C]
-      have hyK := congrArg (algebraMap (𝓞 K) K) hy
-      simp only [map_add, map_mul, map_pow, map_zero, map_natCast] at hyK
-      rw [← hzy] at hyK
-      have hp2 : ((p : K)) ^ 2 ≠ 0 := pow_ne_zero _ hpK
-      have hgoal : (p : K) ^ 2 *
-          (z ^ 2 + (algebraMap (𝓞 K) K kθ * z +
-            algebraMap (𝓞 K) K tθ * algebraMap (𝓞 K) K S)) = 0 := by
-        linear_combination hyK
-      have := (mul_eq_zero.mp hgoal).resolve_left hp2
-      rw [map_mul]
-      linear_combination this
-  have hzint' : IsIntegral ℤ z := isIntegral_trans z hzint
-  obtain ⟨z', hz'⟩ := IsIntegralClosure.isIntegral_iff (A := 𝓞 K) |>.mp hzint'
-  have hpz' : (p : 𝓞 K) * z' = y := by
-    apply FaithfulSMul.algebraMap_injective (𝓞 K) K
-    rw [map_mul, hz', map_natCast, hzy]
-  refine ⟨z', ?_, ?_⟩
-  · -- `p * z' = h(θ) g(θ)` visibly lies in `ℤ[θ]`
-    rw [hpz', hydef, hπ, hS]
-    exact mul_mem (Polynomial.aeval_mem_adjoin_singleton ℤ θ)
-      (Polynomial.aeval_mem_adjoin_singleton ℤ θ)
-  -- if `z'` were in `ℤ[θ]`, then `π S = p c(θ)` with `deg c < deg f`
-  intro hz'mem
-  have hfmonic : f.Monic := hf ▸ minpoly.monic θ.isIntegral
-  have haevf : aeval θ f = 0 := hf ▸ minpoly.aeval ℤ θ
-  rw [Algebra.adjoin_singleton_eq_range_aeval] at hz'mem
-  obtain ⟨c, hc⟩ := hz'mem
-  replace hc : aeval θ c = z' := hc
-  set c' : ℤ[X] := c %ₘ f with hc'
-  have haevalc' : aeval θ c' = z' := by
-    rw [hc', Polynomial.modByMonic_eq_sub_mul_div c f, map_sub,
-      map_mul, haevf, zero_mul, sub_zero, hc]
-  have hdegc' : c'.degree < f.degree :=
-    Polynomial.degree_modByMonic_lt c hfmonic
-  -- the polynomial `W = h * g` is monic of degree `< deg f` and `W(θ) = π S = p c'(θ)`
-  set W : ℤ[X] := h * g with hWdef
-  have haevalW : aeval θ W = y := by
-    rw [hWdef, map_mul, hydef, hπ, hS]
-  -- `W - p c'` annihilates `θ` and has degree `< deg f`, so it vanishes
-  have hann : aeval θ (W - C (p : ℤ) * c') = 0 := by
-    rw [map_sub, haevalW, map_mul, aeval_C, haevalc', ← hpz', algebraMap_int_eq, eq_intCast,
-      Int.cast_natCast]
-    ring
-  have hfne : f ≠ 0 := minpoly.ne_zero θ.isIntegral
-  have hdegW : W.degree < f.degree := by
-    rw [Polynomial.degree_eq_natDegree hW.ne_zero, Polynomial.degree_eq_natDegree hfne]
-    exact_mod_cast hdeg
-  have hdeglt : (W - C (p : ℤ) * c').degree < f.degree := by
-    apply lt_of_le_of_lt (Polynomial.degree_sub_le _ _)
-    rw [max_lt_iff]
-    refine ⟨hdegW, lt_of_le_of_lt (Polynomial.degree_mul_le _ _) ?_⟩
-    rw [Polynomial.degree_C (by exact_mod_cast hp.out.ne_zero), zero_add]
-    exact hdegc'
-  have hWeq : W = C (p : ℤ) * c' := by
-    by_contra hne
-    have hsubne : W - C (p : ℤ) * c' ≠ 0 := sub_ne_zero_of_ne hne
-    have hmapne : (W - C (p : ℤ) * c').map (algebraMap ℤ ℚ) ≠ 0 := by
-      rwa [Ne, Polynomial.map_eq_zero_iff (algebraMap ℤ ℚ).injective_int]
-    have haev : Polynomial.aeval ((θ : K)) ((W - C (p : ℤ) * c').map (algebraMap ℤ ℚ)) = 0 := by
-      rw [aeval_map_algebraMap, aeval_algebraMap_apply, hann, map_zero]
-    have hge := minpoly.degree_le_of_ne_zero ℚ ((θ : K)) hmapne haev
-    rw [minpoly.isIntegrallyClosed_eq_field_fractions ℚ K θ.isIntegral,
-      Polynomial.degree_map_eq_of_injective (algebraMap ℤ ℚ).injective_int,
-      Polynomial.degree_map_eq_of_injective (algebraMap ℤ ℚ).injective_int] at hge
-    exact absurd (hge.trans_lt hdeglt) (lt_irrefl _)
-  -- comparing leading coefficients gives `p ∣ 1`, a contradiction
-  have hlead : (1 : ℤ) = (p : ℤ) * c'.leadingCoeff := by
-    have := congrArg Polynomial.leadingCoeff hWeq
-    rwa [hW.leadingCoeff, Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_C] at this
-  have : (p : ℤ) ≤ 1 := Int.le_of_dvd one_pos (Dvd.intro _ hlead.symm)
-  have h2 : (2 : ℤ) ≤ (p : ℤ) := by exact_mod_cast hp.out.two_le
-  omega
+  obtain ⟨z, hpz, hz⟩ := Monogenic.exists_mul_mem_adjoin_notMem_adjoin_of_factor
+    (K := ℚ) (L := K) (Int.prime_iff_natAbs_prime.mpr (by simpa using hp.out)) hW hdeg hfeq
+  exact ⟨z, by simpa using hpz, hz⟩
 
 /-- **The generalized obstruction lemma.**  Let `f` be the minimal polynomial of `θ : 𝓞 K` and
 `p` a rational prime.  If `f = h ^ 2 * g + p * (k * h) + p ^ 2 * t` for polynomials
