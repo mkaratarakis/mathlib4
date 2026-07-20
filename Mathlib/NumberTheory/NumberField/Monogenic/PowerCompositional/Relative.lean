@@ -248,6 +248,20 @@ unchanged at a residue field that is not prime. -/
 theorem map_frobenius_bijective : Function.Bijective (fun q : k[X] => q.map (frobenius k p)) :=
   (Polynomial.mapEquiv (frobeniusEquiv k p)).bijective
 
+/-- Over a perfect field of characteristic `p`, the substitution `X ↦ X ^ (p ^ u)` lands in
+`p ^ u`-th powers: `F(X ^ (p ^ u)) = A ^ (p ^ u)` for some `A`.
+
+Over `𝔽ₚ` one may take `A = F`; in general `A` is the inverse iterated Frobenius twist. -/
+theorem exists_pow_of_expand_pow (u : ℕ) (F : k[X]) :
+    ∃ A : k[X], Polynomial.expand k (p ^ u) F = A ^ (p ^ u) := by
+  refine ⟨(Polynomial.mapEquiv (iterateFrobeniusEquiv k p u)).symm F, ?_⟩
+  refine (Polynomial.mapEquiv (iterateFrobeniusEquiv k p u)).injective ?_
+  have h1 : (Polynomial.mapEquiv (iterateFrobeniusEquiv k p u))
+      (Polynomial.expand k (p ^ u) F) = F ^ p ^ u :=
+    Polynomial.map_iterateFrobenius_expand p F u
+  rw [h1, map_pow, (Polynomial.mapEquiv (iterateFrobeniusEquiv k p u)).apply_symm_apply]
+
+
 end FrobeniusTwist
 
 /-! ### Uchida's criterion over a number field base -/
@@ -820,6 +834,114 @@ theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
       exact exists_expand_mem_sq hπ hgm hgd (by omega) hmem
     · exact ⟨X, monic_X, by rw [Polynomial.map_X]; exact irreducible_X,
         expand_mem_sq_of_sq_dvd_coeff_zero hπ hk h2⟩
+
+
+
+/-! ### Corollary 2.5 over a number field base -/
+
+/-- One descent step: if `π` is an index divisor of `f(X ^ (p ^ (u+1)))` then it is one of
+`f(X ^ (p ^ u))`, for `u ≥ 1`.
+
+By Theorem 2.4 twisted, applied to `F = f(X ^ (p ^ u))`: the witness `h` for `F(X ^ p)`
+produces the twisted witness `gσ` for `F`.  The hypothesis `F ∈ ⟨π, gσ ^ 2⟩` that Theorem 2.4
+needs holds because `F` is itself an expansion, hence a `p ^ u`-th power modulo `π`, and
+`p ^ u ≥ 2`. -/
+theorem exists_expand_pow_mem_sq_of_succ (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} {u : ℕ} (hu : 0 < u)
+    {h : (𝓞 K)[X]} (hhm : h.Monic)
+    (hhirr : Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hmem : Polynomial.expand (𝓞 K) (p ^ (u + 1)) f ∈
+      (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) :
+    ∃ g : (𝓞 K)[X], g.Monic ∧ Irreducible (g.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+      Polynomial.expand (𝓞 K) (p ^ u) f ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 := by
+  classical
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  haveI : Finite (𝓞 K ⧸ Ideal.span {π}) := inferInstance
+  haveI : PerfectField (𝓞 K ⧸ Ideal.span {π}) := PerfectField.ofFinite
+  haveI : ExpChar (𝓞 K ⧸ Ideal.span {π}) p := ExpChar.prime Fact.out
+  haveI : PerfectRing (𝓞 K ⧸ Ideal.span {π}) p := PerfectField.toPerfectRing p
+  set mk := Ideal.Quotient.mk (Ideal.span {π} : Ideal (𝓞 K)) with hmk
+  set F := Polynomial.expand (𝓞 K) (p ^ u) f with hFdef
+  have hexp : Polynomial.expand (𝓞 K) p F = Polynomial.expand (𝓞 K) (p ^ (u + 1)) f := by
+    rw [hFdef, expand_expand, ← pow_succ']
+  -- the twisted witness
+  obtain ⟨gσ, hgσmap, -, hgσm⟩ := lifts_and_degree_eq_and_monic
+    ((mem_lifts ((h.map mk).map (frobenius (𝓞 K ⧸ Ideal.span {π}) p))).mpr
+      (Polynomial.map_surjective _ Ideal.Quotient.mk_surjective _))
+    (((hhm.map mk).map (frobenius (𝓞 K ⧸ Ideal.span {π}) p)))
+  have hgσirr : Irreducible (gσ.map mk) := by
+    rw [hgσmap]
+    exact (MulEquiv.irreducible_iff
+      (Polynomial.mapEquiv (frobeniusEquiv (𝓞 K ⧸ Ideal.span {π}) p)).toMulEquiv).mpr hhirr
+  -- the square hypothesis for Theorem 2.4
+  have hdvd1 : gσ.map mk ∣ F.map mk := by
+    have h1 : (h.map mk) ∣ (Polynomial.expand (𝓞 K) p F).map mk := by
+      have h2 := sq_span_pair_le_span_pair_sq (hexp ▸ hmem)
+      rw [mem_span_pair_iff_map_dvd, Polynomial.map_pow] at h2
+      exact (dvd_pow_self _ two_ne_zero).trans h2
+    rw [Polynomial.map_expand, dvd_expand_iff_map_frobenius_dvd hhirr] at h1
+    rwa [hgσmap]
+  have hsq : F ∈ (Ideal.span {C π, gσ ^ 2} : Ideal ((𝓞 K)[X])) := by
+    obtain ⟨A, hA⟩ := exists_pow_of_expand_pow (k := 𝓞 K ⧸ Ideal.span {π}) (p := p) u (f.map mk)
+    have hFmap : F.map mk = A ^ p ^ u := by rw [hFdef, Polynomial.map_expand, hA]
+    have hgA : gσ.map mk ∣ A := by
+      refine (irreducible_iff_prime.mp hgσirr).dvd_of_dvd_pow (n := p ^ u) ?_
+      rwa [← hFmap]
+    have hle : 2 ≤ p ^ u := by
+      calc 2 ≤ p := (Fact.out : p.Prime).two_le
+      _ = p ^ 1 := (pow_one p).symm
+      _ ≤ p ^ u := Nat.pow_le_pow_right (Fact.out : p.Prime).pos hu
+    rw [mem_span_pair_iff_map_dvd, Polynomial.map_pow, hFmap]
+    exact (pow_dvd_pow _ hle).trans (pow_dvd_pow_of_dvd hgA _)
+  refine ⟨gσ, hgσm, hgσirr, ?_⟩
+  rw [mem_sq_span_iff_expand_mem_sq_span hπ hhirr hgσirr.ne_zero (by rw [hgσmap]) hsq]
+  exact hexp ▸ hmem
+
+/-- Descending the exponent: an index divisor of `f(X ^ (p ^ u))` is one of `f(X ^ p)`,
+for every `u ≥ 1`.  Iterating `exists_expand_pow_mem_sq_of_succ`. -/
+theorem exists_expand_pow_mem_sq_descend (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} :
+    ∀ u : ℕ, 0 < u →
+      (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) (p ^ u) f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) →
+      (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) p f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) := by
+  intro u
+  induction u with
+  | zero => intro hu; omega
+  | succ n ih =>
+    rintro - ⟨h, hhm, hhirr, hmem⟩
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · exact ⟨h, hhm, hhirr, by simpa using hmem⟩
+    · obtain ⟨g, hgm, hgirr, hgmem⟩ := exists_expand_pow_mem_sq_of_succ hπ hn hhm hhirr hmem
+      exact ih hn ⟨g, hgm, hgirr, hgmem⟩
+
+/-- **Corollary 2.5 over a number field base.**  For `u ≥ 1`, the prime `π` is an index
+divisor of `f(X ^ p)` if and only if it is one of `f(X ^ (p ^ u))`.
+
+So the criterion cannot see the exponent of `p`, exactly as in the absolute case — the
+Frobenius twist permutes the witnessing primes at each step but does not affect the
+existential statement. -/
+theorem exists_expand_pow_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} {u : ℕ} (hu : 0 < u) :
+    (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) p f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) ↔
+      (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) (p ^ u) f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) := by
+  constructor
+  · rintro ⟨h, hhm, hhirr, hmem⟩
+    have hgd : 0 < h.natDegree := by
+      rcases Nat.eq_zero_or_pos h.natDegree with h0 | hpos
+      · rw [eq_one_of_monic_natDegree_zero hhm h0, Polynomial.map_one] at hhirr
+        exact absurd hhirr not_irreducible_one
+      · exact hpos
+    obtain ⟨h', hh'm, hh'irr, hmem'⟩ :=
+      exists_expand_mem_sq (ℓ := p ^ (u - 1)) hπ hhm hgd (pow_pos (Fact.out : p.Prime).pos _) hmem
+    refine ⟨h', hh'm, hh'irr, ?_⟩
+    rwa [expand_expand, ← pow_succ, Nat.sub_add_cancel hu] at hmem'
+  · exact exists_expand_pow_mem_sq_descend hπ u hu
 
 
 
