@@ -100,7 +100,7 @@ theorem adjoin_ne_top_of_sq_factor {π : 𝓞 K} (hπ : Prime π)
 prime element whose residue ring has characteristic `p` (a prime), and `c : R`.  Then, with
 `h = X ^ m - C c`,
 `X ^ (p ^ r * m) - C c = h ^ p ^ r + π (h T) + C (c ^ p ^ r - c)` for some `T : R[X]`. -/
-theorem key_identity {R : Type*} [CommRing R] [IsDomain R] {π : R} (hπ : Prime π)
+theorem key_identity {R : Type*} [CommRing R] {π : R} (hπ : Prime π)
     (p : ℕ) [hp : Fact p.Prime] [hchar : CharP (R ⧸ Ideal.span {π}) p]
     (r : ℕ) {m : ℕ} (hm : m ≠ 0) (c : R) :
     ∃ T : R[X], (X ^ (p ^ r * m) - C c : R[X]) =

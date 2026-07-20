@@ -98,7 +98,7 @@ Over `ℤ` this is equivalent, by Uchida's criterion, to `p` dividing the index
 `[𝓞 K : ℤ[θ]]` --- compare `Polynomial.IsIndexDivisor`.  Over a general base the
 implication `IsIndexDivisor → not monogenic` is
 `NumberField.Relative.adjoin_ne_top_of_isIndexDivisor`; the converse is open. -/
-def IsIndexDivisor {K : Type*} [Field K] [NumberField K] (π : 𝓞 K) (f : (𝓞 K)[X]) : Prop :=
+def IsIndexDivisor {K : Type*} [Field K] (π : 𝓞 K) (f : (𝓞 K)[X]) : Prop :=
   ∃ h g k t : (𝓞 K)[X], (h * g).Monic ∧ (h * g).natDegree < f.natDegree ∧
     f = h ^ 2 * g + C π * (k * h) + C π ^ 2 * t
 
@@ -109,6 +109,7 @@ theorem adjoin_ne_top_of_isIndexDivisor {π : 𝓞 K} (hπ : Prime π)
   obtain ⟨a, b, c, d, hm, hdeg, heq⟩ := h
   exact adjoin_ne_top_of_sq_factor hπ hm hdeg heq
 
+omit [NumberField K] in
 /-- **Lemma 2.6, relative version.**  An index divisor of `f` is an index divisor of
 `f(X ^ ℓ)`.
 
@@ -128,6 +129,7 @@ theorem IsIndexDivisor.expand {π : 𝓞 K} {f : (𝓞 K)[X]} {ℓ : ℕ} (hℓ 
   · rw [heq]
     simp only [map_add, map_mul, map_pow, expand_C]
 
+omit [NumberField K] in
 /-- **Proposition 2.3, relative version.**  If `π ^ 2` divides `f(0)` and `ℓ ≥ 2`, then `π`
 is an index divisor of `f(X ^ ℓ)`.
 
@@ -672,7 +674,7 @@ square divides the reduction of `f`, and lifting `G` and dividing `f = g q + r` 
 required membership.  The residue field is no longer prime, but every lemma used has been
 stated over an arbitrary perfect field of characteristic `p`, and the identity that fails
 there — `f(X ^ p) = f ^ p` — is not used, since `p ∤ ℓ`. -/
-theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ}
     [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} (hfm : f.Monic) {ℓ : ℕ} (hℓ0 : 0 < ℓ)
     (hℓ : ¬ p ∣ ℓ) {h : (𝓞 K)[X]} (hhm : h.Monic)
     (hhirr : Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))))
@@ -812,7 +814,7 @@ number field base.  Combined with
 `NumberField.Relative.isIndexDivisor_iff_exists_notMem` it decides `π`-saturation, and hence
 — via `NumberField.Relative.adjoin_eq_top_of_forall_maximal_saturated` — contributes the
 corresponding condition to relative monogenity. -/
-theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ}
     [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
     (hpk : ¬ p ∣ k) :
     (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧

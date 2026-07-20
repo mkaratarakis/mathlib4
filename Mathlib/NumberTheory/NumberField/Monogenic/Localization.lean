@@ -138,6 +138,61 @@ theorem adjoin_eq_top_of_forall_maximal_localizedAt
       letI := h𝔭.isPrime
       rw [h 𝔭 h𝔭]; exact Algebra.mem_top
 
+set_option maxHeartbeats 400000 in
+/-- **Monogenity localises.**  If `R[θ] = S`, then `R_𝔭[θ] = S_𝔭` for every prime `𝔭`.
+
+This is the converse of `adjoin_eq_top_of_forall_maximal_localizedAt`, and it is the easy
+direction: every element of `S_𝔭` is `s / t` with `s : S` and `t` the image of some `r ∉ 𝔭`;
+the numerator already lies in `R[θ]`, and the denominator is invertible in `R_𝔭` itself, so
+both factors lie in `R_𝔭[θ]`. -/
+theorem adjoin_localizedAt_eq_top_of_adjoin_eq_top (h : Algebra.adjoin R {θ} = ⊤)
+    (𝔭 : Ideal R) [𝔭.IsPrime] :
+    Algebra.adjoin (Localization 𝔭.primeCompl) {algebraMap S (LocalizedAt S 𝔭) θ} = ⊤ := by
+  rw [Algebra.eq_top_iff]
+  intro y
+  obtain ⟨⟨s, t, r, hr, hrt⟩, hy⟩ :=
+    IsLocalization.surj (Algebra.algebraMapSubmonoid S 𝔭.primeCompl) y
+  -- the numerator lies in the subalgebra, because `R[θ]` is already all of `S`
+  have hs : algebraMap S (LocalizedAt S 𝔭) s ∈
+      Algebra.adjoin (Localization 𝔭.primeCompl) {algebraMap S (LocalizedAt S 𝔭) θ} := by
+    have hmem : s ∈ Algebra.adjoin R {θ} := h ▸ Algebra.mem_top
+    -- push `R[θ]` forward along `S → S_𝔭`, then enlarge the base from `R` to `R_𝔭`
+    have hmap : (Algebra.adjoin R {θ}).map (IsScalarTower.toAlgHom R S (LocalizedAt S 𝔭))
+        = Algebra.adjoin R {algebraMap S (LocalizedAt S 𝔭) θ} := by
+      rw [AlgHom.map_adjoin, Set.image_singleton, IsScalarTower.coe_toAlgHom']
+    have hR : algebraMap S (LocalizedAt S 𝔭) s ∈
+        Algebra.adjoin R {algebraMap S (LocalizedAt S 𝔭) θ} := by
+      rw [← hmap]; exact ⟨s, hmem, rfl⟩
+    have hle : Algebra.adjoin R {algebraMap S (LocalizedAt S 𝔭) θ} ≤
+        (Algebra.adjoin (Localization 𝔭.primeCompl)
+          {algebraMap S (LocalizedAt S 𝔭) θ}).restrictScalars R :=
+      Algebra.adjoin_le (Set.singleton_subset_iff.mpr
+        (Algebra.subset_adjoin (Set.mem_singleton _)))
+    exact hle hR
+  -- the denominator is the image of a unit of `R_𝔭`
+  set v : (Localization 𝔭.primeCompl)ˣ :=
+    (IsLocalization.map_units (Localization 𝔭.primeCompl) (⟨r, hr⟩ : 𝔭.primeCompl)).unit with hv
+  have hvval : (v : Localization 𝔭.primeCompl) = algebraMap R (Localization 𝔭.primeCompl) r :=
+    IsUnit.unit_spec _
+  have hty : algebraMap S (LocalizedAt S 𝔭) t =
+      algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) v := by
+    rw [hvval, ← IsScalarTower.algebraMap_apply, ← hrt, ← IsScalarTower.algebraMap_apply]
+  -- `y = s * r⁻¹`
+  have hyeq : y = algebraMap S (LocalizedAt S 𝔭) s *
+      algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) (↑v⁻¹) := by
+    have hunit : algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) v *
+        algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) (↑v⁻¹) = 1 := by
+      rw [← map_mul, v.mul_inv, map_one]
+    calc y = y * (algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) v *
+              algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) (↑v⁻¹)) := by
+            rw [hunit, mul_one]
+      _ = (y * algebraMap S (LocalizedAt S 𝔭) t) *
+              algebraMap (Localization 𝔭.primeCompl) (LocalizedAt S 𝔭) (↑v⁻¹) := by
+            rw [hty]; ring
+      _ = _ := by rw [hy]
+  rw [hyeq]
+  exact mul_mem hs (Subalgebra.algebraMap_mem _ _)
+
 end AtPrime
 
 end Monogenic
