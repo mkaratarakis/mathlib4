@@ -122,7 +122,7 @@ theorem saturated_of_expand (hπ : Prime π) {p : ℕ} [Fact p.Prime]
   · rw [if_neg hpk, expand_one]
     exact ((exists_expand_mem_sq_iff hπ hfm hk hpk).mp ⟨P, hPm, hPirr, hmem⟩).resolve_right hcoeff
 
-omit [PerfectField (R ⧸ Ideal.span {π})] in
+omit [IsIntegrallyClosed R] [PerfectField (R ⧸ Ideal.span {π})] in
 /-- **From the ideal criterion to a repeated-factor decomposition, over an arbitrary base.**
 If the monic `f` lies in `⟨π, P⟩ ^ 2` for a monic `P` with irreducible reduction, then `f`
 admits a decomposition `P ^ 2 q + π (k P) + π ^ 2 c` with `P q` monic of degree `< deg f`.
