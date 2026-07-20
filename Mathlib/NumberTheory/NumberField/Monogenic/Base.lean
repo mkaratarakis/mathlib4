@@ -251,6 +251,185 @@ theorem exists_splitting_of_not_saturated {π : R} (hπ0 : π ≠ 0)
   exact ⟨πb, A, B, N, hπbmonic, hπbirr, by linear_combination hN,
     by rw [hAmap]; exact hπbA, by rw [hBmap]; exact hπbB, hπbN⟩
 
+
+private theorem map_dvd_map_sub_of_map_dvd {R : Type*} [CommRing R] [IsDomain R]
+    {π : R} (hπ : Prime π) {Pi A B g h N M : R[X]} (hPi : Pi.Monic)
+    (hid : A * B + C π * N = g * h + C π * M)
+    (hA : Pi.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ A.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hB : Pi.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ B.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hg : Pi.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hh : Pi.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ h.map (Ideal.Quotient.mk (Ideal.span {π}))) :
+    Pi.map (Ideal.Quotient.mk (Ideal.span {π})) ∣
+      M.map (Ideal.Quotient.mk (Ideal.span {π}))
+        - N.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+  haveI hprime : (Ideal.span {π} : Ideal R).IsPrime :=
+    (Ideal.span_singleton_prime hπ.ne_zero).mpr hπ
+  haveI : IsDomain (R ⧸ Ideal.span {π}) := Ideal.Quotient.isDomain _
+  have hp0 : (C π : R[X]) ≠ 0 := fun h0 => hπ.ne_zero (C_eq_zero.mp h0)
+  have hzπ : Ideal.Quotient.mk (Ideal.span {π}) π = 0 :=
+    Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π)
+  have key : ∀ X : R[X], Pi.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ X.map (Ideal.Quotient.mk (Ideal.span {π})) →
+      ∃ X₁ X₂ : R[X], X = Pi * X₁ + C π * X₂ := by
+    intro X hX
+    have h0 : (X %ₘ Pi).map (Ideal.Quotient.mk (Ideal.span {π})) = 0 := by
+      rw [map_modByMonic _ hPi, (modByMonic_eq_zero_iff_dvd (hPi.map _)).mpr hX]
+    obtain ⟨X₂, hX₂⟩ := map_quotient_span_eq_zero_iff.mp h0
+    exact ⟨X /ₘ Pi, X₂, by linear_combination hX₂ - modByMonic_add_div X Pi⟩
+  obtain ⟨A₁, A₂, hA'⟩ := key A hA
+  obtain ⟨B₁, B₂, hB'⟩ := key B hB
+  obtain ⟨g₁, g₂, hg'⟩ := key g hg
+  obtain ⟨h₁, h₂, hh'⟩ := key h hh
+  rw [hA', hB', hg', hh'] at hid
+  have h1 : Pi ^ 2 * (A₁ * B₁ - g₁ * h₁) =
+      C π * (Pi * (g₁ * h₂ + g₂ * h₁ - A₁ * B₂ - A₂ * B₁) +
+        C π * (g₂ * h₂ - A₂ * B₂) + (M - N)) := by
+    linear_combination hid
+  have hPine : Pi.map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0 := (hPi.map _).ne_zero
+  have h2 : (A₁ * B₁ - g₁ * h₁).map (Ideal.Quotient.mk (Ideal.span {π})) = 0 := by
+    have := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π}))) h1
+    simp only [Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_add, map_C, hzπ,
+      map_zero, zero_mul] at this
+    rcases mul_eq_zero.mp this with h' | h'
+    · exact absurd (pow_eq_zero_iff two_ne_zero |>.mp h') hPine
+    · exact h'
+  obtain ⟨W, hW⟩ := map_quotient_span_eq_zero_iff.mp h2
+  have h3 : Pi ^ 2 * W =
+      Pi * (g₁ * h₂ + g₂ * h₁ - A₁ * B₂ - A₂ * B₁) +
+        C π * (g₂ * h₂ - A₂ * B₂) + (M - N) := by
+    apply mul_left_cancel₀ hp0
+    linear_combination h1 - Pi ^ 2 * hW
+  have h4 : M.map (Ideal.Quotient.mk (Ideal.span {π}))
+        - N.map (Ideal.Quotient.mk (Ideal.span {π})) =
+      (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) ^ 2
+          * (W.map (Ideal.Quotient.mk (Ideal.span {π}))) -
+        (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) *
+          (g₁.map (Ideal.Quotient.mk (Ideal.span {π}))
+              * h₂.map (Ideal.Quotient.mk (Ideal.span {π})) +
+            g₂.map (Ideal.Quotient.mk (Ideal.span {π}))
+              * h₁.map (Ideal.Quotient.mk (Ideal.span {π})) -
+            A₁.map (Ideal.Quotient.mk (Ideal.span {π}))
+              * B₂.map (Ideal.Quotient.mk (Ideal.span {π})) -
+            A₂.map (Ideal.Quotient.mk (Ideal.span {π}))
+              * B₁.map (Ideal.Quotient.mk (Ideal.span {π}))) := by
+    have := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π}))) h3
+    simp only [Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_add,
+      Polynomial.map_sub, map_C, hzπ, map_zero, zero_mul] at this
+    linear_combination -this
+  rw [h4]
+  exact dvd_sub (Dvd.dvd.mul_right (dvd_pow_self _ two_ne_zero) _)
+    (Dvd.dvd.mul_right dvd_rfl _)
+
+/-- **Dedekind's criterion, sufficiency, over an integrally closed base.**  Let `π` generate
+a maximal ideal of `R` and suppose `minpoly R θ = g h + π M` where, modulo `π`, the factor
+`g` is squarefree, every irreducible factor of `h` divides `g`, and `g`, `h`, `M` generate
+the unit ideal.  Then `R[θ]` is `π`-saturated in `S`.
+
+This is `NumberField.Relative.mem_adjoin_of_algebraMap_mul_mem` over an arbitrary
+integrally closed base.  Applied to `R = (𝓞 K)_𝔭`, a discrete valuation ring in which `𝔭`
+is principal, it makes the certificate available at maximal ideals that are not principal in
+`𝓞 K`. -/
+theorem mem_adjoin_of_algebraMap_mul_mem {π : R} (hπ0 : π ≠ 0)
+    (hmax : (Ideal.span {π} : Ideal R).IsMaximal)
+    {g h M : R[X]}
+    (hf : minpoly R θ = g * h + C π * M)
+    (hsq : Squarefree (g.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hrad : ∀ q : (R ⧸ Ideal.span {π})[X], Irreducible q →
+      q ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) →
+      q ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})))
+    (hbez : ∃ u v w : (R ⧸ Ideal.span {π})[X],
+      u * g.map (Ideal.Quotient.mk (Ideal.span {π})) +
+        v * h.map (Ideal.Quotient.mk (Ideal.span {π})) +
+        w * M.map (Ideal.Quotient.mk (Ideal.span {π})) = 1)
+    {β : S} (hβ : algebraMap R S π * β ∈ Algebra.adjoin R {θ}) :
+    β ∈ Algebra.adjoin R {θ} := by
+  classical
+  by_contra hβnot
+  haveI := hmax
+  have hπ : Prime π := (Ideal.span_singleton_prime hπ0).mp hmax.isPrime
+  have hsurj : Function.Surjective (Ideal.Quotient.mk (Ideal.span {π} : Ideal R)) :=
+    Ideal.Quotient.mk_surjective
+  have hzπ : Ideal.Quotient.mk (Ideal.span {π}) π = 0 :=
+    Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π)
+  obtain ⟨πb, A, B, N, hπbmonic, hπbirr, hN, hπbA, hπbB, hπbN⟩ :=
+    exists_splitting_of_not_saturated hπ0 hmax hβnot hβ
+  set fbar := (minpoly R θ).map (Ideal.Quotient.mk (Ideal.span {π})) with hfbar
+  set Abar := A.map (Ideal.Quotient.mk (Ideal.span {π})) with hAmap
+  set Bbar := B.map (Ideal.Quotient.mk (Ideal.span {π})) with hBmap
+  have hBbar : fbar = Abar * Bbar := by
+    rw [hfbar, hAmap, hBmap, hN]
+    simp only [Polynomial.map_add, Polynomial.map_mul, map_C, hzπ, map_zero,
+      zero_mul, add_zero]
+  have hπbf : πb ∣ fbar := hBbar ▸ hπbA.mul_right Bbar
+  -- `π̄` divides `ḡ` and `h̄`
+  have hfgh : fbar = g.map (Ideal.Quotient.mk (Ideal.span {π}))
+      * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    have := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π}))) hf
+    simpa only [Polynomial.map_add, Polynomial.map_mul, map_C, hzπ, map_zero, C_0,
+      zero_mul, add_zero] using this
+  have hπbg : πb ∣ g.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    rcases hπbirr.prime.dvd_mul.mp (hfgh ▸ hπbf) with hcase | hcase
+    · exact hcase
+    · exact hrad πb hπbirr hcase
+  have hπbh : πb ∣ h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    obtain ⟨g₁, hg₁⟩ := hπbg
+    have hπ2 : πb ^ 2 ∣ fbar := by
+      rw [hBbar, sq]
+      exact mul_dvd_mul hπbA hπbB
+    have hstep : πb ∣ g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+      have hh2 : πb * (g₁ * h.map (Ideal.Quotient.mk (Ideal.span {π}))) =
+          g.map (Ideal.Quotient.mk (Ideal.span {π}))
+            * h.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+        rw [hg₁]
+        ring
+      have := hfgh ▸ hπ2
+      rw [← hh2, sq] at this
+      exact (mul_dvd_mul_iff_left hπbirr.ne_zero).mp this
+    rcases hπbirr.prime.dvd_mul.mp hstep with hcase | hcase
+    · exfalso
+      apply hπbirr.not_isUnit
+      apply hsq πb
+      rw [hg₁]
+      exact mul_dvd_mul_left πb hcase
+    · exact hcase
+  -- the polynomial `N` with `f = A B + π N`, and `π̄ ∣ N̄`
+  -- change of splitting transfers `π̄ ∣ N̄` to `π̄ ∣ M̄`
+  obtain ⟨Pi, hPimap, _, hPimonic⟩ :=
+    lifts_and_degree_eq_and_monic ((mem_lifts πb).mpr
+      (Polynomial.map_surjective _ hsurj πb)) hπbmonic
+  have hid : A * B + C π * N = g * h + C π * M := by
+    linear_combination hf - hN
+  have hπbMN : πb ∣ M.map (Ideal.Quotient.mk (Ideal.span {π}))
+      - N.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    have := map_dvd_map_sub_of_map_dvd hπ hPimonic hid
+      (hPimap ▸ (hπbA.trans (dvd_of_eq hAmap.symm)))
+      (hPimap ▸ (hπbB.trans (dvd_of_eq hBmap.symm)))
+      (hPimap ▸ hπbg) (hPimap ▸ hπbh)
+    rwa [hPimap] at this
+  have hπbM : πb ∣ M.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    have := dvd_add hπbMN hπbN
+    rwa [sub_add_cancel] at this
+  -- contradiction with the Bézout certificate
+  obtain ⟨u', v', w', hbez'⟩ := hbez
+  apply hπbirr.not_isUnit
+  apply isUnit_of_dvd_one
+  rw [← hbez']
+  exact dvd_add (dvd_add (hπbg.mul_left u') (hπbh.mul_left v')) (hπbM.mul_left w')
+
+
+
+/-! ### Global packaging over a principal ideal base
+
+Assembling the local saturation statements at all primes into full relative monogenicity.
+This requires the base `R` to be a principal ideal ring (class number one); over a
+general Dedekind base the assembly needs localisation and is left open. -/
+
+
+
 end Monogenic
 
 end

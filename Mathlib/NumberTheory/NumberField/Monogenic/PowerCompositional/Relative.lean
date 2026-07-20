@@ -945,6 +945,70 @@ theorem exists_expand_pow_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
 
 
 
+
+/-! ### Theorem 1.1 over a number field base -/
+
+/-- **Theorem 1.1 of Kaur–Kumar–Remete over a number field base, prime by prime.**  Let `π`
+be a prime element of `𝓞 K` whose residue field has characteristic `p`, and let `k ≥ 2`.
+Then `π` is an index divisor of `f(X ^ k)` if and only if
+
+* `π` is an index divisor of `f(X ^ p)`, when `p ∣ k`, or of `f` itself, when `p ∤ k`;
+* or `π ^ 2` divides `f(0)`.
+
+Writing `k = p ^ u * m` with `p ∤ m`, Corollary 2.5 contracts `p ^ u` to `p` and
+Proposition 2.10 strips `m`, exactly as in the absolute case; the Frobenius twist that
+appears at each contraction is invisible here because the statement quantifies over the
+witnessing prime. -/
+theorem exists_expand_mem_sq_iff_of_dvd (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
+    (hpk : p ∣ k) :
+    (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) k f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) ↔
+      (∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) p f ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) ∨
+      π ^ 2 ∣ f.coeff 0 := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hppos : 0 < p := (Fact.out : p.Prime).pos
+  obtain ⟨u, m, hm, hkeq⟩ :=
+    Nat.exists_eq_pow_mul_and_not_dvd (n := k) (by omega) p (Fact.out : p.Prime).ne_one
+  have hu : 0 < u := by
+    rcases Nat.eq_zero_or_pos u with rfl | h
+    · rw [pow_zero, one_mul] at hkeq; exact absurd (hkeq ▸ hpk) hm
+    · exact h
+  have hm0 : 0 < m := by
+    rcases Nat.eq_zero_or_pos m with rfl | h
+    · rw [mul_zero] at hkeq; omega
+    · exact h
+  have hcoeff : (Polynomial.expand (𝓞 K) (p ^ u) f).coeff 0 = f.coeff 0 := by
+    rw [coeff_expand (pow_pos hppos u), if_pos (dvd_zero _), Nat.zero_div]
+  rcases eq_or_lt_of_le (show 1 ≤ m from hm0) with hm1 | hm2
+  · -- `k = p ^ u`
+    have hkpu : k = p ^ u := by rw [hkeq, ← hm1, mul_one]
+    subst hkpu
+    refine ⟨fun h => Or.inl ((exists_expand_pow_mem_sq_iff hπ hu).mpr h), ?_⟩
+    rintro (h | h)
+    · exact (exists_expand_pow_mem_sq_iff hπ hu).mp h
+    · exact ⟨X, monic_X, by rw [Polynomial.map_X]; exact irreducible_X,
+        expand_mem_sq_of_sq_dvd_coeff_zero hπ hk h⟩
+  · -- `k = p ^ u * m` with `m ≥ 2`: strip `m` by Proposition 2.10
+    have hexp : Polynomial.expand (𝓞 K) m (Polynomial.expand (𝓞 K) (p ^ u) f)
+        = Polynomial.expand (𝓞 K) k f := by
+      rw [expand_expand, hkeq, mul_comm]
+    have h210 := exists_expand_mem_sq_iff (π := π) hπ (hfm.expand (pow_pos hppos u)) hm2 hm
+    rw [hexp, hcoeff] at h210
+    rw [h210]
+    constructor
+    · rintro (h | h)
+      · exact Or.inl ((exists_expand_pow_mem_sq_iff hπ hu).mpr h)
+      · exact Or.inr h
+    · rintro (h | h)
+      · exact Or.inl ((exists_expand_pow_mem_sq_iff hπ hu).mp h)
+      · exact Or.inr h
+
+
+
 end Uchida
 
 
@@ -1018,5 +1082,85 @@ theorem adjoin_eq_top_of_forall_maximal_exists_prime_not_isIndexDivisor
   obtain ⟨π, hπ, hπ𝔭, hnid⟩ := h 𝔭 h𝔭
   by_contra hynot
   exact hnid ((isIndexDivisor_iff_exists_notMem hπ).mpr ⟨y, hy π hπ𝔭, hynot⟩)
+
+/-- The two forms of "index divisor" agree: the decomposition form used by the obstruction
+lemma, and the ideal form `f ∈ ⟨π, h⟩ ^ 2` used throughout Section 2. -/
+theorem isIndexDivisor_iff_exists_mem_sq {π : 𝓞 K} (hπ : Prime π) :
+    IsIndexDivisor π (minpoly (𝓞 K) θ) ↔
+      ∃ h : (𝓞 K)[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        minpoly (𝓞 K) θ ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2 := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  constructor
+  · intro hid
+    obtain ⟨β, hβ, hβnot⟩ := (isIndexDivisor_iff_exists_notMem hπ).mp hid
+    obtain ⟨Pi, A, B, N, hPim, hPiirr, hsplit, hPiA, hPiB, hPiN⟩ :=
+      exists_splitting_of_not_saturated hπ hβnot hβ
+    obtain ⟨P, hPmap, -, hPm⟩ := lifts_and_degree_eq_and_monic
+      ((mem_lifts Pi).mpr (Polynomial.map_surjective _ Ideal.Quotient.mk_surjective Pi)) hPim
+    refine ⟨P, hPm, by rw [hPmap]; exact hPiirr, ?_⟩
+    rw [hsplit, sq]
+    exact Ideal.add_mem _
+      (Ideal.mul_mem_mul (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hPiA))
+        (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hPiB)))
+      (Ideal.mul_mem_mul (Ideal.subset_span (by simp))
+        (mem_span_pair_iff_map_dvd.mpr (hPmap ▸ hPiN)))
+  · rintro ⟨h, hhm, hhirr, hmem⟩
+    have hhd : 0 < h.natDegree := by
+      rcases Nat.eq_zero_or_pos h.natDegree with h0 | hpos
+      · rw [eq_one_of_monic_natDegree_zero hhm h0, Polynomial.map_one] at hhirr
+        exact absurd hhirr not_irreducible_one
+      · exact hpos
+    obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hmem
+    refine isIndexDivisor_of_splitting hπ (minpoly.monic (IsIntegral.tower_top θ.isIntegral))
+      (Pi := h.map (Ideal.Quotient.mk (Ideal.span {π}))) (hhm.map _) (by rwa [hhm.natDegree_map])
+      (A := h) (B := h * w) (N := C π * u + h * v) ?_ dvd_rfl ?_ ?_
+    · rw [huvw]; ring
+    · rw [Polynomial.map_mul]; exact dvd_mul_right _ _
+    · rw [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_mul, map_C,
+        Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+        zero_add]
+      exact dvd_mul_right _ _
+
+/-- **Theorem 1.1 of Kaur–Kumar–Remete over a number field base.**  Let `f` be monic over
+`𝓞 K`, let `k ≥ 2`, and let `ω` be a root of `f(X ^ k)` generating `K₁` over `K`.  If at every
+maximal ideal `𝔭` of `𝓞 K` there is a prime element `π ∈ 𝔭`, with residue characteristic `p`,
+such that
+
+* `π ^ 2` does not divide `f(0)`, and
+* `π` is not an index divisor of `f(X ^ p)` when `p ∣ k`, and not one of `f` when `p ∤ k`,
+
+then `𝓞 K[ω] = 𝓞 K₁`.
+
+This is the relative form of Theorem 1.1.  The conditions are exactly the paper's (1), (2)
+and (3), read at each prime: monogenity of `f`, no index divisor of `f(X ^ p)` for `p ∣ k`,
+and squarefreeness of `f(0)`.  As in
+`adjoin_eq_top_of_forall_maximal_exists_prime_not_isIndexDivisor`, the hypothesis can only be
+met at principal maximal ideals, so this is a statement about bases of class number one until
+the local certificate is available at a non-principal `𝔭`. -/
+theorem adjoin_eq_top_of_forall_maximal_expand (hπgen : Algebra.adjoin K
+      {algebraMap (𝓞 K₁) K₁ θ} = ⊤) {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
+    (hmin : minpoly (𝓞 K) θ = Polynomial.expand (𝓞 K) k f)
+    (h : ∀ 𝔭 : Ideal (𝓞 K), 𝔭.IsMaximal → ∃ (π : 𝓞 K) (p : ℕ) (_ : Fact p.Prime)
+      (_ : CharP (𝓞 K ⧸ Ideal.span {π}) p), Prime π ∧ π ∈ 𝔭 ∧ ¬ π ^ 2 ∣ f.coeff 0 ∧
+      ¬ ∃ g : (𝓞 K)[X], g.Monic ∧
+        Irreducible (g.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (𝓞 K) (if p ∣ k then p else 1) f ∈
+          (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2) :
+    Algebra.adjoin (𝓞 K) {θ} = ⊤ := by
+  refine adjoin_eq_top_of_forall_maximal_exists_prime_not_isIndexDivisor hπgen fun 𝔭 h𝔭 => ?_
+  obtain ⟨π, p, hp, hchar, hπ, hπ𝔭, hcoeff, hnid⟩ := h 𝔭 h𝔭
+  refine ⟨π, hπ, hπ𝔭, ?_⟩
+  rw [isIndexDivisor_iff_exists_mem_sq hπ, hmin]
+  intro hcon
+  refine hnid ?_
+  by_cases hpk : p ∣ k
+  · rw [if_pos hpk]
+    exact ((exists_expand_mem_sq_iff_of_dvd hπ hfm hk hpk).mp hcon).resolve_right hcoeff
+  · rw [if_neg hpk, expand_one]
+    exact ((exists_expand_mem_sq_iff hπ hfm hk hpk).mp hcon).resolve_right hcoeff
+
+
 
 end NumberField.Relative
