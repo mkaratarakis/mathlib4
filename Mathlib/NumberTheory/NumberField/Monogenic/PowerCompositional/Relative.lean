@@ -333,6 +333,89 @@ theorem isIndexDivisor_of_splitting (hπ : Prime π) {f : (𝓞 K)[X]} (hfm : f.
   · linear_combination -hdiv + hs - C π * hck
 
 
+omit [NumberField K] in
+/-- If the reduction of `h` divides that of `G`, then `⟨π, G⟩ ⊆ ⟨π, h⟩`. -/
+theorem span_pair_le_of_map_dvd {G h : (𝓞 K)[X]}
+    (hdvd : h.map (Ideal.Quotient.mk (Ideal.span {π}))
+      ∣ G.map (Ideal.Quotient.mk (Ideal.span {π}))) :
+    (Ideal.span {C π, G} : Ideal ((𝓞 K)[X])) ≤ Ideal.span {C π, h} := by
+  intro x hx
+  rw [mem_span_pair_iff_map_dvd] at hx ⊢
+  exact hdvd.trans hx
+
+omit [NumberField K] in
+/-- `⟨π, g⟩ ^ 2 ⊆ ⟨π, g ^ 2⟩`. -/
+theorem sq_span_pair_le_span_pair_sq {g : (𝓞 K)[X]} :
+    (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 ≤ Ideal.span {C π, g ^ 2} := by
+  intro z hz
+  obtain ⟨a, b, c, habc⟩ := Ideal.mem_span_pair_sq_iff.mp hz
+  rw [mem_span_pair_iff_map_dvd]
+  refine ⟨c.map (Ideal.Quotient.mk (Ideal.span {π})), ?_⟩
+  rw [habc]
+  simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+    Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+    zero_pow two_ne_zero, zero_add]
+
+/-- **Lemma 2.1 relatively**: `⟨π, g⟩ ^ 2 = ⟨π ^ 2, g⟩ ⊓ ⟨π, g ^ 2⟩`. -/
+theorem span_pair_sq_eq_inf (hπ : Prime π) {g : (𝓞 K)[X]}
+    (hg0 : g.map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0) :
+    (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 =
+      Ideal.span {C π ^ 2, g} ⊓ Ideal.span {C π, g ^ 2} := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  refine le_antisymm (fun z hz => ?_) (fun z hz => ?_)
+  · obtain ⟨a, b, c, habc⟩ := Ideal.mem_span_pair_sq_iff.mp hz
+    exact ⟨Ideal.mem_span_pair.mpr ⟨a, C π * b + g * c, by rw [habc]; ring⟩,
+      Ideal.mem_span_pair.mpr ⟨C π * a + g * b, c, by rw [habc]; ring⟩⟩
+  · obtain ⟨hz1, hz2⟩ := hz
+    obtain ⟨a, b, hab⟩ := Ideal.mem_span_pair.mp hz1
+    obtain ⟨c, d, hcd⟩ := Ideal.mem_span_pair.mp hz2
+    have hb : b ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) := by
+      rw [mem_span_pair_iff_map_dvd]
+      have h := congrArg (Polynomial.map (Ideal.Quotient.mk (Ideal.span {π})))
+        (hab.trans hcd.symm)
+      simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+        Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0,
+        zero_pow two_ne_zero] at h
+      refine Dvd.intro (d.map (Ideal.Quotient.mk (Ideal.span {π}))) ?_
+      have hcancel : b.map (Ideal.Quotient.mk (Ideal.span {π})) =
+          d.map (Ideal.Quotient.mk (Ideal.span {π})) *
+            g.map (Ideal.Quotient.mk (Ideal.span {π})) :=
+        mul_right_cancel₀ hg0 (by linear_combination h)
+      linear_combination -hcancel
+    obtain ⟨e', e, he⟩ := Ideal.mem_span_pair.mp hb
+    exact Ideal.mem_span_pair_sq_iff.mpr ⟨a, e', e, by rw [← hab, ← he]; ring⟩
+
+omit [NumberField K] in
+/-- Membership in `⟨π ^ 2, X⟩` is divisibility of the constant term by `π ^ 2`. -/
+theorem mem_span_pair_C_sq_X_iff {f : (𝓞 K)[X]} :
+    f ∈ (Ideal.span {C π ^ 2, X} : Ideal ((𝓞 K)[X])) ↔ π ^ 2 ∣ f.coeff 0 := by
+  constructor
+  · rintro hf
+    obtain ⟨a, b, rfl⟩ := Ideal.mem_span_pair.mp hf
+    simp [coeff_zero_eq_eval_zero]
+  · rintro ⟨c, hc⟩
+    obtain ⟨q, hq⟩ : (X : (𝓞 K)[X]) ∣ f - C (f.coeff 0) := by
+      rw [X_dvd_iff]; simp
+    refine Ideal.mem_span_pair.mpr ⟨C c, q, ?_⟩
+    have hCf : C (f.coeff 0) = C π ^ 2 * C c := by rw [hc, map_mul, map_pow]
+    linear_combination -hq - hCf
+
+/-- If `π ^ 2` does not divide the constant term, then `f` avoids `⟨π, X⟩ ^ 2`. -/
+theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero (hπ : Prime π) {f : (𝓞 K)[X]}
+    (h : ¬ π ^ 2 ∣ f.coeff 0) :
+    f ∉ (Ideal.span {C π, X} : Ideal ((𝓞 K)[X])) ^ 2 := by
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  have hX0 : (X : (𝓞 K)[X]).map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0 := by
+    rw [Polynomial.map_X]; exact X_ne_zero
+  rw [span_pair_sq_eq_inf hπ hX0]
+  exact fun hm => h (mem_span_pair_C_sq_X_iff.mp hm.1)
+
+
+
 end Uchida
 
 
