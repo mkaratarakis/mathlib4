@@ -415,6 +415,16 @@ theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero {f : ℤ[X]}
   rw [span_pair_sq_eq_inf hX0]
   exact fun hm => h (mem_span_pair_C_sq_X_iff.mp hm.1)
 
+/-! ### The residue field
+
+The lemmas of this section are stated over an arbitrary perfect field of characteristic `p`,
+not only over `𝔽ₚ`.  They serve both the absolute case, where the residue field is `ℤ ⧸ (p)`,
+and the relative one, where it is `𝓞 K ⧸ (π)` and need not be prime. -/
+
+section ResidueField
+
+variable {k : Type*} [Field k] [CharP k p] [PerfectField k]
+
 omit hp in
 /-- A repeated factor divides the derivative. -/
 theorem dvd_derivative_of_sq_dvd {R : Type*} [CommRing R] {h E : R[X]} (hd : h ^ 2 ∣ E) :
@@ -425,16 +435,17 @@ theorem dvd_derivative_of_sq_dvd {R : Type*} [CommRing R] {h E : R[X]} (hd : h ^
   push_cast
   ring
 
+omit hp [PerfectField k] in
 /-- Second step toward Proposition 2.10.  Let `p ∤ ℓ` and let `h` be irreducible mod `p`,
 not dividing `X`.  If `h ^ 2` divides `q(X ^ ℓ)` then `h` divides `q'(X ^ ℓ)`.
 
 The derivative of `q(X ^ ℓ)` is `q'(X ^ ℓ) · ℓ X ^ (ℓ - 1)`; the factor `ℓ` is a unit
 because `p ∤ ℓ`, and `h` misses `X ^ (ℓ - 1)` because it is prime and does not divide `X`. -/
 theorem dvd_expand_derivative_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ)
-    {q h : (ZMod p)[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
-    (hsq : h ^ 2 ∣ expand (ZMod p) ℓ q) :
-    h ∣ expand (ZMod p) ℓ (derivative q) := by
-  have h1 : h ∣ expand (ZMod p) ℓ (derivative q) * ((ℓ : (ZMod p)[X]) * X ^ (ℓ - 1)) := by
+    {q h : k[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
+    (hsq : h ^ 2 ∣ expand k ℓ q) :
+    h ∣ expand k ℓ (derivative q) := by
+  have h1 : h ∣ expand k ℓ (derivative q) * ((ℓ : k[X]) * X ^ (ℓ - 1)) := by
     rw [← derivative_expand]; exact dvd_derivative_of_sq_dvd hsq
   have hprime := irreducible_iff_prime.mp hirr
   -- `h` divides neither `ℓ` (a unit) nor `X ^ (ℓ - 1)`.
@@ -442,47 +453,50 @@ theorem dvd_expand_derivative_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) 
   · exact hcase
   · exfalso
     rcases hprime.dvd_mul.mp hcase with hu | hxp
-    · have hne : ((ℓ : ZMod p)) ≠ 0 := by rwa [Ne, ZMod.natCast_eq_zero_iff]
-      have hunit : IsUnit ((ℓ : (ZMod p)[X])) := by
-        rw [show ((ℓ : (ZMod p)[X])) = C ((ℓ : ZMod p)) by simp]
+    · have hne : ((ℓ : k)) ≠ 0 := by rwa [Ne, CharP.cast_eq_zero_iff k p]
+      have hunit : IsUnit ((ℓ : k[X])) := by
+        rw [show ((ℓ : k[X])) = C ((ℓ : k)) by simp]
         exact isUnit_C.mpr hne.isUnit
       exact hirr.not_isUnit (isUnit_of_dvd_unit hu hunit)
     · exact hX (hprime.dvd_of_dvd_pow hxp)
 
+omit hp [PerfectField k] in
 /-- Third step toward Proposition 2.10.  If `h ^ 2` divides `q(X ^ ℓ)` for some irreducible
 `h` not dividing `X`, and `p ∤ ℓ`, then `q` is not separable.
 
 Indeed `h` divides both `q(X ^ ℓ)` and `q'(X ^ ℓ)`, so applying `expand` to a Bézout
 identity `u q + v q' = 1` would exhibit `h` as a unit. -/
 theorem not_separable_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ)
-    {q h : (ZMod p)[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
-    (hsq : h ^ 2 ∣ expand (ZMod p) ℓ q) :
+    {q h : k[X]} (hirr : Irreducible h) (hX : ¬ h ∣ X)
+    (hsq : h ^ 2 ∣ expand k ℓ q) :
     ¬ q.Separable := by
   intro hsep
   obtain ⟨u, v, huv⟩ := hsep
-  have h1 : h ∣ expand (ZMod p) ℓ q := (dvd_pow_self h two_ne_zero).trans hsq
-  have h2 : h ∣ expand (ZMod p) ℓ (derivative q) :=
+  have h1 : h ∣ expand k ℓ q := (dvd_pow_self h two_ne_zero).trans hsq
+  have h2 : h ∣ expand k ℓ (derivative q) :=
     dvd_expand_derivative_of_sq_dvd_expand hℓ hirr hX hsq
   have hone : h ∣ 1 := by
-    have hexp := congrArg (expand (ZMod p) ℓ) huv
+    have hexp := congrArg (expand k ℓ) huv
     rw [map_add, map_mul, map_mul, map_one] at hexp
     rw [← hexp]
     exact dvd_add (h1.mul_left _) (h2.mul_left _)
   exact hirr.not_isUnit (isUnit_of_dvd_one hone)
 
+omit [PerfectField k] in
 /-- **The prime below `h` along `X ↦ X ^ ℓ`.**  If an irreducible `h` divides `F(X ^ ℓ)`
 for some nonzero `F`, then some monic irreducible factor `G` of `F` already satisfies
 `h ∣ G(X ^ ℓ)`.
 
 The preimage of `⟨h⟩` under the ring map `X ↦ X ^ ℓ` is a prime ideal of `𝔽ₚ[X]`, nonzero
 because it contains `F`; a monic generator of it is the required `G`. -/
-theorem exists_monic_irreducible_dvd_of_dvd_expand {ℓ : ℕ} {F h : (ZMod p)[X]} (hF : F ≠ 0)
-    (hirr : Irreducible h) (hdvd : h ∣ expand (ZMod p) ℓ F) :
-    ∃ G : (ZMod p)[X], G.Monic ∧ Irreducible G ∧ G ∣ F ∧ h ∣ expand (ZMod p) ℓ G := by
-  haveI : (Ideal.span {h} : Ideal (ZMod p)[X]).IsPrime :=
+theorem exists_monic_irreducible_dvd_of_dvd_expand {ℓ : ℕ} {F h : k[X]} (hF : F ≠ 0)
+    (hirr : Irreducible h) (hdvd : h ∣ expand k ℓ F) :
+    ∃ G : k[X], G.Monic ∧ Irreducible G ∧ G ∣ F ∧ h ∣ expand k ℓ G := by
+  classical
+  haveI : (Ideal.span {h} : Ideal k[X]).IsPrime :=
     (Ideal.span_singleton_prime hirr.ne_zero).mpr hirr.prime
-  set P : Ideal (ZMod p)[X] :=
-    Ideal.comap (expand (ZMod p) ℓ).toRingHom (Ideal.span {h}) with hPdef
+  set P : Ideal k[X] :=
+    Ideal.comap (expand k ℓ).toRingHom (Ideal.span {h}) with hPdef
   haveI hPprime : P.IsPrime := Ideal.comap_isPrime _ _
   have hFP : F ∈ P := by
     rw [hPdef, Ideal.mem_comap, Ideal.mem_span_singleton]; exact hdvd
@@ -491,13 +505,13 @@ theorem exists_monic_irreducible_dvd_of_dvd_expand {ℓ : ℕ} {F h : (ZMod p)[X
   have hG0 : G ≠ 0 := by
     intro h0
     refine hF (zero_dvd_iff.mp ?_)
-    have hmem : F ∈ Ideal.span ({G} : Set (ZMod p)[X]) := hgen ▸ hFP
+    have hmem : F ∈ Ideal.span ({G} : Set k[X]) := hgen ▸ hFP
     rw [Ideal.mem_span_singleton, h0] at hmem
     exact hmem
   have hGprime : Prime G := by
     rw [← Ideal.span_singleton_prime hG0, hgen]; exact hPprime
   have hGF : G ∣ F := Ideal.mem_span_singleton.mp (hgen ▸ hFP)
-  have hGmem : h ∣ expand (ZMod p) ℓ G := by
+  have hGmem : h ∣ expand k ℓ G := by
     have hmem : G ∈ P := hgen ▸ Ideal.mem_span_singleton_self G
     rw [hPdef, Ideal.mem_comap, Ideal.mem_span_singleton] at hmem
     exact hmem
@@ -505,13 +519,13 @@ theorem exists_monic_irreducible_dvd_of_dvd_expand {ℓ : ℕ} {F h : (ZMod p)[X
   have hassoc : Associated (normalize G) G := normalize_associated G
   refine ⟨normalize G, monic_normalize hG0, hassoc.symm.irreducible hGprime.irreducible,
     hassoc.dvd.trans hGF, ?_⟩
-  exact hGmem.trans (hassoc.symm.map (expand (ZMod p) ℓ).toRingHom.toMonoidHom).dvd
+  exact hGmem.trans (hassoc.symm.map (expand k ℓ).toRingHom.toMonoidHom).dvd
 
 /-- If an irreducible `G` divides both `F` and its derivative, then `G ^ 2` divides `F`.
 
 Over a perfect field an irreducible polynomial is separable, so `G` cannot divide its own
 derivative; the cofactor of `G` in `F` therefore absorbs the second factor. -/
-theorem sq_dvd_of_dvd_of_dvd_derivative {F G : (ZMod p)[X]} (hG : Irreducible G)
+theorem sq_dvd_of_dvd_of_dvd_derivative {F G : k[X]} (hG : Irreducible G)
     (hGF : G ∣ F) (hGF' : G ∣ derivative F) : G ^ 2 ∣ F := by
   obtain ⟨m, rfl⟩ := hGF
   have hsep : G.Separable := PerfectField.separable_of_irreducible hG
@@ -524,6 +538,7 @@ theorem sq_dvd_of_dvd_of_dvd_derivative {F G : (ZMod p)[X]} (hG : Irreducible G)
   obtain ⟨m', rfl⟩ := h2
   exact ⟨m', by ring⟩
 
+omit hp in
 /-- **Transfer of repeated factors along `X ↦ X ^ ℓ`.**  Let `p ∤ ℓ` and let `h` be
 irreducible mod `p` and not dividing `X`.  If `h ^ 2` divides `F(X ^ ℓ)` and `G` is an
 irreducible factor of `F` with `h ∣ G(X ^ ℓ)`, then `G ^ 2` divides `F`.
@@ -531,14 +546,17 @@ irreducible factor of `F` with `h ∣ G(X ^ ℓ)`, then `G ^ 2` divides `F`.
 So a repeated factor of `F(X ^ ℓ)` comes from a repeated factor of `F`.  If `G` did not
 divide `F'` it would be coprime to it, and applying `X ↦ X ^ ℓ` to a Bézout identity would
 make `h` a unit. -/
-theorem sq_dvd_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ) {F G h : (ZMod p)[X]}
+theorem sq_dvd_of_sq_dvd_expand {ℓ : ℕ} (hℓ : ¬ (p : ℕ) ∣ ℓ) {F G h : k[X]}
     (hG : Irreducible G) (hGF : G ∣ F) (hirr : Irreducible h) (hX : ¬ h ∣ X)
-    (hhG : h ∣ expand (ZMod p) ℓ G) (hsq : h ^ 2 ∣ expand (ZMod p) ℓ F) :
+    (hhG : h ∣ expand k ℓ G) (hsq : h ^ 2 ∣ expand k ℓ F) :
     G ^ 2 ∣ F := by
   refine sq_dvd_of_dvd_of_dvd_derivative hG hGF ?_
   by_contra hnd
   have hcop : IsCoprime G (derivative F) := (hG.coprime_iff_not_dvd).mpr hnd
-  exact hirr.not_isUnit ((hcop.map (expand (ZMod p) ℓ).toRingHom).isUnit_of_dvd' hhG
+  exact hirr.not_isUnit ((hcop.map (expand k ℓ).toRingHom).isUnit_of_dvd' hhG
     (dvd_expand_derivative_of_sq_dvd_expand hℓ hirr hX hsq))
+
+
+end ResidueField
 
 end Polynomial
