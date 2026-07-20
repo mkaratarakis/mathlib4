@@ -60,12 +60,20 @@ because `g ↦ g ^ σ` is a *bijection* on the irreducibles.  Consequently every
 Section 2 that quantifies existentially over the witnessing prime survives verbatim, and only
 those stated for a fixed `g`, such as Theorem 2.4, need the twist inserted.
 
+The global packaging no longer needs a hypothesis on the class number:
+`NumberField.Relative.adjoin_eq_top_of_forall_maximal_saturated` factors the
+denominator-clearing discriminant as an *ideal* rather than as an element, so the peeling is
+carried out on maximal ideals, which always exist.  Assembling it with Uchida's criterion
+gives `adjoin_eq_top_of_forall_maximal_exists_prime_not_isIndexDivisor` below.
+
 That leaves one genuine obstacle:
 
-* the base need not be principal, so a prime *element* `π` need not exist at all; the global
-  packaging `NumberField.Relative.adjoin_eq_top_of_forall_prime_saturated` currently assumes
-  `IsPrincipalIdealRing (𝓞 K)`.  Over a general Dedekind base the whole development would
-  have to be redone with prime *ideals* and localisation.
+* the notion `IsIndexDivisor` is attached to a prime *element* `π`, because both the
+  obstruction and the certificate divide by it; at a maximal ideal `𝔭` that is not principal
+  there is no such `π`, since a prime element of `𝔭` would generate it.  Verifying the
+  hypothesis of the theorem below at a non-principal `𝔭` therefore means localising at `𝔭`,
+  where the maximal ideal becomes principal, and that requires the local half of the
+  development to be restated over an abstract Dedekind base.
 
 ## References
 
@@ -783,5 +791,25 @@ theorem adjoin_ne_top_of_isIndexDivisor_expand {π : 𝓞 K} (hπ : Prime π) {f
     (hmin : minpoly (𝓞 K) θ = Polynomial.expand (𝓞 K) ℓ f) :
     Algebra.adjoin (𝓞 K) {θ} ≠ ⊤ :=
   adjoin_ne_top_of_isIndexDivisor hπ (hmin ▸ h.expand hℓ)
+
+/-- **Problem 2, the global step, with no class number hypothesis.**  If at every maximal
+ideal `𝔭` of `𝓞 K` some prime element lying in `𝔭` fails to be an index divisor of the
+minimal polynomial of `θ`, then `𝓞 K[θ] = 𝓞 K₁`.
+
+This assembles Uchida's criterion over a number field base
+(`isIndexDivisor_iff_exists_notMem`) with the ideal-theoretic global packaging
+(`adjoin_eq_top_of_forall_maximal_saturated`): the latter factors the denominator-clearing
+discriminant as an ideal rather than as an element, so no hypothesis on the class number of
+`K` is needed.  Note that a prime element lying in `𝔭` generates it, so the hypothesis can
+only be met at principal `𝔭`; at the remaining maximal ideals one has to localise. -/
+theorem adjoin_eq_top_of_forall_maximal_exists_prime_not_isIndexDivisor
+    (hgen : Algebra.adjoin K {algebraMap (𝓞 K₁) K₁ θ} = ⊤)
+    (h : ∀ 𝔭 : Ideal (𝓞 K), 𝔭.IsMaximal → ∃ π : 𝓞 K, Prime π ∧ π ∈ 𝔭 ∧
+      ¬ IsIndexDivisor π (minpoly (𝓞 K) θ)) :
+    Algebra.adjoin (𝓞 K) {θ} = ⊤ := by
+  refine adjoin_eq_top_of_forall_maximal_saturated hgen fun 𝔭 h𝔭 y hy => ?_
+  obtain ⟨π, hπ, hπ𝔭, hnid⟩ := h 𝔭 h𝔭
+  by_contra hynot
+  exact hnid ((isIndexDivisor_iff_exists_notMem hπ).mpr ⟨y, hy π hπ𝔭, hynot⟩)
 
 end NumberField.Relative
