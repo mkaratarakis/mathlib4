@@ -139,6 +139,8 @@ theorem adjoin_eq_top_of_forall_maximal_localizedAt
       rw [h 𝔭 h𝔭]; exact Algebra.mem_top
 
 set_option maxHeartbeats 400000 in
+-- `LocalizedAt S 𝔭` unfolds to a quotient of `S × algebraMapSubmonoid S 𝔭.primeCompl`, so
+-- deciding membership in a singleton of it sends `isDefEq` past the default budget.
 /-- **Monogenity localises.**  If `R[θ] = S`, then `R_𝔭[θ] = S_𝔭` for every prime `𝔭`.
 
 This is the converse of `adjoin_eq_top_of_forall_maximal_localizedAt`, and it is the easy
