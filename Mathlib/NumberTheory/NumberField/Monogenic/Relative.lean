@@ -799,6 +799,88 @@ theorem adjoin_eq_top_of_forall_prime_saturated [IsPrincipalIdealRing (𝓞 K)]
   refine eq_top_iff.mpr fun β _ => ?_
   exact hP d₀ hd₀ne β (hclear β)
 
+/-- **Relative monogenity from saturation at every maximal ideal, with no class number
+hypothesis.**  Let `θ : 𝓞 K₁` generate `K₁` over `K`.  If for every maximal ideal `𝔭` of
+`𝓞 K` the subring `𝓞 K[θ]` is `𝔭`-saturated in `𝓞 K₁` — that is, `𝔭 β ⊆ 𝓞 K[θ]` forces
+`β ∈ 𝓞 K[θ]` — then `𝓞 K[θ] = 𝓞 K₁`.
+
+This is `adjoin_eq_top_of_forall_prime_saturated` with the principal ideal hypothesis
+removed.  There the discriminant `d`, which clears denominators, is factored into prime
+*elements* and these are peeled off one at a time, which needs `𝓞 K` to be a principal
+ideal domain.  Here the *ideal* `(d)` is factored into maximal ideals instead — always
+possible in a Dedekind domain — and the same peeling is carried out on ideals: if
+`𝔮 𝔟 β ⊆ 𝓞 K[θ]` then `𝔭`-saturation at `𝔮` applied to each `y β` with `y ∈ 𝔟` gives
+`𝔟 β ⊆ 𝓞 K[θ]`. -/
+theorem adjoin_eq_top_of_forall_maximal_saturated
+    (hgen : Algebra.adjoin K {algebraMap (𝓞 K₁) K₁ θ} = ⊤)
+    (hsat : ∀ 𝔭 : Ideal (𝓞 K), 𝔭.IsMaximal → ∀ y : 𝓞 K₁,
+      (∀ x ∈ 𝔭, algebraMap (𝓞 K) (𝓞 K₁) x * y ∈ Algebra.adjoin (𝓞 K) {θ}) →
+      y ∈ Algebra.adjoin (𝓞 K) {θ}) :
+    Algebra.adjoin (𝓞 K) {θ} = ⊤ := by
+  classical
+  have hintθZ : IsIntegral (𝓞 K) θ := IsIntegral.tower_top θ.isIntegral
+  have hint𝓞 : IsIntegral (𝓞 K) (algebraMap (𝓞 K₁) K₁ θ) :=
+    hintθZ.map (IsScalarTower.toAlgHom (𝓞 K) (𝓞 K₁) K₁)
+  have hintK : IsIntegral K (algebraMap (𝓞 K₁) K₁ θ) := hint𝓞.tower_top
+  set B : PowerBasis K K₁ := PowerBasis.ofAdjoinEqTop hintK hgen with hB
+  have hBgen : B.gen = algebraMap (𝓞 K₁) K₁ θ := PowerBasis.ofAdjoinEqTop_gen hintK hgen
+  have hintgen : IsIntegral (𝓞 K) B.gen := by rw [hBgen]; exact hint𝓞
+  have hbint : ∀ i, IsIntegral (𝓞 K) (B.basis i) := fun i => by
+    rw [B.basis_eq_pow]; exact hintgen.pow _
+  have hd : IsIntegral (𝓞 K) (Algebra.discr K B.basis) :=
+    Algebra.discr_isIntegral (R := 𝓞 K) (K := K) (L := K₁) hbint
+  obtain ⟨d₀, hd₀⟩ := IsIntegrallyClosed.isIntegral_iff.mp hd
+  have hdne : Algebra.discr K B.basis ≠ 0 := Algebra.discr_not_zero_of_basis K B.basis
+  have hd₀ne : d₀ ≠ 0 := by
+    intro h0
+    apply hdne
+    rw [← hd₀, h0, map_zero]
+  have hclear : ∀ β : 𝓞 K₁,
+      algebraMap (𝓞 K) (𝓞 K₁) d₀ * β ∈ Algebra.adjoin (𝓞 K) {θ} := by
+    intro β
+    have hz : IsIntegral (𝓞 K) (algebraMap (𝓞 K₁) K₁ β) :=
+      (IsIntegral.tower_top β.isIntegral).map (IsScalarTower.toAlgHom (𝓞 K) (𝓞 K₁) K₁)
+    have hmem := Algebra.discr_mul_isIntegral_mem_adjoin (R := 𝓞 K) (K := K) (L := K₁)
+      hintgen hz
+    rw [hBgen] at hmem
+    apply mem_adjoin_of_algebraMap_mem
+    have heq : algebraMap (𝓞 K₁) K₁ (algebraMap (𝓞 K) (𝓞 K₁) d₀ * β)
+        = Algebra.discr K B.basis • algebraMap (𝓞 K₁) K₁ β := by
+      rw [map_mul, Algebra.smul_def, ← hd₀,
+        ← IsScalarTower.algebraMap_apply (𝓞 K) (𝓞 K₁) K₁,
+        ← IsScalarTower.algebraMap_apply (𝓞 K) K K₁]
+    rw [heq]
+    exact hmem
+  -- peel the factorisation of the *ideal* `(d₀)` into maximal ideals
+  have hP : ∀ 𝔞 : Ideal (𝓞 K), 𝔞 ≠ ⊥ → ∀ β : 𝓞 K₁,
+      (∀ x ∈ 𝔞, algebraMap (𝓞 K) (𝓞 K₁) x * β ∈ Algebra.adjoin (𝓞 K) {θ}) →
+      β ∈ Algebra.adjoin (𝓞 K) {θ} := by
+    intro 𝔞
+    refine UniqueFactorizationMonoid.induction_on_prime 𝔞 ?_ ?_ ?_
+    · intro h0
+      exact absurd rfl h0
+    · intro u hu _ β hβ
+      have h1 : (1 : 𝓞 K) ∈ u := by
+        rw [← Ideal.eq_top_iff_one]
+        exact Ideal.isUnit_iff.mp hu
+      simpa using hβ 1 h1
+    · intro 𝔟 𝔮 h𝔟 h𝔮 hP𝔟 _ β hβ
+      have h𝔮prime : 𝔮.IsPrime := Ideal.isPrime_of_prime h𝔮
+      have h𝔮max : 𝔮.IsMaximal := h𝔮prime.isMaximal h𝔮.ne_zero
+      refine hP𝔟 h𝔟 β fun y hy => ?_
+      refine hsat 𝔮 h𝔮max _ fun x hx => ?_
+      have hxy := hβ (x * y) (Ideal.mul_mem_mul hx hy)
+      rw [map_mul] at hxy
+      rw [← mul_assoc]
+      exact hxy
+  refine eq_top_iff.mpr fun β _ => ?_
+  refine hP (Ideal.span {d₀}) ?_ β ?_
+  · rwa [Ne, Ideal.span_singleton_eq_bot]
+  · intro x hx
+    obtain ⟨r, rfl⟩ := Ideal.mem_span_singleton'.mp hx
+    rw [map_mul, mul_assoc]
+    exact Subalgebra.mul_mem _ (Subalgebra.algebraMap_mem _ _) (hclear β)
+
 omit [NumberField K] [NumberField K₁] in
 /-- **Local–global criterion for relative monogenity, with no class number hypothesis.**
 `𝓞 K[θ] = 𝓞 K₁` if and only if, for every maximal ideal `𝔭` of `𝓞 K`, the conductor of `θ`
