@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.NumberTheory.NumberField.Ideal.Basic
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
 public import Mathlib.NumberTheory.NumberField.Monogenic.Relative
 
@@ -414,6 +415,149 @@ theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero (hπ : Prime π) {f : (�
   rw [span_pair_sq_eq_inf hπ hX0]
   exact fun hm => h (mem_span_pair_C_sq_X_iff.mp hm.1)
 
+
+
+/-! ### Proposition 2.10 over a number field base -/
+
+/-- **Proposition 2.10 over a number field base**, in ideal form.  Let `π` be a prime element
+of `𝓞 K` whose residue field has characteristic `p`, and let `ℓ` be prime to `p`.  If
+`f(X ^ ℓ)` lies in the square of a maximal ideal `⟨π, h⟩` of `(𝓞 K)[X]`, then either `f`
+lies in the square of such an ideal, or `π ^ 2` divides `f(0)`.
+
+The proof is the absolute one: split on whether the reduction of `h` is `X`; if not, the
+prime of the residue polynomial ring lying below `h` along `X ↦ X ^ ℓ` gives a `G` whose
+square divides the reduction of `f`, and lifting `G` and dividing `f = g q + r` produces the
+required membership.  The residue field is no longer prime, but every lemma used has been
+stated over an arbitrary perfect field of characteristic `p`, and the identity that fails
+there — `f(X ^ p) = f ^ p` — is not used, since `p ∤ ℓ`. -/
+theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+    [CharP (𝓞 K ⧸ Ideal.span {π}) p] {f : (𝓞 K)[X]} (hfm : f.Monic) {ℓ : ℕ} (hℓ0 : 0 < ℓ)
+    (hℓ : ¬ p ∣ ℓ) {h : (𝓞 K)[X]} (hhm : h.Monic)
+    (hhirr : Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hmem : Polynomial.expand (𝓞 K) ℓ f ∈
+      (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2) :
+    (∃ g : (𝓞 K)[X], g.Monic ∧ Irreducible (g.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+      f ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2) ∨ π ^ 2 ∣ f.coeff 0 := by
+  classical
+  haveI hmax : (Ideal.span {π} : Ideal (𝓞 K)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  haveI : Finite (𝓞 K ⧸ Ideal.span {π}) := inferInstance
+  haveI : PerfectField (𝓞 K ⧸ Ideal.span {π}) := PerfectField.ofFinite
+  set mk := Ideal.Quotient.mk (Ideal.span {π} : Ideal (𝓞 K)) with hmk
+  have hsurj : Function.Surjective mk := Ideal.Quotient.mk_surjective
+  have hhm' : (h.map mk).Monic := hhm.map _
+  have hhd : 0 < (h.map mk).natDegree := by
+    rcases Nat.eq_zero_or_pos (h.map mk).natDegree with h0 | hpos
+    · rw [eq_one_of_monic_natDegree_zero hhm' h0] at hhirr
+      exact absurd hhirr not_irreducible_one
+    · exact hpos
+  by_cases hX : h.map mk ∣ X
+  · -- the reduction of `h` is `X`
+    right
+    by_contra hnot
+    have hhX : h.map mk = X := by
+      obtain ⟨w, hw⟩ := hX
+      have hwm : w.Monic := hhm'.of_mul_monic_left (hw ▸ monic_X)
+      have hdeg : (h.map mk).natDegree + w.natDegree = 1 := by
+        have hd := congrArg natDegree hw
+        rwa [natDegree_X, hhm'.natDegree_mul hwm, eq_comm] at hd
+      rw [hw, eq_one_of_monic_natDegree_zero hwm (by omega), mul_one]
+    have hle : (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ≤ Ideal.span {C π, X} :=
+      span_pair_le_of_map_dvd (by rw [Polynomial.map_X, hhX])
+    refine notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero hπ
+      (f := Polynomial.expand (𝓞 K) ℓ f) ?_ (Ideal.pow_right_mono hle 2 hmem)
+    rwa [coeff_expand hℓ0, if_pos (dvd_zero ℓ), Nat.zero_div]
+  · -- the reduction of `h` is not `X`
+    left
+    have hsq : (h.map mk) ^ 2 ∣ Polynomial.expand _ ℓ (f.map mk) := by
+      have hm2 := sq_span_pair_le_span_pair_sq hmem
+      rwa [mem_span_pair_iff_map_dvd, Polynomial.map_expand, Polynomial.map_pow] at hm2
+    have hf0 : f.map mk ≠ 0 := (hfm.map _).ne_zero
+    obtain ⟨G, hGm, hGirr, hGF, hhG⟩ :=
+      exists_monic_irreducible_dvd_of_dvd_expand hf0 hhirr
+        ((dvd_pow_self _ two_ne_zero).trans hsq)
+    have hG2 : G ^ 2 ∣ f.map mk := sq_dvd_of_sq_dvd_expand (p := p) hℓ hGirr hGF hhirr hX hhG hsq
+    obtain ⟨g, hgmap, -, hgmonic⟩ := lifts_and_degree_eq_and_monic
+      ((mem_lifts G).mpr (Polynomial.map_surjective _ hsurj G)) hGm
+    have hgdeg : 0 < g.natDegree := by
+      rcases Nat.eq_zero_or_pos g.natDegree with h0 | hpos
+      · rw [eq_one_of_monic_natDegree_zero hgmonic h0, Polynomial.map_one] at hgmap
+        exact absurd (hgmap ▸ hGirr) not_irreducible_one
+      · exact hpos
+    have hgne1 : g ≠ 1 := fun h1 => by rw [h1] at hgdeg; simp at hgdeg
+    have hgdegG : g.natDegree = G.natDegree := by rw [← hgmap, hgmonic.natDegree_map]
+    refine ⟨g, hgmonic, by rw [hgmap]; exact hGirr, ?_⟩
+    by_contra hnot
+    set q := f /ₘ g with hqdef
+    set r := f %ₘ g with hrdef
+    have hdiv : r + g * q = f := modByMonic_add_div f g
+    have hmapdiv : r.map mk + G * q.map mk = f.map mk := by
+      have hd := congrArg (Polynomial.map mk) hdiv
+      rwa [Polynomial.map_add, Polynomial.map_mul, hgmap] at hd
+    have hrdeg : r.natDegree < G.natDegree := by
+      have hlt : r.natDegree < g.natDegree := by
+        rw [hrdef]; exact natDegree_modByMonic_lt f hgmonic hgne1
+      omega
+    have hrmap : r.map mk = 0 := by
+      refine eq_zero_of_dvd_of_natDegree_lt ?_ (lt_of_le_of_lt natDegree_map_le hrdeg)
+      have hreq : r.map mk = f.map mk - G * q.map mk := by linear_combination hmapdiv
+      rw [hreq]
+      exact dvd_sub hGF (dvd_mul_right G _)
+    obtain ⟨s, hs⟩ : (C π : (𝓞 K)[X]) ∣ r := by
+      rw [← map_quotient_span_eq_zero_iff]; exact hrmap
+    have hGq : G ∣ q.map mk := by
+      obtain ⟨m, hm⟩ := hG2
+      have hcancel : G * q.map mk = G * (G * m) := by
+        rw [← mul_assoc, ← sq, ← hm, ← hmapdiv, hrmap, zero_add]
+      exact ⟨m, mul_left_cancel₀ hGirr.ne_zero hcancel⟩
+    have hqmem : q ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) :=
+      mem_span_pair_iff_map_dvd.mpr (by rw [hgmap]; exact hGq)
+    have hgmem : g ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) := Ideal.subset_span (by simp)
+    have hgq : g * q ∈ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 := by
+      rw [sq]; exact Ideal.mul_mem_mul hgmem hqmem
+    have hCps : C π * s ∉ (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 := fun hcon =>
+      hnot (by rw [← hdiv, hs]; exact Ideal.add_mem _ hcon hgq)
+    have hsmap : s.map mk ≠ 0 := by
+      intro h0
+      obtain ⟨s', rfl⟩ : (C π : (𝓞 K)[X]) ∣ s := by
+        rw [← map_quotient_span_eq_zero_iff]; exact h0
+      refine hCps ?_
+      have hsq2 : (Ideal.span {C π, g} : Ideal ((𝓞 K)[X])) ^ 2 =
+          Ideal.span {C π, g} * Ideal.span {C π, g} := sq _
+      have heq : C π * (C π * s') = C π * C π * s' := by ring
+      rw [heq, hsq2]
+      exact Ideal.mul_mem_right _ _ (Ideal.mul_mem_mul
+        (Ideal.subset_span (by simp)) (Ideal.subset_span (by simp)))
+    have hrs : r.natDegree = s.natDegree := by
+      rw [hs, natDegree_C_mul hπ.ne_zero]
+    have hsdeg : (s.map mk).natDegree < G.natDegree :=
+      lt_of_le_of_lt natDegree_map_le (by omega)
+    have hGs : ¬ G ∣ s.map mk := fun hcon =>
+      hsmap (eq_zero_of_dvd_of_natDegree_lt hcon hsdeg)
+    have hcop : IsCoprime G (s.map mk) := (hGirr.coprime_iff_not_dvd).mpr hGs
+    have hnhs : ¬ (h.map mk) ∣ Polynomial.expand _ ℓ (s.map mk) := fun hcon =>
+      hhirr.not_isUnit ((hcop.map (Polynomial.expand _ ℓ).toRingHom).isUnit_of_dvd' hhG hcon)
+    apply hnhs
+    have hEg : Polynomial.expand (𝓞 K) ℓ g ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) :=
+      mem_span_pair_iff_map_dvd.mpr (by rw [Polynomial.map_expand, hgmap]; exact hhG)
+    have hEq : Polynomial.expand (𝓞 K) ℓ q ∈ (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) :=
+      mem_span_pair_iff_map_dvd.mpr (by
+        rw [Polynomial.map_expand]
+        exact hhG.trans (map_dvd (Polynomial.expand _ ℓ) hGq))
+    have hprod : Polynomial.expand (𝓞 K) ℓ g * Polynomial.expand (𝓞 K) ℓ q ∈
+        (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2 := by
+      rw [sq]; exact Ideal.mul_mem_mul hEg hEq
+    have hEs : C π * Polynomial.expand (𝓞 K) ℓ s ∈
+        (Ideal.span {C π, h} : Ideal ((𝓞 K)[X])) ^ 2 := by
+      have hexpand : Polynomial.expand (𝓞 K) ℓ f = C π * Polynomial.expand (𝓞 K) ℓ s +
+          Polynomial.expand (𝓞 K) ℓ g * Polynomial.expand (𝓞 K) ℓ q := by
+        rw [← hdiv, hs, map_add, map_mul, map_mul, expand_C]
+      have hd := Ideal.sub_mem _ hmem hprod
+      rwa [hexpand, add_sub_cancel_right] at hd
+    have hfin := mem_span_pair_of_C_mul_mem_sq hπ hhm'.ne_zero hEs
+    rw [mem_span_pair_iff_map_dvd, Polynomial.map_expand] at hfin
+    exact hfin
 
 
 end Uchida
