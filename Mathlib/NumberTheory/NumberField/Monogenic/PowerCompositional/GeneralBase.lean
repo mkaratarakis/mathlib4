@@ -191,8 +191,6 @@ theorem notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero {f : R[X]}
   rw [span_pair_sq_eq_inf hX0]
   exact fun hm => h (mem_span_pair_C_sq_X_iff.mp hm.1)
 
-
-
 omit [IsDomain R] hmax in
 /-- Membership in `𝔪 ^ 2` depends only on the class modulo `𝔪 ^ 2`. -/
 private theorem mem_sq_iff_of_sub_mem {I : Ideal (R[X])} {x y : R[X]}
@@ -366,7 +364,7 @@ square divides the reduction of `f`, and lifting `G` and dividing `f = g q + r` 
 required membership.  The residue field is no longer prime, but every lemma used has been
 stated over an arbitrary perfect field of characteristic `p`, and the identity that fails
 there — `f(X ^ p) = f ^ p` — is not used, since `p ∤ ℓ`. -/
-theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+theorem exists_mem_sq_or_sq_dvd_coeff_zero (hπ : Prime π) {p : ℕ}
     [CharP (R ⧸ Ideal.span {π}) p] {f : R[X]} (hfm : f.Monic) {ℓ : ℕ} (hℓ0 : 0 < ℓ)
     (hℓ : ¬ p ∣ ℓ) {h : R[X]} (hhm : h.Monic)
     (hhirr : Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))))
@@ -601,7 +599,7 @@ number field base.  Combined with
 `NumberField.Relative.isIndexDivisor_iff_exists_notMem` it decides `π`-saturation, and hence
 — via `NumberField.Relative.adjoin_eq_top_of_forall_maximal_saturated` — contributes the
 corresponding condition to relative monogenity. -/
-theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ} [Fact p.Prime]
+theorem exists_expand_mem_sq_iff (hπ : Prime π) {p : ℕ}
     [CharP (R ⧸ Ideal.span {π}) p] {f : R[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
     (hpk : ¬ p ∣ k) :
     (∃ h : R[X], h.Monic ∧ Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧

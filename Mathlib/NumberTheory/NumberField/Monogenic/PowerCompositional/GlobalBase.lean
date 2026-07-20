@@ -30,7 +30,10 @@ The chain is:
    `f (X ^ k)`, so the hypothesis becomes the two conditions of Theorem 1.1: `π ^ 2` does not
    divide `f (0)`, and `π` is not an index divisor of the relevant expansion of `f`.
 
-3. `NumberField.Relative.adjoin_eq_top_of_forall_maximal_expand'` applies this at the
+3. `NumberField.Relative.minpoly_map_localization` transports the hypothesis `minpoly = f (X ^ k)`
+   to the localisation, so the conditions may be stated for `f` over `𝓞 K` itself.
+
+4. `NumberField.Relative.adjoin_eq_top_of_forall_maximal_localized_expand` applies this at the
    uniformiser of `(𝓞 K)_𝔭` for every maximal ideal `𝔭`, and assembles the result with
    `adjoin_eq_top_of_forall_maximal_localized_saturated`.  **No hypothesis on the class
    number of `K`**: the prime element that `𝔭` may fail to provide always exists after
@@ -188,7 +191,6 @@ theorem minpoly_map_localization (𝔭 : Ideal (𝓞 K)) [𝔭.IsPrime] :
       (K := K) (S := K₁) hint,
     minpoly.algebraMap_eq (FaithfulSMul.algebraMap_injective (𝓞 K₁) K₁)]
 
-
 /-- **Theorem 1.1 of Kaur–Kumar–Remete over an arbitrary number field base.**  Let `K ⊆ K₁`
 be an extension of number fields, `θ : 𝓞 K₁` a generator of `K₁` over `K`, and suppose the
 minimal polynomial of `θ` over `𝓞 K` is `f (X ^ k)` with `f` monic and `k ≥ 2`.
@@ -207,7 +209,7 @@ discrete valuation ring, so the prime element the criterion needs exists even wh
 principal in `𝓞 K`, and its residue field is `𝓞 K ⧸ 𝔭` — finite, hence perfect, which
 discharges the standing hypothesis of Section 2.  Only the radical of `k` enters, through
 whether `p` divides `k`. -/
-theorem adjoin_eq_top_of_forall_maximal_expand'
+theorem adjoin_eq_top_of_forall_maximal_localized_expand
     (hgen : Algebra.adjoin K {(θ : K₁)} = ⊤)
     {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
     (hmin : minpoly (𝓞 K) θ = Polynomial.expand (𝓞 K) k f)

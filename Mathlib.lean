@@ -5882,9 +5882,9 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.GlobalCriterion
 public import Mathlib.NumberTheory.NumberField.Monogenic.KaurKumar
 public import Mathlib.NumberTheory.NumberField.Monogenic.Localization
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Basic
+public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Expand
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GeneralBase
-public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GlobalBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Ideal
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
