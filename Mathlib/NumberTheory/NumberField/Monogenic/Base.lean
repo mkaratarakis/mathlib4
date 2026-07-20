@@ -41,6 +41,39 @@ variable {R S : Type*} [CommRing R] [IsDomain R] [IsIntegrallyClosed R]
 variable [CommRing S] [IsDomain S] [Algebra R S] [Module.IsTorsionFree R S] [FaithfulSMul R S]
 variable [Algebra.IsIntegral R S] {θ : S}
 
+section Localisation
+
+/-- **The minimal polynomial is insensitive to enlarging an integrally closed base inside its
+fraction field.**  If `R ⊆ R'` are integrally closed domains with the same fraction field `K`
+and `θ` is integral over `R`, then the minimal polynomial of `θ` over `R'` is the image of the
+one over `R`.
+
+The case of interest is `R' = R` localised at a maximal ideal: the hypotheses of the
+criterion, which are statements about `minpoly R θ`, transfer unchanged to the localisation. -/
+theorem minpoly_map_eq_minpoly {R R' K S : Type*}
+    [CommRing R] [IsDomain R] [IsIntegrallyClosed R]
+    [CommRing R'] [IsDomain R'] [IsIntegrallyClosed R']
+    [Field K] [CommRing S] [IsDomain S]
+    [Algebra R R'] [Algebra R K] [Algebra R' K] [IsScalarTower R R' K]
+    [IsFractionRing R K] [IsFractionRing R' K]
+    [Algebra R S] [Algebra R' S] [IsScalarTower R R' S]
+    [Algebra K S] [IsScalarTower R K S] [IsScalarTower R' K S]
+    {θ : S} (hθ : IsIntegral R θ) :
+    (minpoly R θ).map (algebraMap R R') = minpoly R' θ := by
+  have hθ' : IsIntegral R' θ := hθ.tower_top
+  have h1 : minpoly K θ = (minpoly R θ).map (algebraMap R K) :=
+    minpoly.isIntegrallyClosed_eq_field_fractions' K hθ
+  have h2 : minpoly K θ = (minpoly R' θ).map (algebraMap R' K) :=
+    minpoly.isIntegrallyClosed_eq_field_fractions' K hθ'
+  have h3 : ((minpoly R θ).map (algebraMap R R')).map (algebraMap R' K)
+      = (minpoly R θ).map (algebraMap R K) := by
+    rw [Polynomial.map_map, ← IsScalarTower.algebraMap_eq]
+  refine Polynomial.map_injective (algebraMap R' K)
+    (FaithfulSMul.algebraMap_injective R' K) ?_
+  rw [h3, ← h1, h2]
+
+end Localisation
+
 /-- **The existence half of Dedekind's argument over an integrally closed base.**  If some
 `β ∉ R[θ]` has `π β ∈ R[θ]`, then the minimal polynomial of `θ` admits a splitting
 `f = A B + π N` in which a single monic irreducible of `(R ⧸ (π))[X]` divides the reductions
