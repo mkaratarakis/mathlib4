@@ -474,6 +474,7 @@ variable [CommRing S] [IsDomain S] [Algebra R S] [Algebra S L] [Algebra R L]
 variable [IsScalarTower R S L] [IsScalarTower R K L] [FaithfulSMul S L]
 variable [Algebra.IsIntegral R S] {θ : S}
 
+omit [IsDomain R] [IsIntegrallyClosed R] [IsDomain S] [Algebra.IsIntegral R S] in
 private theorem mem_adjoin_of_algebraMap_mem' {β : S}
     (h : algebraMap S L β ∈
       Algebra.adjoin R {algebraMap S L θ}) :
@@ -531,7 +532,7 @@ theorem adjoin_eq_top_of_forall_prime_saturated' [IsPrincipalIdealRing R]
     have hmem := Algebra.discr_mul_isIntegral_mem_adjoin (R := R) (K := K) (L := L)
       hintgen hz
     rw [hBgen] at hmem
-    apply mem_adjoin_of_algebraMap_mem'
+    apply mem_adjoin_of_algebraMap_mem' (L := L)
     have heq : algebraMap S L (algebraMap R S d₀ * β)
         = Algebra.discr K B.basis • algebraMap S L β := by
       rw [map_mul, Algebra.smul_def, ← hd₀,
