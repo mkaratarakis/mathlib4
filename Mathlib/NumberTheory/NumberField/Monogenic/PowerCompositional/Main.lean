@@ -47,6 +47,10 @@ statement free of the auxiliary number fields in which those roots live: only th
   and only if `(f(X ^ p) - f ^ p) / p` is coprime to `f` mod `p`, a gcd computation in
   `𝔽ₚ[X]`.
 
+* `RingOfIntegers.forall_not_isIndexDivisor_expand_iff_forall_isCoprime`: **Remark 1.12** ---
+  condition (2) of Theorem 1.1 is equivalent to a coprimality condition mod `q` for each
+  prime `q ∣ k`, which is what makes it checkable.
+
 * `RingOfIntegers.eq_of_prime_dvd_exponent_expand_pow`: **Theorem 1.11 (1)** --- if `f` is
   monogenic and `f(0)` is squarefree, the index of `f(X ^ (p ^ u))` is a power of `p`.
 
@@ -406,6 +410,33 @@ theorem not_isIndexDivisor_expand_pow_iff_isCoprime {f T : ℤ[X]} (hfm : f.Moni
     irreducible_ratMap_expand_of_dvd (pow_pos hppos u) hpu hirr
   rw [← isIndexDivisor_expand_pow_iff hfm hu hirrp hirr,
     isIndexDivisor_expand_iff_not_isCoprime hfm hT, not_not]
+
+/-- **Remark 1.12** of Kaur–Kumar–Remete.  Condition (2) of Theorem 1.1 --- that no prime
+dividing `k` is an index divisor of `f(X ^ q)` --- is equivalent to the effective condition
+that `(f(X ^ q) - f ^ q) / q` is coprime to `f` modulo `q`, for every prime `q ∣ k`.
+
+This is Theorem 1.11 (2) at `u = 1`, quantified over the primes dividing `k`, and it is what
+makes condition (2) checkable: for each `q ∣ k` it is a gcd computation in `𝔽_q[X]` between
+two explicit polynomials, rather than a statement about the index of `f(X ^ q)`.
+
+The quotient `(f(X ^ q) - f ^ q) / q` appears here as any `T` witnessing the Frobenius
+identity `f(X ^ q) = f ^ q + q T`; such a `T` always exists, by
+`exists_expand_eq_pow_add_C_mul`, and the condition does not depend on the choice, since two
+witnesses differ by a multiple of `q` and so have the same reduction. -/
+theorem forall_not_isIndexDivisor_expand_iff_forall_isCoprime {f : ℤ[X]} (hfm : f.Monic)
+    {k : ℕ} :
+    (∀ q : ℕ, q.Prime → q ∣ k → ¬ IsIndexDivisor q (expand ℤ q f)) ↔
+      ∀ q : ℕ, q.Prime → q ∣ k → ∀ T : ℤ[X], expand ℤ q f = f ^ q + C (q : ℤ) * T →
+        IsCoprime (f.map (Int.castRingHom (ZMod q))) (T.map (Int.castRingHom (ZMod q))) := by
+  constructor
+  · intro h q hq hqk T hT
+    haveI : Fact q.Prime := ⟨hq⟩
+    by_contra hnc
+    exact h q hq hqk ((isIndexDivisor_expand_iff_not_isCoprime hfm hT).mpr hnc)
+  · intro h q hq hqk hid
+    haveI : Fact q.Prime := ⟨hq⟩
+    obtain ⟨T, hT⟩ := exists_expand_eq_pow_add_C_mul (p := q) f
+    exact (isIndexDivisor_expand_iff_not_isCoprime hfm hT).mp hid (h q hq hqk T hT)
 
 /-- **Theorem 1.11 (1)** of Kaur–Kumar–Remete.  If `f` is monogenic and `f(0)` is squarefree,
 then the index of `f(X ^ (p ^ u))` is a power of `p`: no other prime divides it.
