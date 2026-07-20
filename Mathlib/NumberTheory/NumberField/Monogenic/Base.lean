@@ -487,6 +487,7 @@ private theorem mem_adjoin_of_algebraMap_mem' {β : S}
   rw [IsScalarTower.coe_toAlgHom'] at hxeq
   rwa [FaithfulSMul.algebraMap_injective S L hxeq] at hx
 
+omit [IsDomain S] in
 /-- **Relative monogenicity over a principal ideal base.**  Let `θ : S` generate `L`
 over `K`, and suppose `R` is a principal ideal ring.  If `R[θ]` is `π`-saturated in
 `S` for *every* prime element `π` of `R` — the hypothesis discharged at each `π` by
@@ -496,7 +497,6 @@ The proof clears denominators with the discriminant (`discr_mul_isIntegral_mem_a
 every `β : S` satisfies `d • β ∈ R[θ]` for a fixed nonzero `d : R`, and the
 prime factorisation of `d` is peeled off one prime at a time using the saturation
 hypothesis. -/
-omit [IsDomain S] in
 theorem adjoin_eq_top_of_forall_prime_saturated' [IsPrincipalIdealRing R]
     (hgen : Algebra.adjoin K {algebraMap S L θ} = ⊤)
     (hsat : ∀ π : R, Prime π → ∀ y : S,
