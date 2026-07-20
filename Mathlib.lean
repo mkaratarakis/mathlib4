@@ -5885,6 +5885,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Basi
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Expand
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GeneralBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
+public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GlobalBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Ideal
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Main
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Relative
