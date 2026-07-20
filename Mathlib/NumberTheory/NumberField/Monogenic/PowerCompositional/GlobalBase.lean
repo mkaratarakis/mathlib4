@@ -122,6 +122,79 @@ theorem saturated_of_expand (hπ : Prime π) {p : ℕ} [Fact p.Prime]
   · rw [if_neg hpk, expand_one]
     exact ((exists_expand_mem_sq_iff hπ hfm hk hpk).mp ⟨P, hPm, hPirr, hmem⟩).resolve_right hcoeff
 
+omit [PerfectField (R ⧸ Ideal.span {π})] in
+/-- **From the ideal criterion to a repeated-factor decomposition, over an arbitrary base.**
+If the monic `f` lies in `⟨π, P⟩ ^ 2` for a monic `P` with irreducible reduction, then `f`
+admits a decomposition `P ^ 2 q + π (k P) + π ^ 2 c` with `P q` monic of degree `< deg f`.
+
+This is the converse of `saturated_of_forall_notMem_sq`, and it is what makes the criterion
+an equivalence rather than a one-way implication.  Dividing `f` by `P ^ 2` leaves a remainder
+`r` of small degree which still lies in `⟨π, P⟩ ^ 2`; being of degree below `2 deg P`, such an
+`r` is divisible by `π` (`C_dvd_of_mem_sq_of_natDegree_lt`) and its quotient lies in `⟨π, P⟩`
+(`mem_span_pair_of_C_mul_mem_sq`), which is exactly the shape required. -/
+theorem exists_sq_factor_of_mem_sq (hπ : Prime π) {f : R[X]} (hfm : f.Monic)
+    {P : R[X]} (hPm : P.Monic)
+    (hPirr : Irreducible (P.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hfmem : f ∈ (Ideal.span {C π, P} : Ideal (R[X])) ^ 2) :
+    ∃ h g k t : R[X], (h * g).Monic ∧ (h * g).natDegree < f.natDegree ∧
+      f = h ^ 2 * g + C π * (k * h) + C π ^ 2 * t := by
+  have hP0 : P.map (Ideal.Quotient.mk (Ideal.span {π})) ≠ 0 := hPirr.ne_zero
+  have hPd : 0 < P.natDegree := by
+    rcases Nat.eq_zero_or_pos P.natDegree with h0 | hpos
+    · rw [Polynomial.eq_one_of_monic_natDegree_zero hPm h0, Polynomial.map_one] at hPirr
+      exact absurd hPirr not_irreducible_one
+    · exact hpos
+  have hP2m : (P ^ 2).Monic := hPm.pow 2
+  set q := f /ₘ P ^ 2 with hqdef
+  set r := f %ₘ P ^ 2 with hrdef
+  have hdiv : r + P ^ 2 * q = f := modByMonic_add_div f (P ^ 2)
+  -- the reduction of `P ^ 2` divides that of `f`, so `2 deg P ≤ deg f`
+  have hdvdmap : (P.map (Ideal.Quotient.mk (Ideal.span {π}))) ^ 2 ∣
+      f.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hfmem
+    refine ⟨w.map (Ideal.Quotient.mk (Ideal.span {π})), ?_⟩
+    rw [huvw]
+    simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow, map_C,
+      Ideal.Quotient.eq_zero_iff_mem.mpr (Ideal.mem_span_singleton_self π), C_0, zero_mul,
+      zero_pow two_ne_zero, zero_add]
+  have hle : 2 * P.natDegree ≤ f.natDegree := by
+    have h := Polynomial.natDegree_le_of_dvd hdvdmap (hfm.map _).ne_zero
+    rwa [(hPm.map _).natDegree_pow, hPm.natDegree_map, hfm.natDegree_map] at h
+  have hrdegf : r.degree < f.degree := by
+    refine (degree_modByMonic_lt _ hP2m).trans_le ?_
+    rw [degree_eq_natDegree hP2m.ne_zero, degree_eq_natDegree hfm.ne_zero, hPm.natDegree_pow]
+    exact_mod_cast hle
+  -- the remainder still lies in the square, and is small
+  have hrmem : r ∈ (Ideal.span {C π, P} : Ideal (R[X])) ^ 2 := by
+    have hsub : r = f - P ^ 2 * q := by linear_combination hdiv
+    rw [hsub]
+    refine Ideal.sub_mem _ hfmem (Ideal.mul_mem_right _ _ ?_)
+    rw [sq, sq]
+    exact Ideal.mul_mem_mul (Ideal.subset_span (by simp)) (Ideal.subset_span (by simp))
+  have hrsmall : r.natDegree < 2 * P.natDegree := by
+    have hne1 : P ^ 2 ≠ 1 := fun h => by
+      have h0 : (P ^ 2).natDegree = 0 := by rw [h]; simp
+      rw [hPm.natDegree_pow] at h0; omega
+    have h := natDegree_modByMonic_lt f hP2m hne1
+    rwa [hPm.natDegree_pow] at h
+  obtain ⟨s, hs⟩ := C_dvd_of_mem_sq_of_natDegree_lt hPm hrmem hrsmall
+  obtain ⟨c, k, hck⟩ := Ideal.mem_span_pair.mp
+    (mem_span_pair_of_C_mul_mem_sq hπ hP0 (hs ▸ hrmem))
+  -- the quotient is monic, and `P q` has the right degree
+  have hP2q : (P ^ 2 * q).Monic := by
+    have heq : P ^ 2 * q = f - r := by linear_combination hdiv
+    rw [heq]; exact hfm.sub_of_left hrdegf
+  have hqm : q.Monic := hP2m.of_mul_monic_left hP2q
+  have hdegeq : (P ^ 2 * q).natDegree = f.natDegree := by
+    have heq : P ^ 2 * q = f - r := by linear_combination hdiv
+    rw [heq]
+    exact natDegree_eq_of_degree_eq (degree_sub_eq_left_of_degree_lt hrdegf)
+  refine ⟨P, q, k, c, hPm.mul hqm, ?_, ?_⟩
+  · rw [hPm.natDegree_mul hqm]
+    rw [hP2m.natDegree_mul hqm, hPm.natDegree_pow] at hdegeq
+    omega
+  · linear_combination -hdiv + hs - C π * hck
+
 end Saturation
 
 end Monogenic
@@ -245,5 +318,72 @@ theorem adjoin_eq_top_of_forall_maximal_localized_expand
   refine Monogenic.saturated_of_expand hπ (hfm.map _) hk ?_ hcoeff hnid
   rw [← Polynomial.map_expand, ← hmin]
   exact (minpoly_map_localization (θ := θ) 𝔭).symm
+
+/-- **The local obstruction is global.**  If at some maximal ideal `𝔭` the localised minimal
+polynomial lies in `⟨π, P⟩ ^ 2` for a prime `π` of `(𝓞 K)_𝔭` and a monic `P` with irreducible
+reduction, then `𝓞 K[θ] ≠ 𝓞 K₁`.
+
+This is the necessity half of Problem 2.  The obstruction lemma over an integrally closed
+base produces, from the decomposition of `exists_sq_factor_of_mem_sq`, an element of
+`(𝓞 K₁)_𝔭` outside `(𝓞 K)_𝔭[θ]`; and `adjoin_localizedAt_eq_top_of_adjoin_eq_top` says that
+`𝓞 K[θ] = 𝓞 K₁` would force the localised equality. -/
+theorem adjoin_ne_top_of_localized_mem_sq (𝔭 : Ideal (𝓞 K)) (h𝔭 : 𝔭.IsMaximal)
+    {π : Localization 𝔭.primeCompl} (hπ : Prime π)
+    {P : (Localization 𝔭.primeCompl)[X]} (hPm : P.Monic)
+    (hPirr : Irreducible (P.map (Ideal.Quotient.mk (Ideal.span {π}))))
+    (hmem : minpoly (Localization 𝔭.primeCompl)
+        (algebraMap (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭) θ) ∈
+      (Ideal.span {C π, P} : Ideal ((Localization 𝔭.primeCompl)[X])) ^ 2) :
+    Algebra.adjoin (𝓞 K) {θ} ≠ ⊤ := by
+  haveI := h𝔭
+  haveI := h𝔭.isPrime
+  -- the localisations sit inside `K` and `K₁`
+  letI : Algebra (Localization 𝔭.primeCompl) K :=
+    localizationAlgebraOfSubmonoidLe _ _ 𝔭.primeCompl (nonZeroDivisors (𝓞 K))
+      𝔭.primeCompl_le_nonZeroDivisors
+  haveI : IsScalarTower (𝓞 K) (Localization 𝔭.primeCompl) K :=
+    localization_isScalarTower_of_submonoid_le _ _ _ _ 𝔭.primeCompl_le_nonZeroDivisors
+  haveI : IsFractionRing (Localization 𝔭.primeCompl) K :=
+    IsFractionRing.isFractionRing_of_isDomain_of_isLocalization
+      𝔭.primeCompl (Localization 𝔭.primeCompl) K
+  have hle := algebraMapSubmonoid_primeCompl_le_nonZeroDivisors (K₁ := K₁) 𝔭
+  letI : Algebra (LocalizedAt (𝓞 K₁) 𝔭) K₁ :=
+    localizationAlgebraOfSubmonoidLe _ _ _ (nonZeroDivisors (𝓞 K₁)) hle
+  haveI : IsScalarTower (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭) K₁ :=
+    localization_isScalarTower_of_submonoid_le _ _ _ _ hle
+  haveI : IsFractionRing (LocalizedAt (𝓞 K₁) 𝔭) K₁ :=
+    IsFractionRing.isFractionRing_of_isDomain_of_isLocalization
+      (Algebra.algebraMapSubmonoid (𝓞 K₁) 𝔭.primeCompl) (LocalizedAt (𝓞 K₁) 𝔭) K₁
+  letI : Algebra (Localization 𝔭.primeCompl) K₁ :=
+    ((algebraMap K K₁).comp (algebraMap (Localization 𝔭.primeCompl) K)).toAlgebra
+  haveI : IsScalarTower (Localization 𝔭.primeCompl) K K₁ :=
+    IsScalarTower.of_algebraMap_eq' rfl
+  haveI : IsScalarTower (𝓞 K) (Localization 𝔭.primeCompl) K₁ :=
+    IsScalarTower.of_algebraMap_eq' (by
+      rw [RingHom.algebraMap_toAlgebra, RingHom.comp_assoc, ← IsScalarTower.algebraMap_eq,
+        ← IsScalarTower.algebraMap_eq])
+  haveI : IsScalarTower (𝓞 K) (LocalizedAt (𝓞 K₁) 𝔭) K₁ := by
+    refine IsScalarTower.of_algebraMap_eq' ?_
+    rw [IsScalarTower.algebraMap_eq (𝓞 K) (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭), ← RingHom.comp_assoc,
+      ← IsScalarTower.algebraMap_eq (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭) K₁,
+      ← IsScalarTower.algebraMap_eq]
+  haveI : IsScalarTower (Localization 𝔭.primeCompl) (LocalizedAt (𝓞 K₁) 𝔭) K₁ := by
+    refine IsScalarTower.of_algebraMap_eq' (IsLocalization.ringHom_ext 𝔭.primeCompl ?_)
+    rw [RingHom.comp_assoc, ← IsScalarTower.algebraMap_eq, ← IsScalarTower.algebraMap_eq]
+    exact IsScalarTower.algebraMap_eq (𝓞 K) (LocalizedAt (𝓞 K₁) 𝔭) K₁
+  -- a prime of the discrete valuation ring `(𝓞 K)_𝔭` generates its maximal ideal
+  haveI hm : (Ideal.span {π} : Ideal (Localization 𝔭.primeCompl)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  -- the decomposition, and the obstruction it produces
+  obtain ⟨h, g, k, t, hW, hdeg, hfeq⟩ :=
+    Monogenic.exists_sq_factor_of_mem_sq hπ
+      (minpoly.monic (Algebra.IsIntegral.isIntegral _)) hPm hPirr hmem
+  have hlocal : Algebra.adjoin (Localization 𝔭.primeCompl)
+      {algebraMap (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭) θ} ≠ ⊤ :=
+    Monogenic.adjoin_ne_top_of_sq_factor (K := K) (L := K₁) hπ hW hdeg hfeq
+  -- so `𝓞 K[θ]` cannot be everything either
+  intro htop
+  exact hlocal (Monogenic.adjoin_localizedAt_eq_top_of_adjoin_eq_top htop 𝔭)
 
 end NumberField.Relative
