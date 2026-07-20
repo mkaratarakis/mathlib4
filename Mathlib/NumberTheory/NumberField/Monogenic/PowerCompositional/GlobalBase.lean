@@ -386,4 +386,91 @@ theorem adjoin_ne_top_of_localized_mem_sq (𝔭 : Ideal (𝓞 K)) (h𝔭 : 𝔭.
   intro htop
   exact hlocal (Monogenic.adjoin_localizedAt_eq_top_of_adjoin_eq_top htop 𝔭)
 
+/-- **Problem 2 of Kaur–Kumar–Remete, solved.**  Let `K ⊆ K₁` be an extension of number
+fields, `θ : 𝓞 K₁` a generator of `K₁` over `K`, and suppose the minimal polynomial of `θ`
+over `𝓞 K` is `f (X ^ k)` with `f` monic and `k ≥ 2`.  Then
+
+`𝓞 K[θ] = 𝓞 K₁`
+
+**if and only if** at every maximal ideal `𝔭` of `𝓞 K`, for every prime element `π` of the
+localisation `(𝓞 K)_𝔭` and `p` the residue characteristic, the image of `f` satisfies
+
+* `π ^ 2 ∤ f (0)`, and
+* `π` is not an index divisor of `f (X ^ p)` — of `f` itself when `p ∤ k`.
+
+These are the two conditions of their Theorem 1.1, transported to the localisations.  **No
+hypothesis on the class number of `K` appears**: `(𝓞 K)_𝔭` is a discrete valuation ring, so
+the prime element the criterion needs exists even where `𝔭` is not principal, and its residue
+field `𝓞 K ⧸ 𝔭` is finite, hence perfect.
+
+Sufficiency is `adjoin_eq_top_of_forall_maximal_localized_expand`; necessity comes from
+`adjoin_ne_top_of_localized_mem_sq`, since either failing condition places the localised
+minimal polynomial in the square of a maximal ideal — the constant-term condition via
+`expand_mem_sq_of_sq_dvd_coeff_zero`, whose witness `X` is monic with irreducible
+reduction, and the index-divisor condition via `exists_expand_mem_sq_iff`. -/
+theorem adjoin_eq_top_iff_forall_maximal_localized_expand
+    (hgen : Algebra.adjoin K {(θ : K₁)} = ⊤)
+    {f : (𝓞 K)[X]} (hfm : f.Monic) {k : ℕ} (hk : 2 ≤ k)
+    (hmin : minpoly (𝓞 K) θ = Polynomial.expand (𝓞 K) k f) :
+    Algebra.adjoin (𝓞 K) {θ} = ⊤ ↔
+      ∀ (𝔭 : Ideal (𝓞 K)) (h𝔭 : 𝔭.IsMaximal),
+        letI := h𝔭.isPrime
+        ∀ π : Localization 𝔭.primeCompl, Prime π →
+          ∀ (p : ℕ) (_ : Fact p.Prime),
+            CharP (Localization 𝔭.primeCompl ⧸ Ideal.span {π}) p →
+            ¬ π ^ 2 ∣ (f.map (algebraMap (𝓞 K) (Localization 𝔭.primeCompl))).coeff 0 ∧
+            ¬ ∃ g : (Localization 𝔭.primeCompl)[X], g.Monic ∧
+              Irreducible (g.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+              Polynomial.expand (Localization 𝔭.primeCompl) (if p ∣ k then p else 1)
+                  (f.map (algebraMap (𝓞 K) (Localization 𝔭.primeCompl))) ∈
+                (Ideal.span {C π, g} : Ideal ((Localization 𝔭.primeCompl)[X])) ^ 2 := by
+  refine ⟨fun htop 𝔭 h𝔭 π hπ p hp hchar => ?_,
+    adjoin_eq_top_of_forall_maximal_localized_expand hgen hfm hk hmin⟩
+  haveI := h𝔭
+  haveI := h𝔭.isPrime
+  haveI := hp
+  haveI := hchar
+  haveI hm : (Ideal.span {π} : Ideal (Localization 𝔭.primeCompl)).IsMaximal :=
+    ((Ideal.span_singleton_prime hπ.ne_zero).mpr hπ).isMaximal
+      (by simpa [Ideal.span_singleton_eq_bot] using hπ.ne_zero)
+  -- the residue field is finite, hence perfect
+  haveI : Finite (Localization 𝔭.primeCompl ⧸ Ideal.span {π}) := by
+    rw [IsLocalRing.eq_maximalIdeal hm]
+    exact inferInstanceAs (Finite 𝔭.ResidueField)
+  haveI : PerfectField (Localization 𝔭.primeCompl ⧸ Ideal.span {π}) := PerfectField.ofFinite
+  -- the localised minimal polynomial is `f (X ^ k)` over `(𝓞 K)_𝔭`
+  have hminloc : minpoly (Localization 𝔭.primeCompl)
+      (algebraMap (𝓞 K₁) (LocalizedAt (𝓞 K₁) 𝔭) θ) =
+      Polynomial.expand (Localization 𝔭.primeCompl) k
+        (f.map (algebraMap (𝓞 K) (Localization 𝔭.primeCompl))) := by
+    rw [← Polynomial.map_expand, ← hmin, minpoly_map_localization (θ := θ) 𝔭]
+  -- either failure would put it in the square of a maximal ideal
+  have key : ∀ h : (Localization 𝔭.primeCompl)[X], h.Monic →
+      Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) →
+      Polynomial.expand (Localization 𝔭.primeCompl) k
+          (f.map (algebraMap (𝓞 K) (Localization 𝔭.primeCompl))) ∈
+        (Ideal.span {C π, h} : Ideal ((Localization 𝔭.primeCompl)[X])) ^ 2 → False := by
+    intro h hhm hhirr hmem
+    exact adjoin_ne_top_of_localized_mem_sq 𝔭 h𝔭 hπ hhm hhirr (hminloc ▸ hmem) htop
+  constructor
+  · -- the constant-term condition
+    intro hdvd
+    exact key X monic_X (by simpa using irreducible_X)
+      (Monogenic.expand_mem_sq_of_sq_dvd_coeff_zero hk hdvd)
+  · -- the index-divisor condition
+    rintro ⟨g, hgm, hgirr, hmem⟩
+    obtain ⟨h, hhm, hhirr, hmemk⟩ : ∃ h : (Localization 𝔭.primeCompl)[X], h.Monic ∧
+        Irreducible (h.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+        Polynomial.expand (Localization 𝔭.primeCompl) k
+            (f.map (algebraMap (𝓞 K) (Localization 𝔭.primeCompl))) ∈
+          (Ideal.span {C π, h} : Ideal ((Localization 𝔭.primeCompl)[X])) ^ 2 := by
+      by_cases hpk : p ∣ k
+      · rw [if_pos hpk] at hmem
+        exact (Monogenic.exists_expand_mem_sq_iff_of_dvd hπ (hfm.map _) hk hpk).mpr
+          (Or.inl ⟨g, hgm, hgirr, hmem⟩)
+      · rw [if_neg hpk, expand_one] at hmem
+        exact (Monogenic.exists_expand_mem_sq_iff hπ (hfm.map _) hk hpk).mpr
+          (Or.inl ⟨g, hgm, hgirr, hmem⟩)
+    exact key h hhm hhirr hmemk
+
 end NumberField.Relative
