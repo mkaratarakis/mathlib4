@@ -501,6 +501,38 @@ theorem mem_adjoin_of_forall_maximal_exists_smul_mem {R S : Type*} [CommRing R] 
   have h2 : algebraMap R S 1 * β ∈ Algebra.adjoin R {θ} := h1
   simpa using h2
 
+/-- **From membership after localising to a denominator outside `𝔭`.**  Let `R'` be a
+localisation of `R` at a submonoid `M`, and `S'` an `R'`-algebra receiving `S` injectively.
+If the image of `β` lies in `R'[θ]`, then some `t ∈ M` has `t β ∈ R[θ]` already.
+
+Two steps: `multiple_mem_adjoin_of_mem_localization_adjoin` clears the
+denominator inside `S'`, and injectivity of `S → S'` transports the resulting membership
+back to `S`. -/
+theorem exists_smul_mem_adjoin_of_mem_localization_adjoin
+    {R S : Type*} [CommRing R] [CommRing S] [Algebra R S] {θ β : S}
+    (M : Submonoid R) (R' S' : Type*) [CommRing R'] [CommRing S']
+    [Algebra R R'] [Algebra R' S'] [Algebra R S'] [Algebra S S']
+    [IsScalarTower R R' S'] [IsScalarTower R S S'] [IsLocalization M R']
+    (hinj : Function.Injective (algebraMap S S'))
+    (hβ : algebraMap S S' β ∈ Algebra.adjoin R' {algebraMap S S' θ}) :
+    ∃ t ∈ M, algebraMap R S t * β ∈ Algebra.adjoin R {θ} := by
+  obtain ⟨t, ht⟩ := multiple_mem_adjoin_of_mem_localization_adjoin
+    M R' {algebraMap S S' θ} (algebraMap S S' β) hβ
+  refine ⟨t.1, t.2, ?_⟩
+  -- `t • (β : S')` is the image of `t * β`
+  have himg : algebraMap S S' (algebraMap R S t.1 * β) = (t : R) • algebraMap S S' β := by
+    rw [map_mul, Algebra.smul_def, ← IsScalarTower.algebraMap_apply]
+  -- transport the membership back along the injection `S → S'`
+  have hmap : (Algebra.adjoin R {θ}).map (IsScalarTower.toAlgHom R S S')
+      = Algebra.adjoin R {algebraMap S S' θ} := by
+    rw [AlgHom.map_adjoin, Set.image_singleton, IsScalarTower.coe_toAlgHom']
+  have hmem : algebraMap S S' (algebraMap R S t.1 * β)
+      ∈ Algebra.adjoin R {algebraMap S S' θ} := by rw [himg]; exact ht
+  rw [← hmap] at hmem
+  obtain ⟨x, hx, hxeq⟩ := Subalgebra.mem_map.mp hmem
+  rw [IsScalarTower.coe_toAlgHom'] at hxeq
+  rwa [hinj hxeq] at hx
+
 end LocalGlobal
 
 section GlobalBase
