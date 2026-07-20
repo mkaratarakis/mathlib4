@@ -464,6 +464,45 @@ general Dedekind base the assembly needs localisation and is left open. -/
 
 
 
+section LocalGlobal
+
+/-- **Local–global principle for membership in `R[θ]`.**  If for every maximal ideal `𝔭` of
+`R` some element outside `𝔭` carries `β` into `R[θ]`, then `β` already lies in `R[θ]`.
+
+The denominators of `β` form an ideal of `R`; the hypothesis says exactly that this ideal is
+contained in no maximal ideal, so it is the unit ideal and `1` is a denominator.  This is the
+elementary form of the local–global step: it needs no localised modules, only the fact that a
+proper ideal lies in a maximal one. -/
+theorem mem_adjoin_of_forall_maximal_exists_smul_mem {R S : Type*} [CommRing R] [CommRing S]
+    [Algebra R S] {θ β : S}
+    (h : ∀ 𝔭 : Ideal R, 𝔭.IsMaximal →
+      ∃ t ∉ 𝔭, algebraMap R S t * β ∈ Algebra.adjoin R {θ}) :
+    β ∈ Algebra.adjoin R {θ} := by
+  classical
+  let I : Ideal R :=
+    { carrier := {r : R | algebraMap R S r * β ∈ Algebra.adjoin R {θ}}
+      zero_mem' := by simp
+      add_mem' := by
+        intro a b ha hb
+        simp only [Set.mem_setOf_eq] at *
+        rw [map_add, add_mul]
+        exact Subalgebra.add_mem _ ha hb
+      smul_mem' := by
+        intro c x hx
+        simp only [Set.mem_setOf_eq, smul_eq_mul] at *
+        rw [map_mul, mul_assoc]
+        exact Subalgebra.mul_mem _ (Subalgebra.algebraMap_mem _ c) hx }
+  have hI : I = ⊤ := by
+    by_contra hne
+    obtain ⟨𝔭, h𝔭, hle⟩ := Ideal.exists_le_maximal I hne
+    obtain ⟨t, ht𝔭, htmem⟩ := h 𝔭 h𝔭
+    exact ht𝔭 (hle htmem)
+  have h1 : (1 : R) ∈ I := hI ▸ Submodule.mem_top
+  have h2 : algebraMap R S 1 * β ∈ Algebra.adjoin R {θ} := h1
+  simpa using h2
+
+end LocalGlobal
+
 section GlobalBase
 
 variable {R S K L : Type*}
