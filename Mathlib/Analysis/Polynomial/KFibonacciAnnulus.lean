@@ -9,6 +9,7 @@ public import Mathlib.Algebra.BigOperators.Field
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Data.Nat.Fib.Basic
 public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.RingTheory.Polynomial.Chebyshev
 public import Mathlib.Tactic.Module
 public import Mathlib.Tactic.FinCases
 
@@ -28,10 +29,10 @@ equivalent to — but strictly more flexible than — fixing a definition.
 
 ## Main results
 
-* `LucasU.sum_choose_mul_solution` (generalising **Theorem 1.1** twice over): for any Lucas
-  sequence `F` over any commutative semiring and **any** solution `G` of the same recurrence
-  (arbitrary initial values),
-  `∑ ℓ ≤ n, n.choose ℓ * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ = G ((m + 1) * n)`.
+* `LucasU.sum_choose_mul_solution` (generalising **Theorem 1.1** three times over): for any
+  Lucas sequence `F` over any commutative semiring and **any** solution `G` of the same
+  recurrence — arbitrary initial values, valued in an arbitrary `R`-module —
+  `∑ ℓ ≤ n, (n.choose ℓ * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ) • G ℓ = G ((m + 1) * n)`.
   No positivity, no discriminant condition, no real square roots: the Binet formula of the
   paper is replaced by the binomial expansion of `(M ^ (m + 1)) ^ n` for the companion matrix
   `M = !![p, q; 1, 0]`, an operator identity evaluated on the solution space.
@@ -39,6 +40,14 @@ equivalent to — but strictly more flexible than — fixing a definition.
   the paper) is the case `R = ℝ`, `q = 1`, and `Nat.sum_choose_mul_fib` the case `R = ℕ`,
   `p = q = 1` — a cast-free `Nat.fib` identity, not even expressible through the paper's
   real-analytic proof.
+* `LucasU.dvd_of_dvd`: the fundamental Lucas divisibility law `a ∣ b → F a ∣ F b`
+  (generalising `Nat.fib_dvd` to every Lucas sequence over every commutative semiring), an
+  immediate consequence of the identity.
+* `LucasU.solution_ext`: solutions are determined by their two initial values, so the
+  hypothesis style is fully equivalent to a definition.
+* `Polynomial.Chebyshev.sum_choose_mul_U`, `Polynomial.Chebyshev.U_sub_one_dvd`: the case
+  `R[X]`, `p = 2 * X`, `q = -1` — composition identity and divisibility for Chebyshev
+  polynomials of the second kind, in the `q < 0` regime the annulus cannot reach.
 * `Polynomial.norm_le_of_isRoot_of_sum_weights`, `Polynomial.le_norm_of_isRoot_of_sum_weights`:
   the analytic core of Theorem 1.2 over any normed ring with multiplicative norm
   (`NormedRing` + `NormMulClass` + `NormOneClass` — e.g. `ℂ`, any normed field, `ℤ`), for an
@@ -80,6 +89,21 @@ namespace LucasU
 
 variable {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] {p q : R} {F : ℕ → R}
 
+/-- Two module-valued solutions of the recurrence with the same two initial values are
+equal.  Together with the explicit construction of solutions by `Nat.rec`, this makes the
+hypothesis style fully equivalent to introducing a definition. -/
+theorem solution_ext {M : Type*} [AddCommMonoid M] [Module R M] {G H : ℕ → M}
+    (hG : ∀ j, G (j + 2) = p • G (j + 1) + q • G j)
+    (hH : ∀ j, H (j + 2) = p • H (j + 1) + q • H j)
+    (h0 : G 0 = H 0) (h1 : G 1 = H 1) : G = H := by
+  funext n
+  have key : ∀ j, G j = H j ∧ G (j + 1) = H (j + 1) := by
+    intro j
+    induction j with
+    | zero => exact ⟨h0, h1⟩
+    | succ j ih => exact ⟨ih.2, by rw [hG j, hH j, ih.1, ih.2]⟩
+  exact (key n).1
+
 section Recurrence
 
 variable (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hrec : ∀ n, F (n + 2) = p * F (n + 1) + q * F n)
@@ -114,22 +138,25 @@ index `(m + 1) * n`:
 `∑ ℓ ≤ n, (n.choose ℓ) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ = G ((m + 1) * n)`.
 
 `F` must be the fundamental solution (`F 0 = 0`, `F 1 = 1`) since it supplies the weights,
-but `G` need only satisfy the recurrence.  `G := F` recovers `LucasU.sum_choose_mul`;
-`G 0 = 2`, `G 1 = p` gives the identity for the companion Lucas `V`-sequence, and
-`G := fun ℓ => F (ℓ + j)` the shifted identities — none of which are in the paper.
+but `G` need only satisfy the recurrence — and may take values in an arbitrary `R`-module,
+since the identity is linear in the solution.  `G := F` recovers `LucasU.sum_choose_mul`;
+`G 0 = 2`, `G 1 = p` gives the identity for the companion Lucas `V`-sequence,
+`G := fun ℓ => F (ℓ + j)` the shifted identities, and vector-valued `G` simultaneous
+families — none of which are in the paper.
 
 The underlying reason: the binomial expansion of `(M ^ (m + 1)) ^ n` for the companion
 matrix `M = !![p, q; 1, 0]` is an identity of *operators* on the solution space, so it
 evaluates on every solution, not just the fundamental one. -/
-theorem sum_choose_mul_solution {G : ℕ → R}
-    (hG : ∀ j, G (j + 2) = p * G (j + 1) + q * G j) (m n : ℕ) :
-    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ
+theorem sum_choose_mul_solution {M : Type*} [AddCommMonoid M] [Module R M] {G : ℕ → M}
+    (hG : ∀ j, G (j + 2) = p • G (j + 1) + q • G j) (m n : ℕ) :
+    ∑ ℓ ∈ range (n + 1),
+        ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ) • G ℓ
       = G ((m + 1) * n) := by
-  set M : Matrix (Fin 2) (Fin 2) R := !![p, q; 1, 0] with hM
-  have hα : M ^ 2 = p • M + q • 1 := by
+  set W : Matrix (Fin 2) (Fin 2) R := !![p, q; 1, 0] with hW
+  have hα : W ^ 2 = p • W + q • 1 := by
     ext i j
     fin_cases i <;> fin_cases j <;>
-      simp [pow_two, hM, Matrix.mul_apply, Fin.sum_univ_two]
+      simp [pow_two, hW, Matrix.mul_apply, Fin.sum_univ_two]
   have hpow := pow_succ_smul (A := Matrix (Fin 2) (Fin 2) R) hF0 hF1 hrec hα
   -- the second fundamental solution `E = 1, 0, q, q * p, ...` (initial values `1, 0`)
   obtain ⟨E, hE0, hEs⟩ : ∃ E : ℕ → R, E 0 = 1 ∧ ∀ j, E (j + 1) = q * F j :=
@@ -139,29 +166,29 @@ theorem sum_choose_mul_solution {G : ℕ → R}
     cases j with
     | zero => rw [hEs 1, hEs 0, hE0, hF0, hF1]; ring
     | succ i => rw [hEs (i + 2), hEs (i + 1), hEs i, hrec i]; ring
-  -- the bottom row of `M ^ j` is `(F j, E j)`
-  have hentry : ∀ j, (M ^ j) 1 0 = F j ∧ (M ^ j) 1 1 = E j := by
+  -- the bottom row of `W ^ j` is `(F j, E j)`
+  have hentry : ∀ j, (W ^ j) 1 0 = F j ∧ (W ^ j) 1 1 = E j := by
     intro j
     cases j with
     | zero => exact ⟨by simp [hF0], by simp [hE0]⟩
-    | succ i => exact ⟨by rw [hpow i]; simp [hM], by rw [hpow i]; simp [hM, hEs i]⟩
-  have hcomm : Commute (F (m + 1) • M) ((q * F m) • (1 : Matrix (Fin 2) (Fin 2) R)) :=
-    ((Commute.one_right M).smul_right _).smul_left _
+    | succ i => exact ⟨by rw [hpow i]; simp [hW], by rw [hpow i]; simp [hW, hEs i]⟩
+  have hcomm : Commute (F (m + 1) • W) ((q * F m) • (1 : Matrix (Fin 2) (Fin 2) R)) :=
+    ((Commute.one_right W).smul_right _).smul_left _
   have hcast : ∀ ℓ : ℕ, ((n.choose ℓ : ℕ) : Matrix (Fin 2) (Fin 2) R)
       = (n.choose ℓ : R) • (1 : Matrix (Fin 2) (Fin 2) R) := by
     intro ℓ
     rw [← Algebra.algebraMap_eq_smul_one, map_natCast]
-  have expand : (M ^ (m + 1)) ^ n
+  have expand : (W ^ (m + 1)) ^ n
       = ∑ ℓ ∈ range (n + 1),
-          ((n.choose ℓ : R) * F (m + 1) ^ ℓ * (q * F m) ^ (n - ℓ)) • M ^ ℓ := by
+          ((n.choose ℓ : R) * F (m + 1) ^ ℓ * (q * F m) ^ (n - ℓ)) • W ^ ℓ := by
     rw [hpow m, hcomm.add_pow]
     refine sum_congr rfl fun ℓ _ => ?_
     rw [smul_pow, smul_pow, one_pow, hcast ℓ]
     simp only [mul_smul_comm, mul_one, smul_smul]
     match_scalars
     ring
-  -- the identity, for any sequence realised in the bottom row of the powers of `M`
-  have main : ∀ (S : ℕ → R) (i : Fin 2), (∀ j, (M ^ j) 1 i = S j) →
+  -- the identity, for any sequence realised in the bottom row of the powers of `W`
+  have main : ∀ (S : ℕ → R) (i : Fin 2), (∀ j, (W ^ j) 1 i = S j) →
       ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * S ℓ
         = S ((m + 1) * n) := by
     intro S i hS
@@ -170,37 +197,41 @@ theorem sum_choose_mul_solution {G : ℕ → R}
             ((n.choose ℓ : R) * F (m + 1) ^ ℓ * (q * F m) ^ (n - ℓ)) * S ℓ := by
           refine sum_congr rfl fun ℓ _ => ?_
           ring
-      _ = ((M ^ (m + 1)) ^ n) 1 i := by
+      _ = ((W ^ (m + 1)) ^ n) 1 i := by
           rw [expand, Matrix.sum_apply]
           exact (sum_congr rfl fun ℓ _ => by
             rw [Matrix.smul_apply, hS ℓ, smul_eq_mul]).symm
-      _ = (M ^ ((m + 1) * n)) 1 i := by rw [pow_mul]
+      _ = (W ^ ((m + 1) * n)) 1 i := by rw [pow_mul]
       _ = S ((m + 1) * n) := hS _
   -- every solution is a linear combination of the two fundamental ones
-  have hGdec : ∀ ℓ, G ℓ = G 1 * F ℓ + G 0 * E ℓ := by
-    have key : ∀ j, G j = G 1 * F j + G 0 * E j ∧
-        G (j + 1) = G 1 * F (j + 1) + G 0 * E (j + 1) := by
+  have hGdec : ∀ ℓ, G ℓ = F ℓ • G 1 + E ℓ • G 0 := by
+    have key : ∀ j, G j = F j • G 1 + E j • G 0 ∧
+        G (j + 1) = F (j + 1) • G 1 + E (j + 1) • G 0 := by
       intro j
       induction j with
       | zero =>
         constructor
-        · rw [hF0, hE0]; ring
-        · rw [hF1, hEs 0, hF0]; ring
+        · rw [hF0, hE0]; simp
+        · rw [hF1, hEs 0, hF0]; simp
       | succ j ih =>
         refine ⟨ih.2, ?_⟩
         rw [hG j, hrec j, hErec j, ih.1, ih.2]
-        ring
+        module
     exact fun ℓ => (key ℓ).1
-  calc ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ
+  calc ∑ ℓ ∈ range (n + 1),
+        ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ) • G ℓ
       = ∑ ℓ ∈ range (n + 1),
-          (G 1 * ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ)
-            + G 0 * ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * E ℓ)) := by
+          (((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ) • G 1
+            + ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * E ℓ) • G 0) := by
         refine sum_congr rfl fun ℓ _ => ?_
-        rw [hGdec ℓ]
-        ring
-    _ = G 1 * F ((m + 1) * n) + G 0 * E ((m + 1) * n) := by
-        rw [sum_add_distrib, ← mul_sum, ← mul_sum,
-          main F 0 (fun j => (hentry j).1), main E 1 (fun j => (hentry j).2)]
+        rw [hGdec ℓ, smul_add, smul_smul, smul_smul]
+    _ = (∑ ℓ ∈ range (n + 1),
+            (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ) • G 1
+          + (∑ ℓ ∈ range (n + 1),
+              (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * E ℓ) • G 0 := by
+        rw [sum_add_distrib, ← sum_smul, ← sum_smul]
+    _ = F ((m + 1) * n) • G 1 + E ((m + 1) * n) • G 0 := by
+        rw [main F 0 (fun j => (hentry j).1), main E 1 (fun j => (hentry j).2)]
     _ = G ((m + 1) * n) := (hGdec _).symm
 
 /-- **Theorem 1.1** of the paper, generalised to any Lucas sequence over any commutative
@@ -211,8 +242,27 @@ The index `m` is shifted by one relative to the paper so that all indices are na
 This is the case `G := F` of `LucasU.sum_choose_mul_solution`. -/
 theorem sum_choose_mul (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
-      = F ((m + 1) * n) :=
-  sum_choose_mul_solution hF0 hF1 hrec hrec m n
+      = F ((m + 1) * n) := by
+  have h := sum_choose_mul_solution hF0 hF1 hrec (M := R) (G := F)
+    (fun j => by rw [hrec j, smul_eq_mul, smul_eq_mul]) m n
+  simpa [smul_eq_mul] using h
+
+/-- The fundamental Lucas divisibility law: index divisibility implies sequence
+divisibility, `a ∣ b → F a ∣ F b`, over any commutative semiring.  For `Nat.fib` this is
+`Nat.fib_dvd`.  It drops out of `LucasU.sum_choose_mul`: the `ℓ = 0` term of the sum
+vanishes and every other term contains the factor `F (m + 1)`. -/
+theorem dvd_of_dvd {a b : ℕ} (h : a ∣ b) : F a ∣ F b := by
+  obtain ⟨k, rfl⟩ := h
+  cases a with
+  | zero => simp [hF0]
+  | succ m =>
+    rw [← sum_choose_mul hF0 hF1 hrec m k]
+    refine Finset.dvd_sum fun ℓ _ => ?_
+    cases ℓ with
+    | zero => simp [hF0]
+    | succ i =>
+      exact ⟨(k.choose (i + 1) : R) * (q * F m) ^ (k - (i + 1)) * F (m + 1) ^ i * F (i + 1),
+        by ring⟩
 
 end Recurrence
 
@@ -250,6 +300,52 @@ theorem Nat.sum_choose_mul_fib (m n : ℕ) :
   have h := LucasU.sum_choose_mul (R := ℕ) (p := 1) (q := 1) Nat.fib_zero Nat.fib_one
     (fun j => by rw [Nat.fib_add_two]; ring) m n
   simpa using h
+
+namespace Polynomial.Chebyshev
+
+/-- Chebyshev polynomials of the second kind are (up to an index shift) the Lucas sequence
+with `p = 2 * X`, `q = -1` over `R[X]`: the Lucas identity becomes a composition identity
+for `Polynomial.Chebyshev.U`.  This lies in the `q < 0` regime, where the annulus theorems
+below cannot apply but the algebraic identity still does. -/
+theorem sum_choose_mul_U (R : Type*) [CommRing R] (m n : ℕ) :
+    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R[X]) * (-U R ((m : ℤ) - 1)) ^ (n - ℓ)
+        * U R m ^ ℓ * U R ((ℓ : ℤ) - 1)
+      = U R (((m : ℤ) + 1) * n - 1) := by
+  have hF0 : U R (((0 : ℕ) : ℤ) - 1) = 0 := by simp
+  have hF1 : U R (((1 : ℕ) : ℤ) - 1) = 1 := by simp
+  have hrec : ∀ j : ℕ, U R (((j + 2 : ℕ) : ℤ) - 1)
+      = 2 * X * U R (((j + 1 : ℕ) : ℤ) - 1) + -1 * U R (((j : ℕ) : ℤ) - 1) := by
+    intro j
+    have h := U_add_two R ((j : ℤ) - 1)
+    have e2 : ((j : ℤ) - 1) + 2 = ((j + 2 : ℕ) : ℤ) - 1 := by push_cast; ring
+    have e1 : ((j : ℤ) - 1) + 1 = ((j + 1 : ℕ) : ℤ) - 1 := by push_cast; ring
+    rw [e2, e1] at h
+    rw [h]
+    ring
+  have h := LucasU.sum_choose_mul (p := 2 * X) (q := -1)
+    (F := fun j => U R ((j : ℤ) - 1)) hF0 hF1 hrec m n
+  have em : ((m + 1 : ℕ) : ℤ) - 1 = (m : ℤ) := by push_cast; ring
+  have eN : ((((m + 1) * n : ℕ)) : ℤ) - 1 = ((m : ℤ) + 1) * n - 1 := by push_cast; ring
+  simpa [em, eN, neg_one_mul] using h
+
+/-- The Lucas divisibility law for Chebyshev-`U`: `a ∣ b → U (a - 1) ∣ U (b - 1)`. -/
+theorem U_sub_one_dvd (R : Type*) [CommRing R] {a b : ℕ} (h : a ∣ b) :
+    U R ((a : ℤ) - 1) ∣ U R ((b : ℤ) - 1) := by
+  have hF0 : U R (((0 : ℕ) : ℤ) - 1) = 0 := by simp
+  have hF1 : U R (((1 : ℕ) : ℤ) - 1) = 1 := by simp
+  have hrec : ∀ j : ℕ, U R (((j + 2 : ℕ) : ℤ) - 1)
+      = 2 * X * U R (((j + 1 : ℕ) : ℤ) - 1) + -1 * U R (((j : ℕ) : ℤ) - 1) := by
+    intro j
+    have hj := U_add_two R ((j : ℤ) - 1)
+    have e2 : ((j : ℤ) - 1) + 2 = ((j + 2 : ℕ) : ℤ) - 1 := by push_cast; ring
+    have e1 : ((j : ℤ) - 1) + 1 = ((j + 1 : ℕ) : ℤ) - 1 := by push_cast; ring
+    rw [e2, e1] at hj
+    rw [hj]
+    ring
+  exact LucasU.dvd_of_dvd (p := 2 * X) (q := -1)
+    (F := fun j => U R ((j : ℤ) - 1)) hF0 hF1 hrec h
+
+end Polynomial.Chebyshev
 
 namespace Real
 
