@@ -16,10 +16,12 @@ the Pell numbers the case `(k, t) = (2, 1)`, the Jacobsthal numbers the case
 `(k, t) = (1, 2)`, and the Mersenne numbers `2 ^ n - 1` the case `(k, t) = (3, -2)`.
 
 This sequence is *precisely* the fundamental Lucas solution `U(k, t)` of
-`Mathlib/Analysis/Polynomial/KFibonacciAnnulus.lean`, so the binomial identity, the
-divisibility law and the annulus theorems all hold for it verbatim — this file records the
-`(k, t)`-facing statements as instantiations, together with the results whose *statements*
-are genuinely new at this level of generality:
+`Mathlib/Analysis/Polynomial/KFibonacciAnnulus.lean`: the binomial identity, the
+divisibility law, the small values and the annulus for it *are* (up to renaming the
+parameters) `LucasU.sum_choose_mul`, `LucasU.dvd_of_dvd`, `Real.lucas_three`,
+`Real.lucas_four` and `Polynomial.isRoot_mem_lucas_annulus`, so no restatements are given.
+This file contains the results whose *statements* are genuinely new at this level of
+generality:
 
 * `Polynomial.isRoot_mem_ktFib_annulus_four`: the analogue of Corollary 1.3 of Kaur's
   `k`-Fibonacci paper, whose radii now involve `(t * (k ^ 2 + t)) ^ (n - ℓ)` and
@@ -56,37 +58,7 @@ carried by their defining recurrences as hypotheses.
 
 open Finset
 
-namespace Real
-
-/-! ### The `(k, t)`-Fibonacci identity and small values -/
-
-variable {k t : ℝ} {F : ℕ → ℝ}
-
-section Recurrence
-
-variable (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-  (hrec : ∀ n, F (n + 2) = k * F (n + 1) + t * F n)
-include hF0 hF1 hrec
-
-/-- **Theorem 1.1** for the `(k, t)`-Fibonacci sequence: the binomial identity
-`∑ ℓ ≤ n, (n.choose ℓ) * (t * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ = F ((m + 1) * n)`.
-The case `t = 1` is `Real.sum_choose_mul_kFib`.  No positivity of `k` or `t` is needed. -/
-theorem sum_choose_mul_ktFib (m n : ℕ) :
-    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : ℝ) * (t * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
-      = F ((m + 1) * n) :=
-  LucasU.sum_choose_mul hF0 hF1 hrec m n
-
-/-- The `(k, t)`-Fibonacci value `F 3 = k ^ 2 + t`. -/
-theorem ktFib_three : F 3 = k ^ 2 + t :=
-  lucas_three hF0 hF1 hrec
-
-/-- The `(k, t)`-Fibonacci value `F 4 = k ^ 3 + 2 * k * t`. -/
-theorem ktFib_four : F 4 = k ^ 3 + 2 * k * t :=
-  lucas_four hF0 hF1 hrec
-
-end Recurrence
-
-end Real
+/-! ### Composition identities: Mersenne, extended `(k, t)`-Fibonacci, Leonardo -/
 
 /-- The composition identity for the **Mersenne numbers** `2 ^ n - 1`: the
 `(k, t) = (3, -2)`-Fibonacci sequence over `ℤ`.  This lies in the regime `t < 0`, which the
@@ -147,23 +119,6 @@ variable (hF0 : F 0 = 0) (hF1 : F 1 = 1)
   (hrec : ∀ j, F (j + 2) = k * F (j + 1) + t * F j)
 include hF0 hF1 hrec
 
-/-- **Theorem 1.2** for the `(k, t)`-Fibonacci sequence: all zeros of `p` lie in the closed
-annulus with the `(k, t)`-Fibonacci radii.  The case `t = 1` is
-`Polynomial.isRoot_mem_kFib_annulus`. -/
-theorem isRoot_mem_ktFib_annulus (hk : 0 < k) (ht : 0 < t)
-    {m : ℕ} (hm : 1 ≤ m) (hdeg : 1 ≤ p.natDegree)
-    (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :
-    (Icc 1 p.natDegree).inf' (Finset.nonempty_Icc.2 hdeg) (fun ℓ =>
-        ((p.natDegree.choose ℓ : ℝ) * (t * F m) ^ (p.natDegree - ℓ) * F (m + 1) ^ ℓ * F ℓ
-            / F ((m + 1) * p.natDegree)
-            * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) ≤ ‖z‖ ∧
-      ‖z‖ ≤ (Icc 1 p.natDegree).sup' (Finset.nonempty_Icc.2 hdeg) fun ℓ =>
-        (F ((m + 1) * p.natDegree)
-            / ((p.natDegree.choose ℓ : ℝ) * (t * F m) ^ (p.natDegree - ℓ)
-                * F (m + 1) ^ ℓ * F ℓ)
-            * (‖p.coeff (p.natDegree - ℓ)‖ / ‖p.leadingCoeff‖)) ^ ((ℓ : ℝ)⁻¹) :=
-  isRoot_mem_lucas_annulus hF0 hF1 hrec hk ht hm hdeg ha hz
-
 /-- The analogue for `(k, t)`-Fibonacci sequences of Corollary 1.3 of Kaur's `k`-Fibonacci
 paper: the case `m = 4` (paper indexing), where `F 3 = k ^ 2 + t` and
 `F 4 = k ^ 3 + 2 * k * t`.  The radii involve `(t * (k ^ 2 + t)) ^ (n - ℓ)`, in which the
@@ -179,8 +134,8 @@ theorem isRoot_mem_ktFib_annulus_four (hk : 0 < k) (ht : 0 < t) (hdeg : 1 ≤ p.
             / ((p.natDegree.choose ℓ : ℝ) * (t * (k ^ 2 + t)) ^ (p.natDegree - ℓ)
                 * (k ^ 3 + 2 * k * t) ^ ℓ * F ℓ)
             * (‖p.coeff (p.natDegree - ℓ)‖ / ‖p.leadingCoeff‖)) ^ ((ℓ : ℝ)⁻¹) := by
-  have h := isRoot_mem_ktFib_annulus hF0 hF1 hrec hk ht (m := 3) (by norm_num) hdeg ha hz
-  simpa only [Real.ktFib_three hF0 hF1 hrec, Real.ktFib_four hF0 hF1 hrec,
+  have h := isRoot_mem_lucas_annulus hF0 hF1 hrec hk ht (m := 3) (by norm_num) hdeg ha hz
+  simpa only [Real.lucas_three hF0 hF1 hrec, Real.lucas_four hF0 hF1 hrec,
     show (3 : ℕ) + 1 = 4 from rfl] using h
 
 end KTFib
