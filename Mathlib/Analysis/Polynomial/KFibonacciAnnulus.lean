@@ -28,22 +28,26 @@ equivalent to — but strictly more flexible than — fixing a definition.
 
 ## Main results
 
-* `LucasU.sum_choose_mul` (generalising **Theorem 1.1**): for any Lucas sequence over any
-  commutative semiring,
-  `∑ ℓ ≤ n, n.choose ℓ * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ = F ((m + 1) * n)`.
+* `LucasU.sum_choose_mul_solution` (generalising **Theorem 1.1** twice over): for any Lucas
+  sequence `F` over any commutative semiring and **any** solution `G` of the same recurrence
+  (arbitrary initial values),
+  `∑ ℓ ≤ n, n.choose ℓ * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ = G ((m + 1) * n)`.
   No positivity, no discriminant condition, no real square roots: the Binet formula of the
   paper is replaced by the binomial expansion of `(M ^ (m + 1)) ^ n` for the companion matrix
-  `M = !![p, q; 1, 0]`, whose powers carry `F` in their bottom-left entry.
-* `Real.sum_choose_mul_kFib` (**Theorem 1.1** of the paper): the case `R = ℝ`, `q = 1`.
-* `Nat.sum_choose_mul_fib`: the case `R = ℕ`, `p = q = 1` — a cast-free `Nat.fib` identity,
-  not even expressible through the paper's real-analytic proof.
+  `M = !![p, q; 1, 0]`, an operator identity evaluated on the solution space.
+* `LucasU.sum_choose_mul`: the case `G := F`; `Real.sum_choose_mul_kFib` (**Theorem 1.1** of
+  the paper) is the case `R = ℝ`, `q = 1`, and `Nat.sum_choose_mul_fib` the case `R = ℕ`,
+  `p = q = 1` — a cast-free `Nat.fib` identity, not even expressible through the paper's
+  real-analytic proof.
 * `Polynomial.norm_le_of_isRoot_of_sum_weights`, `Polynomial.le_norm_of_isRoot_of_sum_weights`:
-  the analytic core of Theorem 1.2 over any `NormedDivisionRing`, for an arbitrary weight
-  sequence summing to `1`.
-* `Polynomial.isRoot_mem_lucas_annulus` (generalising **Theorem 1.2**): every zero of a
-  polynomial over a normed division ring lies in the closed annulus `r₁ ≤ ‖z‖ ≤ r₂` with
-  Lucas-weight radii (`P > 0`, `Q > 0`), stated via `Finset.inf'`/`Finset.sup'` and real
-  `rpow`.
+  the analytic core of Theorem 1.2 over any normed ring with multiplicative norm
+  (`NormedRing` + `NormMulClass` + `NormOneClass` — e.g. `ℂ`, any normed field, `ℤ`), for an
+  arbitrary weight sequence summing to `1`.
+* `Polynomial.isRoot_mem_annulus_of_sum_weights`: the master closed-form annulus — **any**
+  partition of unity `A` on `1 ≤ ℓ ≤ n` confines all zeros to
+  `min (A ℓ * ‖a₀/aℓ‖)^(1/ℓ) ≤ ‖z‖ ≤ max ((1/A ℓ) * ‖a_{n-ℓ}/aₙ‖)^(1/ℓ)`.
+* `Polynomial.isRoot_mem_lucas_annulus` (generalising **Theorem 1.2**): the Lucas-weight
+  radii (`P > 0`, `Q > 0`), via `Finset.inf'`/`Finset.sup'` and real `rpow`.
 * `Polynomial.isRoot_mem_kFib_annulus` (**Theorem 1.2** of the paper): the case `Q = 1`.
 * `Polynomial.isRoot_mem_kFib_annulus_four` (**Corollary 1.3**, Bidkham–Shashahani): the case
   `m = 4` of the paper, with `F 3 = k ^ 2 + 1`, `F 4 = k ^ 3 + 2 * k`.
@@ -104,27 +108,43 @@ theorem pow_succ_smul {α : A} (hα : α ^ 2 = p • α + q • 1) (j : ℕ) :
       hrec j]
     match_scalars <;> ring
 
-/-- **Theorem 1.1** of the paper, generalised to any Lucas sequence over any commutative
-semiring: `∑ ℓ ≤ n, (n.choose ℓ) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ = F ((m+1)n)`.
+/-- **Theorem 1.1**, maximally generalised: the Lucas-weight sum reproduces **any** solution
+`G` of the recurrence — arbitrary initial values `G 0`, `G 1`, no hypotheses on them — at
+index `(m + 1) * n`:
+`∑ ℓ ≤ n, (n.choose ℓ) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ = G ((m + 1) * n)`.
 
-The index `m` is shifted by one relative to the paper so that all indices are naturals.
-The proof expands `(M ^ (m + 1)) ^ n` binomially for the companion matrix `M = !![p, q; 1, 0]`
-and reads off the bottom-left entry, replacing the paper's Binet-formula argument (which
-would require a square root of the discriminant). -/
-theorem sum_choose_mul (m n : ℕ) :
-    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
-      = F ((m + 1) * n) := by
+`F` must be the fundamental solution (`F 0 = 0`, `F 1 = 1`) since it supplies the weights,
+but `G` need only satisfy the recurrence.  `G := F` recovers `LucasU.sum_choose_mul`;
+`G 0 = 2`, `G 1 = p` gives the identity for the companion Lucas `V`-sequence, and
+`G := fun ℓ => F (ℓ + j)` the shifted identities — none of which are in the paper.
+
+The underlying reason: the binomial expansion of `(M ^ (m + 1)) ^ n` for the companion
+matrix `M = !![p, q; 1, 0]` is an identity of *operators* on the solution space, so it
+evaluates on every solution, not just the fundamental one. -/
+theorem sum_choose_mul_solution {G : ℕ → R}
+    (hG : ∀ j, G (j + 2) = p * G (j + 1) + q * G j) (m n : ℕ) :
+    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ
+      = G ((m + 1) * n) := by
   set M : Matrix (Fin 2) (Fin 2) R := !![p, q; 1, 0] with hM
   have hα : M ^ 2 = p • M + q • 1 := by
     ext i j
     fin_cases i <;> fin_cases j <;>
       simp [pow_two, hM, Matrix.mul_apply, Fin.sum_univ_two]
   have hpow := pow_succ_smul (A := Matrix (Fin 2) (Fin 2) R) hF0 hF1 hrec hα
-  have hentry : ∀ j, (M ^ j) 1 0 = F j := by
+  -- the second fundamental solution `E = 1, 0, q, q * p, ...` (initial values `1, 0`)
+  obtain ⟨E, hE0, hEs⟩ : ∃ E : ℕ → R, E 0 = 1 ∧ ∀ j, E (j + 1) = q * F j :=
+    ⟨fun ℓ => match ℓ with | 0 => 1 | j + 1 => q * F j, rfl, fun _ => rfl⟩
+  have hErec : ∀ j, E (j + 2) = p * E (j + 1) + q * E j := by
     intro j
     cases j with
-    | zero => simp [hF0]
-    | succ i => rw [hpow i]; simp [hM]
+    | zero => rw [hEs 1, hEs 0, hE0, hF0, hF1]; ring
+    | succ i => rw [hEs (i + 2), hEs (i + 1), hEs i, hrec i]; ring
+  -- the bottom row of `M ^ j` is `(F j, E j)`
+  have hentry : ∀ j, (M ^ j) 1 0 = F j ∧ (M ^ j) 1 1 = E j := by
+    intro j
+    cases j with
+    | zero => exact ⟨by simp [hF0], by simp [hE0]⟩
+    | succ i => exact ⟨by rw [hpow i]; simp [hM], by rw [hpow i]; simp [hM, hEs i]⟩
   have hcomm : Commute (F (m + 1) • M) ((q * F m) • (1 : Matrix (Fin 2) (Fin 2) R)) :=
     ((Commute.one_right M).smul_right _).smul_left _
   have hcast : ∀ ℓ : ℕ, ((n.choose ℓ : ℕ) : Matrix (Fin 2) (Fin 2) R)
@@ -140,16 +160,59 @@ theorem sum_choose_mul (m n : ℕ) :
     simp only [mul_smul_comm, mul_one, smul_smul]
     match_scalars
     ring
-  calc ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
-      = ∑ ℓ ∈ range (n + 1),
-          ((n.choose ℓ : R) * F (m + 1) ^ ℓ * (q * F m) ^ (n - ℓ)) * F ℓ := by
-        refine sum_congr rfl fun ℓ _ => ?_
+  -- the identity, for any sequence realised in the bottom row of the powers of `M`
+  have main : ∀ (S : ℕ → R) (i : Fin 2), (∀ j, (M ^ j) 1 i = S j) →
+      ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * S ℓ
+        = S ((m + 1) * n) := by
+    intro S i hS
+    calc ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * S ℓ
+        = ∑ ℓ ∈ range (n + 1),
+            ((n.choose ℓ : R) * F (m + 1) ^ ℓ * (q * F m) ^ (n - ℓ)) * S ℓ := by
+          refine sum_congr rfl fun ℓ _ => ?_
+          ring
+      _ = ((M ^ (m + 1)) ^ n) 1 i := by
+          rw [expand, Matrix.sum_apply]
+          exact (sum_congr rfl fun ℓ _ => by
+            rw [Matrix.smul_apply, hS ℓ, smul_eq_mul]).symm
+      _ = (M ^ ((m + 1) * n)) 1 i := by rw [pow_mul]
+      _ = S ((m + 1) * n) := hS _
+  -- every solution is a linear combination of the two fundamental ones
+  have hGdec : ∀ ℓ, G ℓ = G 1 * F ℓ + G 0 * E ℓ := by
+    have key : ∀ j, G j = G 1 * F j + G 0 * E j ∧
+        G (j + 1) = G 1 * F (j + 1) + G 0 * E (j + 1) := by
+      intro j
+      induction j with
+      | zero =>
+        constructor
+        · rw [hF0, hE0]; ring
+        · rw [hF1, hEs 0, hF0]; ring
+      | succ j ih =>
+        refine ⟨ih.2, ?_⟩
+        rw [hG j, hrec j, hErec j, ih.1, ih.2]
         ring
-    _ = ((M ^ (m + 1)) ^ n) 1 0 := by
-        rw [expand, Matrix.sum_apply]
-        exact (sum_congr rfl fun ℓ _ => by rw [Matrix.smul_apply, hentry ℓ, smul_eq_mul]).symm
-    _ = (M ^ ((m + 1) * n)) 1 0 := by rw [pow_mul]
-    _ = F ((m + 1) * n) := hentry _
+    exact fun ℓ => (key ℓ).1
+  calc ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * G ℓ
+      = ∑ ℓ ∈ range (n + 1),
+          (G 1 * ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ)
+            + G 0 * ((n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * E ℓ)) := by
+        refine sum_congr rfl fun ℓ _ => ?_
+        rw [hGdec ℓ]
+        ring
+    _ = G 1 * F ((m + 1) * n) + G 0 * E ((m + 1) * n) := by
+        rw [sum_add_distrib, ← mul_sum, ← mul_sum,
+          main F 0 (fun j => (hentry j).1), main E 1 (fun j => (hentry j).2)]
+    _ = G ((m + 1) * n) := (hGdec _).symm
+
+/-- **Theorem 1.1** of the paper, generalised to any Lucas sequence over any commutative
+semiring: `∑ ℓ ≤ n, (n.choose ℓ) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ = F ((m+1)n)`.
+No positivity, no discriminant condition, no real square roots.
+
+The index `m` is shifted by one relative to the paper so that all indices are naturals.
+This is the case `G := F` of `LucasU.sum_choose_mul_solution`. -/
+theorem sum_choose_mul (m n : ℕ) :
+    ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
+      = F ((m + 1) * n) :=
+  sum_choose_mul_solution hF0 hF1 hrec hrec m n
 
 end Recurrence
 
@@ -258,7 +321,7 @@ namespace Polynomial
 
 open Finset
 
-variable {K : Type*} [NormedDivisionRing K]
+variable {K : Type*} [NormedRing K] [NormOneClass K] [NormMulClass K]
 
 /-- The analytic core of Theorem 1.2: if the weights `A ℓ` are nonnegative, sum to `1` over
 `1 ≤ ℓ ≤ n`, and dominate the coefficient ratios `‖a (n - ℓ)‖ / ‖a n‖` at scale `R`, then
@@ -268,7 +331,8 @@ This is stated over any normed division ring and for an arbitrary weight sequenc
 `LucasU.sum_choose_mul` supplies the Lucas weights
 `A ℓ = (n.choose ℓ) * (Q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ / F ((m + 1) * n)`. -/
 theorem norm_le_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {R : ℝ} (hR : 0 ≤ R)
-    (hA : ∀ ℓ, 0 ≤ A ℓ) (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
+    (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 ≤ A ℓ)
+    (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
     (hcoeff : ∀ ℓ ∈ Icc 1 p.natDegree,
       ‖p.coeff (p.natDegree - ℓ)‖ ≤ A ℓ * ‖p.leadingCoeff‖ * R ^ ℓ)
     {z : K} (hz : p.IsRoot z) : ‖z‖ ≤ R := by
@@ -291,7 +355,7 @@ theorem norm_le_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {R : ℝ} 
     by_contra hall
     push Not at hall
     have : ∑ ℓ ∈ Icc 1 n, A ℓ = 0 :=
-      sum_eq_zero fun ℓ hℓ => le_antisymm (hall ℓ hℓ) (hA ℓ)
+      sum_eq_zero fun ℓ hℓ => le_antisymm (hall ℓ hℓ) (hA ℓ hℓ)
     rw [hsum] at this
     exact one_ne_zero this
   -- Split the leading term off the evaluation of `p` at `z`.
@@ -332,7 +396,7 @@ theorem norm_le_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {R : ℝ} 
         have h2 : R ^ ℓ ≤ ‖z‖ ^ ℓ := pow_le_pow_left₀ hR hcon.le ℓ
         have h3 : A ℓ * ‖p.leadingCoeff‖ * R ^ ℓ
             ≤ A ℓ * ‖p.leadingCoeff‖ * ‖z‖ ^ ℓ :=
-          mul_le_mul_of_nonneg_left h2 (mul_nonneg (hA ℓ) (norm_nonneg _))
+          mul_le_mul_of_nonneg_left h2 (mul_nonneg (hA ℓ hℓ) (norm_nonneg _))
         nlinarith [pow_pos hz0 (n - ℓ), norm_nonneg (p.coeff (n - ℓ))]
       · have h1 := hcoeff j hj
         have h2 : R ^ j < ‖z‖ ^ j := by
@@ -370,7 +434,8 @@ every root of `p` has norm at least `r`.
 The paper deduces this from the upper bound applied to the reversed polynomial
 `Q(z) = zⁿ q(1/z)`; here we simply run the same estimate directly on the constant term. -/
 theorem le_norm_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {r : ℝ}
-    (hA : ∀ ℓ, 0 ≤ A ℓ) (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
+    (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 ≤ A ℓ)
+    (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
     (hcoeff : ∀ ℓ ∈ Icc 1 p.natDegree,
       ‖p.coeff ℓ‖ * r ^ ℓ ≤ A ℓ * ‖p.coeff 0‖)
     {z : K} (hz : p.IsRoot z) : r ≤ ‖z‖ := by
@@ -402,7 +467,7 @@ theorem le_norm_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {r : ℝ}
     by_contra hall
     push Not at hall
     have : ∑ ℓ ∈ Icc 1 n, A ℓ = 0 :=
-      sum_eq_zero fun ℓ hℓ => le_antisymm (hall ℓ hℓ) (hA ℓ)
+      sum_eq_zero fun ℓ hℓ => le_antisymm (hall ℓ hℓ) (hA ℓ hℓ)
     rw [hsum] at this
     exact one_ne_zero this
   -- Isolate the constant term in the evaluation of `p` at `z`.
@@ -461,7 +526,7 @@ theorem norm_le_of_isRoot_lucas {p : K[X]} {P Q : ℝ} {F : ℕ → ℝ} (hP : 0
   refine norm_le_of_isRoot_of_sum_weights
     (A := fun ℓ =>
       (n.choose ℓ : ℝ) * (Q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ / F ((m + 1) * n))
-    hR (fun ℓ => div_nonneg (hNnn ℓ) hD.le) ?_ ?_ hz
+    hR (fun ℓ _ => div_nonneg (hNnn ℓ) hD.le) ?_ ?_ hz
   · -- The weights sum to `1`: the `ℓ = 0` term of the identity vanishes because `F 0 = 0`.
     have hthm := LucasU.sum_choose_mul hF0 hF1 hrec m n
     have hins : range (n + 1) = insert 0 (Icc 1 n) := by
@@ -500,7 +565,7 @@ theorem le_norm_of_isRoot_lucas {p : K[X]} {P Q : ℝ} {F : ℕ → ℝ} (hP : 0
   refine le_norm_of_isRoot_of_sum_weights
     (A := fun ℓ =>
       (n.choose ℓ : ℝ) * (Q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ / F ((m + 1) * n))
-    (fun ℓ => div_nonneg (hNnn ℓ) hD.le) ?_ ?_ hz
+    (fun ℓ _ => div_nonneg (hNnn ℓ) hD.le) ?_ ?_ hz
   · have hthm := LucasU.sum_choose_mul hF0 hF1 hrec m n
     have hins : range (n + 1) = insert 0 (Icc 1 n) := by
       ext x; simp only [mem_range, mem_insert, mem_Icc]; omega
@@ -544,6 +609,93 @@ private lemma mul_rpow_le_of_le {D Nl a c r : ℝ} {ℓ : ℕ} (hD : 0 < D) (hN 
   calc c * D * r ^ ℓ ≤ c * D * (Nl / D * (a / c)) :=
         mul_le_mul_of_nonneg_left hpow (by positivity)
     _ = Nl * a := by field_simp [hD.ne', hc.ne']
+
+section MasterAnnulus
+
+variable {p : K[X]} {A : ℕ → ℝ}
+
+/-- Master closed-form upper radius: for **any** weights positive on `1 ≤ ℓ ≤ n` and summing
+to `1` there, every root satisfies
+`‖z‖ ≤ max_{1 ≤ ℓ ≤ n} (1 / A ℓ * ‖a (n - ℓ) / a n‖) ^ (1 / ℓ)`.
+
+Any combinatorial identity producing a partition of unity therefore yields an annulus; the
+Lucas radii below are the instance whose weights come from `LucasU.sum_choose_mul`. -/
+theorem norm_le_sup_of_isRoot_of_sum_weights
+    (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 < A ℓ)
+    (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
+    (hdeg : 1 ≤ p.natDegree) {z : K} (hz : p.IsRoot z) :
+    ‖z‖ ≤ (Icc 1 p.natDegree).sup' (Finset.nonempty_Icc.2 hdeg) fun ℓ =>
+      (1 / A ℓ * (‖p.coeff (p.natDegree - ℓ)‖ / ‖p.leadingCoeff‖)) ^ ((ℓ : ℝ)⁻¹) := by
+  set n := p.natDegree with hn
+  have hp0 : p ≠ 0 := by
+    intro h
+    rw [hn, h, natDegree_zero] at hdeg
+    exact absurd hdeg (by norm_num)
+  have hlc : 0 < ‖p.leadingCoeff‖ := by simpa using leadingCoeff_ne_zero.2 hp0
+  refine norm_le_of_isRoot_of_sum_weights ?_ (fun ℓ hℓ => (hA ℓ hℓ).le) hsum ?_ hz
+  · have hmem : n ∈ Icc 1 n := mem_Icc.2 ⟨hdeg, le_rfl⟩
+    refine le_trans ?_ (Finset.le_sup' _ hmem)
+    exact Real.rpow_nonneg (mul_nonneg (div_nonneg zero_le_one (hA n hmem).le)
+      (div_nonneg (norm_nonneg _) (norm_nonneg _))) _
+  · intro ℓ hℓ
+    have hℓ0 : ℓ ≠ 0 := by simp only [mem_Icc] at hℓ; omega
+    have hle := Finset.le_sup' (s := Icc 1 n) (f := fun ℓ =>
+      (1 / A ℓ * (‖p.coeff (n - ℓ)‖ / ‖p.leadingCoeff‖)) ^ ((ℓ : ℝ)⁻¹)) hℓ
+    have h := mul_le_of_rpow_le zero_le_one (hA ℓ hℓ) (norm_nonneg (p.coeff (n - ℓ)))
+      hlc hℓ0 hle
+    rw [mul_one] at h
+    rw [mul_assoc]
+    exact h
+
+/-- Master closed-form lower radius: for **any** weights positive on `1 ≤ ℓ ≤ n` and summing
+to `1` there, and `a ℓ ≠ 0` on that range, every root satisfies
+`min_{1 ≤ ℓ ≤ n} (A ℓ * ‖a 0 / a ℓ‖) ^ (1 / ℓ) ≤ ‖z‖`. -/
+theorem inf_le_norm_of_isRoot_of_sum_weights
+    (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 < A ℓ)
+    (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
+    (hdeg : 1 ≤ p.natDegree)
+    (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :
+    (Icc 1 p.natDegree).inf' (Finset.nonempty_Icc.2 hdeg) (fun ℓ =>
+      (A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) ≤ ‖z‖ := by
+  set n := p.natDegree with hn
+  have hr0 : 0 ≤ (Icc 1 n).inf' (Finset.nonempty_Icc.2 hdeg) (fun ℓ =>
+      (A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) := by
+    refine Finset.le_inf' _ _ fun ℓ hℓ => ?_
+    exact Real.rpow_nonneg (mul_nonneg (hA ℓ hℓ).le
+      (div_nonneg (norm_nonneg _) (norm_nonneg _))) _
+  refine le_norm_of_isRoot_of_sum_weights (fun ℓ hℓ => (hA ℓ hℓ).le) hsum ?_ hz
+  intro ℓ hℓ
+  have hℓ0 : ℓ ≠ 0 := by simp only [mem_Icc] at hℓ; omega
+  have hc : 0 < ‖p.coeff ℓ‖ := norm_pos_iff.2 (ha ℓ hℓ)
+  have hb0 : 0 ≤ A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖) :=
+    mul_nonneg (hA ℓ hℓ).le (div_nonneg (norm_nonneg _) (norm_nonneg _))
+  have hle := Finset.inf'_le (s := Icc 1 n) (f := fun ℓ =>
+    (A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) hℓ
+  have hpow : ((Icc 1 n).inf' (Finset.nonempty_Icc.2 hdeg) fun ℓ =>
+      (A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) ^ ℓ
+      ≤ A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖) :=
+    calc _ ≤ ((A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) ^ ℓ :=
+          pow_le_pow_left₀ hr0 hle ℓ
+      _ = _ := Real.rpow_inv_natCast_pow hb0 hℓ0
+  refine le_trans (mul_le_mul_of_nonneg_left hpow (norm_nonneg _)) (le_of_eq ?_)
+  field_simp [hc.ne']
+
+/-- Master annulus: for **any** weights positive on `1 ≤ ℓ ≤ n` summing to `1` there (and
+`a ℓ ≠ 0` on that range), all zeros of `p` lie in the closed annulus with radii
+`r₁ = min (A ℓ * ‖a 0 / a ℓ‖)^(1/ℓ)` and `r₂ = max ((1 / A ℓ) * ‖a (n-ℓ) / a n‖)^(1/ℓ)`. -/
+theorem isRoot_mem_annulus_of_sum_weights
+    (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 < A ℓ)
+    (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
+    (hdeg : 1 ≤ p.natDegree)
+    (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :
+    (Icc 1 p.natDegree).inf' (Finset.nonempty_Icc.2 hdeg) (fun ℓ =>
+        (A ℓ * (‖p.coeff 0‖ / ‖p.coeff ℓ‖)) ^ ((ℓ : ℝ)⁻¹)) ≤ ‖z‖ ∧
+      ‖z‖ ≤ (Icc 1 p.natDegree).sup' (Finset.nonempty_Icc.2 hdeg) fun ℓ =>
+        (1 / A ℓ * (‖p.coeff (p.natDegree - ℓ)‖ / ‖p.leadingCoeff‖)) ^ ((ℓ : ℝ)⁻¹) :=
+  ⟨inf_le_norm_of_isRoot_of_sum_weights hA hsum hdeg ha hz,
+    norm_le_sup_of_isRoot_of_sum_weights hA hsum hdeg hz⟩
+
+end MasterAnnulus
 
 section Annulus
 
