@@ -128,6 +128,33 @@ about rings of integers: `Monogenic.saturated_of_forall_not_sq_dvd` gives `π`-s
 *relative* monogenity of an iterate, of which the statements over `ℤ` are the case
 `R = ℤ`.
 
+## What is left
+
+Over `ℤ` — the setting of the original question — the answer is complete and
+unconditional: `Φ (2 ^ (k + 1))` iterated `r` times is irreducible for every `r`, and
+monogenic exactly when the first `r` critical-orbit values are squarefree.  The three
+residual points, and their status, are:
+
+* **Squarefreeness of the orbit.**  Not removable: by
+  `isIndexDivisor_comp_iterate_iff_exists_sq_dvd` it is *equivalent* to monogenity.  Whether
+  the orbit `1, 2, 5, 26, 677, …` is squarefree forever is a Wieferich-type question
+  (compare `q ^ 2 ∣ 2 ^ n - 1` iff `q` is a Wieferich prime), open in the same way.
+* **The hypothesis at primes dividing `b`.**  Not removable either, and this is proved:
+  `exists_isIndexDivisor_of_dvd_of_forall_not_sq_dvd` exhibits `b = 2`, `A = 3`, `q = 2`
+  where the orbit condition holds and yet `q` is an index divisor.  At such a prime the
+  reduction is inseparable and the critical orbit simply does not determine the answer; the
+  hypothesis is discharged in practice by `Monogenic.not_mem_sq_of_isEisensteinAt`.
+* **The principal ideal hypothesis on the base**, in
+  `Monogenic.adjoin_eq_top_of_forall_prime_not_sq_dvd`.  This one is *not* mathematics but
+  formalisation: it enters only through the global assembly
+  `adjoin_eq_top_of_forall_prime_saturated'`, which factors a denominator-clearing
+  discriminant into prime elements.  Removing it means running the local criterion over the
+  localisation `R_𝔭` — a discrete valuation ring, hence principal — and descending with
+  `mem_adjoin_of_forall_maximal_exists_smul_mem` and
+  `exists_smul_mem_adjoin_of_mem_localization_adjoin`, both already available.  What that
+  costs is the per-`𝔭` algebra and scalar-tower data, which `localizationAlgebra` supplies
+  only as a `def`; it is not done here.
+
 ## References
 
 * [J. Harrington, L. Jones, *Monogenic cyclotomic compositions*][HarringtonJones2019]
