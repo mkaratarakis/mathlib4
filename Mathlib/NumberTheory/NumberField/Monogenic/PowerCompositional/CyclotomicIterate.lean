@@ -134,7 +134,7 @@ about rings of integers: `Monogenic.saturated_of_forall_not_sq_dvd` gives `π`-s
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 1900
+set_option linter.style.longFile 2100
 
 @[expose] public section
 
@@ -1804,5 +1804,133 @@ theorem adjoin_eq_top_of_forall_prime_not_sq_dvd
     exact saturated_of_forall_not_sq_dvd hπ hmax hf hb hdvd hmin (horb π hπ hdvd) y hy
 
 end RelativeGlobal
+
+end Monogenic
+
+namespace Polynomial
+
+/-! ### The hypothesis at primes dividing `b` is genuine
+
+At a prime `q` dividing `b` the derivative `C b * X ^ (b - 1)` vanishes identically modulo
+`q`, so the reduction of every iterate is inseparable and the whole mechanism above is blind.
+This is not an artefact of the proof: the criterion is simply false there. -/
+
+/-- `2` is an index divisor of `X ^ 2 + 3`, by the explicit membership
+`X ^ 2 + 3 = 4 - 2 (X + 1) + (X + 1) ^ 2 ∈ ⟨2, X + 1⟩ ^ 2`.
+
+Arithmetically this is the familiar fact that `ℤ[√-3]` has index `2` in the ring of integers
+`ℤ[(1 + √-3)/2]` of `ℚ(√-3)`. -/
+theorem isIndexDivisor_two_X_sq_add_C_three : IsIndexDivisor 2 ((X ^ 2 + C 3 : ℤ[X])) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  refine ⟨X + C 1, monic_X_add_C 1, ?_, ?_⟩
+  · have h : ((X + C 1 : ℤ[X])).map (Int.castRingHom (ZMod 2)) = X + C (1 : ZMod 2) := by
+      rw [Polynomial.map_add, Polynomial.map_X, Polynomial.map_C, map_one]
+    rw [h]
+    exact irreducible_of_degree_eq_one (degree_X_add_C 1)
+  · rw [Ideal.mem_span_pair_sq_iff]
+    refine ⟨1, -1, 1, ?_⟩
+    simp only [Nat.cast_ofNat, map_ofNat, map_one]
+    ring
+
+/-- **The hypothesis `q ∤ b` in `isIndexDivisor_comp_iterate_iff_exists_sq_dvd` cannot be
+dropped.**  For `b = 2`, `A = 3` and `q = 2` the critical orbit begins `c 1 = 3`, which
+`q ^ 2 = 4` does not divide — and yet `q` *is* an index divisor of the first iterate.
+
+So the separate hypothesis at primes dividing `b`, in
+`Monogenic.adjoin_eq_top_of_forall_prime_not_sq_dvd`, is necessary rather than an artefact:
+at such a prime the critical orbit does not determine the answer. -/
+theorem exists_isIndexDivisor_of_dvd_of_forall_not_sq_dvd :
+    ∃ (b : ℕ) (A : ℤ) (q : ℕ), q.Prime ∧ 2 ≤ b ∧ q ∣ b ∧
+      (∀ m, 0 < m → m ≤ 1 →
+        ¬ (q : ℤ) ^ 2 ∣ ((((X ^ b + C A : ℤ[X])).comp ·)^[m] X).eval 0) ∧
+      IsIndexDivisor q ((((X ^ b + C A : ℤ[X])).comp ·)^[1] X) := by
+  refine ⟨2, 3, 2, Nat.prime_two, le_refl 2, dvd_refl 2, ?_, ?_⟩
+  · intro m hm0 hm1
+    rw [show m = 1 by omega, Function.iterate_one, comp_X, eval_add, eval_pow, eval_X, eval_C]
+    rintro ⟨k, hk⟩
+    norm_num at hk
+    omega
+  · rw [Function.iterate_one, comp_X]
+    exact isIndexDivisor_two_X_sq_add_C_three
+
+end Polynomial
+
+namespace Monogenic
+
+/-! ### Discharging the hypothesis at the wild primes
+
+Saturation at a prime is implied by a purely polynomial condition, and that condition is in
+turn implied by being Eisenstein — over any base, exactly as over `ℤ`.  So the hypothesis at
+primes dividing `b` is checkable in practice wherever it holds. -/
+
+section Wild
+
+attribute [local instance] Ideal.Quotient.field
+
+open Polynomial
+
+variable {R S : Type*} [CommRing R] [IsDomain R] [IsIntegrallyClosed R]
+  [CommRing S] [IsDomain S] [Algebra R S] [Module.IsTorsionFree R S] [FaithfulSMul R S]
+  [Algebra.IsIntegral R S] {θ : S}
+
+/-- **Saturation from a polynomial condition.**  If the minimal polynomial avoids the square
+of every maximal ideal `⟨π, Pi⟩` of `R[X]`, then `R[θ]` is `π`-saturated in `S`.  This is the
+contrapositive of `exists_mem_sq_of_not_saturated`. -/
+theorem saturated_of_forall_not_mem_sq {π : R} (hπ0 : π ≠ 0)
+    (hmax : (Ideal.span {π} : Ideal R).IsMaximal)
+    (h : ∀ Pi : R[X], Pi.Monic →
+      Irreducible (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) →
+      minpoly R θ ∉ (Ideal.span {C π, Pi} : Ideal (R[X])) ^ 2)
+    (y : S) (hy : algebraMap R S π * y ∈ Algebra.adjoin R {θ}) :
+    y ∈ Algebra.adjoin R {θ} := by
+  by_contra hno
+  obtain ⟨Pi, hPim, hPiirr, hmem⟩ := exists_mem_sq_of_not_saturated hπ0 hmax hno hy
+  exact h Pi hPim hPiirr hmem
+
+omit [IsDomain R] [IsIntegrallyClosed R] in
+/-- **An Eisenstein polynomial avoids every such square, over any base.**  Its reduction is
+the monomial `X ^ n`, so any `Pi` as above reduces to `X`; but then `⟨π, Pi⟩ = ⟨π, X⟩`, and
+membership in that square would force `π ^ 2` to divide the constant term. -/
+theorem not_mem_sq_of_isEisensteinAt {π : R} [hmax : (Ideal.span {π} : Ideal R).IsMaximal]
+    {g : R[X]} (hgm : g.Monic) (hei : g.IsEisensteinAt (Ideal.span {π}))
+    {Pi : R[X]} (hPiirr : Irreducible (Pi.map (Ideal.Quotient.mk (Ideal.span {π})))) :
+    g ∉ (Ideal.span {C π, Pi} : Ideal (R[X])) ^ 2 := by
+  intro hmem
+  -- The reduction of an Eisenstein polynomial is a monomial.
+  have hmap : g.map (Ideal.Quotient.mk (Ideal.span {π})) = X ^ g.natDegree := by
+    ext i
+    rw [coeff_map, coeff_X_pow]
+    rcases lt_trichotomy i g.natDegree with hlt | rfl | hgt
+    · rw [if_neg (by omega), Ideal.Quotient.eq_zero_iff_mem]
+      exact hei.mem hlt
+    · rw [if_pos rfl, hgm.coeff_natDegree, map_one]
+    · rw [if_neg (by omega), coeff_eq_zero_of_natDegree_lt hgt, map_zero]
+  -- Hence `Pi` reduces to a divisor of `X ^ n`, so to an associate of `X`.
+  have hdvd2 : (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) ^ 2 ∣
+      g.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    have h2 := sq_span_pair_le_span_pair_sq hmem
+    rwa [mem_span_pair_iff_map_dvd, Polynomial.map_pow] at h2
+  have hPiX : (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) ∣ X := by
+    refine (hPiirr.prime).dvd_of_dvd_pow (n := g.natDegree) ?_
+    rw [← hmap]
+    exact (dvd_pow_self _ two_ne_zero).trans hdvd2
+  obtain ⟨c, hc⟩ := hPiX
+  have hXPi : (X : (R ⧸ Ideal.span {π})[X]) ∣
+      Pi.map (Ideal.Quotient.mk (Ideal.span {π})) := by
+    rcases (irreducible_X (R := R ⧸ Ideal.span {π})).isUnit_or_isUnit hc with hu | hu
+    · exact absurd hu hPiirr.not_isUnit
+    · exact (Associated.symm ⟨hu.unit, by rw [IsUnit.unit_spec, ← hc]⟩).dvd
+  -- So `⟨π, Pi⟩ ≤ ⟨π, X⟩`, and Eisenstein forbids membership in the square of the latter.
+  have hle : (Ideal.span {C π, Pi} : Ideal (R[X])) ≤ Ideal.span {C π, X} :=
+    span_pair_le_of_map_dvd (by rwa [Polynomial.map_X])
+  have hle2 : (Ideal.span {C π, Pi} : Ideal (R[X])) ^ 2 ≤
+      (Ideal.span {C π, X} : Ideal (R[X])) ^ 2 := by
+    rw [sq, sq]; exact Ideal.mul_mono hle hle
+  refine notMem_sq_span_pair_X_of_sq_not_dvd_coeff_zero (π := π) ?_ (hle2 hmem)
+  intro hdvd
+  exact hei.notMem
+    (by rw [Ideal.span_singleton_pow]; exact Ideal.mem_span_singleton.mpr hdvd)
+
+end Wild
 
 end Monogenic
