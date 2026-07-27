@@ -2093,14 +2093,14 @@ theorem forall_not_isIndexDivisor_comp_iterate_three_iff {k : ℕ} (hk : 0 < k) 
     · rw [eval_zero_comp_iterate_one hb]
       exact squarefree_one
     · rw [eval_zero_comp_iterate_two hb]
-      exact Int.prime_two.irreducible.squarefree
+      exact Int.prime_two.squarefree
     · rwa [eval_zero_comp_iterate_three hb]
 
 /-- A prime Fermat number gives an unconditionally monogenic third iterate. -/
 theorem forall_not_isIndexDivisor_comp_iterate_three_of_prime {k : ℕ} (hk : 0 < k)
     (hp : Prime ((2 : ℤ) ^ 2 ^ k + 1)) :
     ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[3] X) :=
-  (forall_not_isIndexDivisor_comp_iterate_three_iff hk).mpr hp.irreducible.squarefree
+  (forall_not_isIndexDivisor_comp_iterate_three_iff hk).mpr hp.squarefree
 
 /-- `F 1 = 5` is prime, so the third iterate of `Φ 4 = X ^ 2 + 1` is monogenic —
 unconditionally, and it is a polynomial of degree `8`. -/
@@ -2687,5 +2687,57 @@ theorem forall_not_isIndexDivisor_comp_iterate_iff_wieferich {k : ℕ} (hk : 0 <
       · obtain ⟨hw, hord⟩ :=
           (sq_dvd_eval_zero_comp_iterate_succ_iff_wieferich hq hq2 hm0).mp hdvd
         exact h m hm0 (by omega) q hq hq2 hw hord
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### Settling a given iterate
+
+For any *fixed* `r` the criterion is a finite computation: factor the first `r` orbit values.
+Below this is carried out for `Φ 4 = X ^ 2 + 1` up to the fifth iterate, a polynomial of
+degree `32`.  The orbit is `1, 2, 5, 26, 677`, and every one of them is squarefree, so those
+iterates are monogenic **unconditionally**.  What no finite computation can do is settle all
+`r` at once; that is the open problem. -/
+
+/-- The critical orbit of `X ^ 2 + 1`: `c 4 = 26`. -/
+theorem eval_zero_comp_iterate_four_one :
+    ((((X ^ 2 ^ 1 + 1 : ℤ[X])).comp ·)^[4] X).eval 0 = 26 := by
+  rw [show (4 : ℕ) = 3 + 1 from rfl, comp_iterate_pow_add_one_succ, eval_add, eval_pow,
+    eval_one, eval_zero_comp_iterate_three (by norm_num)]
+  norm_num
+
+/-- The critical orbit of `X ^ 2 + 1`: `c 5 = 677`. -/
+theorem eval_zero_comp_iterate_five_one :
+    ((((X ^ 2 ^ 1 + 1 : ℤ[X])).comp ·)^[5] X).eval 0 = 677 := by
+  rw [show (5 : ℕ) = 4 + 1 from rfl, comp_iterate_pow_add_one_succ, eval_add, eval_pow,
+    eval_one, eval_zero_comp_iterate_four_one]
+  norm_num
+
+/-- **The fifth iterate of `Φ 4 = X ^ 2 + 1` is monogenic**, unconditionally: its critical
+orbit is `1, 2, 5, 26, 677`, all squarefree.  The polynomial has degree `32`. -/
+theorem forall_not_isIndexDivisor_comp_iterate_five_of_one :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ 1 + 1 : ℤ[X])).comp ·)^[5] X) := by
+  have hb : (0 : ℕ) < 2 ^ 1 := by norm_num
+  have h2 : Squarefree (2 : ℕ) := Nat.prime_two.squarefree
+  have h5 : Squarefree (5 : ℕ) := (by norm_num : Nat.Prime 5).squarefree
+  have h13 : Squarefree (13 : ℕ) := (by norm_num : Nat.Prime 13).squarefree
+  have h677 : Squarefree (677 : ℕ) := (by norm_num : Nat.Prime 677).squarefree
+  have h26 : Squarefree (26 : ℕ) := by
+    rw [show (26 : ℕ) = 2 * 13 from rfl, Nat.squarefree_mul (by norm_num)]
+    exact ⟨h2, h13⟩
+  rw [forall_not_isIndexDivisor_comp_iterate_iff_squarefree' one_pos (show 0 < 5 by omega)]
+  intro m hm0 hm5
+  interval_cases m
+  · rw [eval_zero_comp_iterate_one hb]
+    exact squarefree_one
+  · rw [eval_zero_comp_iterate_two hb, ← Int.squarefree_natAbs]
+    exact (by norm_num : ((2 : ℤ)).natAbs = 2) ▸ h2
+  · rw [eval_zero_comp_iterate_three hb, ← Int.squarefree_natAbs]
+    exact (by norm_num : ((2 : ℤ) ^ 2 ^ 1 + 1).natAbs = 5) ▸ h5
+  · rw [eval_zero_comp_iterate_four_one, ← Int.squarefree_natAbs]
+    exact (by norm_num : ((26 : ℤ)).natAbs = 26) ▸ h26
+  · rw [eval_zero_comp_iterate_five_one, ← Int.squarefree_natAbs]
+    exact (by norm_num : ((677 : ℤ)).natAbs = 677) ▸ h677
 
 end Polynomial
