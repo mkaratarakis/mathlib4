@@ -5,8 +5,8 @@ Authors: Michail Karatarakis
 -/
 module
 
-public import Mathlib.Analysis.Matrix.NormComparison
-public import Mathlib.Analysis.Normed.Ring.Telescope
+public import Photonics.Matrix.NormComparison
+public import Photonics.Normed.Telescope
 
 /-!
 # Distance between matrices up to a global phase, and the unitary group as a normed group

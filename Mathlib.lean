@@ -1901,16 +1901,13 @@ public import Mathlib.Analysis.LocallyConvex.WeakOperatorTopology
 public import Mathlib.Analysis.LocallyConvex.WeakSpace
 public import Mathlib.Analysis.LocallyConvex.WithSeminorms
 public import Mathlib.Analysis.Matrix
-public import Mathlib.Analysis.Matrix.EigenvalueResidual
 public import Mathlib.Analysis.Matrix.Hermitian
 public import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
 public import Mathlib.Analysis.Matrix.LDL
-public import Mathlib.Analysis.Matrix.NormComparison
 public import Mathlib.Analysis.Matrix.Normed
 public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.Matrix.PosDef
 public import Mathlib.Analysis.Matrix.Spectrum
-public import Mathlib.Analysis.Matrix.UnitaryDistance
 public import Mathlib.Analysis.MeanInequalities
 public import Mathlib.Analysis.MeanInequalitiesPow
 public import Mathlib.Analysis.MellinInversion
@@ -2055,7 +2052,6 @@ public import Mathlib.Analysis.Normed.Ring.Finite
 public import Mathlib.Analysis.Normed.Ring.InfiniteSum
 public import Mathlib.Analysis.Normed.Ring.Int
 public import Mathlib.Analysis.Normed.Ring.Lemmas
-public import Mathlib.Analysis.Normed.Ring.Telescope
 public import Mathlib.Analysis.Normed.Ring.TransferInstance
 public import Mathlib.Analysis.Normed.Ring.Ultra
 public import Mathlib.Analysis.Normed.Ring.Units

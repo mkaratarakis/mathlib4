@@ -77,6 +77,12 @@ lean_lib Archive where
 lean_lib Counterexamples where
   leanOptions := mathlibLeanOptions
 
+/-- Staging library for the photonic circuit verification project; see `Photonics.lean`.
+Held apart from `Mathlib` so that it can be upstreamed piecewise or migrated to its own
+repository. -/
+lean_lib Photonics where
+  leanOptions := mathlibLeanOptions
+
 /-- Additional documentation in the form of modules that only contain module docstrings. -/
 lean_lib docs where
   roots := #[`docs]

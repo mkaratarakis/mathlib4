@@ -5,8 +5,8 @@ Authors: Michail Karatarakis
 -/
 module
 
-public import Mathlib.Analysis.Matrix.NormComparison
 public import Mathlib.Analysis.Matrix.Spectrum
+public import Photonics.Matrix.NormComparison
 
 /-!
 # A posteriori eigenvalue bounds from a residual
