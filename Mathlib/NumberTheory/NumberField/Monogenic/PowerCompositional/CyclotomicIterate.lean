@@ -7,6 +7,7 @@ module
 
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GeneralBase
+public import Mathlib.NumberTheory.NumberField.Monogenic.Base
 
 /-!
 # Monogenity of composed and iterated cyclotomic polynomials
@@ -117,13 +118,23 @@ Two hypotheses are then removed.
 What remains special to the cyclotomic case is only the prime `2`, which divides `b = 2 ^ k`
 and so is invisible to the separability argument; it is handled by Eisenstein instead.
 
+Finally the base itself is generalised.  Nothing in the argument is special to `ℤ`: it uses
+only ideal calculus in `R[X]` and the fact that `R ⧸ (π)` is a field, so it holds over any
+domain `R` and any `π` generating a maximal ideal
+(`Monogenic.exists_mem_sq_iff`).  Through Dedekind's existence half this becomes a statement
+about rings of integers: `Monogenic.saturated_of_forall_not_sq_dvd` gives `π`-saturation of
+`R[θ]` in `S`, and over a principal ideal base
+`Monogenic.adjoin_eq_top_of_forall_prime_not_sq_dvd` assembles those into `R[θ] = S` — the
+*relative* monogenity of an iterate, of which the statements over `ℤ` are the case
+`R = ℤ`.
+
 ## References
 
 * [J. Harrington, L. Jones, *Monogenic cyclotomic compositions*][HarringtonJones2019]
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 1800
+set_option linter.style.longFile 1900
 
 @[expose] public section
 
@@ -1679,5 +1690,119 @@ theorem exists_mem_sq_iff (hπ : Prime π) (hf : f = X ^ b + C A) (hb : 2 ≤ b)
     fun ⟨_, hm, hmr, hsq⟩ => exists_mem_sq_of_sq_dvd hf hb hm hmr hsq⟩
 
 end IterateBase
+
+end Monogenic
+
+namespace Monogenic
+
+/-! ### Relative monogenity of an iterate
+
+The criterion above is a statement about ideals of `R[X]`.  It becomes a statement about
+rings of integers through Dedekind's existence half, `exists_splitting_of_not_saturated`:
+if `R[θ]` is not `π`-saturated in `S` then the minimal polynomial lies in `⟨π, Pi⟩ ^ 2` for
+some monic `Pi` irreducible mod `π`, which the criterion then converts into a square factor
+in the critical orbit.  Over a principal ideal base the local statements assemble into
+`R[θ] = S` by `adjoin_eq_top_of_forall_prime_saturated'`. -/
+
+section RelativeIterate
+
+attribute [local instance] Ideal.Quotient.field
+
+open Polynomial
+
+variable {R S : Type*} [CommRing R] [IsDomain R] [IsIntegrallyClosed R]
+  [CommRing S] [IsDomain S] [Algebra R S] [Module.IsTorsionFree R S] [FaithfulSMul R S]
+  [Algebra.IsIntegral R S] {θ : S} {f : R[X]} {A : R} {b : ℕ}
+
+/-- **Uchida's existence half over an arbitrary base.**  A failure of `π`-saturation puts the
+minimal polynomial into the square of a maximal ideal `⟨π, Pi⟩` of `R[X]`.
+
+This repackages `exists_splitting_of_not_saturated`: the splitting it produces has a common
+irreducible factor of the reductions of all three parts, and each part therefore lies in
+`⟨π, Pi⟩` by `mem_span_pair_iff_map_dvd`. -/
+theorem exists_mem_sq_of_not_saturated {π : R} (hπ0 : π ≠ 0)
+    (hmax : (Ideal.span {π} : Ideal R).IsMaximal) {β : S}
+    (hβnot : β ∉ Algebra.adjoin R {θ})
+    (hβ : algebraMap R S π * β ∈ Algebra.adjoin R {θ}) :
+    ∃ Pi : R[X], Pi.Monic ∧
+      Irreducible (Pi.map (Ideal.Quotient.mk (Ideal.span {π}))) ∧
+      minpoly R θ ∈ (Ideal.span {C π, Pi} : Ideal (R[X])) ^ 2 := by
+  haveI := hmax
+  obtain ⟨Pi, A', B', N, hPimonic, hPiirr, hsplit, hπA, hπB, hπN⟩ :=
+    exists_splitting_of_not_saturated hπ0 hmax hβnot hβ
+  obtain ⟨Pi', hPimap, -, hPi'monic⟩ :=
+    lifts_and_degree_eq_and_monic ((mem_lifts _).mpr
+      (Polynomial.map_surjective _ Ideal.Quotient.mk_surjective Pi)) hPimonic
+  refine ⟨Pi', hPi'monic, by rw [hPimap]; exact hPiirr, ?_⟩
+  have hmemA : A' ∈ (Ideal.span {C π, Pi'} : Ideal (R[X])) :=
+    mem_span_pair_iff_map_dvd.mpr (by rw [hPimap]; exact hπA)
+  have hmemB : B' ∈ (Ideal.span {C π, Pi'} : Ideal (R[X])) :=
+    mem_span_pair_iff_map_dvd.mpr (by rw [hPimap]; exact hπB)
+  have hmemN : N ∈ (Ideal.span {C π, Pi'} : Ideal (R[X])) :=
+    mem_span_pair_iff_map_dvd.mpr (by rw [hPimap]; exact hπN)
+  have hmemπ : (C π : R[X]) ∈ (Ideal.span {C π, Pi'} : Ideal (R[X])) :=
+    Ideal.subset_span (by simp)
+  rw [hsplit, sq]
+  exact Ideal.add_mem _ (Ideal.mul_mem_mul hmemA hmemB) (Ideal.mul_mem_mul hmemπ hmemN)
+
+/-- **Saturation at a prime whose square misses the critical orbit.**  If `π` does not divide
+`b` and `π ^ 2` divides none of the first `r` values of the critical orbit, then `R[θ]` is
+`π`-saturated in `S`, for `θ` a root of the `r`-fold iterate of `X ^ b + A`. -/
+theorem saturated_of_forall_not_sq_dvd {π : R} (hπ : Prime π)
+    (hmax : (Ideal.span {π} : Ideal R).IsMaximal) (hf : f = X ^ b + C A) (hb : 2 ≤ b)
+    (hπb : ¬ π ∣ (b : R)) {r : ℕ}
+    (hmin : minpoly R θ = (f.comp ·)^[r] X)
+    (horb : ∀ m, 0 < m → m ≤ r → ¬ π ^ 2 ∣ ((f.comp ·)^[m] X).eval 0)
+    (y : S) (hy : algebraMap R S π * y ∈ Algebra.adjoin R {θ}) :
+    y ∈ Algebra.adjoin R {θ} := by
+  haveI := hmax
+  by_contra hno
+  obtain ⟨Pi, hPim, hPiirr, hmem⟩ := exists_mem_sq_of_not_saturated hπ.ne_zero hmax hno hy
+  rw [hmin] at hmem
+  obtain ⟨m, hm0, hmr, hsq⟩ :=
+    exists_sq_dvd_of_exists_mem_sq hπ hf hb hπb ⟨Pi, hPim, hPiirr, hmem⟩
+  exact horb m hm0 hmr hsq
+
+end RelativeIterate
+
+section RelativeGlobal
+
+open Polynomial
+
+variable {R S K L : Type*}
+variable [CommRing R] [IsDomain R] [IsIntegrallyClosed R] [IsPrincipalIdealRing R]
+variable [Field K] [Algebra R K] [IsFractionRing R K]
+variable [Field L] [Algebra K L] [Algebra.IsSeparable K L] [Module.Finite K L]
+variable [CommRing S] [IsDomain S] [Algebra R S] [Algebra S L] [Algebra R L]
+variable [IsScalarTower R S L] [IsScalarTower R K L] [FaithfulSMul S L]
+variable [Algebra.IsIntegral R S] [Module.IsTorsionFree R S] [FaithfulSMul R S]
+variable {θ : S} {f : R[X]} {A : R} {b : ℕ}
+
+/-- **Relative monogenity of an iterate, over a principal ideal base.**  Let `θ` generate `L`
+over `K` and have minimal polynomial the `r`-fold iterate of `X ^ b + A` over `R`.  If
+
+* no prime `π ∤ b` has `π ^ 2` dividing a member of the critical orbit, and
+* `R[θ]` is `π`-saturated at the primes dividing `b`,
+
+then `R[θ] = S`.  Over `R = ℤ` and `f = X ^ (2 ^ k) + 1` the second hypothesis concerns only
+`π = 2`, where it is supplied by the Eisenstein argument. -/
+theorem adjoin_eq_top_of_forall_prime_not_sq_dvd
+    (hgen : Algebra.adjoin K {algebraMap S L θ} = ⊤)
+    (hf : f = X ^ b + C A) (hb : 2 ≤ b) {r : ℕ}
+    (hmin : minpoly R θ = (f.comp ·)^[r] X)
+    (horb : ∀ π : R, Prime π → ¬ π ∣ (b : R) →
+      ∀ m, 0 < m → m ≤ r → ¬ π ^ 2 ∣ ((f.comp ·)^[m] X).eval 0)
+    (hbad : ∀ π : R, Prime π → π ∣ (b : R) → ∀ y : S,
+      algebraMap R S π * y ∈ Algebra.adjoin R {θ} → y ∈ Algebra.adjoin R {θ}) :
+    Algebra.adjoin R {θ} = ⊤ := by
+  refine adjoin_eq_top_of_forall_prime_saturated' hgen fun π hπ y hy => ?_
+  by_cases hdvd : π ∣ (b : R)
+  · exact hbad π hπ hdvd y hy
+  · have hmax : (Ideal.span {π} : Ideal R).IsMaximal := by
+      simpa [Ideal.submodule_span_eq] using
+        PrincipalIdealRing.isMaximal_of_irreducible hπ.irreducible
+    exact saturated_of_forall_not_sq_dvd hπ hmax hf hb hdvd hmin (horb π hπ hdvd) y hy
+
+end RelativeGlobal
 
 end Monogenic
