@@ -2828,3 +2828,68 @@ theorem adjoin_eq_top_of_minpoly_eq_comp_iterate_of_isCoprime_derivative {K : Ty
   exact forall_not_isIndexDivisor_comp_iterate_of_isCoprime_derivative h
 
 end NumberField
+
+namespace Polynomial
+
+/-! ### The sharp half at a simple critical point
+
+The separability criterion above is the *sufficient* half.  Its converse, for an arbitrary
+`f`, is elementary: if some integer `a` reduces to a repeated root of the iterate — that is,
+if `a` lands on a critical point of `f` under some earlier iterate — and `q ^ 2` divides the
+value of the iterate at `a`, then `q` *is* an index divisor.
+
+The proof is the order-two Taylor decomposition at `a`.  Writing
+`g = g(a) + g'(a)(X - a) + (X - a) ^ 2 G`, each summand lies in `⟨q, X - a⟩ ^ 2`: the first
+because `q ^ 2 ∣ g(a)`, the second because `q ∣ g'(a)`, the third outright.  Together with
+`not_isIndexDivisor_comp_iterate_of_isCoprime_derivative` this brackets the index divisors of
+an iterate of *any* polynomial. -/
+
+/-- **A double root with a square value is an index divisor.**  Elementary, and for an
+arbitrary `g`. -/
+theorem isIndexDivisor_of_sq_dvd_eval {q : ℕ} [Fact q.Prime] {g : ℤ[X]} {a : ℤ}
+    (h₀ : (q : ℤ) ^ 2 ∣ g.eval a) (h₁ : (q : ℤ) ∣ (derivative g).eval a) :
+    IsIndexDivisor q g := by
+  refine ⟨X - C a, monic_X_sub_C a, ?_, ?_⟩
+  · rw [Polynomial.map_sub, Polynomial.map_X, Polynomial.map_C]
+    exact irreducible_X_sub_C _
+  · obtain ⟨G, hG, -, -, -⟩ := exists_eq_C_eval_add_X_sub_C_sq_mul g a
+    obtain ⟨t, ht⟩ := h₀
+    obtain ⟨s, hs⟩ := h₁
+    have hCq : (C (q : ℤ) : ℤ[X]) ∈ (Ideal.span {C (q : ℤ), X - C a} : Ideal ℤ[X]) :=
+      Ideal.subset_span (by simp)
+    have hPi : (X - C a : ℤ[X]) ∈ (Ideal.span {C (q : ℤ), X - C a} : Ideal ℤ[X]) :=
+      Ideal.subset_span (by simp)
+    have hmul : ∀ x y : ℤ[X], x ∈ (Ideal.span {C (q : ℤ), X - C a} : Ideal ℤ[X]) →
+        y ∈ (Ideal.span {C (q : ℤ), X - C a} : Ideal ℤ[X]) →
+        x * y ∈ (Ideal.span {C (q : ℤ), X - C a} : Ideal ℤ[X]) ^ 2 := by
+      intro x y hx hy
+      rw [sq]
+      exact Ideal.mul_mem_mul hx hy
+    have hrw : g = C (q : ℤ) * C (q : ℤ) * C t + C (q : ℤ) * (X - C a) * C s
+        + (X - C a) * (X - C a) * G := by
+      rw [hG, ht, hs]
+      simp only [map_mul, map_pow]
+      ring
+    rw [hrw]
+    exact Ideal.add_mem _ (Ideal.add_mem _
+      (Ideal.mul_mem_right _ _ (hmul _ _ hCq hCq))
+      (Ideal.mul_mem_right _ _ (hmul _ _ hCq hPi)))
+      (Ideal.mul_mem_right _ _ (hmul _ _ hPi hPi))
+
+/-- **Necessity for an iterate, multicritical.**  If `a` lands on a critical point of `f`
+after `i < r` steps modulo `q`, and `q ^ 2` divides the value of the `r`-fold iterate at `a`,
+then `q` is an index divisor of that iterate.
+
+For `f = X ^ b + 1` and `a = 0` this is the unicritical necessity half; for a general `f` the
+critical point may be any root of `f'`. -/
+theorem isIndexDivisor_comp_iterate_of_sq_dvd_eval {f : ℤ[X]} {q : ℕ} [Fact q.Prime] {r i : ℕ}
+    {a : ℤ} (hi : i < r)
+    (hcrit : (q : ℤ) ∣ (derivative f).eval (((f.comp ·)^[i] X).eval a))
+    (h₀ : (q : ℤ) ^ 2 ∣ (((f.comp ·)^[r] X)).eval a) :
+    IsIndexDivisor q ((f.comp ·)^[r] X) := by
+  refine isIndexDivisor_of_sq_dvd_eval h₀ ?_
+  rw [derivative_comp_iterate, eval_prod]
+  refine dvd_trans ?_ (Finset.dvd_prod_of_mem _ (Finset.mem_range.mpr hi))
+  rwa [eval_comp]
+
+end Polynomial
