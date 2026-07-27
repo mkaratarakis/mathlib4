@@ -95,6 +95,27 @@ This is best possible: the two directions are `isIndexDivisor_comp_iterate_of_sq
 whose orbit one can factor is monogenic; whether the orbit is squarefree forever is a
 Wieferich-type question, not settled here.
 
+Two hypotheses are then removed.
+
+* **Parity.**  An odd iterate is not Eisenstein at `2`, but its translate by `1` is, since
+  `Q r (1) = c (r + 1)` lands at an even index of the orbit and so is exactly divisible by
+  `2`.  Index divisors are a translation invariant
+  (`Polynomial.isIndexDivisor_comp_X_add_C_iff`), so `2` is never an index divisor of any
+  iterate (`Polynomial.not_isIndexDivisor_two_comp_iterate'`), every iterate is irreducible
+  (`Polynomial.irreducible_comp_iterate`), and the criterion holds for all `r`
+  (`Polynomial.forall_not_isIndexDivisor_comp_iterate_iff_squarefree'`,
+  `NumberField.adjoin_eq_top_iff_forall_squarefree_of_minpoly_eq_comp_iterate'`).
+* **The constant term.**  Nothing in the odd-prime argument used the value `1`, only that
+  `0` is the sole critical point and has full multiplicity `b`.  The hypotheses are therefore
+  packaged as `f = X ^ b + C A`, and the criterion holds for every *unicritical* polynomial
+  (`Polynomial.isIndexDivisor_comp_iterate_pow_add_C_iff`) — in particular for `X ^ b - A`,
+  hence for iterates of pure polynomials.  At `r = 1` it specialises to the classical
+  statement that a prime `q ∤ b` divides the index of a root of `X ^ b + A` exactly when
+  `q ^ 2 ∣ A` (`Polynomial.isIndexDivisor_pow_add_C_iff`).
+
+What remains special to the cyclotomic case is only the prime `2`, which divides `b = 2 ^ k`
+and so is invisible to the separability argument; it is handled by Eisenstein instead.
+
 ## References
 
 * [J. Harrington, L. Jones, *Monogenic cyclotomic compositions*][HarringtonJones2019]
@@ -419,11 +440,17 @@ section Orbit
 
 variable {b : ℕ}
 
+/-- One step of the iteration for a general unicritical `f = X ^ b + A`:
+`Q (r + 1) = Q r ^ b + A`. -/
+theorem comp_iterate_succ_eq {f : ℤ[X]} {A : ℤ} (hf : f = X ^ b + C A) (r : ℕ) :
+    (f.comp ·)^[r + 1] X = ((f.comp ·)^[r] X) ^ b + C A := by
+  rw [Function.iterate_succ_apply', hf, add_comp, pow_comp, X_comp, C_comp]
+
 /-- One step of the iteration: `Q (r + 1) = Q r ^ b + 1`. -/
 theorem comp_iterate_pow_add_one_succ (r : ℕ) :
     (((X ^ b + 1 : ℤ[X])).comp ·)^[r + 1] X =
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) ^ b + 1 := by
-  rw [Function.iterate_succ_apply', add_comp, pow_comp, X_comp, one_comp]
+      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) ^ b + 1 :=
+  comp_iterate_succ_eq (A := 1) rfl r
 
 /-- Along the orbit the constant terms alternate in parity: `Q r (0)` is odd exactly when
 `r` is odd.  This is what makes every *even* iterate Eisenstein at `2`. -/
@@ -505,19 +532,20 @@ hence squarefree, hence `q` is not an index divisor.
 
 This is the discriminant-free bound on the index divisors of an arbitrary iterate: only the
 primes dividing `b` or the critical orbit `Q 1 (0), …, Q r (0)` survive. -/
-theorem separable_map_comp_iterate {b q : ℕ} [Fact q.Prime] (hqb : ¬ q ∣ b) {r : ℕ}
+theorem separable_map_comp_iterate {f : ℤ[X]} {A : ℤ} {b q : ℕ} (hf : f = X ^ b + C A)
+    [Fact q.Prime] (hqb : ¬ q ∣ b) {r : ℕ}
     (horb : ∀ j, 0 < j → j ≤ r →
-      ¬ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0) :
-    Separable ((((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X)).map (Int.castRingHom (ZMod q))) := by
+      ¬ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0) :
+    Separable ((((f.comp ·)^[r] X)).map (Int.castRingHom (ZMod q))) := by
   have hbne : ((b : ℤ) : ZMod q) ≠ 0 := fun h =>
     hqb ((CharP.cast_eq_zero_iff (ZMod q) q b).mp (by exact_mod_cast h))
   refine separable_map_comp_iterate_of_isCoprime fun i hi => ?_
-  have hif : ((derivative (X ^ b + 1 : ℤ[X])).comp
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[i] X)).map (Int.castRingHom (ZMod q)) =
+  have hif : ((derivative f).comp
+        ((f.comp ·)^[i] X)).map (Int.castRingHom (ZMod q)) =
       C ((b : ℤ) : ZMod q) *
-        (((((X ^ b + 1 : ℤ[X])).comp ·)^[i] X).map (Int.castRingHom (ZMod q))) ^ (b - 1) := by
-    rw [derivative_add, derivative_one, add_zero, derivative_X_pow, mul_comp, C_comp, pow_comp,
-      X_comp]
+        (((f.comp ·)^[i] X).map (Int.castRingHom (ZMod q))) ^ (b - 1) := by
+    rw [hf, derivative_add, derivative_C, add_zero, derivative_X_pow, mul_comp, C_comp,
+      pow_comp, X_comp]
     simp
   rw [hif]
   exact (isCoprime_C_of_ne_zero hbne).mul_right
@@ -616,12 +644,12 @@ theorem not_isIndexDivisor_two_comp_iterate {k : ℕ} (hk : 0 < k) {r : ℕ} (hr
 
 /-- **A prime dividing neither `b` nor the critical orbit is never an index divisor of an
 iterate of `X ^ b + 1`.** -/
-theorem not_isIndexDivisor_comp_iterate_of_not_dvd_orbit {b q : ℕ} [Fact q.Prime]
-    (hqb : ¬ q ∣ b) {r : ℕ}
+theorem not_isIndexDivisor_comp_iterate_of_not_dvd_orbit {f : ℤ[X]} {A : ℤ} {b q : ℕ}
+    (hf : f = X ^ b + C A) [Fact q.Prime] (hqb : ¬ q ∣ b) {r : ℕ}
     (horb : ∀ j, 0 < j → j ≤ r →
-      ¬ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0) :
-    ¬ IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) :=
-  not_isIndexDivisor_of_squarefree_map (separable_map_comp_iterate hqb horb).squarefree
+      ¬ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0) :
+    ¬ IsIndexDivisor q ((f.comp ·)^[r] X) :=
+  not_isIndexDivisor_of_squarefree_map (separable_map_comp_iterate hf hqb horb).squarefree
 
 /-- **The index divisors of an even iterate of `Φ (2 ^ (k + 1))` are confined to the critical
 orbit.**  If no odd prime dividing one of the constant terms `Q j (0)`, `1 ≤ j ≤ r + 1`, is an
@@ -639,7 +667,7 @@ theorem forall_not_isIndexDivisor_comp_iterate {k : ℕ} (hk : 0 < k) {r : ℕ} 
   by_cases hq2 : q = 2
   · subst hq2
     exact not_isIndexDivisor_two_comp_iterate hk hr
-  · refine not_isIndexDivisor_comp_iterate_of_not_dvd_orbit ?_ (horb q hqp hq2)
+  · refine not_isIndexDivisor_comp_iterate_of_not_dvd_orbit (A := 1) rfl ?_ (horb q hqp hq2)
     intro hdvd
     exact hq2 ((Nat.prime_dvd_prime_iff_eq hqp Nat.prime_two).mp (hqp.dvd_of_dvd_pow hdvd))
 
@@ -748,42 +776,43 @@ theorem dvd_eval_zero_comp_iterate_add {f : ℤ[X]} {q : ℤ} {m : ℕ}
     rw [show j + 1 + m = (j + m) + 1 by omega, hstep, hstep]
     exact ih.trans (sub_dvd_eval_sub _ _ f)
 
-variable {b : ℕ}
+variable {f : ℤ[X]} {A : ℤ} {b : ℕ}
 
 /-- `X ^ b` divides `Q (m + 1) - C (c (m + 1))`: the orbit starts at `0`, which is a
 critical point of `X ^ b + 1` of order `b`. -/
-theorem X_pow_dvd_comp_iterate_succ_sub_C (hb : 0 < b) (m : ℕ) :
-    (X : ℤ[X]) ^ b ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X) -
-      C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X).eval 0) := by
+theorem X_pow_dvd_comp_iterate_succ_sub_C (hf : f = X ^ b + C A) (hb : 0 < b) (m : ℕ) :
+    (X : ℤ[X]) ^ b ∣ ((f.comp ·)^[m + 1] X) -
+      C (((f.comp ·)^[m + 1] X).eval 0) := by
   induction m with
   | zero =>
-    rw [comp_iterate_pow_add_one_succ]
+    rw [comp_iterate_succ_eq hf]
     simp [zero_pow hb.ne']
   | succ m ih =>
-    rw [comp_iterate_pow_add_one_succ, eval_add, eval_pow, eval_one, map_add, map_pow, map_one,
-      show ((((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X)) ^ b + 1 -
-        ((C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X).eval 0)) ^ b + 1)) =
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X) ^ b -
-          (C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m + 1] X).eval 0)) ^ b by ring]
+    rw [comp_iterate_succ_eq hf, eval_add, eval_pow, eval_C, map_add, map_pow,
+      show ((((f.comp ·)^[m + 1] X)) ^ b + C A -
+        ((C (((f.comp ·)^[m + 1] X).eval 0)) ^ b + C A)) =
+        ((f.comp ·)^[m + 1] X) ^ b -
+          (C (((f.comp ·)^[m + 1] X).eval 0)) ^ b by ring]
     exact ih.trans (sub_dvd_pow_sub_pow _ _ b)
 
 /-- **The splitting that decides everything**: for `1 ≤ m ≤ r`,
 `Q r = C (c m) + Q (r - m) ^ b * W`. -/
-theorem comp_iterate_eq_C_add_pow_mul (hb : 0 < b) {m r : ℕ} (hm : 0 < m) (hmr : m ≤ r) :
-    ∃ W : ℤ[X], ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) =
-      C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) +
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X) ^ b * W := by
+theorem comp_iterate_eq_C_add_pow_mul (hf : f = X ^ b + C A) (hb : 0 < b) {m r : ℕ}
+    (hm : 0 < m) (hmr : m ≤ r) :
+    ∃ W : ℤ[X], ((f.comp ·)^[r] X) =
+      C (((f.comp ·)^[m] X).eval 0) +
+        ((f.comp ·)^[r - m] X) ^ b * W := by
   obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
-  obtain ⟨V, hV⟩ := X_pow_dvd_comp_iterate_succ_sub_C hb m'
-  set c : ℤ := ((((X ^ b + 1 : ℤ[X])).comp ·)^[m' + 1] X).eval 0 with hc
-  have hcomp : ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) =
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[m' + 1] X).comp
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - (m' + 1)] X) := by
-    have h := comp_iterate_add (X ^ b + 1 : ℤ[X]) (m' + 1) (r - (m' + 1))
+  obtain ⟨V, hV⟩ := X_pow_dvd_comp_iterate_succ_sub_C hf hb m'
+  set c : ℤ := ((f.comp ·)^[m' + 1] X).eval 0 with hc
+  have hcomp : ((f.comp ·)^[r] X) =
+      ((f.comp ·)^[m' + 1] X).comp
+        ((f.comp ·)^[r - (m' + 1)] X) := by
+    have h := comp_iterate_add f (m' + 1) (r - (m' + 1))
     rwa [show m' + 1 + (r - (m' + 1)) = r by omega] at h
-  have hQ : ((((X ^ b + 1 : ℤ[X])).comp ·)^[m' + 1] X) = C c + X ^ b * V := by
+  have hQ : ((f.comp ·)^[m' + 1] X) = C c + X ^ b * V := by
     linear_combination hV
-  exact ⟨V.comp ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - (m' + 1)] X), by
+  exact ⟨V.comp ((f.comp ·)^[r - (m' + 1)] X), by
     rw [hcomp, hQ, add_comp, mul_comp, C_comp, pow_comp, X_comp]⟩
 
 /-! ### The sharp criterion at an odd prime -/
@@ -800,26 +829,27 @@ Since `Q r ≡ c (r - i)` mod `Q i`, that forces `q ∣ c (r - i)`; minimality o
 `Q (r - m)` as well.  Now `Q (r - m) ^ b ∈ ⟨q, Pi⟩ ^ 2` because `b ≥ 2`, so the splitting
 `Q r = C (c m) + Q (r - m) ^ b * W` puts the constant `C (c m)` in `⟨q, Pi⟩ ^ 2`, which
 forces `q ^ 2 ∣ c m`. -/
-theorem not_isIndexDivisor_comp_iterate_of_not_sq_dvd (hb : 2 ≤ b) [hq : Fact q.Prime]
+theorem not_isIndexDivisor_comp_iterate_of_not_sq_dvd (hf : f = X ^ b + C A) (hb : 2 ≤ b)
+    [hq : Fact q.Prime]
     (hqb : ¬ q ∣ b) {r m : ℕ} (hm : 0 < m) (hmr : m ≤ r)
-    (hdvd : (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0)
-    (hsq : ¬ (q : ℤ) ^ 2 ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0)
+    (hdvd : (q : ℤ) ∣ ((f.comp ·)^[m] X).eval 0)
+    (hsq : ¬ (q : ℤ) ^ 2 ∣ ((f.comp ·)^[m] X).eval 0)
     (hmin : ∀ j, 0 < j → j < m →
-      ¬ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0) :
-    ¬ IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) := by
+      ¬ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0) :
+    ¬ IsIndexDivisor q ((f.comp ·)^[r] X) := by
   rintro ⟨Pi, hPim, hPiirr, hmem⟩
   have hPi0 : Pi.map (Int.castRingHom (ZMod q)) ≠ 0 := hPiirr.ne_zero
   -- The reduction of `Pi` divides that of `Q r` twice.
   have hdvd2 : (Pi.map (Int.castRingHom (ZMod q))) ^ 2 ∣
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X).map (Int.castRingHom (ZMod q)) := by
+      ((f.comp ·)^[r] X).map (Int.castRingHom (ZMod q)) := by
     have h := sq_span_pair_le_span_pair_sq hmem
     rwa [mem_span_pair_C_natCast_iff, Polynomial.map_pow] at h
   have hPiQr : (Pi.map (Int.castRingHom (ZMod q))) ∣
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X).map (Int.castRingHom (ZMod q)) :=
+      ((f.comp ·)^[r] X).map (Int.castRingHom (ZMod q)) :=
     (dvd_pow_self _ two_ne_zero).trans hdvd2
   -- Hence it divides the derivative, hence some member of the orbit.
   have hPider : (Pi.map (Int.castRingHom (ZMod q))) ∣
-      derivative (((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X).map (Int.castRingHom (ZMod q))) := by
+      derivative (((f.comp ·)^[r] X).map (Int.castRingHom (ZMod q))) := by
     obtain ⟨g, hg⟩ := hdvd2
     refine ⟨C 2 * derivative (Pi.map (Int.castRingHom (ZMod q))) * g +
       (Pi.map (Int.castRingHom (ZMod q))) * derivative g, ?_⟩
@@ -827,16 +857,16 @@ theorem not_isIndexDivisor_comp_iterate_of_not_sq_dvd (hb : 2 ≤ b) [hq : Fact 
     ring
   have hbne : ((b : ℤ) : ZMod q) ≠ 0 := fun h =>
     hqb ((CharP.cast_eq_zero_iff (ZMod q) q b).mp (by exact_mod_cast h))
-  have hif : ∀ i : ℕ, ((derivative (X ^ b + 1 : ℤ[X])).comp
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[i] X)).map (Int.castRingHom (ZMod q)) =
+  have hif : ∀ i : ℕ, ((derivative f).comp
+        ((f.comp ·)^[i] X)).map (Int.castRingHom (ZMod q)) =
       C ((b : ℤ) : ZMod q) *
-        (((((X ^ b + 1 : ℤ[X])).comp ·)^[i] X).map (Int.castRingHom (ZMod q))) ^ (b - 1) := by
+        (((f.comp ·)^[i] X).map (Int.castRingHom (ZMod q))) ^ (b - 1) := by
     intro i
-    rw [derivative_add, derivative_one, add_zero, derivative_X_pow, mul_comp, C_comp, pow_comp,
-      X_comp]
+    rw [hf, derivative_add, derivative_C, add_zero, derivative_X_pow, mul_comp, C_comp,
+      pow_comp, X_comp]
     simp
   obtain ⟨i, hiR, hPiQi⟩ : ∃ i, i < r ∧ (Pi.map (Int.castRingHom (ZMod q))) ∣
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[i] X).map (Int.castRingHom (ZMod q)) := by
+      ((f.comp ·)^[i] X).map (Int.castRingHom (ZMod q)) := by
     rw [derivative_map, derivative_comp_iterate, Polynomial.map_prod] at hPider
     obtain ⟨i, hi, hdvdi⟩ := ((hPiirr.prime).dvd_finsetProd_iff _).mp hPider
     refine ⟨i, Finset.mem_range.mp hi, ?_⟩
@@ -848,16 +878,16 @@ theorem not_isIndexDivisor_comp_iterate_of_not_sq_dvd (hb : 2 ≤ b) [hq : Fact 
   -- Being a common factor of `Q i` and `Q r` forces `q ∣ c (r - i)`.
   have hCdvd : ∀ s : ℕ, i ≤ s →
       (Pi.map (Int.castRingHom (ZMod q))) ∣
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[s] X).map (Int.castRingHom (ZMod q)) -
-        C ((((((X ^ b + 1 : ℤ[X])).comp ·)^[s - i] X).eval 0 : ℤ) : ZMod q) := by
+        ((f.comp ·)^[s] X).map (Int.castRingHom (ZMod q)) -
+        C ((((f.comp ·)^[s - i] X).eval 0 : ℤ) : ZMod q) := by
     intro s hs
     refine hPiQi.trans ?_
     have h := Polynomial.map_dvd (Int.castRingHom (ZMod q))
-      (comp_iterate_dvd_sub_C (X ^ b + 1 : ℤ[X]) hs)
+      (comp_iterate_dvd_sub_C f hs)
     simpa using h
-  have hqc : (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - i] X).eval 0 := by
+  have hqc : (q : ℤ) ∣ ((f.comp ·)^[r - i] X).eval 0 := by
     by_contra hno
-    have hne : (((((((X ^ b + 1 : ℤ[X])).comp ·)^[r - i] X).eval 0 : ℤ)) : ZMod q) ≠ 0 :=
+    have hne : (((((f.comp ·)^[r - i] X).eval 0 : ℤ)) : ZMod q) ≠ 0 :=
       fun h => hno ((ZMod.intCast_zmod_eq_zero_iff_dvd _ q).mp h)
     have hCc := (hPiQr.sub (hCdvd r hiR.le))
     rw [sub_sub_cancel] at hCc
@@ -867,28 +897,28 @@ theorem not_isIndexDivisor_comp_iterate_of_not_sq_dvd (hb : 2 ≤ b) [hq : Fact 
   have htm : m ≤ r - i := by
     by_contra h
     exact hmin (r - i) (by omega) (by omega) hqc
-  have hqtm : (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - i - m] X).eval 0 := by
-    have h := dvd_eval_zero_comp_iterate_add (f := (X ^ b + 1 : ℤ[X])) hdvd (r - i - m)
+  have hqtm : (q : ℤ) ∣ ((f.comp ·)^[r - i - m] X).eval 0 := by
+    have h := dvd_eval_zero_comp_iterate_add (f := f) hdvd (r - i - m)
     rw [show r - i - m + m = r - i by omega] at h
     have h2 := hqc.sub h
     rwa [sub_sub_cancel] at h2
   have hPirm : (Pi.map (Int.castRingHom (ZMod q))) ∣
-      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).map (Int.castRingHom (ZMod q)) := by
+      ((f.comp ·)^[r - m] X).map (Int.castRingHom (ZMod q)) := by
     have h := hCdvd (r - m) (by omega)
     rw [show r - m - i = r - i - m by omega,
       (ZMod.intCast_zmod_eq_zero_iff_dvd _ q).mpr hqtm, map_zero, sub_zero] at h
     exact h
   -- The `b`-th power lands in the square of the ideal, so the constant term must too.
-  have hmemb : ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X) ^ b ∈
+  have hmemb : ((f.comp ·)^[r - m] X) ^ b ∈
       (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 :=
     Ideal.pow_le_pow_right hb (Ideal.pow_mem_pow (mem_span_pair_C_natCast_iff.mpr hPirm) b)
-  obtain ⟨W, hW⟩ := comp_iterate_eq_C_add_pow_mul (b := b) (by omega) hm hmr
+  obtain ⟨W, hW⟩ := comp_iterate_eq_C_add_pow_mul hf (by omega) hm hmr
   obtain ⟨c, hc⟩ := hdvd
   have hqc' : ¬ (q : ℤ) ∣ c := fun ⟨d, hd⟩ => hsq ⟨d, by rw [hc, hd]; ring⟩
   have hCm : C (q : ℤ) * C c ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 := by
     have heq : C (q : ℤ) * C c =
-        ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) -
-          ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X) ^ b * W := by
+        ((f.comp ·)^[r] X) -
+          ((f.comp ·)^[r - m] X) ^ b * W := by
       rw [← map_mul, ← hc]
       linear_combination -hW
     rw [heq]
@@ -905,25 +935,26 @@ divisor of `Q r`: take `Pi` to be any monic irreducible factor of the reduction 
 `Q (r - m)`.  Then `Q (r - m) ^ b ∈ ⟨q, Pi⟩ ^ 2` because `b ≥ 2`, while
 `C (c m) ∈ ⟨q⟩ ^ 2 ⊆ ⟨q, Pi⟩ ^ 2`, so the splitting
 `Q r = C (c m) + Q (r - m) ^ b * W` puts `Q r` itself in `⟨q, Pi⟩ ^ 2`. -/
-theorem isIndexDivisor_comp_iterate_of_sq_dvd (hb : 2 ≤ b) [hq : Fact q.Prime] {r m : ℕ}
+theorem isIndexDivisor_comp_iterate_of_sq_dvd (hf : f = X ^ b + C A) (hb : 2 ≤ b)
+    [hq : Fact q.Prime] {r m : ℕ}
     (hm : 0 < m) (hmr : m ≤ r)
-    (hsq : (q : ℤ) ^ 2 ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) :
-    IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) := by
+    (hsq : (q : ℤ) ^ 2 ∣ ((f.comp ·)^[m] X).eval 0) :
+    IsIndexDivisor q ((f.comp ·)^[r] X) := by
   have hb0 : 0 < b := by omega
-  have hfm : ((X ^ b + 1 : ℤ[X])).Monic := by
-    simpa using monic_X_pow_add_C (1 : ℤ) hb0.ne'
-  have hfd : ((X ^ b + 1 : ℤ[X])).natDegree = b := by
-    simpa using natDegree_X_pow_add_C (R := ℤ) (n := b) (r := 1)
+  have hfm : f.Monic := by
+    rw [hf]; exact monic_X_pow_add_C A hb0.ne'
+  have hfd : f.natDegree = b := by
+    rw [hf]; exact natDegree_X_pow_add_C
   -- The reduction of `Q (r - m)` is monic of positive degree, so it has a monic irreducible
   -- factor.
-  have hQm : ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).Monic :=
+  have hQm : ((f.comp ·)^[r - m] X).Monic :=
     monic_comp_iterate hfm (by omega) (r - m)
-  have hQdeg : (((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).map
+  have hQdeg : (((f.comp ·)^[r - m] X).map
       (Int.castRingHom (ZMod q))).natDegree = b ^ (r - m) := by
     rw [hQm.natDegree_map, natDegree_comp_iterate, hfd]
-  have hQne : (((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).map (Int.castRingHom (ZMod q))) ≠ 0 :=
+  have hQne : (((f.comp ·)^[r - m] X).map (Int.castRingHom (ZMod q))) ≠ 0 :=
     (hQm.map _).ne_zero
-  have hQnu : ¬ IsUnit ((((( X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).map
+  have hQnu : ¬ IsUnit ((((f.comp ·)^[r - m] X)).map
       (Int.castRingHom (ZMod q))) := by
     intro hu
     have hz := natDegree_eq_zero_of_isUnit hu
@@ -933,7 +964,7 @@ theorem isIndexDivisor_comp_iterate_of_sq_dvd (hb : 2 ≤ b) [hq : Fact q.Prime]
   obtain ⟨i, hi, hidvd⟩ := WfDvdMonoid.exists_irreducible_factor hQnu hQne
   have hπirr : Irreducible (normalize i) := (normalize_associated i).symm.irreducible hi
   have hπm : (normalize i).Monic := monic_normalize hi.ne_zero
-  have hπdvd : (normalize i) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X).map
+  have hπdvd : (normalize i) ∣ ((f.comp ·)^[r - m] X).map
       (Int.castRingHom (ZMod q)) := (normalize_associated i).dvd.trans hidvd
   -- Lift it to a monic polynomial over `ℤ`.
   have hsurj : Function.Surjective (Int.castRingHom (ZMod q)) := ZMod.intCast_surjective
@@ -942,22 +973,22 @@ theorem isIndexDivisor_comp_iterate_of_sq_dvd (hb : 2 ≤ b) [hq : Fact q.Prime]
       (Polynomial.map_surjective _ hsurj (normalize i))) hπm
   refine ⟨Pi, hPimonic, by rw [hPimap]; exact hπirr, ?_⟩
   -- Both summands of the splitting lie in the square of the ideal.
-  have hmem1 : ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X) ∈
+  have hmem1 : ((f.comp ·)^[r - m] X) ∈
       (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
     mem_span_pair_C_natCast_iff.mpr (by rw [hPimap]; exact hπdvd)
-  have hmemb : ((((X ^ b + 1 : ℤ[X])).comp ·)^[r - m] X) ^ b ∈
+  have hmemb : ((f.comp ·)^[r - m] X) ^ b ∈
       (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 :=
     Ideal.pow_le_pow_right hb (Ideal.pow_mem_pow hmem1 b)
   obtain ⟨d, hd⟩ := hsq
-  have hmemC : C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) ∈
+  have hmemC : C (((f.comp ·)^[m] X).eval 0) ∈
       (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 := by
     have hCq : (C (q : ℤ) : ℤ[X]) ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
       Ideal.subset_span (by simp)
-    have heq : C (((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) = C (q : ℤ) ^ 2 * C d := by
+    have heq : C (((f.comp ·)^[m] X).eval 0) = C (q : ℤ) ^ 2 * C d := by
       rw [← map_pow, ← map_mul, ← hd]
     rw [heq]
     exact Ideal.mul_mem_right _ _ (Ideal.pow_mem_pow hCq 2)
-  obtain ⟨W, hW⟩ := comp_iterate_eq_C_add_pow_mul (b := b) hb0 hm hmr
+  obtain ⟨W, hW⟩ := comp_iterate_eq_C_add_pow_mul hf hb0 hm hmr
   rw [hW]
   exact Ideal.add_mem _ hmemC (Ideal.mul_mem_right _ _ hmemb)
 
@@ -967,38 +998,39 @@ iterate of `X ^ b + 1` exactly when the critical orbit meets `q` within the firs
 
 So the only obstruction to monogenity is a square factor at the first point where the orbit
 falls into `q`; a first hit that is exactly divisible by `q` is harmless. -/
-theorem isIndexDivisor_comp_iterate_iff (hb : 2 ≤ b) [Fact q.Prime] (hqb : ¬ q ∣ b) (r : ℕ) :
-    IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) ↔
-      ∃ m, 0 < m ∧ m ≤ r ∧ (q : ℤ) ^ 2 ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0 ∧
+theorem isIndexDivisor_comp_iterate_iff (hf : f = X ^ b + C A) (hb : 2 ≤ b) [Fact q.Prime]
+    (hqb : ¬ q ∣ b) (r : ℕ) :
+    IsIndexDivisor q ((f.comp ·)^[r] X) ↔
+      ∃ m, 0 < m ∧ m ≤ r ∧ (q : ℤ) ^ 2 ∣ ((f.comp ·)^[m] X).eval 0 ∧
         ∀ j, 0 < j → j < m →
-          ¬ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0 := by
+          ¬ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0 := by
   classical
   refine ⟨fun hidx => ?_, ?_⟩
   · by_contra hno
     push Not at hno
-    by_cases hex : ∃ j, 0 < j ∧ j ≤ r ∧ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0
+    by_cases hex : ∃ j, 0 < j ∧ j ≤ r ∧ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0
     · -- The orbit meets `q`; take the first time it does.
       obtain ⟨j₀, hj₀0, hj₀r, hj₀d⟩ := hex
-      have hP : ∃ j, 0 < j ∧ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0 :=
+      have hP : ∃ j, 0 < j ∧ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0 :=
         ⟨j₀, hj₀0, hj₀d⟩
       set m := Nat.find hP with hmdef
       obtain ⟨hm0, hmd⟩ := Nat.find_spec hP
       have hmmin : ∀ j, 0 < j → j < m →
-          ¬ (q : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0 := by
+          ¬ (q : ℤ) ∣ ((f.comp ·)^[j] X).eval 0 := by
         intro j hj0 hjm hjd
         exact Nat.find_min hP hjm ⟨hj0, hjd⟩
       have hmr : m ≤ r := le_trans (Nat.find_le ⟨hj₀0, hj₀d⟩) hj₀r
-      have hnsq : ¬ (q : ℤ) ^ 2 ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0 := by
+      have hnsq : ¬ (q : ℤ) ^ 2 ∣ ((f.comp ·)^[m] X).eval 0 := by
         intro h
         obtain ⟨j, hj0, hjm, hjd⟩ := hno m hm0 hmr h
         exact hmmin j hj0 hjm hjd
-      exact not_isIndexDivisor_comp_iterate_of_not_sq_dvd hb hqb hm0 hmr hmd hnsq hmmin hidx
+      exact not_isIndexDivisor_comp_iterate_of_not_sq_dvd hf hb hqb hm0 hmr hmd hnsq hmmin hidx
     · -- The orbit misses `q` entirely, so the reduction is separable.
       push Not at hex
-      exact not_isIndexDivisor_comp_iterate_of_not_dvd_orbit hqb
+      exact not_isIndexDivisor_comp_iterate_of_not_dvd_orbit hf hqb
         (fun j hj0 hjr => hex j hj0 hjr) hidx
   · rintro ⟨m, hm, hmr, hsq, -⟩
-    exact isIndexDivisor_comp_iterate_of_sq_dvd hb hm hmr hsq
+    exact isIndexDivisor_comp_iterate_of_sq_dvd hf hb hm hmr hsq
 
 end CriticalOrbit
 
@@ -1032,8 +1064,9 @@ theorem forall_not_isIndexDivisor_comp_iterate_of_first_hit {k : ℕ} (hk : 0 < 
     exact not_isIndexDivisor_two_comp_iterate hk hr
   · have hqb : ¬ q ∣ 2 ^ k := fun hdvd =>
       hq2 ((Nat.prime_dvd_prime_iff_eq hqp Nat.prime_two).mp (hqp.dvd_of_dvd_pow hdvd))
-    rw [isIndexDivisor_comp_iterate_iff hb2 hqb]
-    rintro ⟨m, hm0, hmr, hsq, hmin⟩
+    intro hidx
+    obtain ⟨m, hm0, hmr, hsq, hmin⟩ :=
+      (isIndexDivisor_comp_iterate_iff (A := 1) rfl hb2 hqb _).mp hidx
     exact horb q hqp hq2 m hm0 hmr hmin hsq
 
 /-- **Monogenity of an even iterate from a squarefree critical orbit.**  This is the
@@ -1098,13 +1131,14 @@ that `q ^ 2` divides *some* member of the critical orbit. -/
 /-- **The criterion, simplified.**  A prime `q` not dividing `b` is an index divisor of the
 `r`-fold iterate of `X ^ b + 1` exactly when `q ^ 2` divides one of the first `r` values of
 the critical orbit. -/
-theorem isIndexDivisor_comp_iterate_iff_exists_sq_dvd {b q : ℕ} (hb : 2 ≤ b) [Fact q.Prime]
-    (hqb : ¬ q ∣ b) (r : ℕ) :
-    IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X) ↔
+theorem isIndexDivisor_comp_iterate_iff_exists_sq_dvd {f : ℤ[X]} {A : ℤ} {b q : ℕ}
+    (hf : f = X ^ b + C A) (hb : 2 ≤ b) [Fact q.Prime] (hqb : ¬ q ∣ b) (r : ℕ) :
+    IsIndexDivisor q ((f.comp ·)^[r] X) ↔
       ∃ m, 0 < m ∧ m ≤ r ∧
-        (q : ℤ) ^ 2 ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0 := by
-  refine ⟨fun h => ?_, fun ⟨m, h1, h2, h3⟩ => isIndexDivisor_comp_iterate_of_sq_dvd hb h1 h2 h3⟩
-  obtain ⟨m, h1, h2, h3, -⟩ := (isIndexDivisor_comp_iterate_iff hb hqb r).mp h
+        (q : ℤ) ^ 2 ∣ ((f.comp ·)^[m] X).eval 0 := by
+  refine ⟨fun h => ?_,
+    fun ⟨m, h1, h2, h3⟩ => isIndexDivisor_comp_iterate_of_sq_dvd hf hb h1 h2 h3⟩
+  obtain ⟨m, h1, h2, h3, -⟩ := (isIndexDivisor_comp_iterate_iff hf hb hqb r).mp h
   exact ⟨m, h1, h2, h3⟩
 
 /-- **The complete answer for even iterates.**  For `r` odd and `k ≥ 1`, the `(r + 1)`-fold
@@ -1124,7 +1158,7 @@ theorem forall_not_isIndexDivisor_comp_iterate_iff_squarefree {k : ℕ} (hk : 0 
   rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
   intro q hqp hsq
   haveI : Fact q.Prime := ⟨hqp⟩
-  exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hb2 hm0 hmr hsq)
+  exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd (A := 1) rfl hb2 hm0 hmr hsq)
 
 end Polynomial
 
@@ -1300,15 +1334,16 @@ theorem forall_not_isIndexDivisor_comp_iterate_iff_squarefree' (hk : 0 < k) {r :
   · rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
     intro q hqp hsq
     haveI : Fact q.Prime := ⟨hqp⟩
-    exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hb2 hm0 hmr hsq)
+    exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd (A := 1) rfl hb2 hm0 hmr hsq)
   · haveI : Fact q.Prime := ⟨hqp⟩
     by_cases hq2 : q = 2
     · subst hq2
       exact not_isIndexDivisor_two_comp_iterate' hk hr
     · have hqb : ¬ q ∣ 2 ^ k := fun hdvd =>
         hq2 ((Nat.prime_dvd_prime_iff_eq hqp Nat.prime_two).mp (hqp.dvd_of_dvd_pow hdvd))
-      rw [isIndexDivisor_comp_iterate_iff_exists_sq_dvd hb2 hqb]
-      rintro ⟨m, hm0, hmr, hsq⟩
+      intro hidx
+      obtain ⟨m, hm0, hmr, hsq⟩ :=
+        (isIndexDivisor_comp_iterate_iff_exists_sq_dvd (A := 1) rfl hb2 hqb _).mp hidx
       exact (Int.squarefree_iff_forall_prime_sq_not_dvd.mp (h m hm0 hmr)) q hqp hsq
 
 end OddIterate
@@ -1365,15 +1400,16 @@ theorem irreducible_comp_iterate (hk : 0 < k) {r : ℕ} (hr : 0 < r) :
 with `b ≥ 2` is monogenic, then the critical orbit is squarefree up to that point.  Note
 that no assumption is made on `b` beyond `b ≥ 2`: the necessity half of the criterion needs
 neither `q ∤ b` nor that `b` be a power of `2`. -/
-theorem squarefree_eval_zero_of_forall_not_isIndexDivisor (hb : 2 ≤ b) {r : ℕ}
-    (h : ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X)) :
+theorem squarefree_eval_zero_of_forall_not_isIndexDivisor {f : ℤ[X]} {A : ℤ} {b : ℕ}
+    (hf : f = X ^ b + C A) (hb : 2 ≤ b) {r : ℕ}
+    (h : ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((f.comp ·)^[r] X)) :
     ∀ m, 0 < m → m ≤ r →
-      Squarefree (((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) := by
+      Squarefree (((f.comp ·)^[m] X).eval 0) := by
   intro m hm0 hmr
   rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
   intro q hqp hsq
   haveI : Fact q.Prime := ⟨hqp⟩
-  exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hb hm0 hmr hsq)
+  exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hf hb hm0 hmr hsq)
 
 end AllIterates
 
@@ -1398,3 +1434,38 @@ theorem adjoin_eq_top_iff_forall_squarefree_of_minpoly_eq_comp_iterate' {K : Typ
   exact forall_not_isIndexDivisor_comp_iterate_iff_squarefree' hk hr
 
 end NumberField
+
+namespace Polynomial
+
+/-! ### The criterion for a general unicritical polynomial
+
+Nothing in the criterion used the constant term `1`.  The hypotheses are packaged as
+`f = X ^ b + C A`, so the results apply verbatim to every *unicritical* polynomial: one whose
+only critical point is `0`, of full multiplicity `b`.  This covers `X ^ b - A` as well, and
+so the pure polynomials, whose iterates were not previously reachable. -/
+
+/-- **The criterion for `X ^ b + A`.**  For a prime `q` not dividing `b`, `q` is an index
+divisor of the `r`-fold iterate of `X ^ b + A` exactly when `q ^ 2` divides one of the first
+`r` values of the critical orbit of `0`. -/
+theorem isIndexDivisor_comp_iterate_pow_add_C_iff {b q : ℕ} (hb : 2 ≤ b) [Fact q.Prime]
+    (hqb : ¬ q ∣ b) (A : ℤ) (r : ℕ) :
+    IsIndexDivisor q ((((X ^ b + C A : ℤ[X])).comp ·)^[r] X) ↔
+      ∃ m, 0 < m ∧ m ≤ r ∧
+        (q : ℤ) ^ 2 ∣ ((((X ^ b + C A : ℤ[X])).comp ·)^[m] X).eval 0 :=
+  isIndexDivisor_comp_iterate_iff_exists_sq_dvd rfl hb hqb r
+
+/-- **The case `r = 1`**: a prime `q` not dividing `b` is an index divisor of `X ^ b + A`
+exactly when `q ^ 2 ∣ A`.  The critical orbit has a single relevant term, `c 1 = A`. -/
+theorem isIndexDivisor_pow_add_C_iff {b q : ℕ} (hb : 2 ≤ b) [Fact q.Prime] (hqb : ¬ q ∣ b)
+    (A : ℤ) :
+    IsIndexDivisor q ((X ^ b + C A : ℤ[X])) ↔ (q : ℤ) ^ 2 ∣ A := by
+  have hone : ((((X ^ b + C A : ℤ[X])).comp ·)^[1] X) = X ^ b + C A := by
+    rw [Function.iterate_one, comp_X]
+  have heval : ((((X ^ b + C A : ℤ[X])).comp ·)^[1] X).eval 0 = A := by
+    rw [hone, eval_add, eval_pow, eval_X, eval_C, zero_pow (by omega), zero_add]
+  rw [← hone, isIndexDivisor_comp_iterate_pow_add_C_iff hb hqb A 1]
+  refine ⟨fun ⟨m, hm0, hm1, hsq⟩ => ?_, fun h => ⟨1, one_pos, le_refl _, by rwa [heval]⟩⟩
+  rw [show m = 1 by omega, heval] at hsq
+  exact hsq
+
+end Polynomial
