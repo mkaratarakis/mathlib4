@@ -1901,6 +1901,7 @@ public import Mathlib.Analysis.LocallyConvex.WeakOperatorTopology
 public import Mathlib.Analysis.LocallyConvex.WeakSpace
 public import Mathlib.Analysis.LocallyConvex.WithSeminorms
 public import Mathlib.Analysis.Matrix
+public import Mathlib.Analysis.Matrix.EigenvalueResidual
 public import Mathlib.Analysis.Matrix.Hermitian
 public import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
 public import Mathlib.Analysis.Matrix.LDL

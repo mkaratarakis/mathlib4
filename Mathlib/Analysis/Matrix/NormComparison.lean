@@ -283,6 +283,17 @@ theorem l2OpNorm_le_sqrt_card_mul {A : Matrix m n 𝕜} {b : ℝ} (hb : 0 ≤ b)
     A.l2OpNorm ≤ √(Fintype.card m * Fintype.card n : ℝ) * b :=
   (l2OpNorm_le_frobeniusNorm A).trans (frobeniusNorm_le_sqrt_card_mul hb h)
 
+/-- A diagonal matrix expands every vector by at least the smallest modulus on the diagonal.
+This is the lower bound complementing `Matrix.l2_opNorm_diagonal`. -/
+theorem mul_norm_le_norm_mulVec_diagonal {d : n → 𝕜} {c : ℝ} (hc₀ : 0 ≤ c)
+    (hc : ∀ i, c ≤ ‖d i‖) (x : EuclideanSpace 𝕜 n) :
+    c * ‖x‖ ≤ ‖(toLp 2 (diagonal d *ᵥ ofLp x) : EuclideanSpace 𝕜 n)‖ := by
+  refine (sq_le_sq₀ (by positivity) (norm_nonneg _)).mp ?_
+  rw [mul_pow, norm_ofLp_sq x, norm_toLp_sq (diagonal d *ᵥ ofLp x), Finset.mul_sum]
+  refine Finset.sum_le_sum fun i _ => ?_
+  rw [mulVec_diagonal, norm_mul, mul_pow]
+  exact mul_le_mul_of_nonneg_right (pow_le_pow_left₀ hc₀ (hc i) 2) (sq_nonneg _)
+
 end L2Op
 
 /-! ### Unitary invariance -/
@@ -385,6 +396,31 @@ theorem l2OpNorm_mul_of_mem_unitaryGroup' {V : Matrix n n 𝕜}
       _ = ‖A * V‖ := by rw [hVs, mul_one]
 
 end L2Right
+
+section Square
+
+variable [DecidableEq n] [Nonempty n]
+
+open scoped Matrix.Norms.L2Operator in
+/-- A unitary matrix has spectral norm `1`. -/
+theorem l2OpNorm_of_mem_unitaryGroup {U : Matrix n n 𝕜} (hU : U ∈ Matrix.unitaryGroup n 𝕜) :
+    U.l2OpNorm = 1 := by
+  rw [l2OpNorm_eq_norm]
+  exact CStarRing.norm_of_mem_unitary hU
+
+/-- Multiplication by a unitary matrix preserves the Euclidean norm of a vector. -/
+theorem norm_mulVec_of_mem_unitaryGroup {U : Matrix n n 𝕜} (hU : U ∈ Matrix.unitaryGroup n 𝕜)
+    (x : EuclideanSpace 𝕜 n) :
+    ‖(toLp 2 (U *ᵥ ofLp x) : EuclideanSpace 𝕜 n)‖ = ‖x‖ := by
+  have hstar : Uᴴ ∈ Matrix.unitaryGroup n 𝕜 := by
+    rw [← Matrix.star_eq_conjTranspose]; exact Unitary.star_mem hU
+  refine le_antisymm ?_ ?_
+  · simpa [l2OpNorm_of_mem_unitaryGroup hU] using norm_mulVec_le_l2OpNorm_mul U x
+  · have h := norm_mulVec_le_l2OpNorm_mul Uᴴ (toLp 2 (U *ᵥ ofLp x) : EuclideanSpace 𝕜 n)
+    rwa [l2OpNorm_of_mem_unitaryGroup hstar, one_mul, WithLp.ofLp_toLp, mulVec_mulVec,
+      conjTranspose_mul_self_of_mem_unitaryGroup hU, one_mulVec, WithLp.toLp_ofLp] at h
+
+end Square
 
 end Unitary
 
