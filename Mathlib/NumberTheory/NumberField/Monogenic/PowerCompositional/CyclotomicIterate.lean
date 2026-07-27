@@ -167,7 +167,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 3000
+set_option linter.style.longFile 3200
 
 @[expose] public section
 
@@ -2891,5 +2891,133 @@ theorem isIndexDivisor_comp_iterate_of_sq_dvd_eval {f : ℤ[X]} {q : ℕ} [Fact 
   rw [derivative_comp_iterate, eval_prod]
   refine dvd_trans ?_ (Finset.dvd_prod_of_mem _ (Finset.mem_range.mpr hi))
   rwa [eval_comp]
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### Wild primes by Eisenstein, and the post-critically finite route
+
+The criterion says an iterate is monogenic exactly when its critical orbit is squarefree.
+For a cyclotomic polynomial that orbit is infinite, so the condition is a statement about
+infinitely many integers — which is why the original question ran into Wieferich primes.
+
+If instead `f` is **post-critically finite**, the orbit is a *finite* set, the condition is a
+finite check, and one gets an unconditional theorem: every iterate is monogenic.  The
+example below is `X ^ 2 - 2`, whose critical orbit is `-2, 2, 2, 2, …`.
+
+The primes dividing `b`, left as a hypothesis earlier, are handled here whenever `q ∣ A`:
+then every iterate reduces to a monomial mod `q`, so it is Eisenstein as soon as `q ^ 2` does
+not divide its constant term — which is again a critical orbit condition. -/
+
+/-- If `q ∣ A` then every iterate of `X ^ b + A` reduces to a monomial modulo `q`. -/
+theorem map_comp_iterate_eq_X_pow_of_dvd {b : ℕ} {A : ℤ} {q : ℕ} [Fact q.Prime]
+    (hq : (q : ℤ) ∣ A) (r : ℕ) :
+    ((((X ^ b + C A : ℤ[X])).comp ·)^[r] X).map (Int.castRingHom (ZMod q)) = X ^ b ^ r := by
+  have hA : ((A : ℤ) : ZMod q) = 0 := (ZMod.intCast_zmod_eq_zero_iff_dvd _ q).mpr hq
+  induction r with
+  | zero => simp
+  | succ r ih =>
+    rw [comp_iterate_succ_eq rfl, Polynomial.map_add, Polynomial.map_pow, Polynomial.map_C, ih]
+    simp only [Int.coe_castRingHom, hA, map_zero, add_zero]
+    rw [← pow_mul, ← pow_succ]
+
+/-- **Eisenstein at a prime dividing the constant term.**  If `q ∣ A` and `q ^ 2` does not
+divide the `r`-th critical orbit value, then the `r`-fold iterate of `X ^ b + A` is Eisenstein
+at `q` — hence irreducible, and `q` is not an index divisor. -/
+theorem isEisensteinAt_comp_iterate_of_dvd {b : ℕ} {A : ℤ} {q : ℕ} [Fact q.Prime]
+    (hq : (q : ℤ) ∣ A) (hb : 2 ≤ b) {r : ℕ}
+    (hv : ¬ (q : ℤ) ^ 2 ∣ ((((X ^ b + C A : ℤ[X])).comp ·)^[r] X).eval 0) :
+    ((((X ^ b + C A : ℤ[X])).comp ·)^[r] X).IsEisensteinAt (Submodule.span ℤ {(q : ℤ)}) := by
+  have hb0 : 0 < b := by omega
+  have hfm : ((X ^ b + C A : ℤ[X])).Monic := monic_X_pow_add_C A hb0.ne'
+  have hfd : ((X ^ b + C A : ℤ[X])).natDegree = b := natDegree_X_pow_add_C
+  have hmonic := monic_comp_iterate hfm (by omega) r
+  have hdeg : ((((X ^ b + C A : ℤ[X])).comp ·)^[r] X).natDegree = b ^ r := by
+    rw [natDegree_comp_iterate, hfd]
+  have hmap := map_comp_iterate_eq_X_pow_of_dvd (b := b) (A := A) hq r
+  have hq1 : ¬ (q : ℤ) ∣ 1 := by
+    intro h
+    have := Int.le_of_dvd one_pos h
+    have h2 : (2 : ℤ) ≤ (q : ℤ) := by exact_mod_cast (Fact.out : q.Prime).two_le
+    omega
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hmonic.leadingCoeff, Ideal.mem_span_singleton]
+    exact hq1
+  · intro i hi
+    rw [hdeg] at hi
+    have h := congrArg (fun u => Polynomial.coeff u i) hmap
+    simp only [coeff_map, coeff_X_pow, Int.coe_castRingHom,
+      if_neg (show i ≠ b ^ r by omega)] at h
+    rw [Ideal.mem_span_singleton, ← ZMod.intCast_zmod_eq_zero_iff_dvd]
+    exact h
+  · rw [coeff_zero_eq_eval_zero, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+    exact hv
+
+/-! ### `X ^ 2 - 2` is dynamically monogenic -/
+
+/-- One step of the orbit of `X ^ 2 - 2`. -/
+theorem eval_zero_comp_iterate_X_sq_sub_two_succ (j : ℕ) :
+    ((((X ^ 2 + C (-2 : ℤ) : ℤ[X])).comp ·)^[j + 1] X).eval 0
+      = (((((X ^ 2 + C (-2 : ℤ) : ℤ[X])).comp ·)^[j] X).eval 0) ^ 2 - 2 := by
+  rw [comp_iterate_succ_eq rfl, eval_add, eval_pow, eval_C]
+  ring
+
+/-- The critical orbit of `X ^ 2 - 2` is `-2, 2, 2, 2, …`: it is post-critically finite. -/
+theorem eval_zero_comp_iterate_X_sq_sub_two :
+    ∀ m, 0 < m → ((((X ^ 2 + C (-2 : ℤ) : ℤ[X])).comp ·)^[m] X).eval 0 = -2 ∨
+      ((((X ^ 2 + C (-2 : ℤ) : ℤ[X])).comp ·)^[m] X).eval 0 = 2 := by
+  intro m hm
+  induction m with
+  | zero => omega
+  | succ n ih =>
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · left
+      rw [eval_zero_comp_iterate_X_sq_sub_two_succ]
+      simp
+    · right
+      rw [eval_zero_comp_iterate_X_sq_sub_two_succ]
+      rcases ih hn with h | h <;> rw [h] <;> norm_num
+
+/-- **`X ^ 2 - 2` is dynamically monogenic**: *every* iterate is monogenic, unconditionally.
+
+Its critical orbit is the finite set `{-2, 2}`, so the squarefreeness condition of the
+criterion is a finite check: no odd prime square divides `±2`, and at `2` — which divides
+both the degree and the constant term — every iterate is Eisenstein, since its constant term
+is exactly divisible by `2`.
+
+This is the post-critically finite phenomenon: a finite critical orbit turns the criterion
+into a theorem.  A cyclotomic polynomial of degree at least two is never post-critically
+finite, which is exactly why the same question for cyclotomic polynomials is not a theorem
+but a Wieferich-type open problem. -/
+theorem forall_not_isIndexDivisor_comp_iterate_X_sq_sub_two {r : ℕ} (hr : 0 < r) :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 + C (-2 : ℤ) : ℤ[X])).comp ·)^[r] X) := by
+  have horb := eval_zero_comp_iterate_X_sq_sub_two
+  intro q hq
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hq2z : (2 : ℤ) ≤ (q : ℤ) := by exact_mod_cast hq.two_le
+  by_cases hq2 : q = 2
+  · subst hq2
+    have hfm : ((X ^ 2 + C (-2 : ℤ) : ℤ[X])).Monic := monic_X_pow_add_C _ (by norm_num)
+    refine RingOfIntegers.not_isIndexDivisor_of_isEisensteinAt
+      (monic_comp_iterate hfm (by rw [natDegree_X_pow_add_C]; omega) r) ?_
+      (isEisensteinAt_comp_iterate_of_dvd (by norm_num) (le_refl 2) ?_)
+    · rw [natDegree_comp_iterate, natDegree_X_pow_add_C]
+      positivity
+    · rcases horb r hr with h | h <;> rw [h] <;> decide
+  · have hqb : ¬ q ∣ 2 := fun hdvd =>
+      hq2 ((Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp hdvd)
+    rw [isIndexDivisor_comp_iterate_iff_exists_sq_dvd (A := -2) rfl (le_refl 2) hqb r]
+    rintro ⟨m, hm0, hmr, hsq⟩
+    have hq3 : (3 : ℤ) ≤ (q : ℤ) := by
+      have h2 : 2 ≤ q := hq.two_le
+      have h3 : 3 ≤ q := by omega
+      exact_mod_cast h3
+    have hsq2 : (q : ℤ) ^ 2 ∣ 2 := by
+      rcases horb m hm0 with h | h
+      · rw [h] at hsq; exact dvd_neg.mp hsq
+      · rwa [h] at hsq
+    have hle := Int.le_of_dvd (by norm_num) hsq2
+    nlinarith
 
 end Polynomial
