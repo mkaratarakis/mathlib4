@@ -144,16 +144,18 @@ residual points, and their status, are:
   where the orbit condition holds and yet `q` is an index divisor.  At such a prime the
   reduction is inseparable and the critical orbit simply does not determine the answer; the
   hypothesis is discharged in practice by `Monogenic.not_mem_sq_of_isEisensteinAt`.
-* **The principal ideal hypothesis on the base**, in
-  `Monogenic.adjoin_eq_top_of_forall_prime_not_sq_dvd`.  This one is *not* mathematics but
-  formalisation: it enters only through the global assembly
-  `adjoin_eq_top_of_forall_prime_saturated'`, which factors a denominator-clearing
-  discriminant into prime elements.  Removing it means running the local criterion over the
-  localisation `R_𝔭` — a discrete valuation ring, hence principal — and descending with
-  `mem_adjoin_of_forall_maximal_exists_smul_mem` and
-  `exists_smul_mem_adjoin_of_mem_localization_adjoin`, both already available.  What that
-  costs is the per-`𝔭` algebra and scalar-tower data, which `localizationAlgebra` supplies
-  only as a `def`; it is not done here.
+* **The principal ideal hypothesis on the base.**  Removed.  It entered only through the
+  global assembly, which factors a denominator-clearing discriminant into prime elements.
+  `Monogenic.adjoin_eq_top_of_forall_maximal_adjoin_localization_eq_top` replaces that step
+  and assumes nothing about `R`: it reduces `R[θ] = S` to the same statement over each
+  localisation `R_𝔭`, by the local–global principle and the descent.  And
+  `Monogenic.isPrincipalIdealRing_localization_atPrime` shows that over a Dedekind base each
+  `R_𝔭` is a discrete valuation ring, hence principal, so
+  `adjoin_eq_top_of_forall_prime_not_sq_dvd` applies there with its hypothesis for free —
+  whatever the class group of `R`.  No theorem in the chain assumes `R` itself to be
+  principal.
+
+So of the three, one is closed by proof, one by counterexample, and one is open.
 
 ## References
 
@@ -1959,5 +1961,95 @@ theorem not_mem_sq_of_isEisensteinAt {π : R} [hmax : (Ideal.span {π} : Ideal R
     (by rw [Ideal.span_singleton_pow]; exact Ideal.mem_span_singleton.mpr hdvd)
 
 end Wild
+
+end Monogenic
+
+namespace Monogenic
+
+/-! ### Removing the principal ideal hypothesis
+
+The hypothesis `[IsPrincipalIdealRing R]` in `adjoin_eq_top_of_forall_prime_not_sq_dvd`
+enters only through the global assembly, which factors a denominator-clearing discriminant
+into prime *elements*.  It disappears once the criterion is applied not to `R` but to its
+localisations `R_𝔭`, which are local — and, over a Dedekind base, discrete valuation rings,
+hence principal — and the local conclusions are glued back.
+
+Both halves of the gluing are already available: `mem_adjoin_of_forall_maximal_exists_smul_mem`
+is the local–global step and `exists_smul_mem_adjoin_of_mem_localization_adjoin` the descent.
+The lemmas below compose them, taking for `R_𝔭` and `S_𝔭` the concrete localisations, for
+which Mathlib supplies the algebra and scalar tower instances. -/
+
+section NoPID
+
+open Polynomial
+
+/-- Base change commutes with iteration: the `r`-fold iterate of the image of `f` is the
+image of the `r`-fold iterate.  This is what transports the critical orbit to a
+localisation. -/
+theorem map_comp_iterate {R R' : Type*} [CommRing R] [CommRing R'] (φ : R →+* R') (f : R[X])
+    (r : ℕ) : ((f.map φ).comp ·)^[r] X = (((f.comp ·)^[r] X)).map φ := by
+  induction r with
+  | zero => simp
+  | succ r ih =>
+    rw [Function.iterate_succ_apply', Function.iterate_succ_apply', ih, Polynomial.map_comp]
+
+variable {R S : Type*} [CommRing R] [CommRing S] [Algebra R S] {θ : S}
+
+/-- **Local–global for generation.**  If at every maximal ideal some denominator outside it
+carries each element into `R[θ]`, then `R[θ] = S`. -/
+theorem adjoin_eq_top_of_forall_maximal_exists_smul_mem
+    (h : ∀ 𝔭 : Ideal R, 𝔭.IsMaximal → ∀ β : S,
+      ∃ t ∉ 𝔭, algebraMap R S t * β ∈ Algebra.adjoin R {θ}) :
+    Algebra.adjoin R {θ} = ⊤ :=
+  Algebra.eq_top_iff.mpr fun β =>
+    mem_adjoin_of_forall_maximal_exists_smul_mem fun 𝔭 h𝔭 => h 𝔭 h𝔭 β
+
+/-- **The descent, from generation after localising.**  If `R_𝔭[θ] = S_𝔭` then some
+denominator outside `𝔭` carries `β` into `R[θ]`. -/
+theorem exists_smul_mem_adjoin_of_adjoin_localization_eq_top (𝔭 : Ideal R) [𝔭.IsPrime]
+    (hinj : Function.Injective
+      (algebraMap S (Localization (Algebra.algebraMapSubmonoid S 𝔭.primeCompl))))
+    (htop : Algebra.adjoin (Localization.AtPrime 𝔭)
+      {algebraMap S (Localization (Algebra.algebraMapSubmonoid S 𝔭.primeCompl)) θ} = ⊤)
+    (β : S) : ∃ t ∉ 𝔭, algebraMap R S t * β ∈ Algebra.adjoin R {θ} := by
+  obtain ⟨t, htM, ht⟩ := exists_smul_mem_adjoin_of_mem_localization_adjoin (θ := θ) (β := β)
+    𝔭.primeCompl (Localization.AtPrime 𝔭)
+    (Localization (Algebra.algebraMapSubmonoid S 𝔭.primeCompl)) hinj
+    (by rw [htop]; exact Algebra.mem_top)
+  exact ⟨t, htM, ht⟩
+
+set_option maxHeartbeats 1000000 in
+-- the localisation terms are large and elaborating them exceeds the default budget
+/-- **Generation with no principal ideal hypothesis.**  If for every maximal ideal `𝔭` of `R`
+the localisation `R_𝔭[θ]` is everything, then `R[θ] = S`.
+
+Over a Dedekind base each `R_𝔭` is a discrete valuation ring, hence principal, so the
+hypothesis is exactly `adjoin_eq_top_of_forall_prime_not_sq_dvd` applied at `R_𝔭` — the
+principal ideal hypothesis is satisfied there for free, whatever the class group of `R`. -/
+theorem adjoin_eq_top_of_forall_maximal_adjoin_localization_eq_top
+    (h : ∀ (𝔭 : Ideal R) [𝔭.IsPrime], 𝔭.IsMaximal →
+      Function.Injective
+        (algebraMap S (Localization (Algebra.algebraMapSubmonoid S 𝔭.primeCompl))) ∧
+      Algebra.adjoin (Localization.AtPrime 𝔭)
+        {algebraMap S (Localization (Algebra.algebraMapSubmonoid S 𝔭.primeCompl)) θ} = ⊤) :
+    Algebra.adjoin R {θ} = ⊤ := by
+  refine adjoin_eq_top_of_forall_maximal_exists_smul_mem fun 𝔭 h𝔭 β => ?_
+  haveI : 𝔭.IsPrime := h𝔭.isPrime
+  obtain ⟨hinj, htop⟩ := h 𝔭 h𝔭
+  exact exists_smul_mem_adjoin_of_adjoin_localization_eq_top 𝔭 hinj htop β
+
+/-- **At each localisation the principal ideal hypothesis is free.**  Over a Dedekind base,
+`R_𝔭` is a discrete valuation ring, hence principal — whatever the class group of `R`.  So
+`adjoin_eq_top_of_forall_prime_not_sq_dvd`, applied at `R_𝔭`, supplies the hypothesis of
+`adjoin_eq_top_of_forall_maximal_adjoin_localization_eq_top`, and no theorem in the chain
+assumes `R` itself to be principal. -/
+theorem isPrincipalIdealRing_localization_atPrime {R : Type*} [CommRing R]
+    [IsDedekindDomain R] {𝔭 : Ideal R} (h𝔭 : 𝔭 ≠ ⊥) [𝔭.IsPrime] :
+    IsPrincipalIdealRing (Localization.AtPrime 𝔭) := by
+  haveI := IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain (A := R) h𝔭
+    (Localization.AtPrime 𝔭)
+  infer_instance
+
+end NoPID
 
 end Monogenic
