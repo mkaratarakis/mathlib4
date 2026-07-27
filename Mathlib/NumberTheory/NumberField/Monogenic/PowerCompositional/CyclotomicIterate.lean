@@ -170,7 +170,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 3200
+set_option linter.style.longFile 3400
 
 @[expose] public section
 
@@ -3165,5 +3165,161 @@ theorem isIndexDivisor_comp_iterate_succ_iff_not_isCoprime (hb : b = q * b₁) (
   exact isIndexDivisor_iff_not_isCoprime_of_eq_pow_add hHm hW
 
 end WildCriterion
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### The sharp criterion for an arbitrary polynomial: two `Pi`-adic digits
+
+The necessity half proved above sees only critical points that are *rational* mod `q` — its
+witness is a linear `Pi = X - C a`, and the obstruction is read off the Taylor data
+`(T(a), T'(a))`.  The right generalisation replaces Taylor expansion at a point by the
+`Pi`-adic digit expansion `T = (T %ₘ Pi) + ((T /ₘ Pi) %ₘ Pi) * Pi + Pi ^ 2 * (⋯)`:
+
+> `T ∈ ⟨q, Pi⟩ ^ 2` **exactly when** `q ^ 2` divides the digit `T %ₘ Pi` and `q` divides the
+> digit `(T /ₘ Pi) %ₘ Pi`.
+
+For `Pi = X - C a` the two digits are `T(a)` and `T'(a)`, so this subsumes the Taylor
+version; but `Pi` may now be any monic polynomial, in particular an irreducible of higher
+degree — a critical point living in an extension of `𝔽_q`.  Consequently `IsIndexDivisor`
+itself becomes a statement about division with remainder
+(`isIndexDivisor_iff_exists_dvd_modByMonic`), and the criterion for an arbitrary `f` is
+sharp: this is the full strength of the critical-point criteria of König–Smith–Wolske over
+`ℤ`, obtained with no valuation theory — only division with remainder and the ideal calculus
+already used throughout. -/
+
+section Digits
+
+variable {q : ℕ} [hq : Fact q.Prime]
+
+/-- **The two-digit criterion.**  For monic `Pi` of positive degree, membership of `T` in
+`⟨q, Pi⟩ ^ 2` is equivalent to `q ^ 2` dividing the `0`-th and `q` dividing the `1`-st
+`Pi`-adic digit of `T`. -/
+theorem mem_span_pair_sq_iff_dvd_modByMonic {T Pi : ℤ[X]} (hPim : Pi.Monic)
+    (hPid : 0 < Pi.natDegree) :
+    T ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 ↔
+      C (q : ℤ) ^ 2 ∣ T %ₘ Pi ∧ C (q : ℤ) ∣ (T /ₘ Pi) %ₘ Pi := by
+  have hPi1 : Pi ≠ 1 := fun h => by rw [h, natDegree_one] at hPid; omega
+  have hq0 : ((q : ℕ) : ℤ) ≠ 0 := Int.natCast_ne_zero.mpr hq.out.ne_zero
+  have hPimem : Pi ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) := Ideal.subset_span (by simp)
+  have hqmem : (C (q : ℤ) : ℤ[X]) ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+    Ideal.subset_span (by simp)
+  have h1 := modByMonic_add_div T Pi
+  have h2 := modByMonic_add_div (T /ₘ Pi) Pi
+  have hdec : T = Pi ^ 2 * (T /ₘ Pi /ₘ Pi) + ((T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi) := by
+    linear_combination -h1 - Pi * h2
+  constructor
+  · intro hmem
+    -- The low part lies in the square and has small degree, so `q` divides it.
+    have hrmem : (T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi ∈
+        (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 := by
+      have hsub : (T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi = T - Pi ^ 2 * (T /ₘ Pi /ₘ Pi) := by
+        linear_combination -hdec
+      rw [hsub]
+      exact Ideal.sub_mem _ hmem (Ideal.mul_mem_right _ _ (Ideal.pow_mem_pow hPimem 2))
+    have hd0 : (T %ₘ Pi).natDegree < Pi.natDegree := natDegree_modByMonic_lt _ hPim hPi1
+    have hd1 : ((T /ₘ Pi) %ₘ Pi).natDegree < Pi.natDegree := natDegree_modByMonic_lt _ hPim hPi1
+    have hrdeg : ((T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi).natDegree < 2 * Pi.natDegree := by
+      refine lt_of_le_of_lt (natDegree_add_le _ _) ?_
+      refine max_lt (lt_of_le_of_lt natDegree_mul_le ?_) (by omega)
+      omega
+    obtain ⟨s, hs⟩ := C_dvd_of_mem_sq_of_natDegree_lt hPim hrmem hrdeg
+    have hsmem : s ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_of_C_mul_mem_sq (hPim.map _).ne_zero (hs ▸ hrmem)
+    have hπs : (Pi.map (Int.castRingHom (ZMod q))) ∣ s.map (Int.castRingHom (ZMod q)) :=
+      mem_span_pair_C_natCast_iff.mp hsmem
+    -- Identify the digits of the low part as `q` times the digits of `s`.
+    have huniqA := div_modByMonic_unique (f := (T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi) (g := Pi)
+      ((T /ₘ Pi) %ₘ Pi) (T %ₘ Pi) hPim
+      ⟨by ring, degree_modByMonic_lt _ hPim⟩
+    have hdegs : (C (q : ℤ) * (s %ₘ Pi)).degree < Pi.degree := by
+      rw [degree_C_mul hq0]
+      exact degree_modByMonic_lt _ hPim
+    have huniqB := div_modByMonic_unique (f := (T /ₘ Pi) %ₘ Pi * Pi + T %ₘ Pi) (g := Pi)
+      (C (q : ℤ) * (s /ₘ Pi)) (C (q : ℤ) * (s %ₘ Pi)) hPim
+      ⟨by linear_combination C (q : ℤ) * modByMonic_add_div s Pi - hs, hdegs⟩
+    have ha0 : T %ₘ Pi = C (q : ℤ) * (s %ₘ Pi) := by rw [← huniqA.2, huniqB.2]
+    have ha1 : (T /ₘ Pi) %ₘ Pi = C (q : ℤ) * (s /ₘ Pi) := by rw [← huniqA.1, huniqB.1]
+    refine ⟨?_, ⟨s /ₘ Pi, ha1⟩⟩
+    -- The reduction of `s %ₘ Pi` is divisible by that of `Pi` and smaller in degree: zero.
+    have hπmod : (Pi.map (Int.castRingHom (ZMod q))) ∣
+        (s %ₘ Pi).map (Int.castRingHom (ZMod q)) := by
+      have hmap := congrArg (Polynomial.map (Int.castRingHom (ZMod q)))
+        (modByMonic_add_div s Pi)
+      rw [Polynomial.map_add, Polynomial.map_mul] at hmap
+      have : (s %ₘ Pi).map (Int.castRingHom (ZMod q)) =
+          s.map (Int.castRingHom (ZMod q)) -
+            Pi.map (Int.castRingHom (ZMod q)) * (s /ₘ Pi).map (Int.castRingHom (ZMod q)) := by
+        linear_combination hmap
+      rw [this]
+      exact dvd_sub hπs (Dvd.intro _ rfl)
+    have hzero : (s %ₘ Pi).map (Int.castRingHom (ZMod q)) = 0 := by
+      by_contra hne
+      have hled := Polynomial.natDegree_le_of_dvd hπmod hne
+      have hmle : ((s %ₘ Pi).map (Int.castRingHom (ZMod q))).natDegree ≤ (s %ₘ Pi).natDegree :=
+        natDegree_map_le
+      have hlt : (s %ₘ Pi).natDegree < Pi.natDegree := natDegree_modByMonic_lt _ hPim hPi1
+      rw [hPim.natDegree_map] at hled
+      omega
+    obtain ⟨w, hw⟩ := (C_dvd_iff_zmod q (s %ₘ Pi)).mpr hzero
+    exact ⟨w, by rw [ha0, hw]; ring⟩
+  · rintro ⟨⟨u, hu⟩, ⟨v, hv⟩⟩
+    rw [hdec, hu, hv]
+    refine Ideal.add_mem _
+      (Ideal.mul_mem_right _ _ (Ideal.pow_mem_pow hPimem 2)) (Ideal.add_mem _ ?_ ?_)
+    · rw [show C (q : ℤ) * v * Pi = C (q : ℤ) * Pi * v by ring]
+      refine Ideal.mul_mem_right _ _ ?_
+      rw [sq]
+      exact Ideal.mul_mem_mul hqmem hPimem
+    · rw [show C (q : ℤ) ^ 2 * u = C (q : ℤ) * C (q : ℤ) * u by ring]
+      refine Ideal.mul_mem_right _ _ ?_
+      rw [sq]
+      exact Ideal.mul_mem_mul hqmem hqmem
+
+/-- **Index divisors by division with remainder.**  A prime `q` is an index divisor of an
+arbitrary `T` exactly when some monic `Pi`, irreducible mod `q`, has `q ^ 2` dividing the
+digit `T %ₘ Pi` and `q` dividing the digit `(T /ₘ Pi) %ₘ Pi`.
+
+This is the sharp criterion for an arbitrary polynomial, in fully elementary terms. -/
+theorem isIndexDivisor_iff_exists_dvd_modByMonic {T : ℤ[X]} :
+    IsIndexDivisor q T ↔
+      ∃ Pi : ℤ[X], Pi.Monic ∧ Irreducible (Pi.map (Int.castRingHom (ZMod q))) ∧
+        C (q : ℤ) ^ 2 ∣ T %ₘ Pi ∧ C (q : ℤ) ∣ (T /ₘ Pi) %ₘ Pi := by
+  have hdeg : ∀ Pi : ℤ[X], Pi.Monic → Irreducible (Pi.map (Int.castRingHom (ZMod q))) →
+      0 < Pi.natDegree := by
+    intro Pi hm hirr
+    rcases Nat.eq_zero_or_pos Pi.natDegree with h0 | h
+    · rw [eq_one_of_monic_natDegree_zero hm h0] at hirr
+      simp only [Polynomial.map_one] at hirr
+      exact absurd hirr not_irreducible_one
+    · exact h
+  constructor
+  · rintro ⟨Pi, hm, hirr, hmem⟩
+    exact ⟨Pi, hm, hirr,
+      (mem_span_pair_sq_iff_dvd_modByMonic hm (hdeg Pi hm hirr)).mp hmem⟩
+  · rintro ⟨Pi, hm, hirr, hdig⟩
+    exact ⟨Pi, hm, hirr,
+      (mem_span_pair_sq_iff_dvd_modByMonic hm (hdeg Pi hm hirr)).mpr hdig⟩
+
+/-- At a linear `Pi = X - C a` the second digit is the derivative: the digit criterion
+subsumes the Taylor-expansion necessity proved earlier. -/
+theorem divByMonic_X_sub_C_modByMonic (T : ℤ[X]) (a : ℤ) :
+    (T /ₘ (X - C a)) %ₘ (X - C a) = C ((derivative T).eval a) := by
+  obtain ⟨g, hg, -, -, -⟩ := exists_eq_C_eval_add_X_sub_C_sq_mul T a
+  have hdC : ∀ c : ℤ, (C c).degree < (X - C a).degree := by
+    intro c
+    rw [degree_X_sub_C]
+    exact lt_of_le_of_lt degree_C_le (by exact_mod_cast Nat.zero_lt_one)
+  have hA := div_modByMonic_unique (f := T) (g := X - C a)
+    (C ((derivative T).eval a) + (X - C a) * g) (C (T.eval a)) (monic_X_sub_C a)
+    ⟨by linear_combination -hg, hdC _⟩
+  rw [hA.1]
+  have hB := div_modByMonic_unique
+    (f := C ((derivative T).eval a) + (X - C a) * g) (g := X - C a)
+    g (C ((derivative T).eval a)) (monic_X_sub_C a) ⟨by ring, hdC _⟩
+  exact hB.2
+
+end Digits
 
 end Polynomial
