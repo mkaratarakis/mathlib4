@@ -167,7 +167,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 2600
+set_option linter.style.longFile 2800
 
 @[expose] public section
 
@@ -2422,5 +2422,270 @@ theorem forall_not_isIndexDivisor_comp_iterate_three_iff_wieferich {k : ℕ} (hk
     · exact hodd (hq2 ▸ hd)
     · obtain ⟨hw, hord⟩ := (sq_dvd_two_pow_add_one_iff hq hq2).mp hd
       exact h q hq hw hord
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### The reduction at every step of the orbit
+
+Nothing in the previous section used the base `2` beyond the fact that it is the value
+`c 2` of the orbit.  Replacing it by an arbitrary base `A` gives the reduction at *every*
+step: `q ^ 2 ∣ A ^ (2 ^ k) + 1` exactly when `q` is a Wieferich prime **to the base `A`** of
+order `2 ^ (k + 1)`.  Applied along the orbit, with `A = c m`, this characterises every
+condition `q ^ 2 ∣ c (m + 1)` that the criterion can impose.
+
+The third iterate is the case `A = c 2 = 2`, which is why it — and only it — lands on the
+*classical* Wieferich primes and the Fermat numbers. -/
+
+variable {A q k : ℕ}
+
+/-- If `q ∣ A ^ (2 ^ k) + 1` for an odd prime `q`, then `A` has order exactly `2 ^ (k + 1)`
+modulo `q`. -/
+theorem orderOf_eq_of_dvd_pow_add_one (hq : q.Prime) (hq2 : q ≠ 2)
+    (h : q ∣ A ^ 2 ^ k + 1) : orderOf ((A : ZMod q)) = 2 ^ (k + 1) := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hmapk : ((A : ZMod q)) ^ 2 ^ k = -1 := by
+    have hc := (CharP.cast_eq_zero_iff (ZMod q) q _).mpr h
+    push_cast at hc
+    linear_combination hc
+  have hmap1 : ((A : ZMod q)) ^ 2 ^ (k + 1) = 1 := by
+    rw [show (2 : ℕ) ^ (k + 1) = 2 ^ k * 2 from pow_succ 2 k, pow_mul, hmapk]
+    ring
+  have hne : (-1 : ZMod q) ≠ 1 := by
+    intro hcc
+    have h2 : ((2 : ℕ) : ZMod q) = 0 := by push_cast; linear_combination -hcc
+    exact hq2 ((Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp
+      ((CharP.cast_eq_zero_iff (ZMod q) q 2).mp h2))
+  have hdvd1 : orderOf ((A : ZMod q)) ∣ 2 ^ (k + 1) := orderOf_dvd_of_pow_eq_one hmap1
+  obtain ⟨j, hj, hje⟩ := (Nat.dvd_prime_pow Nat.prime_two).mp hdvd1
+  have hjk : j = k + 1 := by
+    by_contra hjc
+    have hd : orderOf ((A : ZMod q)) ∣ 2 ^ k := hje ▸ pow_dvd_pow 2 (by omega)
+    rw [← hmapk] at hne
+    exact hne (orderOf_dvd_iff_pow_eq_one.mp hd)
+  rw [hje, hjk]
+
+/-- **Wieferich to the base `A`.**  If `q ^ 2 ∣ A ^ (2 ^ k) + 1` then
+`A ^ (q - 1) ≡ 1 mod q ^ 2`. -/
+theorem sq_dvd_pow_sub_one_of_sq_dvd_pow_add_one (hq : q.Prime) (hq2 : q ≠ 2) (hA : 0 < A)
+    (h : q ^ 2 ∣ A ^ 2 ^ k + 1) : q ^ 2 ∣ A ^ (q - 1) - 1 := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hone : ∀ n : ℕ, 1 ≤ A ^ n := fun n => Nat.one_le_pow _ _ hA
+  have hcast : ((A : ZMod (q ^ 2))) ^ 2 ^ k = -1 := by
+    have hc := (CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2) _).mpr h
+    push_cast at hc
+    linear_combination hc
+  have hsq2 : ((A : ZMod (q ^ 2))) ^ 2 ^ (k + 1) = 1 := by
+    rw [show (2 : ℕ) ^ (k + 1) = 2 ^ k * 2 from pow_succ 2 k, pow_mul, hcast]
+    ring
+  have hord := orderOf_eq_of_dvd_pow_add_one hq hq2 ((dvd_pow_self q two_ne_zero).trans h)
+  have hAne : ((A : ZMod q)) ≠ 0 := by
+    intro hc
+    have hdq : q ∣ A := (CharP.cast_eq_zero_iff (ZMod q) q A).mp hc
+    have hd1 : q ∣ A ^ 2 ^ k + 1 := (dvd_pow_self q two_ne_zero).trans h
+    have hd2 : q ∣ A ^ 2 ^ k := dvd_pow hdq (by positivity)
+    have h1 : q ∣ 1 := (Nat.dvd_add_right hd2).mp hd1
+    have h2 := hq.two_le
+    have h3 := Nat.le_of_dvd one_pos h1
+    omega
+  have hdq : 2 ^ (k + 1) ∣ q - 1 := by
+    rw [← hord]
+    exact orderOf_dvd_of_pow_eq_one (ZMod.pow_card_sub_one_eq_one hAne)
+  obtain ⟨c, hc⟩ := hdq
+  have hfin : ((A : ZMod (q ^ 2))) ^ (q - 1) = 1 := by
+    rw [hc, pow_mul, hsq2, one_pow]
+  rw [← CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2), Nat.cast_sub (hone _)]
+  push_cast
+  rw [hfin]
+  ring
+
+/-- **Converse, to the base `A`.**  A prime that is Wieferich to the base `A` and has `A` of
+order `2 ^ (k + 1)` has its square dividing `A ^ (2 ^ k) + 1`. -/
+theorem sq_dvd_pow_add_one_of_wieferich (hq : q.Prime) (hq2 : q ≠ 2) (hA : 0 < A)
+    (hw : q ^ 2 ∣ A ^ (q - 1) - 1) (hord : orderOf ((A : ZMod q)) = 2 ^ (k + 1)) :
+    q ^ 2 ∣ A ^ 2 ^ k + 1 := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hq3 : 3 ≤ q := by have h2 := hq.two_le; omega
+  have hone : ∀ n : ℕ, 1 ≤ A ^ n := fun n => Nat.one_le_pow _ _ hA
+  have hAne : ((A : ZMod q)) ≠ 0 := by
+    intro hc
+    have hp := pow_orderOf_eq_one ((A : ZMod q))
+    rw [hord, hc, zero_pow (by positivity)] at hp
+    exact zero_ne_one hp
+  have hdq : 2 ^ (k + 1) ∣ q - 1 := by
+    rw [← hord]
+    exact orderOf_dvd_of_pow_eq_one (ZMod.pow_card_sub_one_eq_one hAne)
+  have hqe : q ∣ A ^ 2 ^ (k + 1) - 1 := by
+    rw [← CharP.cast_eq_zero_iff (ZMod q) q, Nat.cast_sub (hone _)]
+    push_cast
+    rw [← hord, pow_orderOf_eq_one]
+    ring
+  have hdouble : q ^ 2 ∣ A ^ (2 ^ (k + 1) * q) - 1 := by
+    have hz : (q : ℤ) ∣ (A : ℤ) ^ 2 ^ (k + 1) - 1 := by
+      have := Int.natCast_dvd_natCast.mpr hqe
+      rwa [Nat.cast_sub (hone _), Nat.cast_pow] at this
+    have hd := dvd_sub_pow_of_dvd_sub hz 1
+    rw [pow_one, one_pow, ← pow_mul] at hd
+    have : ((q ^ 2 : ℕ) : ℤ) ∣ ((A ^ (2 ^ (k + 1) * q) - 1 : ℕ) : ℤ) := by
+      rw [Nat.cast_sub (hone _), Nat.cast_pow]
+      exact_mod_cast hd
+    exact_mod_cast this
+  have hcast : ∀ n : ℕ, q ^ 2 ∣ A ^ n - 1 → ((A : ZMod (q ^ 2))) ^ n = 1 := by
+    intro n hn
+    have hz := (CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2) _).mpr hn
+    rw [Nat.cast_sub (hone _)] at hz
+    push_cast at hz
+    linear_combination hz
+  have hd1 : orderOf ((A : ZMod (q ^ 2))) ∣ q - 1 := orderOf_dvd_of_pow_eq_one (hcast _ hw)
+  have hd2 : orderOf ((A : ZMod (q ^ 2))) ∣ 2 ^ (k + 1) * q :=
+    orderOf_dvd_of_pow_eq_one (hcast _ hdouble)
+  have hgcd : Nat.gcd (q - 1) (2 ^ (k + 1) * q) = 2 ^ (k + 1) := by
+    obtain ⟨s, hs⟩ := hdq
+    have hsq : ¬ q ∣ s := by
+      rintro ⟨u, rfl⟩
+      have hq' : q = 2 ^ (k + 1) * (q * u) + 1 := by omega
+      rcases Nat.eq_zero_or_pos u with rfl | hu0
+      · simp at hq'; omega
+      · have hge : q * u ≤ 2 ^ (k + 1) * (q * u) := Nat.le_mul_of_pos_left _ (by positivity)
+        have hqu : q ≤ q * u := Nat.le_mul_of_pos_right _ hu0
+        omega
+    rw [hs, Nat.gcd_mul_left]
+    rw [((Nat.Prime.coprime_iff_not_dvd hq).mpr hsq).symm, mul_one]
+  have hd : orderOf ((A : ZMod (q ^ 2))) ∣ 2 ^ (k + 1) := by
+    rw [← hgcd]; exact Nat.dvd_gcd hd1 hd2
+  have hpow : ((A : ZMod (q ^ 2))) ^ 2 ^ (k + 1) = 1 := orderOf_dvd_iff_pow_eq_one.mp hd
+  have hsqdvd : q ^ 2 ∣ A ^ 2 ^ (k + 1) - 1 := by
+    rw [← CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2), Nat.cast_sub (hone _)]
+    push_cast
+    rw [hpow]
+    ring
+  obtain ⟨t, ht⟩ : ∃ t, A ^ 2 ^ k = t + 1 := ⟨A ^ 2 ^ k - 1, by have := hone (2 ^ k); omega⟩
+  have hfac : A ^ 2 ^ (k + 1) - 1 = (A ^ 2 ^ k - 1) * (A ^ 2 ^ k + 1) := by
+    rw [show (2 : ℕ) ^ (k + 1) = 2 ^ k * 2 from pow_succ 2 k, pow_mul, ht,
+      show t + 1 - 1 = t from by omega]
+    exact Nat.sub_eq_of_eq_add (by ring)
+  rw [hfac] at hsqdvd
+  have hnd : ¬ q ∣ A ^ 2 ^ k - 1 := by
+    intro hc
+    have h1 : ((A : ZMod q)) ^ 2 ^ k = 1 := by
+      have hz := (CharP.cast_eq_zero_iff (ZMod q) q _).mpr hc
+      rw [Nat.cast_sub (hone _)] at hz
+      push_cast at hz
+      linear_combination hz
+    have hdd : orderOf ((A : ZMod q)) ∣ 2 ^ k := orderOf_dvd_of_pow_eq_one h1
+    rw [hord] at hdd
+    have hle := Nat.le_of_dvd (Nat.two_pow_pos k) hdd
+    have hlt : (2 : ℕ) ^ k < 2 ^ (k + 1) := by
+      have h1' := Nat.two_pow_pos k
+      rw [pow_succ]
+      omega
+    omega
+  exact (Nat.Coprime.dvd_of_dvd_mul_left
+    (Nat.Coprime.pow_left _ ((Nat.Prime.coprime_iff_not_dvd hq).mpr hnd)) hsqdvd)
+
+/-- **The reduction to the base `A`, in full.** -/
+theorem sq_dvd_pow_add_one_iff (hq : q.Prime) (hq2 : q ≠ 2) (hA : 0 < A) :
+    q ^ 2 ∣ A ^ 2 ^ k + 1 ↔
+      q ^ 2 ∣ A ^ (q - 1) - 1 ∧ orderOf ((A : ZMod q)) = 2 ^ (k + 1) :=
+  ⟨fun h => ⟨sq_dvd_pow_sub_one_of_sq_dvd_pow_add_one hq hq2 hA h,
+      orderOf_eq_of_dvd_pow_add_one hq hq2 ((dvd_pow_self q two_ne_zero).trans h)⟩,
+    fun ⟨hw, hord⟩ => sq_dvd_pow_add_one_of_wieferich hq hq2 hA hw hord⟩
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### The reduction for every iterate -/
+
+/-- The critical orbit, computed in `ℕ`. -/
+theorem eval_zero_comp_iterate_eq_natCast {k : ℕ} (m : ℕ) :
+    ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X).eval 0 =
+      (((fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0 : ℕ) : ℤ) := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    rw [comp_iterate_pow_add_one_succ, eval_add, eval_pow, eval_one, ih,
+      Function.iterate_succ_apply']
+    push_cast
+    ring
+
+/-- `4` divides no member of the critical orbit, whatever the parity of the index. -/
+theorem not_four_dvd_eval_zero_comp_iterate' {b : ℕ} (hb : 0 < b) (hbe : Even b) {j : ℕ}
+    (hj : 0 < j) : ¬ (4 : ℤ) ∣ ((((X ^ b + 1 : ℤ[X])).comp ·)^[j] X).eval 0 := by
+  rcases Nat.even_or_odd j with he | ho
+  · obtain ⟨t, ht⟩ := he
+    have hto : Odd (t + t - 1) := by
+      rcases Nat.eq_zero_or_pos t with rfl | h
+      · omega
+      · exact ⟨t - 1, by omega⟩
+    rw [show j = (t + t - 1) + 1 by omega]
+    exact not_four_dvd_eval_zero_comp_iterate hb hbe hto
+  · intro hdvd
+    obtain ⟨c, hc⟩ := (odd_eval_zero_comp_iterate_iff hb j).mpr ho
+    obtain ⟨d, hd⟩ := hdvd
+    omega
+
+/-- **The reduction along the orbit.**  The condition `q ^ 2 ∣ c (m + 1)` that the criterion
+imposes is exactly that `q` is a Wieferich prime **to the base `c m`** of order `2 ^ (k+1)`. -/
+theorem sq_dvd_eval_zero_comp_iterate_succ_iff_wieferich {k m q : ℕ} (hq : q.Prime)
+    (hq2 : q ≠ 2) (hm : 0 < m) :
+    (q : ℤ) ^ 2 ∣ ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m + 1] X).eval 0 ↔
+      q ^ 2 ∣ ((fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0) ^ (q - 1) - 1 ∧
+        orderOf ((((fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0 : ℕ) : ZMod q)) = 2 ^ (k + 1) := by
+  set A : ℕ := (fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0 with hA
+  have hApos : 0 < A := by
+    obtain ⟨j, rfl⟩ : ∃ j, m = j + 1 := ⟨m - 1, by omega⟩
+    rw [hA, Function.iterate_succ_apply']
+    positivity
+  have hstep : ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m + 1] X).eval 0 = (A : ℤ) ^ 2 ^ k + 1 := by
+    rw [comp_iterate_pow_add_one_succ, eval_add, eval_pow, eval_one,
+      eval_zero_comp_iterate_eq_natCast]
+  rw [hstep, ← sq_dvd_pow_add_one_iff hq hq2 hApos]
+  constructor
+  · intro h
+    have h2 : ((q ^ 2 : ℕ) : ℤ) ∣ ((A ^ 2 ^ k + 1 : ℕ) : ℤ) := by push_cast; exact h
+    exact_mod_cast h2
+  · intro h
+    have h2 := Int.natCast_dvd_natCast.mpr h
+    push_cast at h2
+    exact h2
+
+/-- **The ultimate reduction, for every iterate.**  The `r`-fold iterate of `Φ (2 ^ (k + 1))`
+is monogenic **if and only if**, at every step `m` of the critical orbit before `r`, no odd
+prime is a Wieferich prime to the base `c m` with order of `c m` equal to `2 ^ (k + 1)`.
+
+The third iterate is the case `m = 2`, where `c 2 = 2` and this becomes the classical
+Wieferich condition; that, and only that, is why the Fermat numbers appear there. -/
+theorem forall_not_isIndexDivisor_comp_iterate_iff_wieferich {k : ℕ} (hk : 0 < k) {r : ℕ}
+    (hr : 0 < r) :
+    (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X)) ↔
+      ∀ m, 0 < m → m < r → ∀ q : ℕ, q.Prime → q ≠ 2 →
+        q ^ 2 ∣ ((fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0) ^ (q - 1) - 1 →
+          orderOf ((((fun x : ℕ => x ^ 2 ^ k + 1)^[m] 0 : ℕ) : ZMod q)) ≠ 2 ^ (k + 1) := by
+  have hb : 0 < 2 ^ k := by positivity
+  have hbe : Even (2 ^ k) := (Nat.even_pow' hk.ne').mpr even_two
+  rw [forall_not_isIndexDivisor_comp_iterate_iff_squarefree' hk hr]
+  constructor
+  · intro h m hm0 hmr q hq hq2 hw hord
+    have hsf := h (m + 1) (by omega) (by omega)
+    rw [Int.squarefree_iff_forall_prime_sq_not_dvd] at hsf
+    exact hsf q hq
+      ((sq_dvd_eval_zero_comp_iterate_succ_iff_wieferich hq hq2 hm0).mpr ⟨hw, hord⟩)
+  · intro h j hj0 hjr
+    rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
+    intro q hq hdvd
+    by_cases hq2 : q = 2
+    · subst hq2
+      exact not_four_dvd_eval_zero_comp_iterate' hb hbe hj0 (by exact_mod_cast hdvd)
+    · obtain ⟨m, rfl⟩ : ∃ m, j = m + 1 := ⟨j - 1, by omega⟩
+      rcases Nat.eq_zero_or_pos m with rfl | hm0
+      · rw [show (0 : ℕ) + 1 = 1 from rfl, eval_zero_comp_iterate_one hb] at hdvd
+        have hle := Int.le_of_dvd one_pos hdvd
+        have : (2 : ℤ) ≤ (q : ℤ) := by exact_mod_cast hq.two_le
+        nlinarith
+      · obtain ⟨hw, hord⟩ :=
+          (sq_dvd_eval_zero_comp_iterate_succ_iff_wieferich hq hq2 hm0).mp hdvd
+        exact h m hm0 (by omega) q hq hq2 hw hord
 
 end Polynomial
