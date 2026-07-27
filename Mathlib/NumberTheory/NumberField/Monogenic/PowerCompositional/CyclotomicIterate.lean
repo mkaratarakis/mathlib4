@@ -2119,3 +2119,116 @@ theorem forall_not_isIndexDivisor_comp_iterate_three_three :
   forall_not_isIndexDivisor_comp_iterate_three_of_prime (by omega) (by norm_num)
 
 end Polynomial
+
+namespace Polynomial
+
+/-! ### Why the residual hypothesis resists proof: Wieferich primes
+
+A square factor of a Fermat number cannot be an arbitrary prime.  If `q ^ 2 ∣ 2 ^ (2 ^ k) + 1`
+then `2` has order exactly `2 ^ (k + 1)` modulo `q`, that order divides `q - 1`, and the
+congruence `2 ^ (2 ^ (k + 1)) ≡ 1` already holds modulo `q ^ 2`; raising to the power
+`(q - 1) / 2 ^ (k + 1)` turns this into `2 ^ (q - 1) ≡ 1 mod q ^ 2`, which says precisely
+that `q` is a **Wieferich prime**.
+
+Only two Wieferich primes are known, `1093` and `3511`, and for neither is the order of `2`
+a power of two, so neither divides any Fermat number.  Proving that no Fermat number has a
+square factor therefore requires controlling Wieferich primes — and no method for that is
+known; even the far weaker statement that infinitely many primes are *not* Wieferich is only
+known under the abc conjecture. -/
+
+/-- **A prime whose square divides `2 ^ (2 ^ k) + 1` is a Wieferich prime.** -/
+theorem sq_dvd_two_pow_sub_one_of_sq_dvd_two_pow_add_one {q k : ℕ} (hq : q.Prime)
+    (h : q ^ 2 ∣ 2 ^ 2 ^ k + 1) : q ^ 2 ∣ 2 ^ (q - 1) - 1 := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  -- `q` is odd, since `2 ^ (2 ^ k) + 1` is.
+  have hq2 : q ≠ 2 := by
+    rintro rfl
+    have h2 : 2 ∣ 2 ^ 2 ^ k + 1 := dvd_trans ⟨2, by norm_num⟩ h
+    have hev : 2 ∣ 2 ^ 2 ^ k := dvd_pow_self 2 (by positivity)
+    omega
+  -- Modulo `q ^ 2` we have `2 ^ (2 ^ k) = -1`, hence `2 ^ (2 ^ (k + 1)) = 1`.
+  have hcast : ((2 : ZMod (q ^ 2))) ^ 2 ^ k = -1 := by
+    have := (CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2) _).mpr h
+    push_cast at this
+    linear_combination this
+  have hsq2 : ((2 : ZMod (q ^ 2))) ^ 2 ^ (k + 1) = 1 := by
+    rw [show (2 : ℕ) ^ (k + 1) = 2 ^ k * 2 from pow_succ 2 k, pow_mul, hcast]
+    ring
+  -- The same congruences modulo `q`.
+  have hdvdq : (q : ℕ) ∣ q ^ 2 := dvd_pow_self q two_ne_zero
+  have hmapk : ((2 : ZMod q)) ^ 2 ^ k = -1 := by
+    have h2 := congrArg (ZMod.castHom hdvdq (ZMod q)) hcast
+    simp only [map_pow, map_neg, map_one, map_ofNat] at h2
+    exact h2
+  have hmap1 : ((2 : ZMod q)) ^ 2 ^ (k + 1) = 1 := by
+    rw [show (2 : ℕ) ^ (k + 1) = 2 ^ k * 2 from pow_succ 2 k, pow_mul, hmapk]
+    ring
+  have hne : (-1 : ZMod q) ≠ 1 := by
+    intro hc
+    have : ((2 : ℕ) : ZMod q) = 0 := by push_cast; linear_combination -hc
+    exact hq2 ((Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp
+      ((CharP.cast_eq_zero_iff (ZMod q) q 2).mp this))
+  -- Therefore the order of `2` mod `q` is exactly `2 ^ (k + 1)`, and it divides `q - 1`.
+  have hord : orderOf (2 : ZMod q) = 2 ^ (k + 1) := by
+    have hdvd1 : orderOf (2 : ZMod q) ∣ 2 ^ (k + 1) := orderOf_dvd_of_pow_eq_one hmap1
+    obtain ⟨j, hj, hje⟩ := (Nat.dvd_prime_pow Nat.prime_two).mp hdvd1
+    have hjk : j = k + 1 := by
+      by_contra hjc
+      have : orderOf (2 : ZMod q) ∣ 2 ^ k := hje ▸ pow_dvd_pow 2 (by omega)
+      rw [← hmapk] at hne
+      exact hne (orderOf_dvd_iff_pow_eq_one.mp this)
+    rw [hje, hjk]
+  have h2ne : (2 : ZMod q) ≠ 0 := by
+    intro hc
+    have : ((2 : ℕ) : ZMod q) = 0 := by push_cast; exact hc
+    exact hq2 ((Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp
+      ((CharP.cast_eq_zero_iff (ZMod q) q 2).mp this))
+  have hdq : 2 ^ (k + 1) ∣ q - 1 := by
+    rw [← hord]
+    exact orderOf_dvd_of_pow_eq_one (ZMod.pow_card_sub_one_eq_one h2ne)
+  -- Raise the congruence mod `q ^ 2` to the power `(q - 1) / 2 ^ (k + 1)`.
+  obtain ⟨c, hc⟩ := hdq
+  have hfin : ((2 : ZMod (q ^ 2))) ^ (q - 1) = 1 := by
+    rw [hc, pow_mul, hsq2, one_pow]
+  have hone : (1 : ℕ) ≤ 2 ^ (q - 1) := Nat.one_le_two_pow
+  rw [← CharP.cast_eq_zero_iff (ZMod (q ^ 2)) (q ^ 2), Nat.cast_sub hone]
+  push_cast
+  rw [hfin]
+  ring
+
+/-- **Any prime obstructing the third iterate is a Wieferich prime.**  Combining the
+criterion with the previous lemma: an index divisor of the third iterate of
+`Φ (2 ^ (k + 1))` has `q ^ 2` dividing the Fermat number `F k`, hence satisfies
+`2 ^ (q - 1) ≡ 1 mod q ^ 2`. -/
+theorem wieferich_of_isIndexDivisor_comp_iterate_three {k q : ℕ} (hk : 0 < k) (hq : q.Prime)
+    (h : IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[3] X)) :
+    q ^ 2 ∣ 2 ^ (q - 1) - 1 := by
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hb : 0 < 2 ^ k := by positivity
+  have hb2 : 2 ≤ 2 ^ k := by simpa using Nat.pow_le_pow_right (show 1 ≤ 2 by norm_num) hk
+  -- `q = 2` is impossible: an even iterate is Eisenstein at `2`.
+  by_cases hq2 : q = 2
+  · subst hq2
+    exact absurd h (not_isIndexDivisor_two_comp_iterate' hk (by omega))
+  have hqb : ¬ q ∣ 2 ^ k := fun hdvd =>
+    hq2 ((Nat.prime_dvd_prime_iff_eq hq Nat.prime_two).mp (hq.dvd_of_dvd_pow hdvd))
+  obtain ⟨m, hm0, hm3, hsq⟩ :=
+    (isIndexDivisor_comp_iterate_iff_exists_sq_dvd (A := 1) rfl hb2 hqb 3).mp h
+  replace hsq : (q : ℤ) ^ 2 ∣ ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X).eval 0 := hsq
+  -- The orbit is `1, 2, F k`, and only the third term can be divisible by `q ^ 2`.
+  have hq2z : (2 : ℤ) ≤ (q : ℤ) := by exact_mod_cast hq.two_le
+  interval_cases m
+  · exfalso
+    rw [eval_zero_comp_iterate_one hb] at hsq
+    have hle := Int.le_of_dvd one_pos hsq
+    nlinarith [hq2z]
+  · exfalso
+    rw [eval_zero_comp_iterate_two hb] at hsq
+    have hle := Int.le_of_dvd two_pos hsq
+    nlinarith [hq2z]
+  · rw [eval_zero_comp_iterate_three hb] at hsq
+    refine sq_dvd_two_pow_sub_one_of_sq_dvd_two_pow_add_one (k := k) hq ?_
+    have : ((q ^ 2 : ℕ) : ℤ) ∣ ((2 ^ 2 ^ k + 1 : ℕ) : ℤ) := by push_cast; exact hsq
+    exact_mod_cast this
+
+end Polynomial
