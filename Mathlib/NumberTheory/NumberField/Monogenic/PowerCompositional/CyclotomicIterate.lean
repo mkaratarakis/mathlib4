@@ -167,7 +167,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 2800
+set_option linter.style.longFile 3000
 
 @[expose] public section
 
@@ -2741,3 +2741,90 @@ theorem forall_not_isIndexDivisor_comp_iterate_five_of_one :
     exact (by norm_num : ((677 : ℤ)).natAbs = 677) ▸ h677
 
 end Polynomial
+
+namespace Polynomial
+
+/-! ### The multicritical criterion: arbitrary `f`, hence every cyclotomic polynomial
+
+Everything so far needed `f` *unicritical* — `f' = C b * X ^ (b - 1)`, one critical point of
+full multiplicity — which restricted the cyclotomic applications to the `2`-power family.
+That restriction can be removed.
+
+The point is that composition on the right is a ring homomorphism, so it preserves Bézout
+identities: `IsCoprime a b` gives `IsCoprime (a ∘ g) (b ∘ g)` for free.  Since
+`Q r = Q (r - i) ∘ Q i` and the `i`-th factor of the derivative is `f' ∘ Q i`, coprimality of
+`Q r` with that factor follows from coprimality of `Q (r - i)` with `f'` alone.  So the whole
+separability argument runs for an arbitrary `f`, with the critical orbit replaced by the
+condition that `f'` meets no iterate — the multicritical analogue. -/
+
+/-- **Coprimality is preserved by composition**, because `· ∘ g` is a ring homomorphism. -/
+theorem isCoprime_comp {R : Type*} [CommRing R] {a b : R[X]} (h : IsCoprime a b) (g : R[X]) :
+    IsCoprime (a.comp g) (b.comp g) := by
+  obtain ⟨u, v, huv⟩ := h
+  exact ⟨u.comp g, v.comp g, by rw [← mul_comp, ← mul_comp, ← add_comp, huv, one_comp]⟩
+
+/-- **The multicritical separability criterion.**  For an arbitrary `f`, if the reduction of
+`f'` is coprime to the reduction of every iterate `f^{∘m}` with `1 ≤ m ≤ r`, then the
+reduction of the `r`-fold iterate is separable.
+
+Concretely the hypothesis says that modulo `q` no critical point of `f` is a root of any of
+the first `r` iterates — the multicritical replacement for "the critical orbit misses `q`". -/
+theorem separable_map_comp_iterate_of_isCoprime_derivative {f : ℤ[X]} {q : ℕ} [Fact q.Prime]
+    {r : ℕ}
+    (h : ∀ m, 0 < m → m ≤ r →
+      IsCoprime (((f.comp ·)^[m] X).map (Int.castRingHom (ZMod q)))
+        ((derivative f).map (Int.castRingHom (ZMod q)))) :
+    Separable (((f.comp ·)^[r] X).map (Int.castRingHom (ZMod q))) := by
+  refine separable_map_comp_iterate_of_isCoprime fun i hi => ?_
+  have hcomp : ((f.comp ·)^[r] X) = (((f.comp ·)^[r - i] X)).comp (((f.comp ·)^[i] X)) := by
+    have h2 := comp_iterate_add f (r - i) i
+    rwa [Nat.sub_add_cancel hi.le] at h2
+  rw [hcomp, Polynomial.map_comp, Polynomial.map_comp]
+  exact isCoprime_comp (h (r - i) (by omega) (by omega)) _
+
+/-- **No prime meeting no critical point is an index divisor**, for an arbitrary `f`. -/
+theorem not_isIndexDivisor_comp_iterate_of_isCoprime_derivative {f : ℤ[X]} {q : ℕ}
+    [Fact q.Prime] {r : ℕ}
+    (h : ∀ m, 0 < m → m ≤ r →
+      IsCoprime (((f.comp ·)^[m] X).map (Int.castRingHom (ZMod q)))
+        ((derivative f).map (Int.castRingHom (ZMod q)))) :
+    ¬ IsIndexDivisor q ((f.comp ·)^[r] X) :=
+  not_isIndexDivisor_of_squarefree_map
+    (separable_map_comp_iterate_of_isCoprime_derivative h).squarefree
+
+/-- **Monogenity of an iterate of an arbitrary polynomial.**  If at every prime `q` and every
+step `m ≤ r` the reductions of `f^{∘m}` and `f'` are coprime, then the `r`-fold iterate of
+`f` is monogenic.
+
+This applies to *every* cyclotomic polynomial, not only the `2`-power ones: the hypothesis is
+a gcd computation in `𝔽_q[X]`, and it can fail only at the finitely many primes dividing the
+resultant of `f'` with one of the first `r` iterates. -/
+theorem forall_not_isIndexDivisor_comp_iterate_of_isCoprime_derivative {f : ℤ[X]} {r : ℕ}
+    (h : ∀ q : ℕ, q.Prime → ∀ m, 0 < m → m ≤ r →
+      IsCoprime (((f.comp ·)^[m] X).map (Int.castRingHom (ZMod q)))
+        ((derivative f).map (Int.castRingHom (ZMod q)))) :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((f.comp ·)^[r] X) := by
+  intro q hq
+  haveI : Fact q.Prime := ⟨hq⟩
+  exact not_isIndexDivisor_comp_iterate_of_isCoprime_derivative (h q hq)
+
+end Polynomial
+
+namespace NumberField
+
+open Polynomial
+
+/-- **Monogenity of an iterate of an arbitrary polynomial**, in the number field.  No
+unicritical hypothesis: this covers every cyclotomic polynomial. -/
+theorem adjoin_eq_top_of_minpoly_eq_comp_iterate_of_isCoprime_derivative {K : Type*} [Field K]
+    [NumberField K] {θ : 𝓞 K} {f : ℤ[X]} {r : ℕ}
+    (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hmin : minpoly ℤ θ = (f.comp ·)^[r] X)
+    (h : ∀ q : ℕ, q.Prime → ∀ m, 0 < m → m ≤ r →
+      IsCoprime (((f.comp ·)^[m] X).map (Int.castRingHom (ZMod q)))
+        ((derivative f).map (Int.castRingHom (ZMod q)))) :
+    Algebra.adjoin ℤ {θ} = ⊤ := by
+  rw [← RingOfIntegers.forall_not_isIndexDivisor_iff_adjoin_eq_top hθ, hmin]
+  exact forall_not_isIndexDivisor_comp_iterate_of_isCoprime_derivative h
+
+end NumberField
