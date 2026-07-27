@@ -143,11 +143,14 @@ residual points, and their status, are:
   iterate is monogenic **exactly when `F k` is squarefree** — open.  For the `F k` that are
   known to be prime the answer is unconditional
   (`forall_not_isIndexDivisor_comp_iterate_three_one` and its companions).
-* **The hypothesis at primes dividing `b`.**  Not removable either, and this is proved:
-  `exists_isIndexDivisor_of_dvd_of_forall_not_sq_dvd` exhibits `b = 2`, `A = 3`, `q = 2`
-  where the orbit condition holds and yet `q` is an index divisor.  At such a prime the
-  reduction is inseparable and the critical orbit simply does not determine the answer; the
-  hypothesis is discharged in practice by `Monogenic.not_mem_sq_of_isEisensteinAt`.
+* **The hypothesis at primes dividing `b`.**  Not removable — the critical orbit does not
+  determine the answer there (`exists_isIndexDivisor_of_dvd_of_forall_not_sq_dvd`: for
+  `b = 2`, `A = 3`, `q = 2` the orbit condition holds and yet `q` is an index divisor) — but
+  now *decided* by a different computation:
+  `isIndexDivisor_comp_iterate_succ_iff_not_isCoprime` expresses index divisibility at
+  `q ∣ b` as a gcd in `𝔽_q[X]`, the vanishing-prime case of König–Smith–Wolske in
+  Dedekind-style form.  So every prime is decided, and only the infinitude of the checks —
+  the Wieferich question above — separates the criterion from an unconditional theorem.
 * **The principal ideal hypothesis on the base.**  Removed.  It entered only through the
   global assembly, which factors a denominator-clearing discriminant into prime elements.
   `Monogenic.adjoin_eq_top_of_forall_maximal_adjoin_localization_eq_top` replaces that step
@@ -3019,5 +3022,148 @@ theorem forall_not_isIndexDivisor_comp_iterate_X_sq_sub_two {r : ℕ} (hr : 0 < 
       · rwa [h] at hsq
     have hle := Int.le_of_dvd (by norm_num) hsq2
     nlinarith
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### The wild primes, decided: the criterion at `q ∣ b`
+
+This closes the last gap.  At a prime `q` dividing `b` the reduction of `f = X ^ b + A` is a
+`q`-th power — `f ≡ (X ^ (b / q) + A) ^ q mod q`, by Frobenius and Fermat — so the iterate
+`Q (m + 1)` is congruent to `H ^ q` for `H = Q m ^ (b / q) + A`, and the criterion of
+König–Smith–Wolske for such *vanishing* primes takes, over `ℤ`, the Dedekind-style form of a
+gcd computation: writing `Q (m + 1) = H ^ q + q * W`, the prime `q` is an index divisor
+exactly when the reductions of `H` and `W` fail to be coprime.
+
+This is the same shape as Theorem 1.11 of Kaur–Kumar–Remete for `f (X ^ p)`
+(`isIndexDivisor_expand_iff_not_isCoprime`), and the proof is the same ideal calculus; the
+statement here is for an arbitrary presentation `T = H ^ q + q * W` with `H` monic, so it
+applies to iterates.  No hypothesis on `A` is needed: together with
+`isIndexDivisor_comp_iterate_iff_exists_sq_dvd` at the primes `q ∤ b`, every prime is now
+decided. -/
+
+section WildCriterion
+
+variable {q : ℕ} [hq : Fact q.Prime]
+
+/-- **The wild criterion, Uchida-level.**  If `T = H ^ q + q * W` with `H` monic — so that
+the reduction of `T` mod `q` is the `q`-th power of that of `H` — then `q` is an index
+divisor of `T` exactly when the reductions of `H` and `W` fail to be coprime.
+
+One direction: a common irreducible factor `Pi` of the two reductions puts `H ^ q` into
+`⟨q, Pi⟩ ^ q ⊆ ⟨q, Pi⟩ ^ 2` and `q * W` into `⟨q, Pi⟩ ^ 2`.  Conversely an index divisor
+`Pi` divides the reduction of `T = H ^ q` mod `q`, hence that of `H`; then
+`q * W = T - H ^ q` lies in `⟨q, Pi⟩ ^ 2`, so `Pi` divides the reduction of `W` as well. -/
+theorem isIndexDivisor_iff_not_isCoprime_of_eq_pow_add {T H W : ℤ[X]} (hHm : H.Monic)
+    (hT : T = H ^ q + C (q : ℤ) * W) :
+    IsIndexDivisor q T ↔
+      ¬ IsCoprime (H.map (Int.castRingHom (ZMod q))) (W.map (Int.castRingHom (ZMod q))) := by
+  have hq0 : (((q : ℕ) : ℤ) : ZMod q) = 0 := by push_cast; exact ZMod.natCast_self q
+  have hmapT : T.map (Int.castRingHom (ZMod q)) =
+      (H.map (Int.castRingHom (ZMod q))) ^ q := by
+    rw [hT, Polynomial.map_add, Polynomial.map_pow, Polynomial.map_mul, Polynomial.map_C]
+    simp only [Int.coe_castRingHom, hq0, map_zero, zero_mul, add_zero]
+  constructor
+  · rintro ⟨Pi, hPim, hPiirr, hmem⟩ hcop
+    -- `Pi` divides the reduction of `H`, because it divides that of `H ^ q`.
+    have hPiH : Pi.map (Int.castRingHom (ZMod q)) ∣ H.map (Int.castRingHom (ZMod q)) := by
+      have h := sq_span_pair_le_span_pair_sq hmem
+      rw [mem_span_pair_C_natCast_iff, hmapT, Polynomial.map_pow] at h
+      exact (irreducible_iff_prime.mp hPiirr).dvd_of_dvd_pow
+        ((dvd_pow_self _ two_ne_zero).trans h)
+    have hHmem : H ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr hPiH
+    -- hence `H ^ q ∈ ⟨q, Pi⟩ ^ 2`, and `q * W` is the difference of two such elements.
+    have hHq : H ^ q ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 :=
+      Ideal.pow_le_pow_right hq.out.two_le (Ideal.pow_mem_pow hHmem q)
+    have hCW : C (q : ℤ) * W ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) ^ 2 := by
+      have hsub : C (q : ℤ) * W = T - H ^ q := by linear_combination -hT
+      rw [hsub]
+      exact Ideal.sub_mem _ hmem hHq
+    have hPiW : Pi.map (Int.castRingHom (ZMod q)) ∣ W.map (Int.castRingHom (ZMod q)) :=
+      mem_span_pair_C_natCast_iff.mp (mem_span_pair_of_C_mul_mem_sq (hPim.map _).ne_zero hCW)
+    exact hPiirr.not_isUnit (hcop.isUnit_of_dvd' hPiH hPiW)
+  · intro hncop
+    -- A common irreducible factor of the two reductions, normalised and lifted.
+    obtain ⟨π, hπirr, hπH, hπW⟩ :
+        ∃ π : (ZMod q)[X], Irreducible π ∧ π ∣ H.map (Int.castRingHom (ZMod q)) ∧
+          π ∣ W.map (Int.castRingHom (ZMod q)) := by
+      set d := EuclideanDomain.gcd (H.map (Int.castRingHom (ZMod q)))
+        (W.map (Int.castRingHom (ZMod q))) with hd
+      have hdunit : ¬ IsUnit d := fun h => hncop (EuclideanDomain.gcd_isUnit_iff.mp h)
+      have hd0 : d ≠ 0 := by
+        intro h0
+        exact (hHm.map _).ne_zero (EuclideanDomain.gcd_eq_zero_iff.mp h0).1
+      obtain ⟨π, hπirr, hπd⟩ := WfDvdMonoid.exists_irreducible_factor hdunit hd0
+      exact ⟨π, hπirr, hπd.trans (EuclideanDomain.gcd_dvd_left _ _),
+        hπd.trans (EuclideanDomain.gcd_dvd_right _ _)⟩
+    have hπmonic : (normalize π).Monic := monic_normalize hπirr.ne_zero
+    have hassoc : Associated (normalize π) π := normalize_associated π
+    have hsurj : Function.Surjective (Int.castRingHom (ZMod q)) := ZMod.intCast_surjective
+    obtain ⟨Pi, hPimap, -, hPimonic⟩ := lifts_and_degree_eq_and_monic
+      ((mem_lifts (normalize π)).mpr (Polynomial.map_surjective _ hsurj _)) hπmonic
+    refine ⟨Pi, hPimonic, by rw [hPimap]; exact hassoc.symm.irreducible hπirr, ?_⟩
+    have hHmem : H ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr (by rw [hPimap]; exact hassoc.dvd.trans hπH)
+    have hWmem : W ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+      mem_span_pair_C_natCast_iff.mpr (by rw [hPimap]; exact hassoc.dvd.trans hπW)
+    have hqmem : (C (q : ℤ) : ℤ[X]) ∈ (Ideal.span {C (q : ℤ), Pi} : Ideal ℤ[X]) :=
+      Ideal.subset_span (by simp)
+    rw [hT]
+    refine Ideal.add_mem _
+      (Ideal.pow_le_pow_right hq.out.two_le (Ideal.pow_mem_pow hHmem q)) ?_
+    rw [show (2 : ℕ) = 1 + 1 from rfl, pow_add, pow_one]
+    exact Ideal.mul_mem_mul hqmem hWmem
+
+variable {b b₁ : ℕ} {A : ℤ}
+
+/-- **The presentation exists**: for `b = q * b₁` the iterate `Q (m + 1)` is congruent mod
+`q` to `(Q m ^ b₁ + A) ^ q`, by Frobenius and Fermat, so the cofactor `W` can be split off. -/
+theorem exists_comp_iterate_succ_eq_pow_add (hb : b = q * b₁) (m : ℕ) :
+    ∃ W : ℤ[X], (((X ^ b + C A : ℤ[X])).comp ·)^[m + 1] X =
+      (((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b₁ + C A) ^ q + C (q : ℤ) * W := by
+  have hstep : (((X ^ b + C A : ℤ[X])).comp ·)^[m + 1] X =
+      ((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b + C A := comp_iterate_succ_eq rfl m
+  obtain ⟨W, hW⟩ : C ((q : ℕ) : ℤ) ∣
+      ((((X ^ b + C A : ℤ[X])).comp ·)^[m + 1] X -
+        (((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b₁ + C A) ^ q) := by
+    rw [C_dvd_iff_zmod, hstep]
+    simp only [Polynomial.map_sub, Polynomial.map_add, Polynomial.map_pow, Polynomial.map_C]
+    rw [add_pow_char, ← pow_mul, ← C_pow, ZMod.pow_card, mul_comm b₁ q, ← hb]
+    ring
+  exact ⟨W, by linear_combination hW⟩
+
+/-- **The criterion at a wild prime.**  For `b = q * b₁` and any presentation
+`Q (m + 1) = (Q m ^ b₁ + A) ^ q + q * W`, the prime `q` is an index divisor of the iterate
+`Q (m + 1)` of `X ^ b + A` exactly when the reductions of `Q m ^ b₁ + A` and `W` fail to be
+coprime mod `q`.
+
+Together with `isIndexDivisor_comp_iterate_iff_exists_sq_dvd`, which handles the primes not
+dividing `b`, this decides every prime: the index divisors of an iterate of `X ^ b + A` are
+computable by factoring critical orbit values and taking gcds in `𝔽_q[X]`.  This is the
+vanishing-prime case of König–Smith–Wolske, in Dedekind-style form over `ℤ`. -/
+theorem isIndexDivisor_comp_iterate_succ_iff_not_isCoprime (hb : b = q * b₁) (hb₁ : 0 < b₁)
+    {m : ℕ} {W : ℤ[X]}
+    (hW : (((X ^ b + C A : ℤ[X])).comp ·)^[m + 1] X =
+      (((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b₁ + C A) ^ q + C (q : ℤ) * W) :
+    IsIndexDivisor q ((((X ^ b + C A : ℤ[X])).comp ·)^[m + 1] X) ↔
+      ¬ IsCoprime
+        ((((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b₁ + C A).map (Int.castRingHom (ZMod q)))
+        (W.map (Int.castRingHom (ZMod q))) := by
+  have hb0 : 0 < b := by rw [hb]; exact Nat.mul_pos hq.out.pos hb₁
+  have hfm : ((X ^ b + C A : ℤ[X])).Monic := monic_X_pow_add_C A hb0.ne'
+  have hfd : ((X ^ b + C A : ℤ[X])).natDegree = b := natDegree_X_pow_add_C
+  have hQm : ((((X ^ b + C A : ℤ[X])).comp ·)^[m] X).Monic :=
+    monic_comp_iterate hfm (by rw [hfd]; exact hb0) m
+  have hHm : (((((X ^ b + C A : ℤ[X])).comp ·)^[m] X) ^ b₁ + C A).Monic := by
+    refine (hQm.pow b₁).add_of_left ?_
+    rw [degree_eq_natDegree (hQm.pow b₁).ne_zero, hQm.natDegree_pow, natDegree_comp_iterate,
+      hfd]
+    have hpos : 0 < b₁ * b ^ m := Nat.mul_pos hb₁ (by positivity)
+    exact lt_of_le_of_lt degree_C_le (by exact_mod_cast hpos)
+  exact isIndexDivisor_iff_not_isCoprime_of_eq_pow_add hHm hW
+
+end WildCriterion
 
 end Polynomial
