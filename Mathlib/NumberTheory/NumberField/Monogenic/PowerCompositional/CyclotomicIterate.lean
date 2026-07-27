@@ -136,9 +136,13 @@ monogenic exactly when the first `r` critical-orbit values are squarefree.  The 
 residual points, and their status, are:
 
 * **Squarefreeness of the orbit.**  Not removable: by
-  `isIndexDivisor_comp_iterate_iff_exists_sq_dvd` it is *equivalent* to monogenity.  Whether
-  the orbit `1, 2, 5, 26, 677, …` is squarefree forever is a Wieferich-type question
-  (compare `q ^ 2 ∣ 2 ^ n - 1` iff `q` is a Wieferich prime), open in the same way.
+  `isIndexDivisor_comp_iterate_iff_exists_sq_dvd` it is *equivalent* to monogenity.  And it
+  is not merely "Wieferich-like" — already at the third iterate it is a named open problem.
+  The orbit of `Φ (2 ^ (k + 1))` begins `1, 2, 2 ^ (2 ^ k) + 1`, whose third term is the
+  Fermat number `F k`, so by `forall_not_isIndexDivisor_comp_iterate_three_iff` the third
+  iterate is monogenic **exactly when `F k` is squarefree** — open.  For the `F k` that are
+  known to be prime the answer is unconditional
+  (`forall_not_isIndexDivisor_comp_iterate_three_one` and its companions).
 * **The hypothesis at primes dividing `b`.**  Not removable either, and this is proved:
   `exists_isIndexDivisor_of_dvd_of_forall_not_sq_dvd` exhibits `b = 2`, `A = 3`, `q = 2`
   where the orbit condition holds and yet `q` is an index divisor.  At such a prime the
@@ -163,7 +167,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 2100
+set_option linter.style.longFile 2300
 
 @[expose] public section
 
@@ -2053,3 +2057,65 @@ theorem isPrincipalIdealRing_localization_atPrime {R : Type*} [CommRing R]
 end NoPID
 
 end Monogenic
+
+namespace Polynomial
+
+/-! ### The third iterate and the Fermat numbers
+
+The critical orbit of `Φ (2 ^ (k + 1)) = X ^ (2 ^ k) + 1` begins `1, 2, 2 ^ (2 ^ k) + 1`, and
+that third term is exactly the Fermat number `F k`.  Since the criterion says monogenity is
+squarefreeness of the orbit, the third iterate is monogenic precisely when `F k` is
+squarefree — a well-known open problem.  So the residual hypothesis is not merely
+"Wieferich-like": already at the third iterate it *is* a famous open question. -/
+
+/-- The third member of the critical orbit of `X ^ b + 1` is `2 ^ b + 1`. -/
+theorem eval_zero_comp_iterate_three {b : ℕ} (hb : 0 < b) :
+    ((((X ^ b + 1 : ℤ[X])).comp ·)^[3] X).eval 0 = 2 ^ b + 1 := by
+  rw [show (3 : ℕ) = 2 + 1 from rfl, comp_iterate_pow_add_one_succ, eval_add, eval_pow,
+    eval_one, eval_zero_comp_iterate_two hb]
+
+/-- **The third iterate of `Φ (2 ^ (k + 1))` is monogenic if and only if the Fermat number
+`F k = 2 ^ (2 ^ k) + 1` is squarefree.**
+
+The orbit is `1, 2, F k`; the first two are squarefree outright, so
+`forall_not_isIndexDivisor_comp_iterate_iff_squarefree'` reduces monogenity to the third.
+Whether every Fermat number is squarefree is open — no `F k` is known to have a square
+factor, and none is known to be squarefree beyond those that have been factored. -/
+theorem forall_not_isIndexDivisor_comp_iterate_three_iff {k : ℕ} (hk : 0 < k) :
+    (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[3] X)) ↔
+      Squarefree ((2 : ℤ) ^ 2 ^ k + 1) := by
+  have hb : 0 < 2 ^ k := by positivity
+  rw [forall_not_isIndexDivisor_comp_iterate_iff_squarefree' hk (show 0 < 3 by omega)]
+  refine ⟨fun h => ?_, fun h m hm0 hm3 => ?_⟩
+  · have h3 := h 3 (by omega) (by omega)
+    rwa [eval_zero_comp_iterate_three hb] at h3
+  · interval_cases m
+    · rw [eval_zero_comp_iterate_one hb]
+      exact squarefree_one
+    · rw [eval_zero_comp_iterate_two hb]
+      exact Int.prime_two.irreducible.squarefree
+    · rwa [eval_zero_comp_iterate_three hb]
+
+/-- A prime Fermat number gives an unconditionally monogenic third iterate. -/
+theorem forall_not_isIndexDivisor_comp_iterate_three_of_prime {k : ℕ} (hk : 0 < k)
+    (hp : Prime ((2 : ℤ) ^ 2 ^ k + 1)) :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[3] X) :=
+  (forall_not_isIndexDivisor_comp_iterate_three_iff hk).mpr hp.irreducible.squarefree
+
+/-- `F 1 = 5` is prime, so the third iterate of `Φ 4 = X ^ 2 + 1` is monogenic —
+unconditionally, and it is a polynomial of degree `8`. -/
+theorem forall_not_isIndexDivisor_comp_iterate_three_one :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ 1 + 1 : ℤ[X])).comp ·)^[3] X) :=
+  forall_not_isIndexDivisor_comp_iterate_three_of_prime one_pos (by norm_num)
+
+/-- `F 2 = 17` is prime, so the third iterate of `Φ 8 = X ^ 4 + 1` is monogenic. -/
+theorem forall_not_isIndexDivisor_comp_iterate_three_two :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ 2 + 1 : ℤ[X])).comp ·)^[3] X) :=
+  forall_not_isIndexDivisor_comp_iterate_three_of_prime (by omega) (by norm_num)
+
+/-- `F 3 = 257` is prime, so the third iterate of `Φ 16 = X ^ 8 + 1` is monogenic. -/
+theorem forall_not_isIndexDivisor_comp_iterate_three_three :
+    ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ 3 + 1 : ℤ[X])).comp ·)^[3] X) :=
+  forall_not_isIndexDivisor_comp_iterate_three_of_prime (by omega) (by norm_num)
+
+end Polynomial
