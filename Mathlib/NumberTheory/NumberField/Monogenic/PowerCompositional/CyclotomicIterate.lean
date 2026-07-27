@@ -1147,3 +1147,254 @@ theorem adjoin_eq_top_iff_forall_squarefree_of_minpoly_eq_comp_iterate {K : Type
   exact forall_not_isIndexDivisor_comp_iterate_iff_squarefree hk hr
 
 end NumberField
+
+namespace Polynomial
+
+/-! ### Removing the parity hypothesis
+
+The results above treat even iterates, which are Eisenstein at `2` outright.  An odd iterate
+is not: its constant term is odd.  But its *translate* by `1` is, because `Q r (1) = c (r + 1)`
+is the next member of the orbit, which for `r` odd sits at an even index and so is exactly
+divisible by `2`.  Since index divisors are invariant under `X ↦ X + c`, this disposes of the
+odd case too, and the parity hypothesis disappears from every statement. -/
+
+section Translate
+
+/-- Index divisors are unchanged by the translation `X ↦ X + c`: the substitution is a ring
+automorphism of `ℤ[X]` fixing `C p`, so it carries the ideal `⟨p, Pi⟩` to `⟨p, Pi (X + c)⟩`
+and preserves monicity and irreducibility of reductions. -/
+private theorem isIndexDivisor_comp_X_add_C_of {p : ℕ} [Fact p.Prime] {g : ℤ[X]} (c : ℤ)
+    (h : IsIndexDivisor p g) : IsIndexDivisor p (g.comp (X + C c)) := by
+  obtain ⟨Pi, hPim, hPiirr, hmem⟩ := h
+  have he : ∀ u : (ZMod p)[X],
+      (Polynomial.algEquivAevalXAddC (((c : ℤ) : ZMod p))) u =
+        u.comp (X + C ((c : ℤ) : ZMod p)) := by
+    intro u
+    simp [Polynomial.algEquivAevalXAddC, Polynomial.aeval_def, Polynomial.comp]
+  refine ⟨Pi.comp (X + C c), hPim.comp_X_add_C c, ?_, ?_⟩
+  · have hmapc : ((X + C c : ℤ[X]).map (Int.castRingHom (ZMod p))) =
+        X + C ((c : ℤ) : ZMod p) := by
+      rw [Polynomial.map_add, Polynomial.map_X, Polynomial.map_C, Int.coe_castRingHom]
+    rw [Polynomial.map_comp, hmapc, ← he]
+    exact (MulEquiv.irreducible_iff
+      (Polynomial.algEquivAevalXAddC (((c : ℤ) : ZMod p))).toMulEquiv).mpr hPiirr
+  · obtain ⟨u, v, w, huvw⟩ := Ideal.mem_span_pair_sq_iff.mp hmem
+    refine Ideal.mem_span_pair_sq_iff.mpr
+      ⟨u.comp (X + C c), v.comp (X + C c), w.comp (X + C c), ?_⟩
+    rw [huvw]
+    simp [add_comp, mul_comp, pow_comp]
+
+/-- **Index divisors are a translation invariant.** -/
+theorem isIndexDivisor_comp_X_add_C_iff {p : ℕ} [Fact p.Prime] (g : ℤ[X]) (c : ℤ) :
+    IsIndexDivisor p (g.comp (X + C c)) ↔ IsIndexDivisor p g := by
+  refine ⟨fun h => ?_, isIndexDivisor_comp_X_add_C_of c⟩
+  have h2 := isIndexDivisor_comp_X_add_C_of (-c) h
+  rwa [comp_assoc, show ((X : ℤ[X]) + C c).comp (X + C (-c)) = X by
+    simp [add_comp], comp_X] at h2
+
+end Translate
+
+section OddIterate
+
+variable {b k : ℕ}
+
+/-- Evaluating an iterate at `1` shifts the critical orbit by one step:
+`Q r (1) = c (r + 1)`, because `1 = f (0) = c 1`. -/
+theorem eval_one_comp_iterate (hb : 0 < b) (r : ℕ) :
+    ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X).eval 1 =
+      ((((X ^ b + 1 : ℤ[X])).comp ·)^[r + 1] X).eval 0 := by
+  have h := comp_iterate_add (X ^ b + 1 : ℤ[X]) r 1
+  rw [h, eval_comp]
+  congr 1
+  rw [show (1 : ℕ) = 0 + 1 from rfl, comp_iterate_pow_add_one_succ]
+  simp [zero_pow hb.ne']
+
+/-- **An odd iterate becomes Eisenstein at `2` after translating by `1`.**  Its reduction
+mod `2` is `X ^ (b ^ r) + 1 = (X + 1) ^ (b ^ r)`, which the translation turns into a
+monomial, and its constant term becomes `Q r (1) = c (r + 1)`, exactly divisible by `2`
+since `r + 1` is even. -/
+theorem isEisensteinAt_two_comp_iterate_comp_X_add_one (hk : 0 < k) {r : ℕ} (hr : Odd r) :
+    ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X)).comp (X + C 1)).IsEisensteinAt
+      (Submodule.span ℤ {(2 : ℤ)}) := by
+  have hb : 0 < 2 ^ k := by positivity
+  have hbe : Even (2 ^ k) := (Nat.even_pow' hk.ne').mpr even_two
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  have hQmonic := monic_comp_iterate hfm (by omega) r
+  have hmonic := hQmonic.comp_X_add_C (1 : ℤ)
+  have hdeg : (((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X).comp (X + C 1)).natDegree =
+      (2 ^ k) ^ r := by
+    rw [natDegree_comp, natDegree_X_add_C, mul_one, natDegree_comp_iterate, hfd]
+  -- The reduction mod `2` is a monomial.
+  have hmap : ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X)).comp (X + C 1)).map
+      (Int.castRingHom (ZMod 2)) = X ^ (2 ^ k) ^ r := by
+    obtain ⟨t, ht⟩ := hr
+    rw [Polynomial.map_comp, map_comp_iterate_zmod_two r]
+    simp only [Polynomial.map_add, Polynomial.map_X, Polynomial.map_one, eq_intCast,
+      Int.cast_one, add_comp, pow_comp, X_comp, C_comp]
+    rw [show ((r : ℕ) : ZMod 2) = 1 by
+      rw [ht, Nat.cast_add, Nat.cast_mul, show ((2 : ℕ) : ZMod 2) = 0 by decide]; ring]
+    rw [show ((2 : ℕ) ^ k) ^ r = 2 ^ (k * r) by rw [← pow_mul], add_pow_char_pow, one_pow,
+      add_assoc, C_1, CharTwo.add_self_eq_zero, add_zero]
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hmonic.leadingCoeff, Ideal.mem_span_singleton]
+    omega
+  · intro i hi
+    rw [hdeg] at hi
+    have h := congrArg (fun u => Polynomial.coeff u i) hmap
+    simp only [coeff_map, coeff_X_pow, Int.coe_castRingHom,
+      if_neg (show i ≠ (2 ^ k) ^ r by omega)] at h
+    rw [Ideal.mem_span_singleton]
+    have h2 : ((2 : ℕ) : ℤ) ∣
+        (((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X).comp (X + C 1)).coeff i :=
+      (ZMod.intCast_zmod_eq_zero_iff_dvd _ 2).mp h
+    simpa using h2
+  · rw [coeff_zero_eq_eval_zero, eval_comp, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+    simp only [eval_add, eval_X, eval_C, zero_add]
+    rw [eval_one_comp_iterate hb r]
+    intro hdvd
+    exact not_four_dvd_eval_zero_comp_iterate hb hbe hr (by simpa using hdvd)
+
+/-- **`2` is never an index divisor of an odd iterate either.** -/
+theorem not_isIndexDivisor_two_comp_iterate_odd (hk : 0 < k) {r : ℕ} (hr : Odd r) :
+    ¬ IsIndexDivisor 2 ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X) := by
+  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  have hb : 0 < 2 ^ k := by positivity
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  rw [← isIndexDivisor_comp_X_add_C_iff _ (1 : ℤ)]
+  refine RingOfIntegers.not_isIndexDivisor_of_isEisensteinAt
+    ((monic_comp_iterate hfm (by omega) r).comp_X_add_C 1) ?_
+    (isEisensteinAt_two_comp_iterate_comp_X_add_one hk hr)
+  rw [natDegree_comp, natDegree_X_add_C, mul_one, natDegree_comp_iterate, hfd]
+  positivity
+
+/-- **`2` is never an index divisor of any iterate**, whatever the parity. -/
+theorem not_isIndexDivisor_two_comp_iterate' (hk : 0 < k) {r : ℕ} (hr : 0 < r) :
+    ¬ IsIndexDivisor 2 ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X) := by
+  rcases Nat.even_or_odd r with he | ho
+  · obtain ⟨t, ht⟩ := he
+    have hto : Odd (t + t - 1) := by
+      rcases Nat.eq_zero_or_pos t with rfl | h
+      · omega
+      · exact ⟨t - 1, by omega⟩
+    have : r = (t + t - 1) + 1 := by omega
+    rw [this]
+    exact not_isIndexDivisor_two_comp_iterate hk hto
+  · exact not_isIndexDivisor_two_comp_iterate_odd hk ho
+
+/-- **The complete answer, with no parity hypothesis.**  For `k ≥ 1` and any `r ≥ 1`, the
+`r`-fold iterate of `Φ (2 ^ (k + 1))` is monogenic **if and only if** the first `r` values of
+the critical orbit are squarefree. -/
+theorem forall_not_isIndexDivisor_comp_iterate_iff_squarefree' (hk : 0 < k) {r : ℕ}
+    (hr : 0 < r) :
+    (∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X)) ↔
+      ∀ m, 0 < m → m ≤ r →
+        Squarefree (((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X).eval 0) := by
+  have hb2 : 2 ≤ 2 ^ k := by simpa using Nat.pow_le_pow_right (show 1 ≤ 2 by norm_num) hk
+  refine ⟨fun h m hm0 hmr => ?_, fun h q hqp => ?_⟩
+  · rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
+    intro q hqp hsq
+    haveI : Fact q.Prime := ⟨hqp⟩
+    exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hb2 hm0 hmr hsq)
+  · haveI : Fact q.Prime := ⟨hqp⟩
+    by_cases hq2 : q = 2
+    · subst hq2
+      exact not_isIndexDivisor_two_comp_iterate' hk hr
+    · have hqb : ¬ q ∣ 2 ^ k := fun hdvd =>
+        hq2 ((Nat.prime_dvd_prime_iff_eq hqp Nat.prime_two).mp (hqp.dvd_of_dvd_pow hdvd))
+      rw [isIndexDivisor_comp_iterate_iff_exists_sq_dvd hb2 hqb]
+      rintro ⟨m, hm0, hmr, hsq⟩
+      exact (Int.squarefree_iff_forall_prime_sq_not_dvd.mp (h m hm0 hmr)) q hqp hsq
+
+end OddIterate
+
+end Polynomial
+
+namespace Polynomial
+
+section AllIterates
+
+variable {b k : ℕ}
+
+/-- **Every iterate of `Φ (2 ^ (k + 1))` is irreducible over `ℤ`**: it is Eisenstein at `2`
+for `r` even, and its translate by `1` is for `r` odd. -/
+theorem irreducible_comp_iterate (hk : 0 < k) {r : ℕ} (hr : 0 < r) :
+    Irreducible ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X) := by
+  have hb : 0 < 2 ^ k := by positivity
+  have hprime : Ideal.IsPrime (Submodule.span ℤ {(2 : ℤ)}) :=
+    (Ideal.span_singleton_prime (by norm_num)).mpr Int.prime_two
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  have hQmonic := monic_comp_iterate hfm (by omega) r
+  have hQdeg : ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X).natDegree = (2 ^ k) ^ r := by
+    rw [natDegree_comp_iterate, hfd]
+  rcases Nat.even_or_odd r with he | ho
+  · obtain ⟨t, ht⟩ := he
+    have hto : Odd (t + t - 1) := by
+      rcases Nat.eq_zero_or_pos t with rfl | h
+      · omega
+      · exact ⟨t - 1, by omega⟩
+    have hrw : r = (t + t - 1) + 1 := by omega
+    rw [hrw]
+    refine (isEisensteinAt_two_comp_iterate hk hto).irreducible hprime
+      (monic_comp_iterate hfm (by omega) _).isPrimitive ?_
+    rw [natDegree_comp_iterate, hfd]
+    positivity
+  · -- Transfer irreducibility back along the translation `X ↦ X + 1`.
+    have he1 : ∀ u : ℤ[X], (Polynomial.algEquivAevalXAddC (1 : ℤ)) u = u.comp (X + C 1) := by
+      intro u
+      simp [Polynomial.algEquivAevalXAddC, Polynomial.aeval_def, Polynomial.comp]
+    refine (MulEquiv.irreducible_iff
+      (Polynomial.algEquivAevalXAddC (1 : ℤ)).toMulEquiv).mp ?_
+    rw [show ((Polynomial.algEquivAevalXAddC (1 : ℤ)).toMulEquiv
+      ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X)) =
+        ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X).comp (X + C 1) from he1 _]
+    refine (isEisensteinAt_two_comp_iterate_comp_X_add_one hk ho).irreducible hprime
+      (hQmonic.comp_X_add_C 1).isPrimitive ?_
+    rw [natDegree_comp, natDegree_X_add_C, mul_one, hQdeg]
+    positivity
+
+/-- **A necessary condition with no hypotheses at all.**  If some iterate of `X ^ b + 1`
+with `b ≥ 2` is monogenic, then the critical orbit is squarefree up to that point.  Note
+that no assumption is made on `b` beyond `b ≥ 2`: the necessity half of the criterion needs
+neither `q ∤ b` nor that `b` be a power of `2`. -/
+theorem squarefree_eval_zero_of_forall_not_isIndexDivisor (hb : 2 ≤ b) {r : ℕ}
+    (h : ∀ q : ℕ, q.Prime → ¬ IsIndexDivisor q ((((X ^ b + 1 : ℤ[X])).comp ·)^[r] X)) :
+    ∀ m, 0 < m → m ≤ r →
+      Squarefree (((((X ^ b + 1 : ℤ[X])).comp ·)^[m] X).eval 0) := by
+  intro m hm0 hmr
+  rw [Int.squarefree_iff_forall_prime_sq_not_dvd]
+  intro q hqp hsq
+  haveI : Fact q.Prime := ⟨hqp⟩
+  exact h q hqp (isIndexDivisor_comp_iterate_of_sq_dvd hb hm0 hmr hsq)
+
+end AllIterates
+
+end Polynomial
+
+namespace NumberField
+
+open Polynomial
+
+/-- **Monogenity of an arbitrary iterate of a `2`-power cyclotomic polynomial.**  If `θ`
+generates `K` over `ℚ` and its minimal polynomial is the `r`-fold iterate of
+`Φ (2 ^ (k + 1)) = X ^ (2 ^ k) + 1`, then `ℤ[θ] = 𝓞 K` **if and only if** the first `r`
+values of the critical orbit are squarefree.  No parity hypothesis on `r` is needed. -/
+theorem adjoin_eq_top_iff_forall_squarefree_of_minpoly_eq_comp_iterate' {K : Type*} [Field K]
+    [NumberField K] {θ : 𝓞 K} {k r : ℕ} (hk : 0 < k) (hr : 0 < r)
+    (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
+    (hmin : minpoly ℤ θ = (((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[r] X) :
+    Algebra.adjoin ℤ {θ} = ⊤ ↔
+      ∀ m, 0 < m → m ≤ r →
+        Squarefree (((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X).eval 0) := by
+  rw [← RingOfIntegers.forall_not_isIndexDivisor_iff_adjoin_eq_top hθ, hmin]
+  exact forall_not_isIndexDivisor_comp_iterate_iff_squarefree' hk hr
+
+end NumberField
