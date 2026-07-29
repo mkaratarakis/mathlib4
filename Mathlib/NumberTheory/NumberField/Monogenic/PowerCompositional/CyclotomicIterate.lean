@@ -8,6 +8,8 @@ module
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Examples
 public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.GeneralBase
 public import Mathlib.NumberTheory.NumberField.Monogenic.Base
+public import Mathlib.RingTheory.Discriminant
+public import Mathlib.RingTheory.Norm.Transitivity
 
 /-!
 # Monogenity of composed and iterated cyclotomic polynomials
@@ -170,7 +172,7 @@ So of the three, one is closed by proof, one by counterexample, and one is open.
 * [K. Uchida, *When is `ℤ[θ]` the ring of integers?*][Uchida1977]
 -/
 
-set_option linter.style.longFile 3400
+set_option linter.style.longFile 3700
 
 @[expose] public section
 
@@ -3321,5 +3323,219 @@ theorem divByMonic_X_sub_C_modByMonic (T : ℤ[X]) (a : ℤ) :
   exact hB.2
 
 end Digits
+
+end Polynomial
+
+namespace Polynomial
+
+/-! ### The discriminant of an iterate
+
+The composition--discriminant formula evaluates in closed form for iterates, because every
+norm it produces is a critical orbit value: `T_i(θ)` is a root of the irreducible `T_{n-i}`,
+so its norm is `c_{n-i} ^ (b ^ i)` — exactly, with no sign, since `b ^ n` is even.  The
+chain rule then gives
+`disc(T_n) = (-1) ^ (b ^ n / 2) * b ^ (n * b ^ n) * ∏_j c_j ^ ((b - 1) * b ^ (n - j))`. -/
+
+section Discriminant
+
+open IntermediateField Module NumberField.KaurKumar
+
+/-- The norm of any element of a finite field extension, from its minimal polynomial:
+`N(x) = ((-1) ^ deg * m_x(0)) ^ ([L : F] / deg)`.  Stated over an arbitrary base field, and
+with the relative degree written as a quotient, so that no intermediate field appears in the
+statement. -/
+private theorem norm_eq_pow_finrank_div {F L : Type*} [Field F] [Field L] [Algebra F L]
+    [FiniteDimensional F L] (x : L) :
+    Algebra.norm F x =
+      ((-1) ^ (minpoly F x).natDegree * (minpoly F x).coeff 0) ^
+        (Module.finrank F L / (minpoly F x).natDegree) := by
+  have hx : IsIntegral F x := IsIntegral.of_finite F x
+  have hgen : Algebra.norm F (AdjoinSimple.gen F x) =
+      (-1) ^ (minpoly F x).natDegree * (minpoly F x).coeff 0 := by
+    have h := Algebra.PowerBasis.norm_gen_eq_coeff_zero_minpoly
+      (IntermediateField.adjoin.powerBasis hx)
+    simpa [IntermediateField.adjoin.powerBasis_gen, IntermediateField.adjoin.powerBasis_dim,
+      IntermediateField.minpoly_gen] using h
+  have hd : 0 < (minpoly F x).natDegree := minpoly.natDegree_pos hx
+  have hfr : Module.finrank F⟮x⟯ L = Module.finrank F L / (minpoly F x).natDegree := by
+    have htower := Module.finrank_mul_finrank F F⟮x⟯ L
+    rw [IntermediateField.adjoin.finrank hx] at htower
+    rw [← htower, Nat.mul_div_cancel_left _ hd]
+  rw [Algebra.norm_eq_norm_adjoin, hgen, hfr]
+
+variable {K : Type*} [Field K] [Algebra ℚ K] {k : ℕ}
+
+/-- The iterates are irreducible over `ℚ` as well. -/
+theorem irreducible_ratMap_comp_iterate (hk : 0 < k) {m : ℕ} (hm : 0 < m) :
+    Irreducible (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X)) := by
+  have hb : (0 : ℕ) < 2 ^ k := by positivity
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  exact (IsPrimitive.Int.irreducible_iff_irreducible_map_cast
+    (monic_comp_iterate hfm (by rw [hfd]; exact hb) m).isPrimitive).mp
+    (irreducible_comp_iterate hk hm)
+
+/-- The evaluation of an earlier iterate at a root of `T_n` has minimal polynomial the
+complementary iterate: `T_i(θ)` is a root of `T_{n-i}`. -/
+theorem minpoly_aeval_ratMap_comp_iterate (hk : 0 < k) {n i : ℕ} (hi : i < n) {θ : K}
+    (hmin : minpoly ℚ θ = ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n] X)) :
+    minpoly ℚ (aeval θ (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X))) =
+      ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X) := by
+  have hb : (0 : ℕ) < 2 ^ k := by positivity
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  have hcomp : ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X).comp
+      ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X) =
+      (((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n] X := by
+    have h := comp_iterate_add (X ^ 2 ^ k + 1 : ℤ[X]) (n - i) i
+    rw [show n - i + i = n by omega] at h
+    exact h.symm
+  have hroot : aeval (aeval θ (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X)))
+      (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X)) = 0 := by
+    have h0 : aeval (aeval θ (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X)))
+        (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X)) =
+        aeval θ (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n] X)) := by
+      conv_rhs => rw [← hcomp]
+      rw [show ratMap (((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X).comp
+            ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X)) =
+          (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X)).comp
+            (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X)) from
+        Polynomial.map_comp _ _ _, aeval_comp]
+    rw [h0, ← hmin]
+    exact minpoly.aeval ℚ θ
+  exact (minpoly.eq_of_irreducible_of_monic (irreducible_ratMap_comp_iterate hk (by omega))
+    hroot ((monic_comp_iterate hfm (by rw [hfd]; exact hb) _).map _)).symm
+
+/-- **Norms along the orbit**: the norm of `T_i(θ)` is the critical orbit value `c_{n-i}`
+raised to `b ^ i` — exactly, with no sign. -/
+theorem norm_aeval_ratMap_comp_iterate (hk : 0 < k) (pb : PowerBasis ℚ K) {n i : ℕ}
+    (hi : i < n)
+    (hmin : minpoly ℚ pb.gen = ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n] X)) :
+    Algebra.norm ℚ (aeval pb.gen (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X))) =
+      ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X).eval 0 : ℤ) : ℚ) ^ (2 ^ k) ^ i := by
+  haveI := pb.finite
+  have hb : (0 : ℕ) < 2 ^ k := by positivity
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  have hdeg : ∀ m : ℕ, (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X)).natDegree =
+      (2 ^ k) ^ m := by
+    intro m
+    rw [(monic_comp_iterate hfm (by rw [hfd]; exact hb) m).natDegree_map,
+      natDegree_comp_iterate, hfd]
+  have hmina : minpoly ℚ (aeval pb.gen (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X))) =
+      ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X) :=
+    minpoly_aeval_ratMap_comp_iterate hk hi hmin
+  have hnd : (minpoly ℚ (aeval pb.gen
+      (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X)))).natDegree = (2 ^ k) ^ (n - i) := by
+    rw [hmina, hdeg]
+  have hfrK : Module.finrank ℚ K = (2 ^ k) ^ n := by
+    rw [pb.finrank, ← pb.natDegree_minpoly, hmin, hdeg]
+  have heven : Even (((2 : ℕ) ^ k) ^ (n - i)) :=
+    Nat.even_pow.mpr ⟨Nat.even_pow.mpr ⟨even_two, hk.ne'⟩, by omega⟩
+  rw [norm_eq_pow_finrank_div, hnd, hfrK, hmina, coeff_map, heven.neg_one_pow, one_mul,
+    Nat.pow_div (by omega) (by positivity), show n - (n - i) = i from by omega]
+  simp [coeff_zero_eq_eval_zero]
+
+private theorem neg_one_pow_mul_sub_one_div_two {m : ℕ} (hm : Even m) :
+    ((-1 : ℚ)) ^ (m * (m - 1) / 2) = (-1) ^ (m / 2) := by
+  obtain ⟨t, rfl⟩ := hm
+  have h1 : (t + t) * (t + t - 1) / 2 = t * (t + t - 1) := by
+    rw [show (t + t) * (t + t - 1) = 2 * (t * (t + t - 1)) by ring,
+      Nat.mul_div_cancel_left _ (by norm_num)]
+  have h2 : (t + t) / 2 = t := by omega
+  rw [h1, h2]
+  rcases Nat.even_or_odd t with he | ho
+  · rw [(he.mul_right _).neg_one_pow, he.neg_one_pow]
+  · have ht1 : 1 ≤ t := by
+      rcases ho with ⟨u, hu⟩
+      omega
+    have hodd : Odd (t + t - 1) := ⟨t - 1, by omega⟩
+    rw [(ho.mul hodd).neg_one_pow, ho.neg_one_pow]
+
+/-- **The discriminant of the `n`-th iterate**: for `θ` with minimal polynomial `T_n` over
+`ℚ` and `pb` the corresponding power basis,
+`disc = (-1) ^ (b ^ n / 2) * b ^ (n * b ^ n) * ∏_j c_(j+1) ^ ((b - 1) * b ^ (n - 1 - j))`.
+No discriminant of a composition is invoked: the proof is `disc = ± N(T_n'(θ))`, the chain
+rule, and the norms of the orbit. -/
+theorem discr_powerBasis_eq_of_minpoly_eq_comp_iterate (hk : 0 < k) {n : ℕ} (hn : 0 < n)
+    (pb : PowerBasis ℚ K)
+    (hmin : minpoly ℚ pb.gen = ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n] X)) :
+    Algebra.discr ℚ pb.basis =
+      (-1) ^ ((2 ^ k) ^ n / 2) * ((2 : ℚ) ^ k) ^ (n * (2 ^ k) ^ n) *
+        ∏ j ∈ Finset.range n,
+          ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[j + 1] X).eval 0 : ℤ) : ℚ) ^
+            ((2 ^ k - 1) * (2 ^ k) ^ (n - 1 - j)) := by
+  haveI := pb.finite
+  haveI : Algebra.IsSeparable ℚ K :=
+    ⟨fun x => (minpoly.irreducible (IsIntegral.of_finite ℚ x)).separable⟩
+  have hb : (0 : ℕ) < 2 ^ k := by positivity
+  have hfm : ((X ^ 2 ^ k + 1 : ℤ[X])).Monic := by
+    simpa using monic_X_pow_add_C (1 : ℤ) hb.ne'
+  have hfd : ((X ^ 2 ^ k + 1 : ℤ[X])).natDegree = 2 ^ k := by
+    simpa using natDegree_X_pow_add_C (R := ℤ) (n := 2 ^ k) (r := 1)
+  have hdeg : ∀ m : ℕ, (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[m] X)).natDegree =
+      (2 ^ k) ^ m := by
+    intro m
+    rw [(monic_comp_iterate hfm (by rw [hfd]; exact hb) m).natDegree_map,
+      natDegree_comp_iterate, hfd]
+  have hfrK : Module.finrank ℚ K = (2 ^ k) ^ n := by
+    rw [pb.finrank, ← pb.natDegree_minpoly, hmin, hdeg]
+  -- The derivative of the iterate, evaluated at the generator, factors along the orbit.
+  have hder : aeval pb.gen (derivative (minpoly ℚ pb.gen)) =
+      ∏ i ∈ Finset.range n,
+        (algebraMap ℚ K ((2 : ℚ) ^ k) *
+          (aeval pb.gen (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X))) ^
+            (2 ^ k - 1)) := by
+    rw [hmin, derivative_map, derivative_comp_iterate, Polynomial.map_prod, map_prod]
+    refine Finset.prod_congr rfl fun i hi => ?_
+    have hdf : derivative (X ^ 2 ^ k + 1 : ℤ[X]) =
+        C (((2 : ℕ) ^ k : ℕ) : ℤ) * X ^ (2 ^ k - 1) := by
+      rw [derivative_add, derivative_one, add_zero, derivative_X_pow]
+    rw [Polynomial.map_comp, hdf, Polynomial.map_mul, Polynomial.map_C, Polynomial.map_pow,
+      Polynomial.map_X, mul_comp, C_comp, pow_comp, X_comp, map_mul, aeval_C, map_pow]
+    simp only [Int.coe_castRingHom]
+    push_cast
+    ring
+  rw [Algebra.discr_powerBasis_eq_norm, hder, map_prod]
+  -- Each factor's norm: `b ^ (b ^ n)` times an orbit value to the power `(b - 1) b ^ i`.
+  have hfac : ∀ i ∈ Finset.range n,
+      Algebra.norm ℚ (algebraMap ℚ K ((2 : ℚ) ^ k) *
+        (aeval pb.gen (ratMap ((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[i] X))) ^ (2 ^ k - 1)) =
+      ((2 : ℚ) ^ k) ^ ((2 ^ k) ^ n) *
+        ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X).eval 0 : ℤ) : ℚ) ^
+          ((2 ^ k - 1) * (2 ^ k) ^ i) := by
+    intro i hi
+    rw [map_mul, Algebra.norm_algebraMap, hfrK, map_pow,
+      norm_aeval_ratMap_comp_iterate hk pb (Finset.mem_range.mp hi) hmin,
+      ← pow_mul _ ((2 ^ k) ^ i) (2 ^ k - 1), mul_comm (((2 : ℕ) ^ k) ^ i) (2 ^ k - 1)]
+  rw [Finset.prod_congr rfl hfac, Finset.prod_mul_distrib, Finset.prod_const,
+    Finset.card_range, ← pow_mul, mul_comm (((2 : ℕ) ^ k) ^ n) n]
+  -- Reindex the orbit product by `j = n - 1 - i`, and identify the sign.
+  have hprod : (∏ i ∈ Finset.range n,
+      ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[n - i] X).eval 0 : ℤ) : ℚ) ^
+        ((2 ^ k - 1) * (2 ^ k) ^ i)) =
+      ∏ j ∈ Finset.range n,
+        ((((((X ^ 2 ^ k + 1 : ℤ[X])).comp ·)^[j + 1] X).eval 0 : ℤ) : ℚ) ^
+          ((2 ^ k - 1) * (2 ^ k) ^ (n - 1 - j)) := by
+    rw [← Finset.prod_range_reflect]
+    refine Finset.prod_congr rfl fun i hi => ?_
+    have hi' := Finset.mem_range.mp hi
+    rw [show n - (n - 1 - i) = i + 1 from by omega]
+  rw [hprod]
+  have heven : Even (((2 : ℕ) ^ k) ^ n) :=
+    Nat.even_pow.mpr ⟨Nat.even_pow.mpr ⟨even_two, hk.ne'⟩, hn.ne'⟩
+  rw [show ((-1 : ℚ)) ^ (Module.finrank ℚ K * (Module.finrank ℚ K - 1) / 2) =
+      (-1) ^ ((2 ^ k) ^ n / 2) from by
+    rw [hfrK]
+    exact neg_one_pow_mul_sub_one_div_two heven]
+  ring
+
+end Discriminant
 
 end Polynomial
