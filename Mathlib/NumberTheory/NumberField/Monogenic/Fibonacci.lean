@@ -43,6 +43,18 @@ their defining recurrences as hypotheses.
   cyclotomic field.  Via Mathlib's bridges these say that every irreducible factor of a
   Chebyshev polynomial `S`, `C` or `U` is monogenic
   (`Polynomial.monogenic_of_isRoot_chebyshev_S` and companions).  These are new.
+* `Polynomial.dickson_comp_C_mul_X`: substituting `c X` turns the parameter `c ^ 2 * a` into
+  the parameter `a`.  It upgrades all of the above from `a = ±1` to `a = ± s ^ 2` for every
+  nonzero `s` (`Polynomial.monogenic_of_isRoot_dickson_two_neg_sq` and companions), the
+  generator becoming `x / s`.  In `(k, t)`-language this is
+  `Polynomial.monogenic_of_isRoot_fibonacci_sq` and its three companions, covering every
+  `t = ± s ^ 2`; Theorems 1.1 and 1.2 are the case `s = 1`.
+
+The statements take the form `IsIntegral ℤ u ∧ ∀ y ∈ ℚ⟮u⟯, IsIntegral ℤ y → y ∈ ℤ[u]`, which
+says that `u` is an algebraic integer and `𝓞 ℚ(u) = ℤ[u]`.  Feeding the second component to
+`Monogenic.adjoin_eq_top_of_forall_mem` gives the library-standard form
+`Algebra.adjoin ℤ {θ} = ⊤`; this is done for the four base statements in
+`Polynomial.adjoin_eq_top_of_isRoot_dickson_two_neg_one` and its companions.
 
 ## Strategy
 
@@ -169,6 +181,42 @@ theorem eq_dickson_two_comp_of_rec (h0 : D 0 = 0) (h1 : D 1 = 1)
       eq_dickson_two_comp_of_rec h0 h1 hrec (n + 1), eq_dickson_two_comp_of_rec h0 h1 hrec n]
 
 end Recurrence
+
+/-! ### Rescaling the parameter
+
+Scaling the two roots of the characteristic polynomial by `c` scales the parameter `a` by
+`c ^ 2`; on polynomials this is the substitution `X ↦ c X`.  It reduces the parameter
+`c ^ 2 * a` to the parameter `a`. -/
+
+section Rescale
+
+variable {R : Type*} [CommRing R] (k : ℕ) (a c : R)
+
+/-- **Rescaling the Dickson parameter by a square.**  Substituting `c X` into the Dickson
+polynomial with parameter `c ^ 2 * a` gives `c ^ n` times the one with parameter `a`. -/
+theorem dickson_comp_C_mul_X :
+    ∀ n : ℕ, (dickson k (c ^ 2 * a) n).comp (C c * X) = C c ^ n * dickson k a n
+  | 0 => by simp [dickson_zero]
+  | 1 => by simp [dickson_one]
+  | n + 2 => by
+    rw [dickson_add_two, sub_comp, mul_comp, mul_comp, X_comp, C_comp,
+      dickson_comp_C_mul_X (n + 1), dickson_comp_C_mul_X n, dickson_add_two, C_mul, map_pow]
+    ring
+
+variable {a c}
+
+/-- If `x` is a root of the Dickson polynomial with parameter `c ^ 2 * a`, then `x / c` is a
+root of the one with parameter `a`. -/
+theorem aeval_dickson_div_eq_zero {K : Type*} [Field K] [Algebra R K] {x : K}
+    (hc : algebraMap R K c ≠ 0) (n : ℕ) (hx : aeval x (dickson k (c ^ 2 * a) n) = 0) :
+    aeval (x / algebraMap R K c) (dickson k a n) = 0 := by
+  have h := congrArg (aeval (x / algebraMap R K c)) (dickson_comp_C_mul_X k a c n)
+  rw [aeval_comp, map_mul, aeval_C, aeval_X,
+    show algebraMap R K c * (x / algebraMap R K c) = x from by field_simp,
+    hx, map_mul, map_pow, aeval_C] at h
+  exact (mul_eq_zero.mp h.symm).resolve_left (pow_ne_zero n hc)
+
+end Rescale
 
 /-! ### The characteristic polynomial of a root -/
 
@@ -311,7 +359,7 @@ variable {L : Type*} [Field L] [CharZero L] [IsAlgClosed L] {m : ℕ} {x α : L}
 
 omit [CharZero L] [IsAlgClosed L] in
 /-- Evaluating an integral Dickson polynomial in an algebra. -/
-lemma aeval_dickson (k n : ℕ) (a : ℤ) (x : L) :
+private lemma aeval_dickson (k n : ℕ) (a : ℤ) (x : L) :
     aeval x (dickson k a n) = eval x (dickson k ((a : ℤ) : L) n) := by
   rw [aeval_def, eval₂_eq_eval_map, map_dickson]
   simp
@@ -489,6 +537,71 @@ theorem adjoin_eq_top_of_isRoot_dickson_one_one (hm0 : m ≠ 0)
 
 end Main
 
+/-! ### The generalisation to a square parameter
+
+The parameter `a = ±1` may be replaced by `a = ±s ^ 2` for any nonzero integer `s`: by
+`Polynomial.aeval_dickson_div_eq_zero` a root `x` of the Dickson polynomial with
+parameter `±s ^ 2` gives the root `x / s` of the one with parameter `±1`, and `ℚ(x / s)`
+equals `ℚ(x)` because `s` is rational.
+
+In `(k, t)`-language this covers every `t` of the form `±s ^ 2`.  It is exactly the reach of
+the method: for `a` not `±` a square the element `x` equals `√a` times a real cyclotomic
+integer, `ℚ(x)` is a genuine quadratic twist, and monogenity is open. -/
+
+section Square
+
+variable {L : Type*} [Field L] [CharZero L] [IsAlgClosed L] {m : ℕ} {x : L} {s : ℤ}
+
+omit [IsAlgClosed L] in
+private lemma intCast_ne_zero_of_ne_zero (hs : s ≠ 0) : (algebraMap ℤ L) s ≠ 0 := by
+  simp only [algebraMap_int_eq, eq_intCast, ne_eq, Int.cast_eq_zero]
+  exact hs
+
+/-- **Theorem 1.1 with parameter `-s ^ 2`.**  For `m` even and `s ≠ 0`, every root `x` of
+`dickson 2 (-s ^ 2) m` has `x / s` an algebraic integer generating the ring of integers of
+`ℚ(x / s) = ℚ(x)`. -/
+theorem monogenic_of_isRoot_dickson_two_neg_sq (hs : s ≠ 0) (hm : Even m)
+    (hx : aeval x (dickson 2 (-s ^ 2 : ℤ) m) = 0) :
+    IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({x / (s : L)} : Set L) := by
+  refine monogenic_of_isRoot_dickson_two_neg_one (m := m) hm ?_
+  have h := aeval_dickson_div_eq_zero (R := ℤ) 2 (a := -1) (c := s)
+    (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
+  simpa using h
+
+/-- **Theorem 1.2 with parameter `-s ^ 2`.** -/
+theorem monogenic_of_isRoot_dickson_one_neg_sq (hs : s ≠ 0) (hm : Even m) (hm0 : m ≠ 0)
+    (hx : aeval x (dickson 1 (-s ^ 2 : ℤ) m) = 0) :
+    IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({x / (s : L)} : Set L) := by
+  refine monogenic_of_isRoot_dickson_one_neg_one (m := m) hm hm0 ?_
+  have h := aeval_dickson_div_eq_zero (R := ℤ) 1 (a := -1) (c := s)
+    (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
+  simpa using h
+
+/-- **The parameter `s ^ 2` analogue, with no parity restriction.**  Every root `x` of
+`dickson 2 (s ^ 2) m` has `x / s` generating a monogenic field. -/
+theorem monogenic_of_isRoot_dickson_two_sq (hs : s ≠ 0)
+    (hx : aeval x (dickson 2 (s ^ 2 : ℤ) m) = 0) :
+    IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({x / (s : L)} : Set L) := by
+  refine monogenic_of_isRoot_dickson_two_one (m := m) ?_
+  have h := aeval_dickson_div_eq_zero (R := ℤ) 2 (a := 1) (c := s)
+    (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
+  simpa using h
+
+/-- **The parameter `s ^ 2` analogue for the first kind, with no parity restriction.** -/
+theorem monogenic_of_isRoot_dickson_one_sq (hs : s ≠ 0) (hm0 : m ≠ 0)
+    (hx : aeval x (dickson 1 (s ^ 2 : ℤ) m) = 0) :
+    IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({x / (s : L)} : Set L) := by
+  refine monogenic_of_isRoot_dickson_one_one (m := m) hm0 ?_
+  have h := aeval_dickson_div_eq_zero (R := ℤ) 1 (a := 1) (c := s)
+    (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
+  simpa using h
+
+end Square
+
 /-! ### Fibonacci, Lucas and Chebyshev polynomials
 
 The polynomial families are carried by their defining recurrences; no new definition is
@@ -500,42 +613,88 @@ variable {L : Type*} [Field L] [CharZero L] [IsAlgClosed L] {n : ℕ} {x : L}
 
 omit [CharZero L] [IsAlgClosed L] in
 /-- A root of `p.comp (C k * X)` gives the root `k x` of `p`. -/
-lemma aeval_of_aeval_comp {p : ℤ[X]} {k : ℤ} (hx : aeval x (p.comp (C k * X)) = 0) :
+private lemma aeval_of_aeval_comp {p : ℤ[X]} {k : ℤ} (hx : aeval x (p.comp (C k * X)) = 0) :
     aeval ((k : L) * x) p = 0 := by
   rwa [aeval_comp, map_mul, aeval_C, aeval_X, algebraMap_int_eq, eq_intCast] at hx
 
-/-- **Theorem 1.1 (Chen–Guo–Hong), with the `(k, t)`-generalisation in `k`.**  Let `F` be any
-sequence of integer polynomials with `F 0 = 0`, `F 1 = 1` and
-`F (j + 2) = k X F (j + 1) + F j`, i.e. the `(k, 1)`-Fibonacci polynomials.  For `n` odd and
-every root `x` of `F n`, the element `k x` is an algebraic integer and the ring of integers
-of `ℚ(k x)` is `ℤ[k x]`.
+/-- **The `(k, t)`-Fibonacci theorem for `t = s ^ 2`.**  Let `F` be any sequence of integer
+polynomials with `F 0 = 0`, `F 1 = 1` and `F (j + 2) = k X F (j + 1) + s ^ 2 F j`, i.e. the
+`(k, s ^ 2)`-Fibonacci polynomials.  For `n` odd, `s ≠ 0` and every root `x` of `F n`, the
+element `k x / s` is an algebraic integer generating the ring of integers of
+`ℚ(k x / s) = ℚ(x)`. -/
+theorem monogenic_of_isRoot_fibonacci_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ → ℤ[X]}
+    (h0 : F 0 = 0) (h1 : F 1 = 1)
+    (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) + C (s ^ 2) * F j) (hn : Odd n)
+    (hx : aeval x (F n) = 0) :
+    IsIntegral ℤ ((k : L) * x / (s : L)) ∧ ∀ y ∈ ℚ⟮(k : L) * x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({(k : L) * x / (s : L)} : Set L) := by
+  obtain ⟨j, rfl⟩ := hn
+  have hF := eq_dickson_two_comp_of_rec (a := -s ^ 2) (k := k) h0 h1
+    (fun i => by rw [hrec i, C_neg]; ring) (2 * j)
+  rw [hF] at hx
+  exact monogenic_of_isRoot_dickson_two_neg_sq hs ⟨j, by ring⟩ (aeval_of_aeval_comp hx)
 
-For `k = 1` this says exactly that every irreducible factor of an odd-indexed Fibonacci
-polynomial is monogenic. -/
+/-- **The `(k, t)`-Fibonacci theorem for `t = -s ^ 2`, with no parity restriction.**  At
+`(k, s) = (1, 1)` these are the Chebyshev polynomials of the second kind. -/
+theorem monogenic_of_isRoot_fibonacci_neg_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ → ℤ[X]}
+    (h0 : F 0 = 0) (h1 : F 1 = 1)
+    (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) - C (s ^ 2) * F j) (hn0 : n ≠ 0)
+    (hx : aeval x (F n) = 0) :
+    IsIntegral ℤ ((k : L) * x / (s : L)) ∧ ∀ y ∈ ℚ⟮(k : L) * x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({(k : L) * x / (s : L)} : Set L) := by
+  obtain ⟨j, rfl⟩ : ∃ j, n = j + 1 := ⟨n - 1, by omega⟩
+  have hF := eq_dickson_two_comp_of_rec (a := s ^ 2) (k := k) h0 h1 hrec j
+  rw [hF] at hx
+  exact monogenic_of_isRoot_dickson_two_sq hs (aeval_of_aeval_comp hx)
+
+/-- **The `(k, t)`-Lucas theorem for `t = s ^ 2`**: `Lu 0 = 2`, `Lu 1 = k X`,
+`Lu (j + 2) = k X Lu (j + 1) + s ^ 2 Lu j`, with `n` even and nonzero. -/
+theorem monogenic_of_isRoot_lucas_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ → ℤ[X]}
+    (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
+    (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) + C (s ^ 2) * Lu j)
+    (hn : Even n) (hn0 : n ≠ 0) (hx : aeval x (Lu n) = 0) :
+    IsIntegral ℤ ((k : L) * x / (s : L)) ∧ ∀ y ∈ ℚ⟮(k : L) * x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({(k : L) * x / (s : L)} : Set L) := by
+  have hL := eq_dickson_one_comp_of_rec (a := -s ^ 2) (k := k) h0 h1
+    (fun i => by rw [hrec i, C_neg]; ring) n
+  rw [hL] at hx
+  exact monogenic_of_isRoot_dickson_one_neg_sq hs hn hn0 (aeval_of_aeval_comp hx)
+
+/-- **The `(k, t)`-Lucas theorem for `t = -s ^ 2`, with no parity restriction.**  At
+`(k, s) = (1, 1)` these are twice the Chebyshev polynomials of the first kind. -/
+theorem monogenic_of_isRoot_lucas_neg_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ → ℤ[X]}
+    (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
+    (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) - C (s ^ 2) * Lu j)
+    (hn0 : n ≠ 0) (hx : aeval x (Lu n) = 0) :
+    IsIntegral ℤ ((k : L) * x / (s : L)) ∧ ∀ y ∈ ℚ⟮(k : L) * x / (s : L)⟯, IsIntegral ℤ y →
+      y ∈ Algebra.adjoin ℤ ({(k : L) * x / (s : L)} : Set L) := by
+  have hL := eq_dickson_one_comp_of_rec (a := s ^ 2) (k := k) h0 h1 hrec n
+  rw [hL] at hx
+  exact monogenic_of_isRoot_dickson_one_sq hs hn0 (aeval_of_aeval_comp hx)
+
+/-- **Theorem 1.1 (Chen–Guo–Hong).**  The classical case `s = 1` of
+`Polynomial.monogenic_of_isRoot_fibonacci_sq`: for `n` odd, every irreducible factor of the
+`n`-th `(k, 1)`-Fibonacci polynomial is monogenic, with generator `k x`.  At `k = 1` this is
+the statement for the Fibonacci polynomials themselves. -/
 theorem monogenic_of_isRoot_fibonacci {k : ℤ} {F : ℕ → ℤ[X]} (h0 : F 0 = 0) (h1 : F 1 = 1)
     (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) + F j) (hn : Odd n)
     (hx : aeval x (F n) = 0) :
     IsIntegral ℤ ((k : L) * x) ∧ ∀ y ∈ ℚ⟮(k : L) * x⟯, IsIntegral ℤ y →
       y ∈ Algebra.adjoin ℤ ({(k : L) * x} : Set L) := by
-  obtain ⟨j, rfl⟩ := hn
-  have hF := eq_dickson_two_comp_of_rec (a := -1) (k := k) h0 h1
-    (fun i => by rw [hrec i, C_neg, C_1]; ring) (2 * j)
-  rw [hF] at hx
-  exact monogenic_of_isRoot_dickson_two_neg_one (m := 2 * j) ⟨j, by ring⟩
-    (aeval_of_aeval_comp hx)
+  have h := monogenic_of_isRoot_fibonacci_sq (L := L) (k := k) (s := 1) one_ne_zero h0 h1
+    (fun j => by rw [hrec j, one_pow, C_1, one_mul]) hn hx
+  rwa [Int.cast_one, div_one] at h
 
-/-- **Theorem 1.2 (Chen–Guo–Hong), with the `(k, t)`-generalisation in `k`.**  The Lucas
-analogue: `Lu 0 = 2`, `Lu 1 = k X`, `Lu (j + 2) = k X Lu (j + 1) + Lu j`, and `n` even and
-nonzero. -/
+/-- **Theorem 1.2 (Chen–Guo–Hong).**  The classical case `s = 1` of
+`Polynomial.monogenic_of_isRoot_lucas_sq`. -/
 theorem monogenic_of_isRoot_lucas {k : ℤ} {Lu : ℕ → ℤ[X]} (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
     (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) + Lu j) (hn : Even n) (hn0 : n ≠ 0)
     (hx : aeval x (Lu n) = 0) :
     IsIntegral ℤ ((k : L) * x) ∧ ∀ y ∈ ℚ⟮(k : L) * x⟯, IsIntegral ℤ y →
       y ∈ Algebra.adjoin ℤ ({(k : L) * x} : Set L) := by
-  have hL := eq_dickson_one_comp_of_rec (a := -1) (k := k) h0 h1
-    (fun i => by rw [hrec i, C_neg, C_1]; ring) n
-  rw [hL] at hx
-  exact monogenic_of_isRoot_dickson_one_neg_one (m := n) hn hn0 (aeval_of_aeval_comp hx)
+  have h := monogenic_of_isRoot_lucas_sq (L := L) (k := k) (s := 1) one_ne_zero h0 h1
+    (fun j => by rw [hrec j, one_pow, C_1, one_mul]) hn hn0 hx
+  rwa [Int.cast_one, div_one] at h
 
 /-- Every irreducible factor of the Chebyshev polynomial `S n` is monogenic. -/
 theorem monogenic_of_isRoot_chebyshev_S (hx : aeval x (Chebyshev.S ℤ n) = 0) :
