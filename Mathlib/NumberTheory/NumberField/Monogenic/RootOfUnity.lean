@@ -305,7 +305,295 @@ theorem mem_adjoin_int_of_isIntegral (hne : ℚ⟮ζ + (c : K) * ζ⁻¹⟯ ≠ 
     (by omega) (p₀ %ₘ minpoly ℚ (ζ + (c : K) * ζ⁻¹)) (by omega) (heval ▸ hx)
   rwa [heval] at this
 
+/-! ### When is `ℚ(ζ + c ζ⁻¹)` a proper subfield?
+
+The criterion is the existence of a *second* primitive `m`-th root of unity `β ≠ ζ` with
+`β + c β⁻¹ = ζ + c ζ⁻¹`: the automorphism of `K` carrying `ζ` to `β` then fixes
+`ζ + c ζ⁻¹` without being the identity.  For `c = 1` take `β = ζ⁻¹`; for `c = -1` and
+`4 ∣ m` take `β = -ζ⁻¹`. -/
+
+variable (c) in
+/-- If some primitive `m`-th root of unity `β ≠ ζ` satisfies `β + c β⁻¹ = ζ + c ζ⁻¹`, then
+`ℚ(ζ + c ζ⁻¹)` is a proper subfield of `K`. -/
+lemma adjoin_ne_top_of_exists_ne {β : K} (hβ : IsPrimitiveRoot β m) (hβζ : β ≠ ζ)
+    (heq : β + (c : K) * β⁻¹ = ζ + (c : K) * ζ⁻¹) : ℚ⟮ζ + (c : K) * ζ⁻¹⟯ ≠ ⊤ := by
+  have hirr := cyclotomic.irreducible_rat (n := m) (NeZero.pos m)
+  have hmin : minpoly ℚ ζ = minpoly ℚ β := by
+    rw [← hζ.minpoly_eq_cyclotomic_of_irreducible hirr,
+      ← hβ.minpoly_eq_cyclotomic_of_irreducible hirr]
+  have hgen : minpoly ℚ (hζ.powerBasis ℚ).gen = minpoly ℚ (hβ.powerBasis ℚ).gen := by
+    rw [hζ.powerBasis_gen ℚ, hβ.powerBasis_gen ℚ, hmin]
+  -- the `ℚ`-automorphism of `K` sending `ζ` to `β`
+  have hσζ : (hζ.powerBasis ℚ).equivOfMinpoly (hβ.powerBasis ℚ) hgen ζ = β := by
+    have h := (hζ.powerBasis ℚ).equivOfMinpoly_gen (hβ.powerBasis ℚ) hgen
+    rwa [hζ.powerBasis_gen ℚ, hβ.powerBasis_gen ℚ] at h
+  have hσu : (hζ.powerBasis ℚ).equivOfMinpoly (hβ.powerBasis ℚ) hgen (ζ + (c : K) * ζ⁻¹)
+      = ζ + (c : K) * ζ⁻¹ := by
+    rw [map_add, map_mul, map_inv₀, hσζ, map_intCast]
+    exact heq
+  intro htop
+  have hadj : Algebra.adjoin ℚ ({ζ + (c : K) * ζ⁻¹} : Set K) = ⊤ := by
+    rw [← IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic
+      (hζ.isIntegral_add_int_mul_inv c).tower_top.isAlgebraic, htop]
+    rfl
+  have hid : ((hζ.powerBasis ℚ).equivOfMinpoly (hβ.powerBasis ℚ) hgen).toAlgHom
+      = AlgHom.id ℚ K :=
+    AlgHom.ext_of_adjoin_eq_top hadj (by rintro x rfl; simpa using hσu)
+  exact hβζ (hσζ ▸ congrArg (fun f => f ζ) hid)
+
+/-- For `m > 2`, the maximal real subfield `ℚ(ζ + ζ⁻¹)` is a proper subfield of `ℚ(ζ)`. -/
+lemma adjoin_add_inv_ne_top (hm : 2 < m) : ℚ⟮ζ + ((1 : ℤ) : K) * ζ⁻¹⟯ ≠ ⊤ := by
+  have hz : ζ ≠ 0 := hζ.ne_zero'
+  refine hζ.adjoin_ne_top_of_exists_ne 1 hζ.inv ?_ ?_
+  · intro h
+    have h2 : ζ ^ 2 = 1 := by
+      have h3 := congrArg (fun y => y * ζ) h
+      simp only [inv_mul_cancel₀ hz] at h3
+      rw [sq, ← h3]
+    have h4 := Nat.le_of_dvd (by omega) (hζ.dvd_of_pow_eq_one 2 h2)
+    omega
+  · rw [inv_inv]
+    push_cast
+    ring
+
+/-- **Lemma 3.1.**  If `4 ∣ m` and `m > 4`, then `ℚ(ζ - ζ⁻¹)` is a proper subfield of `ℚ(ζ)`.
+The witness is `β = -ζ⁻¹ = ζ ^ (m / 2 - 1)`, a primitive `m`-th root of unity distinct from
+`ζ` with `β - β⁻¹ = ζ - ζ⁻¹`. -/
+lemma adjoin_sub_inv_ne_top (h4 : 4 ∣ m) (hm : 4 < m) :
+    ℚ⟮ζ + ((-1 : ℤ) : K) * ζ⁻¹⟯ ≠ ⊤ := by
+  have hz : ζ ≠ 0 := hζ.ne_zero'
+  have hhalf : ζ ^ (m / 2) = -1 := by
+    have h2 : (ζ ^ (m / 2)) ^ 2 = 1 := by
+      rw [← pow_mul, show m / 2 * 2 = m by omega, hζ.pow_eq_one]
+    have hne : ζ ^ (m / 2) ≠ 1 := fun h => by
+      have h1 := Nat.le_of_dvd (by omega) (hζ.dvd_of_pow_eq_one (m / 2) h)
+      omega
+    have h2' : ζ ^ (m / 2) * ζ ^ (m / 2) = 1 := by rw [← sq]; exact h2
+    rcases mul_self_eq_one_iff.mp h2' with h | h
+    · exact absurd h hne
+    · exact h
+  have hbeta : (-ζ⁻¹) = ζ ^ (m / 2 - 1) := by
+    have h1 : ζ ^ (m / 2 - 1) * ζ = ζ ^ (m / 2) := by
+      rw [← pow_succ]; congr 1; omega
+    rw [hhalf] at h1
+    field_simp
+    linear_combination -h1
+  have hcop : Nat.Coprime (m / 2 - 1) m := by
+    obtain ⟨k, rfl⟩ := h4
+    have hk : 2 ≤ k := by omega
+    have h1 : 4 * k / 2 - 1 = 2 * k - 1 := by omega
+    rw [Nat.Coprime, h1]
+    -- any common divisor of `2k - 1` and `4k` divides `2`, hence is odd and equal to `1`
+    have hd1 : Nat.gcd (2 * k - 1) (4 * k) ∣ 2 * k - 1 := Nat.gcd_dvd_left _ _
+    have hd2 : Nat.gcd (2 * k - 1) (4 * k) ∣ 4 * k := Nat.gcd_dvd_right _ _
+    have hd3 : Nat.gcd (2 * k - 1) (4 * k) ∣ 2 := by
+      have h5 := Nat.dvd_sub hd2 (hd1.mul_left 2)
+      rwa [show 4 * k - 2 * (2 * k - 1) = 2 from by omega] at h5
+    rcases (Nat.prime_two.eq_one_or_self_of_dvd _ hd3) with h | h
+    · exact h
+    · rw [h] at hd1; omega
+  refine hζ.adjoin_ne_top_of_exists_ne (-1) (β := -ζ⁻¹) ?_ ?_ ?_
+  · rw [hbeta]; exact hζ.pow_of_coprime _ hcop
+  · rw [hbeta]
+    intro h
+    have h1 : ζ ^ (m / 2 - 1) = ζ ^ 1 := by rw [h, pow_one]
+    have := (hζ.pow_inj (by omega) (by omega)) h1
+    omega
+  · push_cast
+    field_simp
+    ring
+
 end IsPrimitiveRoot
+
+/-! ### The same statements inside an arbitrary ambient field
+
+In the applications the root of unity `α` lives in `ℂ`, not in an abstract cyclotomic field.
+The results above are transferred along the inclusion `ℚ(α) ↪ L`. -/
+
+namespace IsPrimitiveRoot
+
+variable {L : Type*} [Field L] [CharZero L] {m : ℕ} [NeZero m] {α : L}
+
+omit [NeZero m] in
+/-- The generator, seen inside the cyclotomic subfield `ℚ(α)` of `L`. -/
+private lemma gen_isPrimitiveRoot (hα : IsPrimitiveRoot α m) :
+    IsPrimitiveRoot (IntermediateField.AdjoinSimple.gen ℚ α) m :=
+  IsPrimitiveRoot.coe_submonoidClass_iff.mp hα
+
+variable (c : ℤ)
+
+open IntermediateField in
+/-- Transfer of `mem_adjoin_int_of_isIntegral` to an arbitrary ambient field `L`. -/
+theorem mem_adjoin_int_of_isIntegral_of_ne_top (hα : IsPrimitiveRoot α m)
+    (hne : ℚ⟮AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹⟯ ≠ ⊤)
+    {x : L} (hx : IsIntegral ℤ x) (hxmem : x ∈ ℚ⟮α + (c : L) * α⁻¹⟯) :
+    x ∈ Algebra.adjoin ℤ ({α + (c : L) * α⁻¹} : Set L) := by
+  have hαalg : IsAlgebraic ℚ α := (hα.isIntegral (NeZero.pos m)).tower_top.isAlgebraic
+  have hcyc : IsCyclotomicExtension {m} ℚ ℚ⟮α⟯ := by
+    change IsCyclotomicExtension {m} ℚ (IntermediateField.adjoin ℚ {α}).toSubalgebra
+    rw [IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic hαalg]
+    exact hα.adjoin_isCyclotomicExtension ℚ
+  have hζ : IsPrimitiveRoot (AdjoinSimple.gen ℚ α) m := hα.gen_isPrimitiveRoot
+  have hvinj : Function.Injective (ℚ⟮α⟯.val) := ℚ⟮α⟯.val.injective
+  have hvinj' : Function.Injective ((ℚ⟮α⟯.val).restrictScalars ℤ) := hvinj
+  have hgu : ℚ⟮α⟯.val (AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹)
+      = α + (c : L) * α⁻¹ := by
+    rw [map_add, map_mul, map_inv₀, map_intCast]
+    rfl
+  -- write `x` as a rational polynomial in `α + c α⁻¹`
+  have huZ : IsIntegral ℤ (α + (c : L) * α⁻¹) := hα.isIntegral_add_int_mul_inv c
+  have hxsub : x ∈ Algebra.adjoin ℚ ({α + (c : L) * α⁻¹} : Set L) := by
+    have hx' : x ∈ ℚ⟮α + (c : L) * α⁻¹⟯.toSubalgebra := hxmem
+    rwa [IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic
+      huZ.tower_top.isAlgebraic] at hx'
+  rw [Algebra.adjoin_singleton_eq_range_aeval] at hxsub
+  obtain ⟨p, hp⟩ := hxsub
+  -- the corresponding element of `ℚ(α)`
+  have hgxF : ℚ⟮α⟯.val
+      (aeval (AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹) p) = x := by
+    rw [← aeval_algHom_apply, hgu]
+    simpa using hp
+  have hxFint : IsIntegral ℤ
+      (aeval (AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹) p) := by
+    rw [← isIntegral_algHom_iff ((ℚ⟮α⟯.val).restrictScalars ℤ) hvinj']
+    exact hgxF ▸ hx
+  have hxFmem : aeval (AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹) p
+      ∈ ℚ⟮AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹⟯ := by
+    have hmem : aeval (AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹) p
+        ∈ Algebra.adjoin ℚ
+          ({AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹} : Set ℚ⟮α⟯) := by
+      rw [Algebra.adjoin_singleton_eq_range_aeval]; exact ⟨p, rfl⟩
+    rwa [← IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic
+      (hζ.isIntegral_add_int_mul_inv c).tower_top.isAlgebraic] at hmem
+  -- apply the theorem inside `ℚ(α)` and push the conclusion back to `L`
+  have hres := hζ.mem_adjoin_int_of_isIntegral c hne hxFint hxFmem
+  -- the image of `ℤ[ζ + c ζ⁻¹]` under the inclusion is `ℤ[α + c α⁻¹]`
+  have hmap : Subalgebra.map ((ℚ⟮α⟯.val).restrictScalars ℤ)
+      (Algebra.adjoin ℤ ({AdjoinSimple.gen ℚ α + (c : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹} :
+        Set ℚ⟮α⟯)) = Algebra.adjoin ℤ ({α + (c : L) * α⁻¹} : Set L) := by
+    rw [AlgHom.map_adjoin_singleton]
+    exact congrArg (fun y => Algebra.adjoin ℤ ({y} : Set L)) hgu
+  rw [← hmap]
+  exact ⟨_, hres, hgxF⟩
+
+open IntermediateField in
+/-- `ℚ(α)` is a cyclotomic extension of `ℚ` of conductor `m`.  (This is Mathlib's
+`IsPrimitiveRoot.intermediateField_adjoin_isCyclotomicExtension` with the superfluous
+hypothesis `Algebra.IsIntegral ℚ L` removed, so that it applies with `L = ℂ`.) -/
+lemma isCyclotomicExtension_adjoin_simple (hα : IsPrimitiveRoot α m) :
+    IsCyclotomicExtension {m} ℚ ℚ⟮α⟯ := by
+  change IsCyclotomicExtension {m} ℚ (IntermediateField.adjoin ℚ {α}).toSubalgebra
+  rw [IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic
+    (hα.isIntegral (NeZero.pos m)).tower_top.isAlgebraic]
+  exact hα.adjoin_isCyclotomicExtension ℚ
+
+open IntermediateField in
+/-- **Proposition 3.2 of Chen–Guo–Hong, extended to every `m` divisible by `4`.**  If `α` is a
+primitive `m`-th root of unity with `4 ∣ m` and `m > 4`, then the ring of integers of
+`ℚ(α - α⁻¹)` is `ℤ[α - α⁻¹]`.
+
+Specialising to `α` a primitive `4n`-th root of unity with `n` odd recovers Proposition 4.1
+of *loc. cit.*, since `i (ζₙ + ζₙ⁻¹) = α - α⁻¹` for `α = i ζₙ`. -/
+theorem mem_adjoin_int_sub_inv (hα : IsPrimitiveRoot α m) (h4 : 4 ∣ m) (hm : 4 < m)
+    {x : L} (hx : IsIntegral ℤ x) (hxmem : x ∈ ℚ⟮α - α⁻¹⟯) :
+    x ∈ Algebra.adjoin ℤ ({α - α⁻¹} : Set L) := by
+  have hcyc := hα.isCyclotomicExtension_adjoin_simple
+  have hζ : IsPrimitiveRoot (AdjoinSimple.gen ℚ α) m := hα.gen_isPrimitiveRoot
+  have hcast : α + ((-1 : ℤ) : L) * α⁻¹ = α - α⁻¹ := by push_cast; ring
+  have := hα.mem_adjoin_int_of_isIntegral_of_ne_top (-1)
+    (hζ.adjoin_sub_inv_ne_top h4 hm) hx (by rwa [hcast])
+  rwa [hcast] at this
+
+open IntermediateField in
+/-- **Washington, Proposition 2.16.**  For `m > 2` the ring of integers of the maximal real
+subfield `ℚ(α + α⁻¹)` of `ℚ(α)` is `ℤ[α + α⁻¹]`. -/
+theorem mem_adjoin_int_add_inv (hα : IsPrimitiveRoot α m) (hm : 2 < m)
+    {x : L} (hx : IsIntegral ℤ x) (hxmem : x ∈ ℚ⟮α + α⁻¹⟯) :
+    x ∈ Algebra.adjoin ℤ ({α + α⁻¹} : Set L) := by
+  have hcyc := hα.isCyclotomicExtension_adjoin_simple
+  have hζ : IsPrimitiveRoot (AdjoinSimple.gen ℚ α) m := hα.gen_isPrimitiveRoot
+  have hcast : α + ((1 : ℤ) : L) * α⁻¹ = α + α⁻¹ := by push_cast; ring
+  have := hα.mem_adjoin_int_of_isIntegral_of_ne_top 1
+    (hζ.adjoin_add_inv_ne_top hm) hx (by rwa [hcast])
+  rwa [hcast] at this
+
+open IntermediateField in
+/-- The form of Proposition 3.2 used in the applications: instead of the numerical condition
+`4 ∣ m`, `m > 4` we ask directly that `-α⁻¹` be a primitive `m`-th root of unity different
+from `α`.  Since `(-α⁻¹) - (-α⁻¹)⁻¹ = α - α⁻¹` always, this exhibits `ℚ(α - α⁻¹)` as a proper
+subfield of `ℚ(α)`. -/
+theorem mem_adjoin_int_sub_inv_of_neg_inv (hα : IsPrimitiveRoot α m)
+    (hβ : IsPrimitiveRoot (-α⁻¹) m) (hαβ : -α⁻¹ ≠ α)
+    {x : L} (hx : IsIntegral ℤ x) (hxmem : x ∈ ℚ⟮α - α⁻¹⟯) :
+    x ∈ Algebra.adjoin ℤ ({α - α⁻¹} : Set L) := by
+  have hcyc := hα.isCyclotomicExtension_adjoin_simple
+  have hζ : IsPrimitiveRoot (AdjoinSimple.gen ℚ α) m := hα.gen_isPrimitiveRoot
+  have hvinj : Function.Injective ℚ⟮α⟯.val := ℚ⟮α⟯.val.injective
+  have hval : ℚ⟮α⟯.val (-(AdjoinSimple.gen ℚ α)⁻¹) = -α⁻¹ := by
+    rw [map_neg, map_inv₀]; rfl
+  have hβ' : IsPrimitiveRoot (-(AdjoinSimple.gen ℚ α)⁻¹ : ℚ⟮α⟯) m :=
+    IsPrimitiveRoot.of_map_of_injective (f := ℚ⟮α⟯.val.toRingHom.toMonoidHom)
+      (by rwa [show (ℚ⟮α⟯.val.toRingHom.toMonoidHom) (-(AdjoinSimple.gen ℚ α)⁻¹) = -α⁻¹ from hval])
+      hvinj
+  have hne' : (-(AdjoinSimple.gen ℚ α)⁻¹ : ℚ⟮α⟯) ≠ AdjoinSimple.gen ℚ α := by
+    intro h
+    exact hαβ (by rw [← hval, h]; rfl)
+  have hz : (AdjoinSimple.gen ℚ α : ℚ⟮α⟯) ≠ 0 := hζ.ne_zero'
+  have heq' : (-(AdjoinSimple.gen ℚ α)⁻¹) + ((-1 : ℤ) : ℚ⟮α⟯) * (-(AdjoinSimple.gen ℚ α)⁻¹)⁻¹
+      = AdjoinSimple.gen ℚ α + ((-1 : ℤ) : ℚ⟮α⟯) * (AdjoinSimple.gen ℚ α)⁻¹ := by
+    push_cast
+    field_simp
+    ring
+  have hcast : α + ((-1 : ℤ) : L) * α⁻¹ = α - α⁻¹ := by push_cast; ring
+  have := hα.mem_adjoin_int_of_isIntegral_of_ne_top (-1)
+    (hζ.adjoin_ne_top_of_exists_ne (-1) hβ' hne' heq') hx (by rwa [hcast])
+  rwa [hcast] at this
+
+end IsPrimitiveRoot
+
+/-! ### Packaging: the ring of integers of `ℚ(u)` is `ℤ[u]` -/
+
+namespace Monogenic
+
+open NumberField IntermediateField
+
+variable {L : Type*} [Field L] [CharZero L] {u : L}
+
+/-- The inclusion of the ring of integers of `ℚ(u)` into the ambient field, as a `ℤ`-algebra
+homomorphism. -/
+def incl (u : L) : 𝓞 ℚ⟮u⟯ →ₐ[ℤ] L :=
+  ((ℚ⟮u⟯.val).restrictScalars ℤ).comp (IsScalarTower.toAlgHom ℤ (𝓞 ℚ⟮u⟯) ℚ⟮u⟯)
+
+lemma incl_injective (u : L) : Function.Injective (incl u) :=
+  ℚ⟮u⟯.val.injective.comp (FaithfulSMul.algebraMap_injective (𝓞 ℚ⟮u⟯) ℚ⟮u⟯)
+
+/-- `u`, viewed as an algebraic integer of the number field `ℚ(u)`. -/
+def gen (hu : IsIntegral ℤ u) : 𝓞 ℚ⟮u⟯ :=
+  ⟨AdjoinSimple.gen ℚ u,
+    (isIntegral_algHom_iff ((ℚ⟮u⟯.val).restrictScalars ℤ) ℚ⟮u⟯.val.injective).mp hu⟩
+
+@[simp] lemma incl_gen (hu : IsIntegral ℤ u) : incl u (gen hu) = u := rfl
+
+/-- **Monogenicity of `ℚ(u)`.**  If every algebraic integer of `ℚ(u)` lies in `ℤ[u]`, then the
+ring of integers of `ℚ(u)` is generated by `u` as a `ℤ`-algebra. -/
+theorem adjoin_eq_top_of_forall_mem [FiniteDimensional ℚ ℚ⟮u⟯] (hu : IsIntegral ℤ u)
+    (H : ∀ x ∈ ℚ⟮u⟯, IsIntegral ℤ x → x ∈ Algebra.adjoin ℤ ({u} : Set L)) :
+    Algebra.adjoin ℤ ({gen hu} : Set (𝓞 ℚ⟮u⟯)) = ⊤ := by
+  rw [eq_top_iff]
+  rintro y -
+  have hyL : incl u y ∈ ℚ⟮u⟯ := (algebraMap (𝓞 ℚ⟮u⟯) ℚ⟮u⟯ y).2
+  have hyint : IsIntegral ℤ (incl u y) :=
+    (isIntegral_algHom_iff ((ℚ⟮u⟯.val).restrictScalars ℤ) ℚ⟮u⟯.val.injective).mpr y.2
+  have hmem := H _ hyL hyint
+  rw [Algebra.adjoin_singleton_eq_range_aeval] at hmem ⊢
+  obtain ⟨f, hf⟩ := hmem
+  refine ⟨f, incl_injective u ?_⟩
+  have h1 : incl u ((aeval (gen hu)).toRingHom f) = aeval (incl u (gen hu)) f :=
+    (aeval_algHom_apply (incl u) (gen hu) f).symm
+  rw [h1, incl_gen]
+  simpa using hf
+
+end Monogenic
 
 end
 

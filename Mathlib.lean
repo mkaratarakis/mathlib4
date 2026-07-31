@@ -5893,6 +5893,7 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.PowerCompositional.Uchi
 public import Mathlib.NumberTheory.NumberField.Monogenic.Pure
 public import Mathlib.NumberTheory.NumberField.Monogenic.Quadrinomial
 public import Mathlib.NumberTheory.NumberField.Monogenic.Relative
+public import Mathlib.NumberTheory.NumberField.Monogenic.RootOfUnity
 public import Mathlib.NumberTheory.NumberField.Monogenic.Witness
 public import Mathlib.NumberTheory.NumberField.Norm
 public import Mathlib.NumberTheory.NumberField.ProductFormula
