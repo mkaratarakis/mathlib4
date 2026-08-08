@@ -15,6 +15,15 @@ Chen, Guo and Hong proved that every irreducible factor of the Fibonacci polynom
 monogenic when `n` is odd, and every irreducible factor of the Lucas polynomial `Lₙ` is
 monogenic when `n` is even.
 
+The *accompanying paper* referred to in the docstrings below is
+
+> M. Karatarakis, *Monogenity of the irreducible factors of `(k, t)`-Fibonacci and
+> `(k, t)`-Lucas polynomials*,
+
+and its numbering is the one used in those docstrings: **Theorem 1.2** is the theorem of
+Chen–Guo–Hong quoted above, **Theorem 1.3** is the extension to `t = ± s ^ 2`, and
+**Corollary 5.8** is the Chebyshev statement.
+
 No new polynomial family is introduced here: the Fibonacci and Lucas polynomials are already
 in Mathlib as **Dickson polynomials**.  Indeed the `(k, t)`-Fibonacci and `(k, t)`-Lucas
 polynomials, defined by `F₀ = 0`, `F₁ = 1`, `Fₙ₊₂ = k X Fₙ₊₁ + t Fₙ` and `L₀ = 2`,
@@ -403,7 +412,9 @@ private lemma add_inv_data (hα : α ^ 2 - x * α + (1 : L) = 0) (hne : x - α �
 even, every root `x` of `dickson 2 (-1) m` is an algebraic integer with `𝓞 ℚ(x) = ℤ[x]`.
 
 Since the `n`-th Fibonacci polynomial is `dickson 2 (-1) (n - 1)`, this is the statement for
-odd-indexed Fibonacci polynomials; see `Polynomial.monogenic_of_isRoot_fibonacci`. -/
+odd-indexed Fibonacci polynomials; see `Polynomial.monogenic_of_isRoot_fibonacci`.
+
+Accompanying paper: the Dickson form of **Theorem 1.2**. -/
 theorem monogenic_of_isRoot_dickson_two_neg_one (hm : Even m)
     (hx : aeval x (dickson 2 (-1 : ℤ) m) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) := by
@@ -430,7 +441,9 @@ theorem monogenic_of_isRoot_dickson_two_neg_one (hm : Even m)
 
 /-- **Theorem 1.2 of Chen–Guo–Hong**, for Dickson polynomials of the first kind: for `m`
 even and nonzero, every root `x` of `dickson 1 (-1) m` is an algebraic integer with
-`𝓞 ℚ(x) = ℤ[x]`.  See `Polynomial.monogenic_of_isRoot_lucas`. -/
+`𝓞 ℚ(x) = ℤ[x]`.  See `Polynomial.monogenic_of_isRoot_lucas`.
+
+Accompanying paper: the Dickson form of **Theorem 1.2**. -/
 theorem monogenic_of_isRoot_dickson_one_neg_one (hm : Even m) (hm0 : m ≠ 0)
     (hx : aeval x (dickson 1 (-1 : ℤ) m) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) := by
@@ -455,7 +468,9 @@ theorem monogenic_of_isRoot_dickson_one_neg_one (hm : Even m) (hm0 : m ≠ 0)
   exact mem_adjoin_int_sub_inv_of_pow_eq_neg_one hm0 h2n hne' hy hymem
 
 /-- **The `a = 1` analogue of Theorem 1.1, with no parity restriction.**  Every root of
-`dickson 2 1 m = Chebyshev.S m` generates a monogenic field. -/
+`dickson 2 1 m = Chebyshev.S m` generates a monogenic field.
+
+Accompanying paper: the Dickson form of **Corollary 5.8** (Chebyshev). -/
 theorem monogenic_of_isRoot_dickson_two_one (hx : aeval x (dickson 2 (1 : ℤ) m) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) := by
   rw [aeval_dickson] at hx
@@ -477,7 +492,9 @@ theorem monogenic_of_isRoot_dickson_two_one (hx : aeval x (dickson 2 (1 : ℤ) m
   exact mem_adjoin_int_add_inv_of_pow_eq_one (by omega) h2n hsq hy hymem
 
 /-- **The `a = 1` analogue of Theorem 1.2, with no parity restriction.**  Every root of
-`dickson 1 1 m = Chebyshev.C m` (`m ≠ 0`) generates a monogenic field. -/
+`dickson 1 1 m = Chebyshev.C m` (`m ≠ 0`) generates a monogenic field.
+
+Accompanying paper: the Dickson form of **Corollary 5.8** (Chebyshev). -/
 theorem monogenic_of_isRoot_dickson_one_one (hm0 : m ≠ 0)
     (hx : aeval x (dickson 1 (1 : ℤ) m) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) := by
@@ -559,7 +576,9 @@ private lemma intCast_ne_zero_of_ne_zero (hs : s ≠ 0) : (algebraMap ℤ L) s �
 
 /-- **Theorem 1.1 with parameter `-s ^ 2`.**  For `m` even and `s ≠ 0`, every root `x` of
 `dickson 2 (-s ^ 2) m` has `x / s` an algebraic integer generating the ring of integers of
-`ℚ(x / s) = ℚ(x)`. -/
+`ℚ(x / s) = ℚ(x)`.
+
+Accompanying paper: the Dickson form of **Theorem 1.3**. -/
 theorem monogenic_of_isRoot_dickson_two_neg_sq (hs : s ≠ 0) (hm : Even m)
     (hx : aeval x (dickson 2 (-s ^ 2 : ℤ) m) = 0) :
     IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
@@ -569,7 +588,9 @@ theorem monogenic_of_isRoot_dickson_two_neg_sq (hs : s ≠ 0) (hm : Even m)
     (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
   simpa using h
 
-/-- **Theorem 1.2 with parameter `-s ^ 2`.** -/
+/-- **Theorem 1.2 with parameter `-s ^ 2`.**
+
+Accompanying paper: the Dickson form of **Theorem 1.3**. -/
 theorem monogenic_of_isRoot_dickson_one_neg_sq (hs : s ≠ 0) (hm : Even m) (hm0 : m ≠ 0)
     (hx : aeval x (dickson 1 (-s ^ 2 : ℤ) m) = 0) :
     IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
@@ -580,7 +601,9 @@ theorem monogenic_of_isRoot_dickson_one_neg_sq (hs : s ≠ 0) (hm : Even m) (hm0
   simpa using h
 
 /-- **The parameter `s ^ 2` analogue, with no parity restriction.**  Every root `x` of
-`dickson 2 (s ^ 2) m` has `x / s` generating a monogenic field. -/
+`dickson 2 (s ^ 2) m` has `x / s` generating a monogenic field.
+
+Accompanying paper: the Dickson form of **Theorem 1.3**. -/
 theorem monogenic_of_isRoot_dickson_two_sq (hs : s ≠ 0)
     (hx : aeval x (dickson 2 (s ^ 2 : ℤ) m) = 0) :
     IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
@@ -590,7 +613,9 @@ theorem monogenic_of_isRoot_dickson_two_sq (hs : s ≠ 0)
     (intCast_ne_zero_of_ne_zero hs) m (by simpa using hx)
   simpa using h
 
-/-- **The parameter `s ^ 2` analogue for the first kind, with no parity restriction.** -/
+/-- **The parameter `s ^ 2` analogue for the first kind, with no parity restriction.**
+
+Accompanying paper: the Dickson form of **Theorem 1.3**. -/
 theorem monogenic_of_isRoot_dickson_one_sq (hs : s ≠ 0) (hm0 : m ≠ 0)
     (hx : aeval x (dickson 1 (s ^ 2 : ℤ) m) = 0) :
     IsIntegral ℤ (x / (s : L)) ∧ ∀ y ∈ ℚ⟮x / (s : L)⟯, IsIntegral ℤ y →
@@ -621,7 +646,9 @@ private lemma aeval_of_aeval_comp {p : ℤ[X]} {k : ℤ} (hx : aeval x (p.comp (
 polynomials with `F 0 = 0`, `F 1 = 1` and `F (j + 2) = k X F (j + 1) + s ^ 2 F j`, i.e. the
 `(k, s ^ 2)`-Fibonacci polynomials.  For `n` odd, `s ≠ 0` and every root `x` of `F n`, the
 element `k x / s` is an algebraic integer generating the ring of integers of
-`ℚ(k x / s) = ℚ(x)`. -/
+`ℚ(k x / s) = ℚ(x)`.
+
+Accompanying paper: **Theorem 1.3**, the `(k, t)`-Fibonacci case with `t = s ^ 2`. -/
 theorem monogenic_of_isRoot_fibonacci_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ → ℤ[X]}
     (h0 : F 0 = 0) (h1 : F 1 = 1)
     (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) + C (s ^ 2) * F j) (hn : Odd n)
@@ -635,7 +662,9 @@ theorem monogenic_of_isRoot_fibonacci_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ →
   exact monogenic_of_isRoot_dickson_two_neg_sq hs ⟨j, by ring⟩ (aeval_of_aeval_comp hx)
 
 /-- **The `(k, t)`-Fibonacci theorem for `t = -s ^ 2`, with no parity restriction.**  At
-`(k, s) = (1, 1)` these are the Chebyshev polynomials of the second kind. -/
+`(k, s) = (1, 1)` these are the Chebyshev polynomials of the second kind.
+
+Accompanying paper: **Theorem 1.3**, the `(k, t)`-Fibonacci case with `t = -s ^ 2`. -/
 theorem monogenic_of_isRoot_fibonacci_neg_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ → ℤ[X]}
     (h0 : F 0 = 0) (h1 : F 1 = 1)
     (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) - C (s ^ 2) * F j) (hn0 : n ≠ 0)
@@ -648,7 +677,9 @@ theorem monogenic_of_isRoot_fibonacci_neg_sq {k s : ℤ} (hs : s ≠ 0) {F : ℕ
   exact monogenic_of_isRoot_dickson_two_sq hs (aeval_of_aeval_comp hx)
 
 /-- **The `(k, t)`-Lucas theorem for `t = s ^ 2`**: `Lu 0 = 2`, `Lu 1 = k X`,
-`Lu (j + 2) = k X Lu (j + 1) + s ^ 2 Lu j`, with `n` even and nonzero. -/
+`Lu (j + 2) = k X Lu (j + 1) + s ^ 2 Lu j`, with `n` even and nonzero.
+
+Accompanying paper: **Theorem 1.3**, the `(k, t)`-Lucas case with `t = s ^ 2`. -/
 theorem monogenic_of_isRoot_lucas_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ → ℤ[X]}
     (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
     (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) + C (s ^ 2) * Lu j)
@@ -661,7 +692,9 @@ theorem monogenic_of_isRoot_lucas_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ → �
   exact monogenic_of_isRoot_dickson_one_neg_sq hs hn hn0 (aeval_of_aeval_comp hx)
 
 /-- **The `(k, t)`-Lucas theorem for `t = -s ^ 2`, with no parity restriction.**  At
-`(k, s) = (1, 1)` these are twice the Chebyshev polynomials of the first kind. -/
+`(k, s) = (1, 1)` these are twice the Chebyshev polynomials of the first kind.
+
+Accompanying paper: **Theorem 1.3**, the `(k, t)`-Lucas case with `t = -s ^ 2`. -/
 theorem monogenic_of_isRoot_lucas_neg_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ → ℤ[X]}
     (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
     (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) - C (s ^ 2) * Lu j)
@@ -675,7 +708,9 @@ theorem monogenic_of_isRoot_lucas_neg_sq {k s : ℤ} (hs : s ≠ 0) {Lu : ℕ �
 /-- **Theorem 1.1 (Chen–Guo–Hong).**  The classical case `s = 1` of
 `Polynomial.monogenic_of_isRoot_fibonacci_sq`: for `n` odd, every irreducible factor of the
 `n`-th `(k, 1)`-Fibonacci polynomial is monogenic, with generator `k x`.  At `k = 1` this is
-the statement for the Fibonacci polynomials themselves. -/
+the statement for the Fibonacci polynomials themselves.
+
+Accompanying paper: **Theorem 1.2**, the Fibonacci half. -/
 theorem monogenic_of_isRoot_fibonacci {k : ℤ} {F : ℕ → ℤ[X]} (h0 : F 0 = 0) (h1 : F 1 = 1)
     (hrec : ∀ j, F (j + 2) = C k * X * F (j + 1) + F j) (hn : Odd n)
     (hx : aeval x (F n) = 0) :
@@ -686,7 +721,9 @@ theorem monogenic_of_isRoot_fibonacci {k : ℤ} {F : ℕ → ℤ[X]} (h0 : F 0 =
   rwa [Int.cast_one, div_one] at h
 
 /-- **Theorem 1.2 (Chen–Guo–Hong).**  The classical case `s = 1` of
-`Polynomial.monogenic_of_isRoot_lucas_sq`. -/
+`Polynomial.monogenic_of_isRoot_lucas_sq`.
+
+Accompanying paper: **Theorem 1.2**, the Lucas half. -/
 theorem monogenic_of_isRoot_lucas {k : ℤ} {Lu : ℕ → ℤ[X]} (h0 : Lu 0 = 2) (h1 : Lu 1 = C k * X)
     (hrec : ∀ j, Lu (j + 2) = C k * X * Lu (j + 1) + Lu j) (hn : Even n) (hn0 : n ≠ 0)
     (hx : aeval x (Lu n) = 0) :
@@ -696,19 +733,25 @@ theorem monogenic_of_isRoot_lucas {k : ℤ} {Lu : ℕ → ℤ[X]} (h0 : Lu 0 = 2
     (fun j => by rw [hrec j, one_pow, C_1, one_mul]) hn hn0 hx
   rwa [Int.cast_one, div_one] at h
 
-/-- Every irreducible factor of the Chebyshev polynomial `S n` is monogenic. -/
+/-- Every irreducible factor of the Chebyshev polynomial `S n` is monogenic.
+
+Accompanying paper: **Corollary 5.8**, the `S` case. -/
 theorem monogenic_of_isRoot_chebyshev_S (hx : aeval x (Chebyshev.S ℤ n) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) :=
   monogenic_of_isRoot_dickson_two_one (by rwa [dickson_two_one_eq_chebyshev_S])
 
-/-- Every irreducible factor of the Chebyshev polynomial `C n` (`n ≠ 0`) is monogenic. -/
+/-- Every irreducible factor of the Chebyshev polynomial `C n` (`n ≠ 0`) is monogenic.
+
+Accompanying paper: **Corollary 5.8**, the `C` case. -/
 theorem monogenic_of_isRoot_chebyshev_C (hn0 : n ≠ 0) (hx : aeval x (Chebyshev.C ℤ n) = 0) :
     IsIntegral ℤ x ∧ ∀ y ∈ ℚ⟮x⟯, IsIntegral ℤ y → y ∈ Algebra.adjoin ℤ ({x} : Set L) :=
   monogenic_of_isRoot_dickson_one_one hn0 (by rwa [dickson_one_one_eq_chebyshev_C])
 
 /-- Every irreducible factor of the Chebyshev polynomial `U n` of the second kind is
 monogenic: `2 x` generates the ring of integers of `ℚ(x)`.  This is the case `k = 2` of the
-`(k, t)`-family, via Mathlib's `Polynomial.chebyshev_U_eq_dickson_two_one`. -/
+`(k, t)`-family, via Mathlib's `Polynomial.chebyshev_U_eq_dickson_two_one`.
+
+Accompanying paper: **Corollary 5.8**, the `U` case. -/
 theorem monogenic_of_isRoot_chebyshev_U (hx : aeval x (Chebyshev.U ℤ n) = 0) :
     IsIntegral ℤ ((2 : L) * x) ∧ ∀ y ∈ ℚ⟮(2 : L) * x⟯, IsIntegral ℤ y →
       y ∈ Algebra.adjoin ℤ ({(2 : L) * x} : Set L) := by
