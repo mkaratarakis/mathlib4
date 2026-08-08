@@ -12,6 +12,14 @@ public import Mathlib.RingTheory.Localization.LocalizationLocalization
 /-!
 # Relative monogenicity over an arbitrary number field base
 
+The *accompanying paper* referred to in the docstrings below is
+
+> M. Karatarakis, *A Local Approach to Monogenity with an Application to Lenny Jones'
+> Conjecture*,
+
+which is the write-up of this development; each result it states is named in the docstring
+of the declaration formalising it.
+
 The criteria of this directory are stated at a prime *element* `π` of the base, so applied
 to `𝓞 K` directly they decide monogenicity only at principal maximal ideals — that is, only
 when `K` has class number one.  This file removes that restriction.
@@ -71,7 +79,10 @@ produce exactly the `π`-saturation appearing here, but only at a prime *element
 of class number greater than one a maximal ideal need not have one.  After localising it
 always does: `(𝓞 K)_𝔭` is a discrete valuation ring, so it is a principal ideal ring whose
 only prime is a uniformiser, and `adjoin_eq_top_of_forall_prime_saturated'` applies over it.
-`adjoin_eq_top_of_forall_maximal_localizedAt` then assembles the local verdicts. -/
+`adjoin_eq_top_of_forall_maximal_localizedAt` then assembles the local verdicts.
+
+Accompanying paper: the relative criterion over an arbitrary number field base, with
+no class number hypothesis. -/
 theorem adjoin_eq_top_of_forall_maximal_localized_saturated
     (hgen : Algebra.adjoin K {(θ : K₁)} = ⊤)
     (hsat : ∀ (𝔭 : Ideal (𝓞 K)) (h𝔭 : 𝔭.IsMaximal),

@@ -10,6 +10,14 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.DoubleRoot
 /-!
 # The Kaur–Kumar theorem on monogenicity of `X ^ n + A (B X + 1) ^ m`
 
+The *accompanying paper* referred to in the docstrings below is
+
+> M. Karatarakis, *A Local Approach to Monogenity with an Application to Lenny Jones'
+> Conjecture*,
+
+which is the write-up of this development; each result it states is named in the docstring
+of the declaration formalising it.
+
 Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be irreducible, with `1 ≤ m < n` and
 `gcd (n, m B) = 1`, and let `θ` be a root of `f` generating the number field `K`.  This file
 proves the theorem of Kaur and Kumar [kaurkumar2023], conjectured by Jones [jones2019], that
@@ -143,7 +151,9 @@ private theorem isEisensteinAt_jones {q : ℤ} (hq : Prime q) (hmn : m < n)
         coeff_jones_zero (Nat.zero_lt_of_lt hmn)]
       exact hqA2)
 
-/-- `X ^ n + A (B X + 1) ^ m` is irreducible when `A` is prime (Eisenstein's criterion). -/
+/-- `X ^ n + A (B X + 1) ^ m` is irreducible when `A` is prime (Eisenstein's criterion).
+
+Accompanying paper: the Eisenstein irreducibility statement for prime `A`. -/
 theorem irreducible_of_prime (hA : Prime A) (hmn : m < n) :
     Irreducible (X ^ n + C A * (C B * X + 1) ^ m) :=
   (isEisensteinAt_jones hA hmn dvd_rfl fun h =>
@@ -778,7 +788,9 @@ Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be the minimal polynomial of `θ : 
 prime `p` divides the index `[𝓞 K : ℤ[θ]]` — the exponent of `θ`, in the sense of
 `RingOfIntegers.exponent` — if and only if `p ^ 2 ∣ A` or `p ^ 2 ∣ D n m A B`.  The
 Kaur–Kumar theorem `NumberField.KaurKumar.monogenic_iff` follows by localizing
-squarefreeness at each prime. -/
+squarefreeness at each prime.
+
+Accompanying paper: the per-prime refinement — the local form of the main theorem. -/
 theorem dvd_exponent_iff {p : ℕ} [hp : Fact p.Prime] (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
@@ -820,7 +832,10 @@ Let `f = X ^ n + A (B X + 1) ^ m ∈ ℤ[X]` be the minimal polynomial of `θ : 
 This is the globalization of the per-prime index criterion
 `NumberField.KaurKumar.dvd_exponent_iff`: `ℤ[θ] = 𝓞 K` iff no prime divides the exponent of
 `θ`, iff no prime squared divides `A` or `D n m A B`, iff `A` and `D n m A B` are
-squarefree. -/
+squarefree.
+
+Accompanying paper: the main theorem — the Kaur–Kumar theorem — proved without the
+discriminant of `f` and without Dedekind's index criterion. -/
 theorem monogenic_iff (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)
@@ -840,7 +855,9 @@ theorem monogenic_iff (hm : 0 < m) (hmn : m < n)
       Int.squarefree_iff_forall_prime_sq_not_dvd.mp h2 p hp⟩
 
 /-- **Jones' conjecture** (proved by Kaur and Kumar): for `A` prime, the polynomial
-`X ^ n + A (B X + 1) ^ m` is monogenic if and only if `D n m A B` is squarefree. -/
+`X ^ n + A (B X + 1) ^ m` is monogenic if and only if `D n m A B` is squarefree.
+
+Accompanying paper: the application named in the title: Lenny Jones' conjecture. -/
 theorem monogenic_iff_of_prime (hA : Prime A) (hm : 0 < m) (hmn : m < n)
     (hgcd : IsCoprime (n : ℤ) ((m : ℤ) * B))
     (hθ : minpoly ℤ θ = X ^ n + C A * (C B * X + 1) ^ m)

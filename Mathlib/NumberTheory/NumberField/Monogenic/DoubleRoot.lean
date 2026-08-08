@@ -10,6 +10,14 @@ public import Mathlib.NumberTheory.NumberField.Monogenic.Exponent
 /-!
 # Monogenicity criteria at a double root modulo `p`
 
+The *accompanying paper* referred to in the docstrings below is
+
+> M. Karatarakis, *A Local Approach to Monogenity with an Application to Lenny Jones'
+> Conjecture*,
+
+which is the write-up of this development; each result it states is named in the docstring
+of the declaration formalising it.
+
 Let `K` be a number field, `θ : 𝓞 K` with minimal polynomial `f` over `ℤ`, and let `p` be a
 rational prime.  Suppose `r : ℤ` is a double root of `f` modulo `p`, that is, `p ∣ f(r)` and
 `p ∣ f'(r)`.  This file proves the two halves of Dedekind's index criterion in this situation:
@@ -276,7 +284,10 @@ If `r` is a root of the minimal polynomial `f` of `θ` modulo `p` which is also 
 modulo `p`, and if moreover `p ^ 2 ∣ f(r)`, then `p` divides the exponent of `θ` (the index
 `[𝓞 K : ℤ[θ]]`, in the sense of `RingOfIntegers.exponent`): the algebraic integer
 `z = (θ - r) g(θ) / p`, where `f = f(r) + f'(r)(X - r) + (X - r)^2 g`, satisfies
-`p * z ∈ ℤ[θ]` but `z ∉ ℤ[θ]`, so `ℤ[θ]` is not maximal at `p`. -/
+`p * z ∈ ℤ[θ]` but `z ∉ ℤ[θ]`, so `ℤ[θ]` is not maximal at `p`.
+
+Accompanying paper: the necessity half of the double-root criterion, replacing
+Dedekind's index criterion. -/
 theorem dvd_exponent_of_sq_dvd_eval (hdeg : 2 ≤ (minpoly ℤ θ).natDegree)
     (h₀ : (p : ℤ) ^ 2 ∣ (minpoly ℤ θ).eval r)
     (h₁ : (p : ℤ) ∣ (derivative (minpoly ℤ θ)).eval r) :
@@ -347,7 +358,9 @@ Let `f` be the minimal polynomial of `θ` and let `p` be a rational prime.  Supp
 `r : ℤ` satisfies `p ^ 2 ∤ f(r)` and `p ∤ f''(r)`, and that every maximal ideal of `𝓞 K`
 containing `p` and the conductor of `θ` also contains `θ - r` (that is, `r` is the only
 repeated root of `f` mod `p` that can obstruct `p`-maximality).  Then `p` does not divide
-the exponent of `θ`, i.e. `ℤ[θ]` is `p`-maximal. -/
+the exponent of `θ`, i.e. `ℤ[θ]` is `p`-maximal.
+
+Accompanying paper: the sufficiency half of the double-root criterion at a tame double root. -/
 theorem not_dvd_exponent_of_sq_not_dvd_eval (hθ : Algebra.adjoin ℚ {(θ : K)} = ⊤)
     (h₂ : ¬(p : ℤ) ^ 2 ∣ (minpoly ℤ θ).eval r)
     (h'' : ¬(p : ℤ) ∣ (derivative (derivative (minpoly ℤ θ))).eval r)
