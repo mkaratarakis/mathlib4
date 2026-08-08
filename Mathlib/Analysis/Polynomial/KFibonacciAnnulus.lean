@@ -20,6 +20,15 @@ This file formalises — and generalises — the results of
 
 > S. Kaur, *k-Fibonacci annulus for polynomial zeros*.
 
+Throughout, references to **Theorem 1.1**, **Theorem 1.2** and **Remark 1.4** are to that
+paper.  The *accompanying paper* referred to in the individual docstrings below is
+
+> M. Karatarakis, *A General Binomial Identity for Second-Order Recurrences and Its
+> Application to Polynomial Zero Bounds*,
+
+which is the write-up of the development in this file; each result it states is named in the
+docstring of the declaration formalising it.
+
 No new definition is introduced anywhere: every statement takes an arbitrary sequence
 `F : ℕ → R` together with the hypotheses `F 0 = 0`, `F 1 = 1` and the second-order recurrence
 `F (n + 2) = p * F (n + 1) + q * F n` (a *Lucas sequence of the first kind* `U(p, q)`) as
@@ -97,7 +106,9 @@ variable {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] {p q : R} {F 
 
 /-- Two module-valued solutions of the recurrence with the same two initial values are
 equal.  Together with the explicit construction of solutions by `Nat.rec`, this makes the
-hypothesis style fully equivalent to introducing a definition. -/
+hypothesis style fully equivalent to introducing a definition.
+
+Accompanying paper: the uniqueness statement for solutions of the recurrence. -/
 theorem solution_ext {M : Type*} [AddCommMonoid M] [Module R M] {G H : ℕ → M}
     (hG : ∀ j, G (j + 2) = p • G (j + 1) + q • G j)
     (hH : ∀ j, H (j + 2) = p • H (j + 1) + q • H j)
@@ -150,7 +161,9 @@ families — none of which are in the paper.
 
 The underlying reason: the binomial expansion of `(M ^ (m + 1)) ^ n` for the companion
 matrix `M = !![p, q; 1, 0]` is an identity of *operators* on the solution space, so it
-evaluates on every solution, not just the fundamental one. -/
+evaluates on every solution, not just the fundamental one.
+
+Accompanying paper: the main identity, in its module-valued form. -/
 theorem sum_choose_mul_solution {M : Type*} [AddCommMonoid M] [Module R M] {G : ℕ → M}
     (hG : ∀ j, G (j + 2) = p • G (j + 1) + q • G j) (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1),
@@ -243,7 +256,9 @@ semiring: `∑ ℓ ≤ n, (n.choose ℓ) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ �
 No positivity, no discriminant condition, no real square roots.
 
 The index `m` is shifted by one relative to the paper so that all indices are naturals.
-This is the case `G := F` of `LucasU.sum_choose_mul_solution`. -/
+This is the case `G := F` of `LucasU.sum_choose_mul_solution`.
+
+Accompanying paper: the fundamental case `G := F` of the main identity. -/
 theorem sum_choose_mul (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R) * (q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
       = F ((m + 1) * n) := by
@@ -263,7 +278,9 @@ theorem sum_Icc_choose_mul (m n : ℕ) :
 /-- The fundamental Lucas divisibility law: index divisibility implies sequence
 divisibility, `a ∣ b → F a ∣ F b`, over any commutative semiring.  For `Nat.fib` this is
 `Nat.fib_dvd`.  It drops out of `LucasU.sum_choose_mul`: the `ℓ = 0` term of the sum
-vanishes and every other term contains the factor `F (m + 1)`. -/
+vanishes and every other term contains the factor `F (m + 1)`.
+
+Accompanying paper: the divisibility corollary of the main identity. -/
 theorem dvd_of_dvd {a b : ℕ} (h : a ∣ b) : F a ∣ F b := by
   obtain ⟨k, rfl⟩ := h
   cases a with
@@ -308,7 +325,9 @@ end LucasU
 /-! ### Instantiations of the identity: `Nat.fib` and Chebyshev polynomials -/
 
 /-- **Remark 1.4** upgraded: the Lucas identity specialises to `Nat.fib` over `ℕ` itself —
-a cast-free statement that the paper's real-analytic proof cannot even express. -/
+a cast-free statement that the paper's real-analytic proof cannot even express.
+
+Accompanying paper: the classical Fibonacci case of the main identity. -/
 theorem Nat.sum_choose_mul_fib (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1), n.choose ℓ * Nat.fib m ^ (n - ℓ) * Nat.fib (m + 1) ^ ℓ * Nat.fib ℓ
       = Nat.fib ((m + 1) * n) := by
@@ -336,7 +355,9 @@ private lemma U_shift_rec (j : ℕ) : U R (((j + 2 : ℕ) : ℤ) - 1)
 /-- Chebyshev polynomials of the second kind are (up to an index shift) the Lucas sequence
 with `p = 2 * X`, `q = -1` over `R[X]`: the Lucas identity becomes a composition identity
 for `Polynomial.Chebyshev.U`.  This lies in the `q < 0` regime, where the annulus theorems
-below cannot apply but the algebraic identity still does. -/
+below cannot apply but the algebraic identity still does.
+
+Accompanying paper: the Chebyshev-`U` case of the main identity. -/
 theorem sum_choose_mul_U (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1), (n.choose ℓ : R[X]) * (-U R ((m : ℤ) - 1)) ^ (n - ℓ)
         * U R m ^ ℓ * U R ((ℓ : ℤ) - 1)
@@ -347,7 +368,9 @@ theorem sum_choose_mul_U (m n : ℕ) :
   have eN : ((((m + 1) * n : ℕ)) : ℤ) - 1 = ((m : ℤ) + 1) * n - 1 := by push_cast; ring
   simpa [em, eN, neg_one_mul] using h
 
-/-- The Lucas divisibility law for Chebyshev-`U`: `a ∣ b → U (a - 1) ∣ U (b - 1)`. -/
+/-- The Lucas divisibility law for Chebyshev-`U`: `a ∣ b → U (a - 1) ∣ U (b - 1)`.
+
+Accompanying paper: the Chebyshev-`U` case of the divisibility corollary. -/
 theorem U_sub_one_dvd {a b : ℕ} (h : a ∣ b) :
     U R ((a : ℤ) - 1) ∣ U R ((b : ℤ) - 1) :=
   LucasU.dvd_of_dvd (p := 2 * X) (q := -1) (F := fun j => U R ((j : ℤ) - 1))
@@ -414,7 +437,9 @@ variable {k : ℝ} (hF0 : F 0 = 0) (hF1 : F 1 = 1)
 include hF0 hF1 hrec
 
 /-- **Theorem 1.1** of the paper: the `k`-Fibonacci case `Q = 1` of
-`LucasU.sum_choose_mul`, over `ℝ`.  Note that no positivity of `k` is needed. -/
+`LucasU.sum_choose_mul`, over `ℝ`.  Note that no positivity of `k` is needed.
+
+Accompanying paper: the `k`-Fibonacci case of the main identity. -/
 theorem sum_choose_mul_kFib (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1), (n.choose ℓ : ℝ) * F m ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ
       = F ((m + 1) * n) := by
@@ -447,7 +472,9 @@ every root of `p` has norm at most `R`.
 
 This is stated for an arbitrary weight sequence `A`; `LucasU.sum_choose_mul` supplies the
 Lucas weights
-`A ℓ = (n.choose ℓ) * (Q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ / F ((m + 1) * n)`. -/
+`A ℓ = (n.choose ℓ) * (Q * F m) ^ (n - ℓ) * F (m + 1) ^ ℓ * F ℓ / F ((m + 1) * n)`.
+
+Accompanying paper: the upper bound of the annulus. -/
 theorem norm_le_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {R : ℝ} (hR : 0 ≤ R)
     (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 ≤ A ℓ)
     (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
@@ -521,7 +548,9 @@ over `1 ≤ ℓ ≤ n` and `‖a ℓ‖ * r ^ ℓ ≤ A ℓ * ‖a 0‖` for all
 needed: it is implied where required.)
 
 The paper deduces this from the upper bound applied to the reversed polynomial
-`Q(z) = zⁿ q(1/z)`; here we simply run the same estimate directly on the constant term. -/
+`Q(z) = zⁿ q(1/z)`; here we simply run the same estimate directly on the constant term.
+
+Accompanying paper: the lower bound of the annulus. -/
 theorem le_norm_of_isRoot_of_sum_weights {p : K[X]} {A : ℕ → ℝ} {r : ℝ}
     (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
     (hcoeff : ∀ ℓ ∈ Icc 1 p.natDegree,
@@ -672,7 +701,9 @@ theorem inf_le_norm_of_isRoot_of_sum_weights
 
 /-- Master annulus: for **any** weights positive on `1 ≤ ℓ ≤ n` summing to `1` there (and
 `a ℓ ≠ 0` on that range), all zeros of `p` lie in the closed annulus with radii
-`r₁ = min (A ℓ * ‖a 0 / a ℓ‖)^(1/ℓ)` and `r₂ = max ((1 / A ℓ) * ‖a (n-ℓ) / a n‖)^(1/ℓ)`. -/
+`r₁ = min (A ℓ * ‖a 0 / a ℓ‖)^(1/ℓ)` and `r₂ = max ((1 / A ℓ) * ‖a (n-ℓ) / a n‖)^(1/ℓ)`.
+
+Accompanying paper: the master annulus theorem. -/
 theorem isRoot_mem_annulus_of_sum_weights
     (hA : ∀ ℓ ∈ Icc 1 p.natDegree, 0 < A ℓ)
     (hsum : ∑ ℓ ∈ Icc 1 p.natDegree, A ℓ = 1)
@@ -823,7 +854,9 @@ theorem lucas_inf_le_norm_of_isRoot (hP : 0 < P) (hQ0 : 0 < Q)
 
 /-- **Theorem 1.2**, generalised: all zeros of `p` lie in the closed annulus
 `r₁ ≤ ‖z‖ ≤ r₂` with the Lucas-weight radii (see `lucas_inf_le_norm_of_isRoot` and
-`norm_le_lucas_sup_of_isRoot` for the two halves). -/
+`norm_le_lucas_sup_of_isRoot` for the two halves).
+
+Accompanying paper: the Lucas-weight annulus - the main zero bound. -/
 theorem isRoot_mem_lucas_annulus (hP : 0 < P) (hQ0 : 0 < Q)
     {m : ℕ} (hm : 1 ≤ m) (hdeg : 1 ≤ p.natDegree)
     (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :
@@ -850,7 +883,9 @@ variable (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hrec : ∀ j, F (j + 2) = k * F (j + 1
 include hF0 hF1 hrec
 
 /-- **Theorem 1.2** of the paper: the `k`-Fibonacci case `Q = 1` of
-`isRoot_mem_lucas_annulus`. -/
+`isRoot_mem_lucas_annulus`.
+
+Accompanying paper: the `k`-Fibonacci annulus. -/
 theorem isRoot_mem_kFib_annulus (hk : 0 < k)
     {m : ℕ} (hm : 1 ≤ m) (hdeg : 1 ≤ p.natDegree)
     (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :

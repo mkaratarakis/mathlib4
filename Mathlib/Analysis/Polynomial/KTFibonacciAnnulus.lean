@@ -20,6 +20,11 @@ This sequence is *precisely* the fundamental Lucas solution `U(k, t)` of
 divisibility law, the small values and the annulus for it *are* (up to renaming the
 parameters) `LucasU.sum_choose_mul`, `LucasU.dvd_of_dvd`, `Real.lucas_three`,
 `Real.lucas_four` and `Polynomial.isRoot_mem_lucas_annulus`, so no restatements are given.
+The *accompanying paper* referred to in the docstrings below is
+
+> M. Karatarakis, *A General Binomial Identity for Second-Order Recurrences and Its
+> Application to Polynomial Zero Bounds*.
+
 This file contains the results whose *statements* are genuinely new at this level of
 generality:
 
@@ -62,7 +67,9 @@ open Finset
 
 /-- The composition identity for the **Mersenne numbers** `2 ^ n - 1`: the
 `(k, t) = (3, -2)`-Fibonacci sequence over `ℤ`.  This lies in the regime `t < 0`, which the
-annulus theorems cannot reach but the algebraic identity covers. -/
+annulus theorems cannot reach but the algebraic identity covers.
+
+Accompanying paper: the Mersenne case of the main identity. -/
 theorem Int.sum_choose_mul_mersenne (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1),
         (n.choose ℓ : ℤ) * (-2 * (2 ^ m - 1)) ^ (n - ℓ) * (2 ^ (m + 1) - 1) ^ ℓ
@@ -80,7 +87,9 @@ semiring — and `F` the (fundamental) `k`-Fibonacci sequence,
   = k * T ((m + 1) * n) + t`.
 
 The proof linearises: `S := k * T + t` satisfies the homogeneous `k`-Fibonacci recurrence,
-so `LucasU.sum_choose_mul_solution` applies to it. -/
+so `LucasU.sum_choose_mul_solution` applies to it.
+
+Accompanying paper: the extended `(k, t)`-Fibonacci form of the main identity. -/
 theorem LucasU.sum_choose_mul_extended {R : Type*} [CommSemiring R] {k t : R}
     {F T : ℕ → R} (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hFrec : ∀ n, F (n + 2) = k * F (n + 1) + F n)
@@ -95,7 +104,9 @@ theorem LucasU.sum_choose_mul_extended {R : Type*} [CommSemiring R] {k t : R}
 
 /-- The composition identity for the **Leonardo numbers** (`(k, t) = (1, 1)`), in `ℕ`:
 `∑ ℓ ≤ n, (n.choose ℓ) * fib m ^ (n - ℓ) * fib (m + 1) ^ ℓ * (L ℓ + 1)
-  = L ((m + 1) * n) + 1` for any sequence with `L (n + 2) = L (n + 1) + L n + 1`. -/
+  = L ((m + 1) * n) + 1` for any sequence with `L (n + 2) = L (n + 1) + L n + 1`.
+
+Accompanying paper: the Leonardo case of the main identity. -/
 theorem Nat.sum_choose_mul_leonardo {L : ℕ → ℕ}
     (hL : ∀ j, L (j + 2) = L (j + 1) + L j + 1) (m n : ℕ) :
     ∑ ℓ ∈ range (n + 1),
@@ -122,7 +133,9 @@ include hF0 hF1 hrec
 /-- The analogue for `(k, t)`-Fibonacci sequences of Corollary 1.3 of Kaur's `k`-Fibonacci
 paper: the case `m = 4` (paper indexing), where `F 3 = k ^ 2 + t` and
 `F 4 = k ^ 3 + 2 * k * t`.  The radii involve `(t * (k ^ 2 + t)) ^ (n - ℓ)`, in which the
-factor `t` is invisible at `t = 1`. -/
+factor `t` is invisible at `t = 1`.
+
+Accompanying paper: the `(k, t)`-Fibonacci annulus. -/
 theorem isRoot_mem_ktFib_annulus_four (hk : 0 < k) (ht : 0 < t) (hdeg : 1 ≤ p.natDegree)
     (ha : ∀ ℓ ∈ Icc 1 p.natDegree, p.coeff ℓ ≠ 0) {z : K} (hz : p.IsRoot z) :
     (Icc 1 p.natDegree).inf' (Finset.nonempty_Icc.2 hdeg) (fun ℓ =>
@@ -141,7 +154,9 @@ theorem isRoot_mem_ktFib_annulus_four (hk : 0 < k) (ht : 0 < t) (hdeg : 1 ≤ p.
 end KTFib
 
 /-- The **Pell-number annulus**: the case `(k, t) = (2, 1)` and `m = 4` (paper indexing),
-where `F 3 = 5` and `F 4 = 12` are Pell numbers. -/
+where `F 3 = 5` and `F 4 = 12` are Pell numbers.
+
+Accompanying paper: the Pell annulus. -/
 theorem isRoot_mem_pell_annulus {p : K[X]} {F : ℕ → ℝ}
     (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hrec : ∀ j, F (j + 2) = 2 * F (j + 1) + F j)
     (hdeg : 1 ≤ p.natDegree)
@@ -160,7 +175,9 @@ theorem isRoot_mem_pell_annulus {p : K[X]} {F : ℕ → ℝ}
     show (2 : ℝ) ^ 3 + 2 * 2 * 1 = 12 by norm_num] using h
 
 /-- The **Jacobsthal-number annulus**: the case `(k, t) = (1, 2)` and `m = 4` (paper
-indexing), where `F 3 = 3` and `F 4 = 5` are Jacobsthal numbers and `t * F 3 = 6`. -/
+indexing), where `F 3 = 3` and `F 4 = 5` are Jacobsthal numbers and `t * F 3 = 6`.
+
+Accompanying paper: the Jacobsthal annulus. -/
 theorem isRoot_mem_jacobsthal_annulus {p : K[X]} {F : ℕ → ℝ}
     (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hrec : ∀ j, F (j + 2) = F (j + 1) + 2 * F j)
     (hdeg : 1 ≤ p.natDegree)
@@ -182,7 +199,9 @@ theorem isRoot_mem_jacobsthal_annulus {p : K[X]} {F : ℕ → ℝ}
 (`T (n + 2) = k * T (n + 1) + T n + t`, nonnegative initial values): all zeros of `p` lie
 in the closed annulus whose weights are built from `k * T ℓ + t`, exactly normalised by
 `D = k * T ((m + 1) * n) + t - F m ^ n * (k * T 0 + t)` (the `ℓ = 0` weight no longer
-vanishes, so it is subtracted rather than dropped).  `F` is the `k`-Fibonacci sequence. -/
+vanishes, so it is subtracted rather than dropped).  `F` is the `k`-Fibonacci sequence.
+
+Accompanying paper: the annulus for the extended `(k, t)`-Fibonacci numbers. -/
 theorem isRoot_mem_extended_ktFib_annulus {p : K[X]} {k t : ℝ} {F T : ℕ → ℝ}
     (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hFrec : ∀ j, F (j + 2) = k * F (j + 1) + F j)
     (hTrec : ∀ j, T (j + 2) = k * T (j + 1) + T j + t)
