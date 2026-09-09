@@ -849,3 +849,120 @@ theorem tendsto_density_atLeastTwo {n : ℕ} (hn : 0 < n) {p : ℕ} {c : Fin n �
   exact tendsto_density_fiber hn hp hQ hpQ (Finset.mem_powerset.1 (Finset.mem_filter.1 hU).1)
 
 end NumberField
+
+/-! ### The complementary bound of the master theorem -/
+
+namespace NumberField
+
+/-- The subsets of `Q` of cardinality at most one are the empty set and the singletons. -/
+theorem card_powerset_filter_lt_two (Q : Finset ℕ) :
+    #{U ∈ Q.powerset | ¬ 2 ≤ #U} = 1 + #Q := by
+  classical
+  have : {U ∈ Q.powerset | ¬ 2 ≤ #U} = Q.powersetCard 0 ∪ Q.powersetCard 1 := by
+    ext U
+    simp only [Finset.mem_filter, Finset.mem_powerset, Finset.mem_union, Finset.mem_powersetCard]
+    constructor
+    · rintro ⟨hU, hc⟩
+      rcases (by omega : #U = 0 ∨ #U = 1) with h | h
+      · exact Or.inl ⟨hU, h⟩
+      · exact Or.inr ⟨hU, h⟩
+    · rintro (⟨hU, h⟩ | ⟨hU, h⟩) <;> exact ⟨hU, by omega⟩
+  rw [this, Finset.card_union_of_disjoint, Finset.card_powersetCard, Finset.card_powersetCard]
+  · simp
+  · refine Finset.disjoint_left.2 fun U hU hU' => ?_
+    rw [Finset.mem_powersetCard] at hU hU'
+    omega
+
+/-- **The complementary bound.**  If every `c q` lies in `[1/4, 1/2)`, the probability that at
+least two of the independent events occur is at least `1 - (1 + #Q) (3/4) ^ #Q`. -/
+theorem le_sum_atLeastTwo {Q : Finset ℕ} (c : ℕ → ℝ) (hc0 : ∀ q ∈ Q, 1 / 4 ≤ c q)
+    (hc1 : ∀ q ∈ Q, c q < 1 / 2) :
+    1 - (1 + #Q) * (3 / 4 : ℝ) ^ #Q
+      ≤ ∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U}, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q) := by
+  classical
+  have hpos : ∀ q ∈ Q, (0 : ℝ) ≤ 1 - c q := fun q hq => by have := hc1 q hq; linarith
+  have hle : ∀ q ∈ Q, 1 - c q ≤ 3 / 4 := fun q hq => by have := hc0 q hq; linarith
+  -- the total sum over all subsets is one
+  have htot : ∑ U ∈ Q.powerset, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q) = 1 := by
+    have := Finset.prod_add (fun q => c q) (fun q => 1 - c q) Q
+    simp only [add_sub_cancel] at this
+    rw [← this, Finset.prod_const_one]
+  -- the product over all of `Q` is small
+  have hprodle : (∏ q ∈ Q, (1 - c q)) ≤ (3 / 4 : ℝ) ^ #Q := by
+    calc ∏ q ∈ Q, (1 - c q) ≤ ∏ _q ∈ Q, (3 / 4 : ℝ) := Finset.prod_le_prod hpos hle
+      _ = (3 / 4 : ℝ) ^ #Q := by rw [Finset.prod_const]
+  -- every class with at most one success is bounded by that product
+  have hterm : ∀ U ∈ {U ∈ Q.powerset | ¬ 2 ≤ #U},
+      (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q) ≤ (3 / 4 : ℝ) ^ #Q := by
+    intro U hU
+    rw [Finset.mem_filter, Finset.mem_powerset] at hU
+    obtain ⟨hUQ, hcard⟩ := hU
+    refine le_trans ?_ hprodle
+    rcases (by omega : #U = 0 ∨ #U = 1) with h | h
+    · rw [Finset.card_eq_zero.1 h]
+      simp
+    · obtain ⟨q, rfl⟩ := Finset.card_eq_one.1 h
+      have hq : q ∈ Q := hUQ (Finset.mem_singleton_self q)
+      rw [Finset.prod_singleton, Finset.sdiff_singleton_eq_erase q Q]
+      calc c q * ∏ x ∈ Q.erase q, (1 - c x)
+          ≤ (1 - c q) * ∏ x ∈ Q.erase q, (1 - c x) := by
+            have h1 : c q ≤ 1 - c q := by have := hc1 q hq; linarith
+            have h2 : (0 : ℝ) ≤ ∏ x ∈ Q.erase q, (1 - c x) :=
+              Finset.prod_nonneg fun x hx => hpos x (Finset.mem_of_mem_erase hx)
+            nlinarith
+        _ = ∏ x ∈ Q, (1 - c x) := Finset.mul_prod_erase Q (fun x => 1 - c x) hq
+  -- put the two halves together
+  have hsplit : ∑ U ∈ Q.powerset, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q)
+      = (∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U}, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q))
+        + ∑ U ∈ {U ∈ Q.powerset | ¬ 2 ≤ #U}, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q) :=
+    (Finset.sum_filter_add_sum_filter_not _ _ _).symm
+  have hsmall : ∑ U ∈ {U ∈ Q.powerset | ¬ 2 ≤ #U}, (∏ q ∈ U, c q) * ∏ q ∈ Q \ U, (1 - c q)
+      ≤ (1 + #Q) * (3 / 4 : ℝ) ^ #Q := by
+    refine le_trans (Finset.sum_le_card_nsmul _ _ _ hterm) ?_
+    rw [card_powerset_filter_lt_two, nsmul_eq_mul]
+    push_cast
+    ring_nf
+    rfl
+  linarith [htot, hsplit, hsmall]
+
+set_option linter.style.haveILetI false in
+/-- The local densities `C_q(n)` at a prime `q`, expressed with `Nat.card`, satisfy the bounds of
+`le_sum_atLeastTwo`. -/
+theorem card_no_root_div_mem_Ico {n : ℕ} (hn : 2 ≤ n) {q : ℕ} (hq : q.Prime) :
+    1 / 4 ≤ (Nat.card {y : Fin n → ZMod q //
+        ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+          C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (q : ℝ) ^ n ∧
+      (Nat.card {y : Fin n → ZMod q //
+        ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+          C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (q : ℝ) ^ n < 1 / 2 := by
+  classical
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hcard : Fintype.card (ZMod q) = q := ZMod.card q
+  have hbridge : (Nat.card {y : Fin n → ZMod q //
+      ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+        C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (q : ℝ) ^ n
+      = (#{y : Fin n → ZMod q |
+          ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+            C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+        / (Fintype.card (ZMod q) : ℝ) ^ n := by
+    rw [Nat.card_eq_fintype_card, Fintype.card_subtype, hcard]
+  rw [hbridge]
+  exact ⟨Polynomial.card_no_root_univ_div_ge_quarter hn,
+    Polynomial.card_no_root_univ_div_lt_half hn⟩
+
+/-- **Proposition 6.1.**  For `n ≥ 2` and a finite set `Q` of primes, the density of the
+Eisenstein–Dumas polynomials having no root modulo at least two primes of `Q` is at least
+`1 - (1 + #Q) (3/4) ^ #Q`. -/
+theorem le_sum_atLeastTwo_of_prime {n : ℕ} (hn : 2 ≤ n) {Q : Finset ℕ} (hQ : ∀ q ∈ Q, q.Prime) :
+    1 - (1 + #Q) * (3 / 4 : ℝ) ^ #Q
+      ≤ ∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U},
+          (∏ q ∈ U, (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+                C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (q : ℝ) ^ n) *
+            ∏ q ∈ Q \ U, (1 - (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n,
+                C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (q : ℝ) ^ n) :=
+  le_sum_atLeastTwo _ (fun q hq => (card_no_root_div_mem_Ico hn (hQ q hq)).1)
+    (fun q hq => (card_no_root_div_mem_Ico hn (hQ q hq)).2)
+
+end NumberField
