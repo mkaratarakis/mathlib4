@@ -13,6 +13,7 @@ public import Mathlib.NumberTheory.NumberField.NormEuclidean.Rootless
 public import Mathlib.NumberTheory.FrobeniusNumber
 public import Mathlib.GroupTheory.OrderOfElement
 public import Mathlib.Data.ZMod.Units
+public import Mathlib.Data.ZMod.QuotientRing
 
 /-!
 # Eisenstein–Dumas polynomials that fail to generate norm-Euclidean fields
@@ -585,5 +586,266 @@ theorem tendsto_density_two_three {n : ℕ} (hn : 3 ≤ n) {p : ℕ} {c : Fin n 
   have hv : (1 : ℝ) / 4 * (8 / 27) = 2 / 27 := by norm_num
   rw [card_no_root_zmod_two_div (by omega), card_no_root_zmod_three_div hn, hv] at h
   exact h
+
+end NumberField
+
+/-! ### The master density theorem for an arbitrary set of auxiliary primes -/
+
+namespace Int
+
+variable {n : ℕ} {Q : Finset ℕ}
+
+/-- **Chinese remainder theorem for a family of coprime moduli.**  The number of tuples of
+residues modulo `∏ q ∈ Q, q` reducing into a prescribed set modulo each `q` is the product of the
+individual counts. -/
+theorem card_filter_crt_pi (hcop : Pairwise (Function.onFun Nat.Coprime (fun q : Q => (q : ℕ))))
+    [∀ q : Q, NeZero (q : ℕ)] [NeZero (∏ q : Q, (q : ℕ))]
+    (S : ∀ q : Q, Finset (Fin n → ZMod (q : ℕ))) :
+    #{x ∈ (Finset.univ : Finset (Fin n → ZMod (∏ q : Q, (q : ℕ)))) |
+        ∀ q : Q, (fun i => ZMod.castHom (Finset.dvd_prod_of_mem _ (Finset.mem_univ q))
+          (ZMod (q : ℕ)) (x i)) ∈ S q}
+      = ∏ q : Q, #(S q) := by
+  classical
+  set e : (Fin n → ZMod (∏ q : Q, (q : ℕ))) ≃ (∀ q : Q, Fin n → ZMod (q : ℕ)) :=
+    (Equiv.piCongrRight fun _ : Fin n => (ZMod.prodEquivPi _ hcop).toEquiv).trans
+      (Equiv.piComm _) with he
+  have hcomp : ∀ (x : Fin n → ZMod (∏ q : Q, (q : ℕ))) (q : Q) (i : Fin n),
+      e x q i
+        = ZMod.castHom (Finset.dvd_prod_of_mem _ (Finset.mem_univ q)) (ZMod (q : ℕ)) (x i) := by
+    intro x q i
+    exact ZMod.prodEquivPi_apply (fun q : Q => (q : ℕ)) hcop (x i) q
+  have hiff : ∀ x : Fin n → ZMod (∏ q : Q, (q : ℕ)),
+      (∀ q : Q, (fun i => ZMod.castHom (Finset.dvd_prod_of_mem _ (Finset.mem_univ q))
+        (ZMod (q : ℕ)) (x i)) ∈ S q) ↔ e x ∈ Fintype.piFinset S := by
+    intro x
+    rw [Fintype.mem_piFinset]
+    refine forall_congr' fun q => ?_
+    rw [show e x q = (fun i => ZMod.castHom (Finset.dvd_prod_of_mem _ (Finset.mem_univ q))
+      (ZMod (q : ℕ)) (x i)) from funext (hcomp x q)]
+  rw [← Fintype.card_piFinset S]
+  refine Finset.card_bij (fun x _ => e x)
+    (fun x hx => (hiff x).1 (Finset.mem_filter.1 hx).2)
+    (fun x₁ _ x₂ _ h => e.injective h)
+    (fun y hy => ⟨e.symm y, Finset.mem_filter.2 ⟨Finset.mem_univ _, (hiff _).2 ?_⟩,
+      e.apply_symm_apply y⟩)
+  rw [e.apply_symm_apply]
+  exact hy
+
+
+
+open scoped Classical in
+/-- The tuples for which at least two of the conditions hold split into the classes on which the
+set of conditions that hold is a fixed `U`. -/
+theorem card_filter_atLeastTwo_eq_sum {α : Type*} (s : Finset α) (Q : Finset ℕ)
+    (P : ℕ → α → Prop) :
+    #{a ∈ s | 2 ≤ #{q ∈ Q | P q a}}
+      = ∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U}, #{a ∈ s | {q ∈ Q | P q a} = U} := by
+  rw [Finset.card_eq_sum_card_fiberwise (f := fun a => {q ∈ Q | P q a})
+    (t := {U ∈ Q.powerset | 2 ≤ #U}) (fun a ha => by
+      simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_powerset] at ha ⊢
+      exact ⟨Finset.filter_subset _ _, ha.2⟩)]
+  refine Finset.sum_congr rfl fun U hU => ?_
+  congr 1
+  ext a
+  simp only [Finset.mem_filter, Finset.mem_powerset] at hU ⊢
+  constructor
+  · rintro ⟨⟨ha, -⟩, h⟩
+    exact ⟨ha, h⟩
+  · rintro ⟨ha, h⟩
+    exact ⟨⟨ha, h ▸ hU.2⟩, h⟩
+
+end Int
+
+namespace NumberField
+
+open scoped Classical in
+/-- The density of the class of Eisenstein–Dumas polynomials whose set of rootless auxiliary
+primes is exactly `U`. -/
+theorem tendsto_density_fiber {n : ℕ} (hn : 0 < n) {p : ℕ} {c : Fin n → ℕ} {Q : Finset ℕ}
+    (hp : p.Prime) (hQ : ∀ q ∈ Q, q.Prime) (hpQ : p ∉ Q) {U : Finset ℕ} (hU : U ⊆ Q) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩) ∧
+            {q ∈ Q | ∀ r : ZMod q,
+              ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r} = U} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ))
+      Filter.atTop (nhds
+        ((∏ q ∈ U, (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n) *
+          ∏ q ∈ Q \ U, (1 - (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n))) := by
+  classical
+  -- instances at the auxiliary primes
+  have hne : ∀ q : Q, NeZero ((q : ℕ)) := fun q => ⟨(hQ q q.2).ne_zero⟩
+  have hfact : ∀ q : Q, Fact (Nat.Prime (q : ℕ)) := fun q => ⟨hQ q q.2⟩
+  have hcopQ : Pairwise (Function.onFun Nat.Coprime (fun q : Q => (q : ℕ))) := by
+    intro q₁ q₂ h
+    exact (Nat.coprime_primes (hQ q₁ q₁.2) (hQ q₂ q₂.2)).2 fun hh => h (Subtype.ext hh)
+  have hRpos : 0 < ∏ q : Q, (q : ℕ) := Finset.prod_pos fun q _ => (hQ q q.2).pos
+  have hRne : NeZero (∏ q : Q, (q : ℕ)) := ⟨hRpos.ne'⟩
+  have hcop : Nat.Coprime p (∏ q : Q, (q : ℕ)) :=
+    Nat.Coprime.prod_right fun q _ => (Nat.coprime_primes hp (hQ q q.2)).2 fun h => hpQ (h ▸ q.2)
+  -- the rootless sets and the class attached to `U`
+  set T : ∀ q : Q, Finset (Fin n → ZMod (q : ℕ)) := fun q =>
+    {y | ∀ r : ZMod (q : ℕ), ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} with hT
+  set S : ∀ q : Q, Finset (Fin n → ZMod (q : ℕ)) := fun q =>
+    if (q : ℕ) ∈ U then T q else (T q)ᶜ with hS
+  set B : Finset (Fin n → ZMod (∏ q : Q, (q : ℕ))) :=
+    {x ∈ (Finset.univ : Finset (Fin n → ZMod (∏ q : Q, (q : ℕ)))) |
+      ∀ q : Q, (fun i => ZMod.castHom (Finset.dvd_prod_of_mem _ (Finset.mem_univ q))
+        (ZMod (q : ℕ)) (x i)) ∈ S q} with hB
+  have key := tendsto_density_of_local_condition (c := c) hn hp hRpos hcop B
+  -- membership in `T q` for a tuple of integers
+  have hmemT : ∀ (q : Q) (a : Fin n → ℤ),
+      ((fun i => ((a i : ℤ) : ZMod (q : ℕ))) ∈ T q)
+      ↔ (∀ r : ZMod (q : ℕ),
+          ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod (q : ℕ))) * X ^ (i : ℕ)).IsRoot r) := by
+    intro q a
+    rw [hT]
+    simp
+  -- the dictionary: the residue condition at the auxiliary primes says the rootless set is `U`
+  have hdictB : ∀ a : Fin n → ℤ,
+      ((fun i => ((a i : ℤ) : ZMod (∏ q : Q, (q : ℕ)))) ∈ B)
+      ↔ {q ∈ Q | ∀ r : ZMod q,
+          ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r} = U := by
+    intro a
+    rw [hB]
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, map_intCast, hS]
+    constructor
+    · intro h
+      ext q
+      simp only [Finset.mem_filter]
+      constructor
+      · rintro ⟨hq, hroot⟩
+        by_contra hqU
+        have h2 := h ⟨q, hq⟩
+        simp only [hqU, ite_false, Finset.mem_compl] at h2
+        exact h2 ((hmemT ⟨q, hq⟩ a).2 hroot)
+      · intro hqU
+        refine ⟨hU hqU, ?_⟩
+        have h2 := h ⟨q, hU hqU⟩
+        simp only [hqU, ite_true] at h2
+        exact (hmemT ⟨q, hU hqU⟩ a).1 h2
+    · intro h q
+      have hq := Finset.ext_iff.1 h (q : ℕ)
+      simp only [Finset.mem_filter] at hq
+      by_cases hqU : (q : ℕ) ∈ U
+      · simp only [hqU, ite_true]
+        exact (hmemT q a).2 (hq.2 hqU).2
+      · simp only [hqU, ite_false, Finset.mem_compl]
+        intro hmem
+        exact hqU (hq.1 ⟨q.2, (hmemT q a).1 hmem⟩)
+  -- the cardinality of `B`
+  have hcardB : #B = ∏ q : Q, #(S q) := by
+    rw [hB]
+    exact @Int.card_filter_crt_pi n Q hcopQ hne hRne S
+  -- each local factor
+  have hcardT : ∀ q : Q, (Nat.card {y : Fin n → ZMod (q : ℕ) //
+      ∀ r : ZMod (q : ℕ), ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r}) = #(T q) := by
+    intro q
+    rw [Nat.card_eq_fintype_card, Fintype.card_subtype, hT]
+  have hcardfun : ∀ q : Q, Fintype.card (Fin n → ZMod (q : ℕ)) = (q : ℕ) ^ n := by
+    intro q
+    simp
+  have hTle : ∀ q : Q, #(T q) ≤ (q : ℕ) ^ n := fun q => by
+    rw [← hcardfun q]; exact Finset.card_le_univ _
+  have hqpos : ∀ q : Q, (0 : ℝ) < ((q : ℕ) : ℝ) ^ n := fun q => by
+    have := (hQ q q.2).pos
+    positivity
+  -- splitting a product over `Q` according to membership in `U`
+  have hsplit : ∀ g h : ℕ → ℝ, (∏ q : Q, (if (q : ℕ) ∈ U then g (q : ℕ) else h (q : ℕ)))
+      = (∏ q ∈ U, g q) * ∏ q ∈ Q \ U, h q := by
+    intro g h
+    rw [Finset.prod_coe_sort Q (fun q => if q ∈ U then g q else h q), Finset.prod_ite]
+    congr 1
+    · exact Finset.prod_congr (by rw [Finset.filter_mem_eq_inter, Finset.inter_eq_right.2 hU])
+        fun q _ => rfl
+    · exact Finset.prod_congr (by rw [Finset.filter_not, Finset.filter_mem_eq_inter,
+        Finset.inter_eq_right.2 hU]) fun q _ => rfl
+  -- the value of the limit
+  have hval : ((#B : ℝ) / ((∏ q : Q, (q : ℕ) : ℕ) : ℝ) ^ n)
+      = (∏ q ∈ U, (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n) *
+          ∏ q ∈ Q \ U, (1 - (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n) := by
+    rw [hcardB]
+    push_cast
+    rw [← Finset.prod_pow, ← Finset.prod_div_distrib]
+    refine Eq.trans (Finset.prod_congr rfl fun q _ => ?_)
+      (hsplit (fun x => (Nat.card {y : Fin n → ZMod x //
+          ∀ r : ZMod x, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ) / (x : ℝ) ^ n)
+        (fun x => 1 - (Nat.card {y : Fin n → ZMod x //
+            ∀ r : ZMod x, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+          / (x : ℝ) ^ n))
+    rw [hcardT q]
+    by_cases hqU : (q : ℕ) ∈ U
+    · simp only [hS, hqU, ite_true]
+    · simp only [hS, hqU, ite_false]
+      rw [Finset.card_compl, hcardfun q, Nat.cast_sub (hTle q), Nat.cast_pow, sub_div,
+        div_self (hqpos q).ne']
+  rw [← hval]
+  refine key.congr fun N => ?_
+  simp only [hdictB]
+
+open scoped Classical in
+/-- **The master density theorem.**  Let `Q` be a finite set of primes different from `p`.  Among
+the Eisenstein–Dumas family attached to `p` and the exponents `c`, the proportion of those
+polynomials having no root modulo `q` for at least two `q ∈ Q` tends to
+`∑_{U ⊆ Q, #U ≥ 2} ∏_{q ∈ U} C_q(n) ∏_{q ∈ Q \ U} (1 - C_q(n))`.
+
+Together with `not_normEuclidean_of_eisensteinDumas_fin`, applied to two primes of `U`, this is
+the master theorem: each polynomial counted in the numerator generates a field that is not
+norm-Euclidean, as soon as every pair in `Q` admits a representation `p = u q₁ + v q₂` with
+`q₁ ∤ u` and `q₂ ∤ v`. -/
+theorem tendsto_density_atLeastTwo {n : ℕ} (hn : 0 < n) {p : ℕ} {c : Fin n → ℕ} {Q : Finset ℕ}
+    (hp : p.Prime) (hQ : ∀ q ∈ Q, q.Prime) (hpQ : p ∉ Q) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩) ∧
+            2 ≤ #{q ∈ Q | ∀ r : ZMod q,
+              ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r}} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ))
+      Filter.atTop (nhds (∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U},
+        ((∏ q ∈ U, (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n) *
+          ∏ q ∈ Q \ U, (1 - (Nat.card {y : Fin n → ZMod q //
+              ∀ r : ZMod q, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q : ℝ) ^ n)))) := by
+  classical
+  have hsum : ∀ N : ℕ,
+      (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+          ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩) ∧
+          2 ≤ #{q ∈ Q | ∀ r : ZMod q,
+            ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r}} : ℝ)
+      = ∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U},
+          (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+              ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩) ∧
+              {q ∈ Q | ∀ r : ZMod q,
+                ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r}
+                  = U} : ℝ) := by
+    intro N
+    rw [← Nat.cast_sum]
+    congr 1
+    rw [← Finset.filter_filter, ← Finset.filter_filter]
+    refine Eq.trans (Int.card_filter_atLeastTwo_eq_sum _ Q _) (Finset.sum_congr rfl fun U _ => ?_)
+    congr 1
+    ext a
+    simp only [Finset.mem_filter]
+    tauto
+  have hdiv : ∀ (g : Finset ℕ → ℝ) (d : ℝ), (∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U}, g U) / d
+      = ∑ U ∈ {U ∈ Q.powerset | 2 ≤ #U}, g U / d := by
+    intro g d
+    rw [div_eq_mul_inv, Finset.sum_mul]
+    exact Finset.sum_congr rfl fun U _ => (div_eq_mul_inv _ _).symm
+  simp only [hsum, hdiv]
+  refine tendsto_finsetSum _ fun U hU => ?_
+  exact tendsto_density_fiber hn hp hQ hpQ (Finset.mem_powerset.1 (Finset.mem_filter.1 hU).1)
 
 end NumberField
