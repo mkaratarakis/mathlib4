@@ -32,7 +32,7 @@
 
 \author{Michail Karatarakis}
 
-\date{August 2026}
+\date{September 2026}
 
 \begin{abstract}
 Heilbronn's criterion is a sufficient condition for a number field with a totally ramified
@@ -615,10 +615,10 @@ $\varphi(0)=\varphi(1)=1$, so the first two terms cancel and
 \[
   C_q(n)=\sum_{k=2}^{n}(-1)^k\varphi(k).
 \]
-The sequence $\varphi$ is nonnegative and nonincreasing. Indeed, from
-$\binom{q}{k+1}(k+1)=\binom qk (q-k)$ we get
-$\binom{q}{k+1}(k+1)\le\binom qk q\,(k+1)$, hence $\binom{q}{k+1}\le q\binom qk$, which is
-$\varphi(k+1)\le\varphi(k)$ after dividing by $q^{k+1}$.
+The sequence $\varphi$ is nonnegative and nonincreasing. Indeed
+$(k+1)\binom{q}{k+1}=(q-k)\binom qk\le q\binom qk$, and $k+1\ge1$, so
+$\binom{q}{k+1}\le q\binom qk$; dividing by $q^{k+1}$ gives
+$\varphi(k+1)\le\varphi(k)$.
 
 We use the following elementary bound: if $\psi$ is nonincreasing and nonnegative then, for
 every $d\ge0$,
@@ -741,9 +741,11 @@ and~\ref{prop:bounds}.
 
 \begin{proof}[Proof of Corollary~\ref{cor:235}]
 Take $Q=\{2,3,5\}$; the largest pair product is $3^25^2=225\le p$, so
-\eqref{eq:pair-condition} holds by Lemma~\ref{lem:frobenius}. With $c_2=\frac14$, $c_3=\frac8{27}$ and $c_5\ge\frac8{25}$, the right-hand side of
-\eqref{eq:complement} is nondecreasing in each $c_q$, so it is at least the value at
-$(\frac14,\frac8{27},\frac8{25})$, namely
+\eqref{eq:pair-condition} holds by Lemma~\ref{lem:frobenius}. The left-hand side of
+\eqref{eq:complement} is the probability that at least two of three independent events of
+probabilities $c_2,c_3,c_5$ occur; that event is increasing in each coordinate, so the quantity is
+nondecreasing in each $c_q$. With $c_2=\frac14$, $c_3=\frac8{27}$ and $c_5\ge\frac8{25}$ it is
+therefore at least its value at $(\frac14,\frac8{27},\frac8{25})$, namely
 \[
   1-\frac{969+323+408+456}{2700}=1-\frac{2156}{2700}=\frac{544}{2700}=\frac{136}{675}. \qedhere
 \]
@@ -809,10 +811,11 @@ $K_f$, so by Lemma~\ref{lem:heilbronn-applies} it suffices to produce positive i
   p=uq_1+vq_2,\qquad q_1\nmid u,\qquad q_2\nmid v,\qquad uq_1 \text{ an } n\text{-th power residue mod } p .
 \end{equation}
 
-Let $\psi$ be a Dirichlet character modulo $p$ of order $g$. Since the character group modulo $p$
-is cyclic of order $p-1$ and $g\mid n$, such a $\psi$ exists; its kernel has index $g$ and
-contains all $n$-th powers, hence equals the group of $n$-th powers, which also has index
-$g=\gcd(n,p-1)$ in $(\Z/p\Z)^{\times}$. Thus for $p\nmid y$ we have $\psi(y)=1$ if and only if $y$
+Let $\psi$ be a Dirichlet character modulo $p$ of order $g$. Such a $\psi$ exists because the
+character group modulo $p$ is cyclic of order $p-1$ and $g=\gcd(p-1,n)$ divides $p-1$. Its kernel
+has index $g$, and it contains every $n$-th power, since $\psi(y^n)=\psi(y)^n=1$ as $g\mid n$;
+the $n$-th powers also form a subgroup of index $g$ in $(\Z/p\Z)^{\times}$, so the two subgroups
+coincide. Thus for $p\nmid y$ we have $\psi(y)=1$ if and only if $y$
 is an $n$-th power residue modulo $p$.
 
 Instead of first choosing $u$ and then correcting for a possible divisibility $q_2\mid v$, we

@@ -35,6 +35,10 @@ more familiar "`q` is not a norm".
 
 public section
 
+-- The `haveI`s below introduce local *instances* (`Fact`, `Finite`, `Fintype`, `NeZero`,
+-- `CharP`, `Nontrivial`) that later typeclass resolution depends on, so `have` will not do.
+set_option linter.style.haveILetI false
+
 open NumberField Polynomial
 
 namespace NumberField

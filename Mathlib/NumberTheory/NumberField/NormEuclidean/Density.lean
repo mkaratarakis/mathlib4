@@ -9,6 +9,7 @@ public import Mathlib.NumberTheory.NumberField.NormEuclidean.Counting
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Dumas
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.DegreeOne
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Heilbronn
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Rootless
 public import Mathlib.NumberTheory.FrobeniusNumber
 public import Mathlib.GroupTheory.OrderOfElement
 public import Mathlib.Data.ZMod.Units
@@ -388,3 +389,201 @@ theorem tendsto_density_of_local_condition {n : ℕ} (hn : 0 < n) {p R : ℕ} {c
   rw [← hval]
   refine key.congr fun N => ?_
   simp only [hdict, hdictA, Finset.mem_univ, and_true]
+
+/-! ### The main density theorem for a pair of auxiliary primes -/
+
+namespace NumberField
+
+open Polynomial
+
+/-- The Eisenstein–Dumas hypotheses indexed by `Fin n`, as they arise when the polynomial is
+presented through its coefficient tuple.  This is `not_normEuclidean_of_eisensteinDumas`
+transported along `Fin.sum_univ_eq_sum_range`. -/
+theorem not_normEuclidean_of_eisensteinDumas_fin {K : Type*} [Field K] [NumberField K]
+    {θ : 𝓞 K} {n m p q₁ q₂ : ℕ} {a : Fin n → ℤ} {c : Fin n → ℕ} (hn : 0 < n)
+    (hp : p.Prime) (hm : 0 < m) (hmn : Nat.Coprime m n) (hcop : Nat.Coprime (p - 1) n)
+    (hdeg : Module.finrank ℚ K = n)
+    (hroot : θ ^ n + ∑ i : Fin n, ((a i : ℤ) : 𝓞 K) * θ ^ (i : ℕ) = 0)
+    (hc : ∀ i : Fin n, m * (n - (i : ℕ)) ≤ n * c i)
+    (hdvd : ∀ i : Fin n, (p : ℤ) ^ c i ∣ a i)
+    (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a ⟨0, hn⟩)
+    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
+    (hrep : ∃ u v : ℕ, 0 < u ∧ 0 < v ∧ p = u * q₁ + v * q₂ ∧ ¬ q₁ ∣ u ∧ ¬ q₂ ∣ v)
+    (hr₁ : ∀ r : ZMod q₁,
+      ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₁)) * X ^ (i : ℕ)).IsRoot r)
+    (hr₂ : ∀ r : ZMod q₂,
+      ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₂)) * X ^ (i : ℕ)).IsRoot r) :
+    ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
+      (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
+  classical
+  set a' : ℕ → ℤ := fun i => if h : i < n then a ⟨i, h⟩ else 0 with ha'
+  set c' : ℕ → ℕ := fun i => if h : i < n then c ⟨i, h⟩ else 0 with hc'
+  have ha'0 : a' 0 = a ⟨0, hn⟩ := by simp [ha', hn]
+  -- the reduction of the polynomial, in the two indexings
+  have hmap : ∀ q : ℕ, Polynomial.map (Int.castRingHom (ZMod q))
+      (X ^ n + ∑ i ∈ Finset.range n, C (a' i) * X ^ i)
+      = X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ) := by
+    intro q
+    rw [Polynomial.map_add, Polynomial.map_pow, Polynomial.map_X, Polynomial.map_sum,
+      ← Fin.sum_univ_eq_sum_range
+        (fun i => Polynomial.map (Int.castRingHom (ZMod q)) (C (a' i) * X ^ i)) n]
+    congr 1
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Polynomial.map_mul, Polynomial.map_C, Polynomial.map_pow, Polynomial.map_X]
+    simp [ha', i.2]
+  refine not_normEuclidean_of_eisensteinDumas (θ := θ) (a := a') (c := c')
+    hp hn hm hmn hcop hdeg ?_ ?_ ?_ ?_ hq₁ hq₂ hrep ?_ ?_
+  · rw [← hroot]
+    congr 1
+    rw [← Fin.sum_univ_eq_sum_range (fun i => ((a' i : ℤ) : 𝓞 K) * θ ^ i) n]
+    exact Finset.sum_congr rfl fun i _ => by simp [ha', i.2]
+  · intro i hi
+    simpa [hc', hi] using hc ⟨i, hi⟩
+  · intro i hi
+    simpa [ha', hc', hi] using hdvd ⟨i, hi⟩
+  · rwa [ha'0]
+  · intro r
+    rw [Polynomial.eval₂_eq_eval_map, hmap q₁]
+    exact hr₁ r
+  · intro r
+    rw [Polynomial.eval₂_eq_eval_map, hmap q₂]
+    exact hr₂ r
+
+/-- **The density theorem for a pair of auxiliary primes.**  Among the Eisenstein–Dumas family
+attached to `p` and the exponents `c`, the proportion of coefficient tuples whose polynomial has
+no root modulo `q₁` and no root modulo `q₂` tends to `C_{q₁}(n) · C_{q₂}(n)`, where `C_q(n)` is
+the proportion of monic polynomials of degree `n` over `ZMod q` with no root.  Combined with
+`not_normEuclidean_of_eisensteinDumas_fin`, which shows that every tuple counted in the numerator
+generates a field that is not norm-Euclidean, this is the master density theorem for a
+two-element set of auxiliary primes. -/
+theorem tendsto_density_pair {n : ℕ} (hn : 0 < n) {p q₁ q₂ : ℕ} {c : Fin n → ℕ}
+    [NeZero q₁] [NeZero q₂] [NeZero (q₁ * q₂)]
+    (hp : p.Prime) (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hne : q₁ ≠ q₂)
+    (hpq₁ : p ≠ q₁) (hpq₂ : p ≠ q₂) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩) ∧
+            ((∀ r : ZMod q₁,
+                ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₁)) * X ^ (i : ℕ)).IsRoot r) ∧
+              (∀ r : ZMod q₂,
+                ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₂)) * X ^ (i : ℕ)).IsRoot r))} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ))
+      Filter.atTop (nhds
+        ((#{y : Fin n → ZMod q₁ |
+              ∀ r : ZMod q₁, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q₁ : ℝ) ^ n *
+          ((#{y : Fin n → ZMod q₂ |
+              ∀ r : ZMod q₂, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+            / (q₂ : ℝ) ^ n))) := by
+  classical
+  have hR : 0 < q₁ * q₂ := Nat.mul_pos hq₁.pos hq₂.pos
+  have hcop : Nat.Coprime p (q₁ * q₂) :=
+    Nat.Coprime.mul_right ((Nat.coprime_primes hp hq₁).2 hpq₁) ((Nat.coprime_primes hp hq₂).2 hpq₂)
+  set T₁ : Finset (Fin n → ZMod q₁) :=
+    {y | ∀ r : ZMod q₁, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} with hT₁
+  set T₂ : Finset (Fin n → ZMod q₂) :=
+    {y | ∀ r : ZMod q₂, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} with hT₂
+  set B : Finset (Fin n → ZMod (q₁ * q₂)) :=
+    {x ∈ (Finset.univ : Finset (∀ _ : Fin n, ZMod (q₁ * q₂))) |
+      (fun i => ZMod.castHom (dvd_mul_right q₁ q₂) (ZMod q₁) (x i)) ∈ T₁ ∧
+      (fun i => ZMod.castHom (dvd_mul_left q₂ q₁) (ZMod q₂) (x i)) ∈ T₂} with hB
+  have key := tendsto_density_of_local_condition (c := c) hn hp hR hcop B
+  -- the cardinality of `B` factorises
+  have hcardB : #B = #T₁ * #T₂ :=
+    @Int.card_filter_crt (Fin n) _ _ (fun _ => q₁) (fun _ => q₂) (fun _ => inferInstance)
+      (fun _ => inferInstance) (fun _ => inferInstance)
+      (fun _ => (Nat.coprime_primes hq₁ hq₂).2 hne) T₁ T₂
+  -- the value of the limit
+  have hval : ((#B : ℝ) / ((q₁ * q₂ : ℕ) : ℝ) ^ n)
+      = (#T₁ : ℝ) / (q₁ : ℝ) ^ n * ((#T₂ : ℝ) / (q₂ : ℝ) ^ n) := by
+    rw [hcardB]
+    push_cast
+    rw [mul_pow]
+    field_simp
+  -- the dictionary at the auxiliary primes
+  have hdictB : ∀ a : Fin n → ℤ,
+      ((fun i => ((a i : ℤ) : ZMod (q₁ * q₂))) ∈ B)
+      ↔ ((∀ r : ZMod q₁,
+            ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₁)) * X ^ (i : ℕ)).IsRoot r) ∧
+          (∀ r : ZMod q₂,
+            ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q₂)) * X ^ (i : ℕ)).IsRoot r)) := by
+    intro a
+    rw [hB]
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, map_intCast, hT₁, hT₂]
+  rw [← hval]
+  refine key.congr fun N => ?_
+  simp only [hdictB]
+
+/-- `C₂(n) = 1/4` for `n ≥ 2`. -/
+theorem card_no_root_zmod_two_div {n : ℕ} (hn : 2 ≤ n) :
+    (#{y : Fin n → ZMod 2 |
+        ∀ r : ZMod 2, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+      / ((2 : ℕ) : ℝ) ^ n = 1 / 4 := by
+  have hcard : Fintype.card (ZMod 2) = 2 := by simp
+  have h := Polynomial.card_no_root_univ_eq (F := ZMod 2) (n := n) (by rw [hcard]; exact hn)
+  rw [hcard] at h
+  have h' : (#{y : Fin n → ZMod 2 |
+      ∀ r : ZMod 2, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+      = (2 : ℝ) ^ (n - 2) := by
+    have h2 := congrArg (fun z : ℤ => (z : ℝ)) h
+    push_cast at h2
+    simpa using h2
+  have hn2 : ((2 : ℕ) : ℝ) ^ n = 2 ^ (n - 2) * 4 := by
+    push_cast
+    rw [show (4 : ℝ) = 2 ^ 2 by norm_num, ← pow_add]
+    congr 1
+    omega
+  rw [h', hn2]
+  have hpos : (0 : ℝ) < 2 ^ (n - 2) := by positivity
+  field_simp
+
+/-- `C₃(n) = 8/27` for `n ≥ 3`. -/
+theorem card_no_root_zmod_three_div {n : ℕ} (hn : 3 ≤ n) :
+    (#{y : Fin n → ZMod 3 |
+        ∀ r : ZMod 3, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+      / ((3 : ℕ) : ℝ) ^ n = 8 / 27 := by
+  have hcard : Fintype.card (ZMod 3) = 3 := by simp
+  have h := Polynomial.card_no_root_univ_eq (F := ZMod 3) (n := n) (by rw [hcard]; exact hn)
+  rw [hcard] at h
+  have h' : (#{y : Fin n → ZMod 3 |
+      ∀ r : ZMod 3, ¬ (X ^ n + ∑ i : Fin n, C (y i) * X ^ (i : ℕ)).IsRoot r} : ℝ)
+      = 8 * (3 : ℝ) ^ (n - 3) := by
+    have h2 := congrArg (fun z : ℤ => (z : ℝ)) h
+    push_cast at h2
+    rw [h2]
+  have hn3 : ((3 : ℕ) : ℝ) ^ n = 3 ^ (n - 3) * 27 := by
+    push_cast
+    rw [show (27 : ℝ) = 3 ^ 3 by norm_num, ← pow_add]
+    congr 1
+    omega
+  rw [h', hn3]
+  have hpos : (0 : ℝ) < 3 ^ (n - 3) := by positivity
+  field_simp
+
+/-- **The bound `2/27`.**  For `n ≥ 3` and a prime `p ∉ {2,3}`, the proportion of the
+Eisenstein–Dumas family attached to `p` and `c` whose polynomial has no root modulo `2` and none
+modulo `3` tends to `2/27`.  By `not_normEuclidean_of_eisensteinDumas_fin`, each of those
+polynomials generates a field that is not norm-Euclidean, provided `p` can be written as
+`2u + 3v` with `u` odd and `3 ∤ v` and `gcd (p-1, n) = 1`. -/
+theorem tendsto_density_two_three {n : ℕ} (hn : 3 ≤ n) {p : ℕ} {c : Fin n → ℕ}
+    (hp : p.Prime) (hp2 : p ≠ 2) (hp3 : p ≠ 3) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩) ∧
+            ((∀ r : ZMod 2,
+                ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod 2)) * X ^ (i : ℕ)).IsRoot r) ∧
+              (∀ r : ZMod 3,
+                ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod 3)) * X ^ (i : ℕ)).IsRoot r))} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩} : ℝ))
+      Filter.atTop (nhds (2 / 27)) := by
+  have h := tendsto_density_pair (n := n) (c := c) (by omega) hp Nat.prime_two Nat.prime_three
+    (by norm_num) hp2 hp3
+  have hv : (1 : ℝ) / 4 * (8 / 27) = 2 / 27 := by norm_num
+  rw [card_no_root_zmod_two_div (by omega), card_no_root_zmod_three_div hn, hv] at h
+  exact h
+
+end NumberField

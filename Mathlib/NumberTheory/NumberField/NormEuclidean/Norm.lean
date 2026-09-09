@@ -47,7 +47,7 @@ variable {A B : Type*} [CommRing A] [CommRing B] [Algebra A B]
 
 Multiplication by `t` is nilpotent modulo `p`, so its characteristic polynomial there is `X ^ n`,
 and the determinant of `x + t` reduces to `x ^ n`. -/
-theorem dvd_norm_add_sub_pow {ι : Type*} [Fintype ι] [DecidableEq ι] (b : Module.Basis ι A B) {p : A}
+theorem dvd_norm_add_sub_pow {ι : Type*} [Fintype ι] (b : Module.Basis ι A B) {p : A}
     (hp : IsReduced (A ⧸ Ideal.span {p})) {t : B} (ht : algebraMap A B p ∣ t ^ Fintype.card ι)
     (x : A) : p ∣ Algebra.norm A (algebraMap A B x + t) - x ^ Fintype.card ι := by
   classical
@@ -89,10 +89,11 @@ congruent to `x : A` modulo `I`, then `norm A ρ ≡ x ^ n` modulo `p`.
 
 For a prime `p` totally ramified in a number field `K`, so that `(p) = 𝔭 ^ n`, this says that the
 norm map induces the `n`-th power map on the residue field at `𝔭`. -/
-theorem dvd_norm_sub_pow {ι : Type*} [Fintype ι] [DecidableEq ι] (b : Module.Basis ι A B) {p : A}
+theorem dvd_norm_sub_pow {ι : Type*} [Fintype ι] (b : Module.Basis ι A B) {p : A}
     (hp : IsReduced (A ⧸ Ideal.span {p})) {I : Ideal B}
     (hI : I ^ Fintype.card ι ≤ Ideal.span {algebraMap A B p}) {ρ : B} {x : A}
     (h : ρ - algebraMap A B x ∈ I) : p ∣ Algebra.norm A ρ - x ^ Fintype.card ι := by
+  classical
   have hdvd : algebraMap A B p ∣ (ρ - algebraMap A B x) ^ Fintype.card ι :=
     Ideal.mem_span_singleton.1 (hI (Ideal.pow_mem_pow h _))
   simpa using dvd_norm_add_sub_pow b hp hdvd x

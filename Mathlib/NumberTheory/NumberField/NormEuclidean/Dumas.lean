@@ -103,7 +103,7 @@ theorem mul_multiplicity_eq :
     refine ha0 ?_
     have hz : ((a 0 : ℤ) : 𝓞 K) = 0 := by
       have h1 : ∑ i ∈ range n, ((a i : ℤ) : 𝓞 K) * (0 : 𝓞 K) ^ i = ((a 0 : ℤ) : 𝓞 K) := by
-        rw [Finset.sum_eq_single 0] <;> simp_all [Finset.mem_range, hn]
+        rw [Finset.sum_eq_single 0] <;> simp_all [Finset.mem_range]
       rw [h1] at hroot
       simpa [zero_pow hn.ne'] using hroot
     exact_mod_cast (map_eq_zero_iff _ (algebraMap ℤ (𝓞 K)).injective_int).1 (by simpa using hz)
