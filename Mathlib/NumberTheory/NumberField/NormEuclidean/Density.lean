@@ -1025,3 +1025,275 @@ theorem le_sum_atLeastTwo_of_prime {n : ℕ} (hn : 2 ≤ n) {Q : Finset ℕ} (hQ
     (fun q hq => (card_no_root_div_mem_Ico hn (hQ q hq)).2)
 
 end NumberField
+
+/-! ### The density of the Eisenstein–Dumas family itself -/
+
+namespace Nat
+
+/-- For `m` coprime to `n` and `0 < j < n`, the two floors `⌊mj/n⌋` and `⌊m(n-j)/n⌋` add up to
+`m - 1`. -/
+theorem div_add_div_sub_of_coprime {m n j : ℕ} (hm : 0 < m) (hmn : Nat.Coprime m n) (hj1 : 1 ≤ j)
+    (hjn : j < n) : m * j / n + m * (n - j) / n = m - 1 := by
+  have hn : 0 < n := lt_of_le_of_lt (Nat.zero_le j) hjn
+  set q := m * j / n with hq
+  set r := m * j % n with hr
+  have hmod : n * q + r = m * j := Nat.div_add_mod (m * j) n
+  have hrlt : r < n := Nat.mod_lt _ hn
+  have hr0 : r ≠ 0 := by
+    intro h
+    have hdvd : n ∣ m * j := Nat.dvd_of_mod_eq_zero h
+    have hnj : n ∣ j := Nat.Coprime.dvd_of_dvd_mul_left (Nat.Coprime.symm hmn) hdvd
+    have := Nat.le_of_dvd (by omega) hnj
+    omega
+  have hqm : q < m := by
+    have hlt : m * j < m * n := Nat.mul_lt_mul_of_pos_left hjn hm
+    exact Nat.div_lt_of_lt_mul (by rw [mul_comm n m]; exact hlt)
+  -- rewrite `m * (n - j)`
+  have h1 : m * (n - j) = m * n - m * j := by rw [Nat.mul_sub]
+  have h2 : n * (m - q - 1) + n * (q + 1) = n * m := by
+    rw [← Nat.mul_add]
+    congr 1
+    omega
+  have h3 : n * (q + 1) = n * q + n := by ring
+  have h4 : m * n = n * m := mul_comm m n
+  have hsub : m * (n - j) = (n - r) + n * (m - q - 1) := by omega
+  rw [hsub, Nat.add_mul_div_left _ _ hn, Nat.div_eq_of_lt (by omega)]
+  omega
+
+/-- **The floor sum.**  For coprime `m` and `n`, `∑_{j=1}^{n-1} ⌊mj/n⌋ = (m-1)(n-1)/2`. -/
+theorem two_mul_sum_div_eq {m n : ℕ} (hm : 0 < m) (hmn : Nat.Coprime m n) :
+    2 * ∑ j ∈ Finset.Ico 1 n, m * j / n = (m - 1) * (n - 1) := by
+  have hre : ∑ j ∈ Finset.Ico 1 n, (m * (n - j) / n) = ∑ j ∈ Finset.Ico 1 n, (m * j / n) := by
+    have h := Finset.sum_Ico_reflect (fun x => m * x / n) 1 (Nat.le_succ n)
+    simpa using h
+  have key : ∀ j ∈ Finset.Ico 1 n, m * j / n + m * (n - j) / n = m - 1 := by
+    intro j hj
+    rw [Finset.mem_Ico] at hj
+    exact div_add_div_sub_of_coprime hm hmn hj.1 hj.2
+  have h2 := Finset.sum_congr rfl key
+  rw [Finset.sum_add_distrib, hre, Finset.sum_const, Nat.card_Ico, smul_eq_mul] at h2
+  have hcomm : (n - 1) * (m - 1) = (m - 1) * (n - 1) := Nat.mul_comm _ _
+  omega
+
+/-- **The exponent of the Eisenstein–Dumas density.**  For coprime `m` and `n`,
+`∑_{i<n} ⌈m(n-i)/n⌉ = (m+1)(n+1)/2 - 1`. -/
+theorem two_mul_sum_ceil_eq {m n : ℕ} (hm : 0 < m) (hn : 0 < n) (hmn : Nat.Coprime m n) :
+    2 * ∑ i ∈ Finset.range n, ((m * (n - i) + n - 1) / n) = (m + 1) * (n + 1) - 2 := by
+  have hIco : ∀ a b : ℕ, Finset.Ico a (b + 1) = Finset.Icc a b := fun a b => Finset.val_inj.mp rfl
+  -- reflect the sum onto `Icc 1 n`
+  have hre : ∑ i ∈ Finset.range n, ((m * (n - i) + n - 1) / n)
+      = ∑ j ∈ Finset.Icc 1 n, ((m * j + n - 1) / n) := by
+    have h := Finset.sum_Ico_reflect (fun x => (m * x + n - 1) / n) 0 (Nat.le_succ n)
+    rw [Finset.range_eq_Ico, h, show n + 1 - n = 1 from by omega,
+      show n + 1 - 0 = n + 1 from by omega, hIco]
+  -- split off the top term
+  have hsplit : ∑ j ∈ Finset.Icc 1 n, ((m * j + n - 1) / n)
+      = ((m * n + n - 1) / n) + ∑ j ∈ Finset.Ico 1 n, ((m * j + n - 1) / n) := by
+    rw [← hIco 1 n, Finset.sum_Ico_succ_top (by omega)]
+    omega
+  -- the top term is `m`
+  have htop : (m * n + n - 1) / n = m := by
+    have : m * n + n - 1 = n * m + (n - 1) := by
+      rw [Nat.mul_comm m n]
+      omega
+    rw [this, Nat.mul_add_div (by omega), Nat.div_eq_of_lt (by omega)]
+    omega
+  -- each remaining ceiling is one more than the floor
+  have hceil : ∀ j ∈ Finset.Ico 1 n, (m * j + n - 1) / n = m * j / n + 1 := by
+    intro j hj
+    rw [Finset.mem_Ico] at hj
+    have hn0 : 0 < n := by omega
+    set q := m * j / n with hq
+    set r := m * j % n with hr
+    have hmod : n * q + r = m * j := Nat.div_add_mod (m * j) n
+    have hrlt : r < n := Nat.mod_lt _ hn0
+    have hr0 : r ≠ 0 := by
+      intro h
+      have hdvd : n ∣ m * j := Nat.dvd_of_mod_eq_zero h
+      have hnj : n ∣ j := Nat.Coprime.dvd_of_dvd_mul_left (Nat.Coprime.symm hmn) hdvd
+      have := Nat.le_of_dvd (by omega) hnj
+      omega
+    have hrw : m * j + n - 1 = n * (q + 1) + (r - 1) := by
+      have : n * (q + 1) = n * q + n := by ring
+      omega
+    rw [hrw, Nat.mul_add_div hn0, Nat.div_eq_of_lt (by omega)]
+  rw [hre, hsplit, htop, Finset.sum_congr rfl hceil, Finset.sum_add_distrib, Finset.sum_const,
+    Nat.card_Ico, smul_eq_mul, Nat.mul_one]
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  have hfloor := two_mul_sum_div_eq (m := m' + 1) (n := n' + 1) (by omega) hmn
+  have hprod : (m' + 1 + 1) * (n' + 1 + 1) = m' * n' + 2 * m' + 2 * n' + 4 := by ring
+  simp only [Nat.add_sub_cancel] at hfloor
+  omega
+
+end Nat
+
+namespace Int
+
+/-- **The density of a family of divisibility conditions.**  The proportion of integer tuples in
+the box `|a i| ≤ N` with `p ^ d i ∣ a i` for every `i` tends to `p ^ -(∑ i, d i)`. -/
+theorem tendsto_density_dvd {n : ℕ} {p : ℕ} (hp : 0 < p) (d : Fin n → ℕ) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ∀ i, (p : ℤ) ^ d i ∣ a i} : ℝ) / (2 * N + 1) ^ n)
+      Filter.atTop (nhds (1 / (p : ℝ) ^ (∑ i, d i))) := by
+  classical
+  have hM : ∀ i : Fin n, 0 < p ^ d i := fun i => by positivity
+  have hNe : ∀ i : Fin n, NeZero (p ^ d i) := fun i => ⟨(hM i).ne'⟩
+  have key := Int.tendsto_card_box_filter_div_piFinset (M := fun i : Fin n => p ^ d i) hM
+    (fun _ => ({0} : Finset (ZMod (p ^ _))))
+  -- the value
+  have hval : (∏ i : Fin n, (#({0} : Finset (ZMod (p ^ d i))) : ℝ) / (p ^ d i : ℕ))
+      = 1 / (p : ℝ) ^ (∑ i, d i) := by
+    have : ∀ i : Fin n, (#({0} : Finset (ZMod (p ^ d i))) : ℝ) / ((p ^ d i : ℕ) : ℝ)
+        = 1 / (p : ℝ) ^ d i := by
+      intro i
+      rw [Finset.card_singleton]
+      push_cast
+      ring
+    rw [Finset.prod_congr rfl fun i _ => this i, Finset.prod_div_distrib, Finset.prod_const_one,
+      ← Finset.prod_pow_eq_pow_sum]
+  rw [hval, Fintype.card_fin] at key
+  have hdict : ∀ a : Fin n → ℤ,
+      ((fun i => ((a i : ℤ) : ZMod (p ^ d i))) ∈
+        Fintype.piFinset (fun i : Fin n => ({0} : Finset (ZMod (p ^ d i)))))
+      ↔ (∀ i, (p : ℤ) ^ d i ∣ a i) := by
+    intro a
+    rw [Fintype.mem_piFinset]
+    exact forall_congr' fun i => by rw [Finset.mem_singleton, Int.intCast_pow_eq_zero_iff]
+  refine key.congr fun N => ?_
+  simp only [hdict]
+
+open scoped Classical in
+/-- **The density of the Eisenstein–Dumas family.**  For exponents `c` with `c 0 = m`, the
+proportion of monic integer polynomials of degree `n` and height at most `N` whose coefficients
+satisfy `p ^ c i ∣ a i` and `p ^ (c 0 + 1) ∤ a 0` tends to `(1 - 1/p) p ^ -(∑ i, c i)`.
+
+For the Eisenstein–Dumas exponents `c i = ⌈m (n - i) / n⌉` the exponent `∑ i, c i` is `S(m,n)`,
+and for `m = 1` this is the Eisenstein density `p ^ -n - p ^ -(n+1)`. -/
+theorem tendsto_density_exact_dvd {n : ℕ} (hn : 0 < n) {p : ℕ} (hp : 0 < p) (c : Fin n → ℕ) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ) / (2 * N + 1) ^ n)
+      Filter.atTop (nhds ((1 - 1 / (p : ℝ)) / (p : ℝ) ^ (∑ i, c i))) := by
+  classical
+  set c' : Fin n → ℕ := Function.update c ⟨0, hn⟩ (c ⟨0, hn⟩ + 1) with hc'
+  have hle : ∀ i, c i ≤ c' i := by
+    intro i
+    rw [hc']
+    by_cases hi : i = ⟨0, hn⟩
+    · simp [hi]
+    · simp [Function.update_of_ne hi]
+  have hsum : ∑ i, c' i = (∑ i, c i) + 1 := by
+    rw [hc', Finset.sum_update_of_mem (Finset.mem_univ _),
+      ← Finset.add_sum_erase _ c (Finset.mem_univ (⟨0, hn⟩ : Fin n)),
+      Finset.sdiff_singleton_eq_erase]
+    ring
+  -- the two divisibility families, the second contained in the first
+  have hsub : ∀ N : ℕ,
+      {a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+          ∀ i, (p : ℤ) ^ c' i ∣ a i} ⊆
+        {a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+          ∀ i, (p : ℤ) ^ c i ∣ a i} := by
+    intro N a ha
+    rw [Finset.mem_filter] at ha ⊢
+    exact ⟨ha.1, fun i => dvd_trans (pow_dvd_pow _ (hle i)) (ha.2 i)⟩
+  -- the numerator is the difference of the two counts
+  have hdiff : ∀ N : ℕ,
+      (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+          (∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ)
+      = (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ∀ i, (p : ℤ) ^ c i ∣ a i} : ℝ)
+        - (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ∀ i, (p : ℤ) ^ c' i ∣ a i} : ℝ) := by
+    intro N
+    have hset : {a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+          (∀ i, (p : ℤ) ^ c i ∣ a i) ∧ ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩}
+        = {a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ∀ i, (p : ℤ) ^ c i ∣ a i} \
+          {a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ∀ i, (p : ℤ) ^ c' i ∣ a i} := by
+      ext a
+      simp only [Finset.mem_sdiff, Finset.mem_filter, not_and, not_forall]
+      constructor
+      · rintro ⟨hbox, hdvd, hnd⟩
+        refine ⟨⟨hbox, hdvd⟩, fun _ => ⟨⟨0, hn⟩, ?_⟩⟩
+        rwa [hc', Function.update_self]
+      · rintro ⟨⟨hbox, hdvd⟩, h2⟩
+        obtain ⟨i, hi⟩ := h2 hbox
+        refine ⟨hbox, hdvd, ?_⟩
+        by_cases hi0 : i = ⟨0, hn⟩
+        · subst hi0
+          rwa [hc', Function.update_self] at hi
+        · exact absurd (dvd_trans (pow_dvd_pow _
+            (le_of_eq (by simp [hc', Function.update_of_ne hi0]))) (hdvd i)) hi
+    rw [hset, Finset.card_sdiff, Finset.inter_eq_left.2 (hsub N),
+      Nat.cast_sub (Finset.card_le_card (hsub N))]
+  simp only [hdiff]
+  have h1 := tendsto_density_dvd (n := n) hp c
+  have h2 := tendsto_density_dvd (n := n) hp c'
+  have hlim := h1.sub h2
+  rw [hsum] at hlim
+  have hvalue : (1 : ℝ) / (p : ℝ) ^ (∑ i, c i) - 1 / (p : ℝ) ^ ((∑ i, c i) + 1)
+      = (1 - 1 / (p : ℝ)) / (p : ℝ) ^ (∑ i, c i) := by
+    have hppos : (0 : ℝ) < p := by exact_mod_cast hp
+    have hspos : (0 : ℝ) < (p : ℝ) ^ (∑ i, c i) := by positivity
+    rw [pow_succ]
+    field_simp
+  rw [← hvalue]
+  exact hlim.congr fun N => (sub_div _ _ _).symm
+
+end Int
+
+namespace NumberField
+
+open Filter
+
+/-- **Theorem 1.4: the density of the Eisenstein–Dumas family.**  For coprime `m, n ≥ 1` and a
+prime `p`, the proportion of monic integer polynomials of degree `n` and height at most `N` that
+satisfy the Eisenstein–Dumas condition at `p` of slope `m / n` tends to
+`(1 - 1/p) p ^ -S(m,n)` with `S(m,n) = (m+1)(n+1)/2 - 1`.
+
+For `m = 1` this is `S(1,n) = n`, the Eisenstein density `p ^ -n - p ^ -(n+1)`. -/
+theorem tendsto_density_eisensteinDumas {n m p : ℕ} (hn : 0 < n) (hm : 0 < m) (hp : 0 < p)
+    (hmn : Nat.Coprime m n) :
+    Filter.Tendsto (fun N : ℕ =>
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i : Fin n, (p : ℤ) ^ ((m * (n - (i : ℕ)) + n - 1) / n) ∣ a i) ∧
+              ¬ (p : ℤ) ^ (m + 1) ∣ a ⟨0, hn⟩} : ℝ) / (2 * N + 1) ^ n)
+      Filter.atTop (nhds ((1 - 1 / (p : ℝ)) / (p : ℝ) ^ ((m + 1) * (n + 1) / 2 - 1))) := by
+  classical
+  set c : Fin n → ℕ := fun i => (m * (n - (i : ℕ)) + n - 1) / n with hc
+  -- the exponent at the constant coefficient is `m`
+  have hc0 : c ⟨0, hn⟩ = m := by
+    have h1 : m * (n - (0 : ℕ)) + n - 1 = n * m + (n - 1) := by
+      rw [Nat.sub_zero, Nat.mul_comm m n]
+      omega
+    rw [hc]
+    change (m * (n - (0 : ℕ)) + n - 1) / n = m
+    rw [h1, Nat.mul_add_div (by omega), Nat.div_eq_of_lt (by omega)]
+    omega
+  -- the sum of the exponents is `S(m,n)`
+  have hsum : ∑ i : Fin n, c i = (m + 1) * (n + 1) / 2 - 1 := by
+    have h2 := Nat.two_mul_sum_ceil_eq hm hn hmn
+    have h3 : ∑ i : Fin n, c i = ∑ i ∈ Finset.range n, ((m * (n - i) + n - 1) / n) := by
+      rw [hc, Fin.sum_univ_eq_sum_range (fun i => (m * (n - i) + n - 1) / n) n]
+    have heven : 2 ∣ (m + 1) * (n + 1) := by
+      rcases Nat.even_or_odd m with hme | hmo
+      · rcases Nat.even_or_odd n with hne | hno
+        · exfalso
+          have h2m : 2 ∣ m := hme.two_dvd
+          have h2n : 2 ∣ n := hne.two_dvd
+          have := Nat.dvd_gcd h2m h2n
+          rw [hmn] at this
+          omega
+        · exact Dvd.dvd.mul_left hno.add_one.two_dvd _
+      · exact Dvd.dvd.mul_right hmo.add_one.two_dvd _
+    have hge : 2 ≤ (m + 1) * (n + 1) := by nlinarith
+    omega
+  have key := Int.tendsto_density_exact_dvd (n := n) hn hp c
+  rw [hc0, hsum] at key
+  exact key
+
+end NumberField
