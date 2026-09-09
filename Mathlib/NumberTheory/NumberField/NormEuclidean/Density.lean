@@ -68,6 +68,44 @@ theorem exists_eq_add_mul_of_sq_mul_sq_le {q₁ q₂ p : ℕ} (h₁ : 1 < q₁) 
   · exact fun h => absurd (Nat.dvd_one.1 ((Nat.dvd_add_right ⟨t₁, rfl⟩).1 h)) (by omega)
   · exact fun h => absurd (Nat.dvd_one.1 ((Nat.dvd_add_right ⟨t₂, rfl⟩).1 h)) (by omega)
 
+/-- **Detecting `q₂ ∤ v` by a congruence modulo `q₂ ^ 2`.**  If `u q₁ ≡ p + q₁ q₂ (mod q₂ ^ 2)`
+and `u q₁ < p`, then `p - u q₁` is `q₂` times a positive integer `v` not divisible by `q₂`.
+
+This replaces the correction step of the classical argument, which shifts `u` by a multiple of
+`q₂` and thereby destroys the property of `u q₁` of being an `n`-th power residue. -/
+theorem exists_rep_of_congr {p q₁ q₂ u : ℕ} (hq₂ : 1 < q₂) (hq₁q₂ : ¬ (q₂ : ℤ) ∣ (q₁ : ℤ))
+    (hlt : u * q₁ < p)
+    (hcong : ((u * q₁ : ℕ) : ℤ) ≡ (p : ℤ) + (q₁ : ℤ) * q₂ [ZMOD ((q₂ : ℤ) ^ 2)]) :
+    ∃ v : ℕ, 0 < v ∧ p = u * q₁ + v * q₂ ∧ ¬ q₂ ∣ v := by
+  have hq₂0 : (0 : ℤ) < q₂ := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hq₂.le
+  -- `q₂ ^ 2` divides `p + q₁ q₂ - u q₁`
+  obtain ⟨k, hk⟩ : ((q₂ : ℤ) ^ 2) ∣ ((p : ℤ) + (q₁ : ℤ) * q₂ - (u * q₁ : ℕ)) :=
+    (Int.ModEq.dvd hcong)
+  -- hence `p - u q₁ = q₂ * (q₂ k - q₁)`
+  have hw : ((p : ℤ) - (u * q₁ : ℕ)) = (q₂ : ℤ) * ((q₂ : ℤ) * k - q₁) := by linarith [hk]
+  have hwpos : (0 : ℤ) < (p : ℤ) - (u * q₁ : ℕ) := by
+    have : ((u * q₁ : ℕ) : ℤ) < (p : ℤ) := by exact_mod_cast hlt
+    linarith
+  have hvpos : (0 : ℤ) < (q₂ : ℤ) * k - q₁ := by
+    by_contra hcon
+    push Not at hcon
+    nlinarith [hw, hwpos, hq₂0]
+  -- the integer `v`
+  obtain ⟨v, hv⟩ : ∃ v : ℕ, ((v : ℤ)) = (q₂ : ℤ) * k - q₁ := ⟨((q₂ : ℤ) * k - q₁).toNat, by
+    rw [Int.toNat_of_nonneg hvpos.le]⟩
+  refine ⟨v, ?_, ?_, ?_⟩
+  · exact_mod_cast hv ▸ hvpos
+  · have : ((p : ℤ)) = ((u * q₁ : ℕ) : ℤ) + (v : ℤ) * q₂ := by rw [hv]; linarith [hw]
+    exact_mod_cast this
+  · intro hdvd
+    obtain ⟨t, rfl⟩ := hdvd
+    have : (q₂ : ℤ) ∣ (q₁ : ℤ) := by
+      refine ⟨k - t, ?_⟩
+      have h2 : ((q₂ * t : ℕ) : ℤ) = (q₂ : ℤ) * k - q₁ := hv
+      push_cast at h2
+      linarith
+    exact hq₁q₂ this
+
 /-- If `n` is coprime to `p - 1` then every residue modulo the prime `p` is an `n`-th power. -/
 theorem Nat.exists_pow_eq_of_coprime_sub_one {p n : ℕ} (hp : p.Prime) (hn : n ≠ 0)
     (hcop : Nat.Coprime (p - 1) n) (y : ZMod p) : ∃ x : ZMod p, x ^ n = y := by
@@ -92,14 +130,15 @@ with slope `m / n`, where `gcd (p - 1) n = 1`.  If `F` has no root modulo two pr
 `q₁, q₂` admitting a representation `p = u q₁ + v q₂` with `q₁ ∤ u` and `q₂ ∤ v` (for instance
 because `q₁ ^ 2 q₂ ^ 2 ≤ p`, see `exists_eq_add_mul_of_sq_mul_sq_le`), then `K` is not
 norm-Euclidean. -/
-theorem not_normEuclidean_of_eisensteinDumas {θ : 𝓞 K} {n m p q₁ q₂ : ℕ} {a : ℕ → ℤ} {c : ℕ → ℕ}
+theorem not_normEuclidean_of_eisensteinDumas_of_isPow {θ : 𝓞 K} {n m p q₁ q₂ : ℕ} {a : ℕ → ℤ}
+    {c : ℕ → ℕ} {u v : ℕ}
     (hp : p.Prime) (hn : 0 < n) (hm : 0 < m) (hmn : Nat.Coprime m n)
-    (hcop : Nat.Coprime (p - 1) n) (hdeg : Module.finrank ℚ K = n)
+    (hrep : 0 < u ∧ 0 < v ∧ p = u * q₁ + v * q₂ ∧ ¬ q₁ ∣ u ∧ ¬ q₂ ∣ v)
+    (hres : ∃ x : ℤ, (p : ℤ) ∣ x ^ n - ((u * q₁ : ℕ) : ℤ)) (hdeg : Module.finrank ℚ K = n)
     (hroot : θ ^ n + ∑ i ∈ range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
     (hc : ∀ i < n, m * (n - i) ≤ n * c i) (hdvd : ∀ i < n, (p : ℤ) ^ c i ∣ a i)
     (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a 0)
     (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
-    (hrep : ∃ u v : ℕ, 0 < u ∧ 0 < v ∧ p = u * q₁ + v * q₂ ∧ ¬ q₁ ∣ u ∧ ¬ q₂ ∣ v)
     (hr₁ : ∀ r : ZMod q₁, eval₂ (Int.castRingHom (ZMod q₁)) r
       (X ^ n + ∑ i ∈ range n, C (a i) * X ^ i) ≠ 0)
     (hr₂ : ∀ r : ZMod q₂, eval₂ (Int.castRingHom (ZMod q₂)) r
@@ -123,17 +162,9 @@ theorem not_normEuclidean_of_eisensteinDumas {θ : 𝓞 K} {n m p q₁ q₂ : �
   -- total ramification
   have hram : 𝔭 ^ n = Ideal.span {(p : 𝓞 K)} :=
     EisensteinDumas.pow_eq_span hp hn hm hmn hroot hc hdvd hnd h𝔭max hmem hdeg
-  -- the representation `p = u q₁ + v q₂`
-  obtain ⟨u, v, hu0, hv0, hpuv, hqu, hqv⟩ := hrep
-  -- `u q₁` is an `n`-th power residue modulo `p`
-  have hnez : NeZero p := ⟨hp.ne_zero⟩
-  obtain ⟨x, hx⟩ := Nat.exists_pow_eq_of_coprime_sub_one hp hn.ne' hcop ((u * q₁ : ℕ) : ZMod p)
-  have hxdvd : (p : ℤ) ∣ (x.val : ℤ) ^ n - ((u * q₁ : ℕ) : ℤ) := by
-    rw [← ZMod.intCast_zmod_eq_zero_iff_dvd]
-    push_cast
-    rw [ZMod.natCast_val, ZMod.cast_id]
-    rw [sub_eq_zero]
-    exact_mod_cast hx
+  -- the representation `p = u q₁ + v q₂` and the power residue
+  obtain ⟨hu0, hv0, hpuv, hqu, hqv⟩ := hrep
+  obtain ⟨x, hxdvd⟩ := hres
   -- neither `u q₁` nor `-(v q₂)` is a norm
   have hna : ∀ α : 𝓞 K, Algebra.norm ℤ α ≠ (u * q₁ : ℕ) := by
     intro α
@@ -150,11 +181,39 @@ theorem not_normEuclidean_of_eisensteinDumas {θ : 𝓞 K} {n m p q₁ q₂ : �
     exact this (by rw [h]; ring)
   -- Heilbronn's criterion
   refine not_normEuclidean_of_totallyRamified hp (by rw [← hdeg] at hram; exact hram)
-    (a := (u * q₁ : ℕ)) (b := (v * q₂ : ℕ)) (x := (x.val : ℤ))
+    (a := (u * q₁ : ℕ)) (b := (v * q₂ : ℕ)) (x := x)
     (by exact_mod_cast Nat.mul_pos hu0 hq₁.pos) (by exact_mod_cast Nat.mul_pos hv0 hq₂.pos)
     (by exact_mod_cast hpuv) ?_ hna hnb
   rw [hdeg]
   exact hxdvd
+
+
+/-- **The arithmetic core, Lemma 3.7.**  When `gcd (p - 1) n = 1` every residue modulo `p` is an
+`n`-th power, so the power-residue hypothesis of
+`not_normEuclidean_of_eisensteinDumas_of_isPow` is automatic. -/
+theorem not_normEuclidean_of_eisensteinDumas {θ : 𝓞 K} {n m p q₁ q₂ : ℕ} {a : ℕ → ℤ} {c : ℕ → ℕ}
+    (hp : p.Prime) (hn : 0 < n) (hm : 0 < m) (hmn : Nat.Coprime m n)
+    (hcop : Nat.Coprime (p - 1) n) (hdeg : Module.finrank ℚ K = n)
+    (hroot : θ ^ n + ∑ i ∈ range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
+    (hc : ∀ i < n, m * (n - i) ≤ n * c i) (hdvd : ∀ i < n, (p : ℤ) ^ c i ∣ a i)
+    (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a 0)
+    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
+    (hrep : ∃ u v : ℕ, 0 < u ∧ 0 < v ∧ p = u * q₁ + v * q₂ ∧ ¬ q₁ ∣ u ∧ ¬ q₂ ∣ v)
+    (hr₁ : ∀ r : ZMod q₁, eval₂ (Int.castRingHom (ZMod q₁)) r
+      (X ^ n + ∑ i ∈ range n, C (a i) * X ^ i) ≠ 0)
+    (hr₂ : ∀ r : ZMod q₂, eval₂ (Int.castRingHom (ZMod q₂)) r
+      (X ^ n + ∑ i ∈ range n, C (a i) * X ^ i) ≠ 0) :
+    ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
+      (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
+  obtain ⟨u, v, hu0, hv0, hpuv, hqu, hqv⟩ := hrep
+  have hnez : NeZero p := ⟨hp.ne_zero⟩
+  obtain ⟨x, hx⟩ := Nat.exists_pow_eq_of_coprime_sub_one hp hn.ne' hcop ((u * q₁ : ℕ) : ZMod p)
+  refine not_normEuclidean_of_eisensteinDumas_of_isPow hp hn hm hmn ⟨hu0, hv0, hpuv, hqu, hqv⟩
+    ⟨(x.val : ℤ), ?_⟩ hdeg hroot hc hdvd hnd hq₁ hq₂ hr₁ hr₂
+  rw [← ZMod.intCast_zmod_eq_zero_iff_dvd]
+  push_cast
+  rw [ZMod.natCast_val, ZMod.cast_id, sub_eq_zero]
+  exact_mod_cast hx
 
 end NumberField
 
