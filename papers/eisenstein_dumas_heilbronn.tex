@@ -1,0 +1,934 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\OK}{\mathcal{O}_K}
+\newcommand{\Ht}{\operatorname{Ht}}
+\newcommand{\vp}{v_{\mathfrak{p}}}
+\newcommand{\ord}{\operatorname{ord}}
+\newcommand{\p}{\mathfrak{p}}
+\newcommand{\q}{\mathfrak{q}}
+\newcommand{\N}{\mathrm{N}}
+
+\begin{document}
+
+\title[Densities of Eisenstein--Dumas polynomials and Heilbronn's criterion]
+  {Densities of Eisenstein--Dumas polynomials \\ and Heilbronn's criterion}
+
+\author{Michail Karatarakis}
+
+\date{August 2026}
+
+\begin{abstract}
+Heilbronn's criterion is a sufficient condition for a number field with a totally ramified
+prime to fail to be norm-Euclidean. Hibbler, McGown and Trevi\~no recently showed that, among
+the monic integer polynomials of degree $n$ that are Eisenstein at a prime $p$, the proportion
+of those to which the criterion applies has lower density at least $\max\{2/27,\,1-\varepsilon(p)\}$.
+We extend their results in three directions. First, we replace the Eisenstein condition by the
+much weaker Eisenstein--Dumas condition, that the Newton polygon at $p$ consist of a single
+segment of slope $-m/n$ with $\gcd(m,n)=1$; we prove that this condition already forces total
+ramification, and we compute the density of the resulting family to be
+$(1-1/p)\,p^{-S(m,n)}$ with $S(m,n)=\tfrac12(m+1)(n+1)-1$, which for $m=1$ recovers the classical
+Eisenstein density. Second, we prove a single master density theorem, indexed by a finite set $Q$
+of auxiliary primes, of which the constant $2/27$ and the bound $1-\varepsilon(p)$ are the two
+extreme cases; intermediate choices of $Q$ give strictly better bounds in the intermediate range
+of $p$, for instance $136/675 \approx 0.2015$ for all $p \ge 225$. Third, we give a proof of
+Heilbronn's criterion that uses no embeddings and no Galois closure, resting instead on the fact
+that the norm form of a totally ramified prime reduces to the $n$-th power map on the residue
+field. Along the way we isolate the exact non-norm statement that the argument requires, which is
+slightly stronger than the one usually quoted.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Let $f(x)=a_nx^n+\dots+a_1x+a_0 \in \Z[x]$ and let
+$\Ht(f)=\max\{|a_0|,\dots,|a_n|\}$ be the standard height, so that for every $X>0$ the set of
+$f$ in a given family with $\Ht(f)\le X$ is finite. For a monic $f$ of degree $n$ and $X\ge1$ the
+condition $\Ht(f)\le X$ says exactly that $|a_i|\le X$ for $0\le i\le n-1$, so the monic
+polynomials of degree $n$ and height at most $X$ are counted by $(2X+1)^n$. Given a family $\mathcal F$ of polynomials and
+a distinguished subfamily $\mathcal F^*$, we write $N(X)$ and $N^*(X)$ for the corresponding
+counting functions and $\delta(X)=N^*(X)/N(X)$ for the proportion; the lower density of
+$\mathcal F^*$ in $\mathcal F$ is $\liminf_{X\to\infty}\delta(X)$.
+
+A number field $K$ is \emph{norm-Euclidean} if for all $\alpha,\beta\in\OK$ with $\beta\ne 0$
+there exist $\gamma,\rho\in\OK$ with $\alpha=\gamma\beta+\rho$ and $|\N(\rho)|<|\N(\beta)|$.
+Deciding which fields are norm-Euclidean is hard, and has been completed only in degree two; see
+the survey \cite{Lemmermeyer}. When $K$ possesses a totally ramified prime there is a classical
+obstruction available, due to Heilbronn \cite{H1,H2} (see also \cite{EK,Egami}).
+
+\begin{theorem}[Heilbronn's criterion]\label{thm:heilbronn-intro}
+Let $K$ be a number field of degree $n$ and let $p$ be a prime that is totally ramified in $K$.
+Suppose $p=a+b$ with $a,b>0$, that $a$ is an $n$-th power residue modulo $p$, and that neither
+$a$ nor $-b$ is the norm of an algebraic integer of $K$. Then $K$ is not norm-Euclidean.
+\end{theorem}
+
+Hibbler, McGown and Trevi\~no \cite{HMT} asked how often this criterion applies inside a natural
+family of polynomials, and answered the question for Eisenstein polynomials. Recall that a monic
+$f\in\Z[x]$ of degree $n$ is $p$-Eisenstein if $p \mid a_i$ for $i<n$ and $p^2 \nmid a_0$; such an
+$f$ is irreducible, and $p$ is totally ramified in $K_f=\Q[x]/(f)$. Their main result is that for
+odd $n\ge 3$ and a prime $p\ge5$ with $\gcd(p-1,n)=1$, the lower density of the $p$-Eisenstein
+polynomials of degree $n$ whose field is not norm-Euclidean is at least
+$\max\{2/27,\ 1-\varepsilon(p)\}$, with $\varepsilon(p)\to0$ effectively.
+
+The Eisenstein condition is only the simplest case of a valuation-theoretic criterion going back
+to Dumas \cite{Dumas}. We work throughout with the following family.
+
+\begin{definition}\label{def:ED}
+Let $p$ be a prime and let $m,n\ge1$ be coprime integers. A monic polynomial
+$f=x^n+a_{n-1}x^{n-1}+\dots+a_0\in\Z[x]$ satisfies the \emph{Eisenstein--Dumas condition at $p$ of
+slope $m/n$} if
+\[
+  \ord_p(a_0)=m
+  \qquad\text{and}\qquad
+  \ord_p(a_i)\ \ge\ \Big\lceil \frac{m(n-i)}{n}\Big\rceil \quad (1\le i\le n-1),
+\]
+where $\ord_p$ is the $p$-adic valuation. Equivalently, and without ceilings,
+$m(n-i)\le n\,\ord_p(a_i)$ for all $0\le i\le n-1$, with equality $\ord_p(a_0)=m$; equivalently again,
+the Newton polygon of $f$ with respect to $p$ is the single segment joining $(0,m)$ to $(n,0)$.
+We write $\mathcal F_{p,m,n}$ for the set of monic $f \in \Z[x]$ of degree $n$ satisfying it.
+\end{definition}
+
+Taking $m=1$ gives back the $p$-Eisenstein polynomials, so $\mathcal F_{p,1,n}$ is the family
+studied in \cite{HMT}. For $m>1$ the family is genuinely different: for instance
+$x^3+25x^2+50x+50$ lies in $\mathcal F_{5,2,3}$ and is not Eisenstein at any prime.
+
+Our first result is that the whole of the local theory survives the passage from $m=1$ to general
+$m$; it is proved in Section~\ref{sec:dumas}.
+
+\begin{theorem}\label{thm:main-ram}
+Let $f \in \mathcal F_{p,m,n}$ and let $\theta$ be a root of $f$ in an algebraic closure of $\Q$,
+$K=\Q(\theta)$. Let $\p$ be any prime of $\OK$ above $p$. Then
+\[
+  n\,\vp(\theta) \;=\; m\,\vp(p).
+\]
+Consequently $n\mid \vp(p)$, the degree $[K:\Q]$ equals $n$ (so that $f$ is irreducible), $\p$ is
+the unique prime of $\OK$ above $p$, and
+\[
+  p\,\OK=\p^{\,n},\qquad \vp(\theta)=m .
+\]
+\end{theorem}
+
+Thus one computation yields both the Eisenstein--Dumas irreducibility criterion and the total
+ramification needed to run Heilbronn's criterion.
+
+The second ingredient is the density of the family itself. Write
+\[
+  S(m,n)\;=\;\sum_{j=1}^{n}\Big\lceil \frac{mj}{n}\Big\rceil .
+\]
+
+\begin{theorem}\label{thm:main-density-family}
+Let $p$ be a prime and let $m,n\ge1$ be coprime. Among the monic integer polynomials of degree $n$
+of height at most $X$, the proportion lying in $\mathcal F_{p,m,n}$ tends, as $X\to\infty$, to
+\[
+  E_{p,m}(n)\;=\;\Big(1-\frac1p\Big)\,p^{-S(m,n)},
+  \qquad\text{where}\qquad
+  S(m,n)=\frac{(m+1)(n+1)}{2}-1 .
+\]
+For $m=1$ this is $p^{-n}-p^{-n-1}$, the Eisenstein density of \cite{Dubickas}.
+\end{theorem}
+
+The closed form for $S(m,n)$ is a pleasant consequence of the coprimality of $m$ and $n$; note
+that $(m+1)(n+1)$ is always even in that case, since $m$ and $n$ are not both even.
+
+Our main theorem is a single statement from which all the density bounds follow. For a prime $q$
+let
+\[
+  C_q(n)\;=\;\frac{\#\{\text{monic } g\in\F_q[x] \text{ of degree } n \text{ with no root in }\F_q\}}{q^{\,n}} .
+\]
+
+\begin{theorem}\label{thm:master}
+Let $n\ge2$, let $m\ge1$ be coprime to $n$, and let $p$ be a prime with $\gcd(p-1,n)=1$. Let $Q$
+be a finite set of primes with $p\notin Q$, $\#Q\ge2$, such that
+\begin{equation}\label{eq:pair-condition}
+  \parbox{0.82\textwidth}{for all $q_1<q_2$ in $Q$ there are integers $u,v>0$ with
+  $p=uq_1+vq_2$, $q_1\nmid u$ and $q_2\nmid v$.}
+\end{equation}
+Then, among the polynomials $f\in\mathcal F_{p,m,n}$ with $\Ht(f)\le X$, the proportion of those
+for which $K_f$ is not norm-Euclidean satisfies
+\[
+  \liminf_{X\to\infty}\ \delta_{p,m,n}(X)
+  \ \ge\
+  \sum_{\substack{T\subseteq Q\\ \#T\ge2}}\ \prod_{q\in T}C_q(n)\prod_{q\in Q\setminus T}\bigl(1-C_q(n)\bigr).
+\]
+\end{theorem}
+
+By Lemma~\ref{lem:frobenius} below, condition \eqref{eq:pair-condition} holds as soon as
+$q_1^2q_2^2\le p$ for every pair $q_1<q_2$ in $Q$, and in particular whenever every element of $Q$
+is at most $p^{1/4}$. The right-hand side of the displayed inequality is the exact density of the
+subfamily of those $f$ having no root modulo $q$ for at least two primes $q\in Q$. Specialising $Q$ recovers, and interpolates between, the two
+bounds of \cite{HMT}.
+
+\begin{corollary}\label{cor:227}
+Let $n\ge3$ and let $p\ge5$ be a prime with $\gcd(p-1,n)=1$, and let $m\ge1$ be coprime to $n$.
+Then $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 2/27$.
+\end{corollary}
+
+\begin{corollary}\label{cor:235}
+Let $n \ge 3$, let $m \ge 1$ be coprime to $n$, and let $p\ge225$ be a prime with
+$\gcd(p-1,n)=1$. Then
+\[
+  \liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ \frac{136}{675}\;=\;0.20148\ldots
+\]
+\end{corollary}
+
+\begin{corollary}\label{cor:eps}
+Let $n\ge3$, let $m\ge1$ be coprime to $n$, and let $p$ be a prime with $\gcd(p-1,n)=1$. Put
+$t=\pi(\lfloor p^{1/4}\rfloor)$. Then
+\[
+  \liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\varepsilon(p),
+  \qquad
+  \varepsilon(p)=(1+t)\Big(\frac34\Big)^{t} .
+\]
+In particular $\varepsilon(p)\to0$ as $p\to\infty$, uniformly in $n$ and $m$.
+\end{corollary}
+
+Corollary~\ref{cor:235} illustrates the gain: for $p$ in the range where $t$ is still small,
+$\varepsilon(p)>1$ and the bound of Corollary~\ref{cor:eps} is vacuous, while $2/27=0.074\ldots$
+is far from optimal; a three-element $Q$ already gives $0.2014\ldots$.
+
+Two remarks on the hypotheses. The condition $\gcd(p-1,n)=1$ forces $n$ to be odd, since $p-1$ is
+even for $p$ odd; we therefore do not need to assume the parity of $n$, and, more importantly, we
+do not need the step of \cite{HMT} that converts ``$-b$ is not a norm'' into ``$b$ is not a norm''
+using $n$ odd. The reason is Lemma~\ref{lem:degree-one}, which is insensitive to signs.
+
+Section~\ref{sec:dumas} proves Theorem~\ref{thm:main-ram}. Section~\ref{sec:heilbronn} contains
+the non-norm lemma and an embedding-free proof of Heilbronn's criterion.
+Section~\ref{sec:counting} gives the counting lemma, with one modulus per coefficient, which is
+what the Eisenstein--Dumas condition requires. Section~\ref{sec:local} computes the local
+densities, proving Theorem~\ref{thm:main-density-family} and the estimates for $C_q(n)$.
+Section~\ref{sec:proof} proves Theorem~\ref{thm:master} and its corollaries. Section~\ref{sec:gcd}
+weakens the condition $\gcd(p-1,n)=1$.
+
+\subsection*{Notation}
+$K$ always denotes a number field, $\OK$ its ring of integers, $\N=\N_{K/\Q}$ the norm, and
+$\vp$ the additive valuation attached to a prime $\p$ of $\OK$, normalised so that $\vp$ takes the
+value $1$ at a uniformiser. For a prime $q$ of $\Z$ we also write $\ord_q$ for the $q$-adic valuation
+on $\Z$. Letters $p,q$ always denote rational primes, and $\pi(Y)$ is the number of primes at
+most $Y$.
+
+\section{Eisenstein--Dumas polynomials and total ramification}\label{sec:dumas}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main-ram}]
+Write $f=x^n+\sum_{i<n}a_ix^i$ and let $\theta$ be a root, $K=\Q(\theta)$, $d=[K:\Q]\le n$. As $f$
+is monic, $\theta\in\OK$. Fix a prime $\p$ of $\OK$ above $p$ and set
+\[
+  w=\vp(\theta)\ \ge\ 0, \qquad e=\vp(p) .
+\]
+Since the ramification indices and residue degrees of the primes above $p$ satisfy
+$\sum e_i f_i = d$, we have $e\le d\le n$. Note also $a_0\ne0$, because $\ord_p(a_0)=m$ is finite;
+hence $\theta\ne0$, because $f(\theta)=0$ would otherwise give $a_0=0$.
+
+Because $\vp$ restricted to $\Q$ is $e\,\ord_p$, we have $\vp(a_0)=em$ exactly, and, for every
+$i<n$ with $a_i\ne0$,
+\begin{equation}\label{eq:term-bound}
+  n\,\vp\bigl(a_i\theta^i\bigr)\;=\;n\,e\,\ord_p(a_i)+n\,i\,w\;\ge\;e\,m(n-i)+n\,i\,w ,
+\end{equation}
+using $n\,\ord_p(a_i)\ge m(n-i)$. Terms with $a_i=0$ may be ignored throughout. We claim
+\begin{equation}\label{eq:key}
+  n\,w\;=\;e\,m .
+\end{equation}
+
+Suppose first that $nw>em$. Then for $1\le i\le n-1$, using \eqref{eq:term-bound},
+\[
+  n\,\vp\bigl(a_i\theta^i\bigr)\ \ge\ em(n-i)+niw\ >\ em(n-i)+i\,em\ =\ n\,em\ =\ n\,\vp(a_0),
+\]
+so $\vp(a_i\theta^i)>\vp(a_0)$ for every $i$ with $1\le i\le n-1$. By the ultrametric equality for
+a sum with a unique term of least valuation,
+$\vp\bigl(\sum_{i<n}a_i\theta^i\bigr)=\vp(a_0)=em$. But
+$\theta^n=-\sum_{i<n}a_i\theta^i$, so $nw=em$, contradicting $nw>em$.
+
+Suppose next that $nw<em$. Then $\vp(a_0)=em>nw$, and for $1\le i\le n-1$, since $n-i\ge1$,
+\[
+  n\,\vp\bigl(a_i\theta^i\bigr)\ \ge\ em(n-i)+niw\ >\ nw(n-i)+niw\ =\ n^2w ,
+\]
+so $\vp(a_i\theta^i)>nw$ for every $i<n$. Hence
+$\vp\bigl(\sum_{i<n}a_i\theta^i\bigr)>nw$, while
+$\vp(\theta^n)=nw$; this contradicts $\theta^n=-\sum_{i<n}a_i\theta^i$. This proves \eqref{eq:key}.
+
+From \eqref{eq:key} we get $n\mid em$, and since $\gcd(m,n)=1$ this gives $n\mid e$. As
+$e\le d\le n$ and $e\ge1$, we conclude $e=d=n$. In particular $[K:\Q]=n=\deg f$, so $f$ is the
+minimal polynomial of $\theta$ and is irreducible. Moreover $\sum_i e_if_i=n$ with one summand
+already equal to $e\cdot f(\p)\ge n$ forces $\p$ to be the only prime above $p$ and $f(\p)=1$;
+therefore $p\OK=\p^{\,n}$. Finally $nw=em=nm$ gives $w=m$.
+\end{proof}
+
+\begin{corollary}[Eisenstein--Dumas criterion]\label{cor:dumas-irr}
+A monic polynomial satisfying the Eisenstein--Dumas condition at some prime $p$ of slope $m/n$
+with $\gcd(m,n)=1$ is irreducible over $\Q$.
+\end{corollary}
+
+\begin{remark}
+For $m=1$ the theorem is the familiar statement that a $p$-Eisenstein polynomial is irreducible
+and that $p$ is totally ramified in the field it generates; the proof above specialises to the
+usual one. The point of the general case is that the extra room in the inequalities
+$\ord_p(a_i)\ge \lceil m(n-i)/n \rceil$ costs nothing: only the two extreme cases $nw>em$ and
+$nw<em$ have to be excluded, and both are excluded by comparing with the single term $a_0$.
+\end{remark}
+
+\section{Norms, degree-one primes, and Heilbronn's criterion}\label{sec:heilbronn}
+
+Throughout this section $K$ is a number field of degree $n$ and $\theta\in\OK$ generates $K$.
+
+\subsection{Which integers can be norms}
+
+\begin{lemma}\label{lem:degree-one}
+Let $\theta\in\OK$ be a root of a monic $f\in\Z[x]$ and let $q$ be a prime such that $f$ has no
+root in $\F_q$. Then:
+\begin{enumerate}
+\item no prime $\q$ of $\OK$ above $q$ has residue degree $1$;
+\item $\ord_q\bigl(\N(\alpha)\bigr)\ne1$ for every $\alpha\in\OK$;
+\item if $u\in\Z$ and $q\nmid u$, then $uq$ is not the norm of an element of $\OK$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1) If $\q$ lies above $q$ and has residue degree $1$, then $\OK/\q\cong\F_q$; reducing the
+relation $f(\theta)=0$ modulo $\q$ exhibits the image of $\theta$ as a root of $f$ in $\F_q$, a
+contradiction.
+
+(2) Let $\alpha\in\OK$ be nonzero and factor $(\alpha)=\prod_i\q_i^{e_i}$. Taking absolute norms,
+$|\N(\alpha)|=\prod_i \N(\q_i)^{e_i}$, and $\N(\q_i)$ is a power $q_i^{f_i}$ of the rational prime
+$q_i$ below $\q_i$. Hence
+\[
+  \ord_q\bigl(\N(\alpha)\bigr)=\sum_{\q_i\mid q} f_i e_i .
+\]
+By (1) every $f_i$ occurring here is at least $2$, so the sum is either $0$ or at least $2$. For
+$\alpha=0$ the norm is $0$ and the claim is vacuous.
+
+(3) If $\N(\alpha)=uq$ with $q\nmid u$ then $\ord_q(\N(\alpha))=1$, contradicting (2).
+\end{proof}
+
+\begin{remark}\label{rem:lemma23}
+Part (3) is the statement that the argument of \cite{HMT} requires. The lemma recorded there is
+part (1) in the contrapositive form ``if $q$ is a norm from $\OK$ then $f$ has a root in $\F_q$'',
+and in the application one needs to know not that $q_1$ is not a norm, but that $u q_1$ is not a
+norm, where $p=uq_1+vq_2$; since the norms from $\OK$ are not stable under division this does not
+formally follow. The remedy is exactly part (2): the $q$-adic valuation of a norm is never $1$.
+This also explains the role of the conditions $q_1\nmid u$ and $q_2\nmid v$ in
+Lemma~\ref{lem:frobenius} below. Finally, since (2) makes no reference to signs, $-vq_2$ is
+excluded on the same footing as $uq_1$, and there is no need to assume that $n$ is odd in order to
+pass between $b$ and $-b$.
+\end{remark}
+
+\subsection{The norm modulo a totally ramified prime}
+
+The following lemma is the heart of the matter. It replaces the classical argument through the
+conjugates $\rho^\sigma$ of an element, which requires a Galois closure to be meaningful, by a
+statement about a determinant.
+
+\begin{lemma}\label{lem:norm-power}
+Let $A$ be a commutative ring, let $B$ be a free $A$-algebra of finite rank $n$, and let $p\in A$
+be such that $A/(p)$ is reduced. Let $I\subseteq B$ be an ideal with $I^{\,n}\subseteq pB$. If
+$\rho\in B$ and $x\in A$ satisfy $\rho-x\in I$, then
+\[
+  \N_{B/A}(\rho)\ \equiv\ x^{\,n} \pmod{p}.
+\]
+\end{lemma}
+
+\begin{proof}
+Fix an $A$-basis of $B$ and let $M_y$ denote the matrix of multiplication by $y\in B$ in that
+basis, so that $\N_{B/A}(y)=\det M_y$. Put $t=\rho-x\in I$, so $M_\rho=x\,\mathrm{Id}+M_t$.
+Reduce all matrix entries modulo $p$ and write $\overline{\phantom{x}}$ for the images; since the
+determinant is a polynomial in the entries, $\overline{\det M_\rho}=\det\overline{M_\rho}$.
+
+Because $t\in I$ we have $t^{\,n}\in I^{\,n}\subseteq pB$, say $t^{\,n}=p\,y$; as
+$y\mapsto M_y$ is a ring homomorphism which is $A$-linear, $M_t^{\,n}=M_{t^n}=p\,M_y$ has all its
+entries in $(p)$, and therefore $\overline{M_t}^{\,n}=0$: the reduced matrix $\overline{M_t}$ is
+nilpotent. Over any commutative ring the characteristic polynomial of a nilpotent matrix differs
+from $X^n$ by a polynomial with nilpotent coefficients; since $A/(p)$ is reduced, the
+characteristic polynomial of $-\overline{M_t}$ is exactly $X^n$. Evaluating it at $\bar x$ gives
+\[
+  \det\bigl(\bar x\,\mathrm{Id}+\overline{M_t}\bigr)
+  =\det\bigl(\bar x\,\mathrm{Id}-(-\overline{M_t})\bigr)=\bar x^{\,n},
+\]
+which is the assertion.
+\end{proof}
+
+\begin{corollary}\label{cor:norm-power-K}
+Let $K$ be a number field of degree $n$ and let $\p$ be a prime of $\OK$ with $\p^{\,n}=p\OK$ for
+a rational prime $p$. Then for every $\rho\in\OK$ and every $x\in\Z$ with $\rho\equiv x \pmod \p$,
+\[
+  \N(\rho)\ \equiv\ x^{\,n}\pmod p .
+\]
+\end{corollary}
+
+\begin{proof}
+Apply Lemma~\ref{lem:norm-power} with $A=\Z$, $B=\OK$, which is free of rank $n$ over $\Z$, with
+$I=\p$, and with $\Z/(p)=\F_p$, which is reduced. The hypothesis $I^n\subseteq pB$ is the
+assumption $\p^n=p\OK$.
+\end{proof}
+
+Since $\p^{\,n}=p\OK$ forces the residue field $\OK/\p$ to be $\F_p$, every $\rho\in\OK$ is
+congruent modulo $\p$ to some rational integer $x$, and Corollary~\ref{cor:norm-power-K} says
+precisely that the norm map induces $y\mapsto y^{\,n}$ on residue fields.
+
+\subsection{Proof of Heilbronn's criterion}
+
+\begin{lemma}\label{lem:principal}
+Suppose $K$ is norm-Euclidean. Then every ideal of $\OK$ is principal.
+\end{lemma}
+
+\begin{proof}
+Let $I\ne 0$ be an ideal and choose $\pi\in I\setminus\{0\}$ with $|\N(\pi)|$ minimal among the
+nonzero elements of $I$; this is possible since $|\N|$ takes values in the nonnegative integers.
+For $\alpha\in I$ write $\alpha=\gamma\pi+\rho$ with $|\N(\rho)|<|\N(\pi)|$. Then
+$\rho=\alpha-\gamma\pi\in I$, so $\rho=0$ by minimality, and $\alpha\in(\pi)$. Hence $I=(\pi)$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:heilbronn-intro}]
+Let $\p$ be the prime above $p$, so that $p\OK=\p^{\,n}$, and suppose for contradiction that $K$
+is norm-Euclidean. By Lemma~\ref{lem:principal}, $\p=(\pi)$ for some $\pi\in\OK$. Taking absolute
+norms in $\p^{\,n}=p\OK$ gives $\N(\p)^n=p^n$, so $\N(\p)=p$, that is $|\N(\pi)|=p$.
+
+Since $a$ is an $n$-th power residue modulo $p$, choose $x\in\Z$ with $x^n\equiv a \pmod p$.
+Dividing $x$ by $\pi$ produces $\gamma,\rho\in\OK$ with
+\[
+  x=\gamma\pi+\rho,\qquad |\N(\rho)|<|\N(\pi)|=p .
+\]
+Then $\rho\equiv x \pmod{\p}$, so Corollary~\ref{cor:norm-power-K} gives
+$\N(\rho)\equiv x^n\equiv a \pmod p$. Now $0<a<p$ and $-p<\N(\rho)<p$, so
+$\N(\rho)-a\in(-2p,p)$ is divisible by $p$ and therefore equals $0$ or $-p$; that is,
+$\N(\rho)=a$ or $\N(\rho)=a-p=-b$. Either way one of $a$, $-b$ is a norm, contrary to hypothesis.
+\end{proof}
+
+\subsection{Representing $p$ by two primes}
+
+\begin{lemma}\label{lem:frobenius}
+Let $q_1<q_2$ be primes and let $p\ge q_1^2q_2^2$. Then there are positive integers $u,v$ with
+\[
+  p=uq_1+vq_2,\qquad q_1\nmid u,\qquad q_2\nmid v .
+\]
+\end{lemma}
+
+\begin{proof}
+Fix $r_1\in\{1,\dots,q_1-1\}$ and $r_2\in\{1,\dots,q_2-1\}$. From $p\ge q_1^2q_2^2$,
+\[
+  p-r_1q_1-r_2q_2\ \ge\ q_1^2q_2^2-(q_1-1)q_1-(q_2-1)q_2\ \ge\ (q_1^2-1)(q_2^2-1).
+\]
+Since $q_1^2$ and $q_2^2$ are coprime, every integer at least $(q_1^2-1)(q_2^2-1)$ is a
+nonnegative integral combination of $q_1^2$ and $q_2^2$ (the Frobenius coin problem), so there are
+$t_1,t_2\ge0$ with $p-r_1q_1-r_2q_2=q_1^2t_1+q_2^2t_2$. Then
+\[
+  p=q_1(q_1t_1+r_1)+q_2(q_2t_2+r_2)=uq_1+vq_2
+\]
+with $u=q_1t_1+r_1$ and $v=q_2t_2+r_2$ positive and satisfying $q_1\nmid u$, $q_2\nmid v$.
+\end{proof}
+
+\begin{lemma}\label{lem:heilbronn-applies}
+Let $n\ge1$ and let $p$ be a prime with $\gcd(p-1,n)=1$. Let $K=\Q(\theta)$ with $\theta\in\OK$ a
+root of a monic $f\in\Z[x]$ of degree $n$, and suppose $p$ is totally ramified in $K$. Let
+$q_1<q_2$ be primes different from $p$ such that $f$ has no root modulo $q_1$ and none modulo
+$q_2$, and suppose $p=uq_1+vq_2$ with $u,v>0$, $q_1\nmid u$ and $q_2\nmid v$. Then $K$ is not
+norm-Euclidean.
+\end{lemma}
+
+\begin{proof}
+Put $a=uq_1$ and $b=vq_2$, so $p=a+b$ with $a,b>0$. Since $\gcd(n,p-1)=1$, the map $y\mapsto y^n$
+is a bijection of $\F_p$: it is injective on the cyclic group $\F_p^\times$ of order $p-1$ because
+$\gcd(n,p-1)=1$, and fixes $0$. Hence every integer, in particular $a$, is an $n$-th power residue
+modulo $p$. By Lemma~\ref{lem:degree-one}(3) applied to $q_1$, the integer $a=uq_1$ is not a norm;
+applied to $q_2$, and using that the statement of that lemma is about the valuation of the norm
+and hence indifferent to sign, the integer $-b=-vq_2$ is not a norm either. Theorem
+\ref{thm:heilbronn-intro} now applies.
+\end{proof}
+
+\section{Counting polynomials with local conditions}\label{sec:counting}
+
+The Eisenstein--Dumas condition prescribes the coefficient $a_i$ modulo a power of $p$ that
+\emph{depends on $i$}. The following counting lemma is therefore stated with one modulus per
+coordinate; this costs nothing and makes the application immediate.
+
+\begin{lemma}\label{lem:box}
+Let $\iota$ be a finite set of size $N$, let $M:\iota\to\Z_{\ge1}$, and let
+$S\subseteq\prod_{i\in\iota}\Z/M_i\Z$. For $X\in\Z_{\ge 0}$ put
+\[
+  \mathcal N(X)=\#\bigl\{a\in\Z^{\iota}\ :\ |a_i|\le X \text{ for all } i,\ (a_i \bmod M_i)_{i}\in S\bigr\}.
+\]
+Then
+\[
+  \mathcal N(X)\ \le\ \#S\cdot\prod_{i\in\iota}\Bigl(\frac{2X+1}{M_i}+1\Bigr),
+\]
+and, provided $M_i\le 2X+1$ for every $i$,
+\[
+  \mathcal N(X)\ \ge\ \#S\cdot\prod_{i\in\iota}\Bigl(\frac{2X+1}{M_i}-1\Bigr).
+\]
+Consequently
+\[
+  \lim_{X\to\infty}\frac{\mathcal N(X)}{(2X+1)^N}\;=\;\frac{\#S}{\prod_{i\in\iota}M_i}.
+\]
+\end{lemma}
+
+\begin{proof}
+Sorting the tuples $a$ by their reduction gives
+\[
+  \mathcal N(X)=\sum_{s\in S}\ \prod_{i\in\iota}\#\{x\in\Z: |x|\le X,\ x\equiv s_i \bmod M_i\},
+\]
+because the conditions on the separate coordinates are independent. The interval $[-X,X]$ contains
+$2X+1$ integers, and the integers in it congruent to a fixed residue modulo $M$ are equally spaced
+with gap $M$, so their number lies between $(2X+1)/M-1$ and $(2X+1)/M+1$. The upper bound follows
+at once. For the lower bound one needs the factors $(2X+1)/M_i-1$ to be nonnegative before
+multiplying the inequalities, which is exactly the hypothesis $M_i\le 2X+1$. Finally, dividing by
+$(2X+1)^N$ turns the two bounds into
+$\#S\prod_i\bigl(M_i^{-1}\mp(2X+1)^{-1}\bigr)$, and both tend to $\#S/\prod_iM_i$.
+\end{proof}
+
+\begin{remark}
+The hypothesis $M_i\le 2X+1$ in the lower bound cannot be dropped: without it an even number of
+factors $(2X+1)/M_i-1$ may be negative and their product positive, and the resulting inequality is
+false. Since we let $X\to\infty$ with the moduli fixed, the hypothesis is harmless.
+\end{remark}
+
+By the Chinese Remainder Theorem, conditions imposed modulo powers of distinct primes are
+independent, and a set $S$ of product form $\prod_i T_i$ has $\#S/\prod_i M_i=\prod_i(\#T_i/M_i)$.
+We record the form in which the lemma will be used.
+
+\begin{proposition}\label{prop:localdensities}
+Let $p$ be a prime, let $m,n\ge1$ be coprime, and let $Q$ be a finite set of primes not containing
+$p$. For each $q\in Q$ let $R_q\subseteq(\Z/q\Z)^n$ be a set of coefficient vectors. Then the
+number $N^{*}(X)$ of monic $f\in\Z[x]$ of degree $n$ with $\Ht(f)\le X$ which lie in
+$\mathcal F_{p,m,n}$ and whose coefficient vector lies in $R_q$ modulo $q$ for every $q\in Q$
+satisfies
+\[
+  \lim_{X\to\infty}\frac{N^{*}(X)}{(2X+1)^n}\;=\;E_{p,m}(n)\cdot\prod_{q\in Q}\frac{\#R_q}{q^{\,n}},
+\]
+where $E_{p,m}(n)$ is the density of Theorem~\ref{thm:main-density-family}.
+\end{proposition}
+
+\begin{proof}
+The conditions defining $\mathcal F_{p,m,n}$ are conditions on $a_i$ modulo $p^{m+1}$ for $i=0$
+and modulo $p^{\lceil m(n-i)/n\rceil}$ for $1\le i\le n-1$; the conditions at $q\in Q$ are
+conditions modulo $q$. Apply Lemma~\ref{lem:box} with $M_i$ the product of the relevant prime
+powers at each coordinate and with $S$ the set cut out by all the conditions, which by the Chinese
+Remainder Theorem has $\#S/\prod_iM_i$ equal to the product of the corresponding local densities.
+The local density at $p$ is computed in Proposition~\ref{prop:E} below.
+\end{proof}
+
+\section{Local densities}\label{sec:local}
+
+\subsection{The Eisenstein--Dumas density}
+
+\begin{proposition}\label{prop:E}
+Let $p$ be a prime and let $m,n\ge1$ be coprime. The density of $\mathcal F_{p,m,n}$ among monic
+integer polynomials of degree $n$ is
+\[
+  E_{p,m}(n)=\Bigl(1-\frac1p\Bigr)p^{-S(m,n)},\qquad S(m,n)=\sum_{j=1}^{n}\Bigl\lceil\frac{mj}{n}\Bigr\rceil
+  =\frac{(m+1)(n+1)}{2}-1 .
+\]
+\end{proposition}
+
+\begin{proof}
+Set $c_i=\lceil m(n-i)/n\rceil$ for $0\le i\le n-1$, so that $c_0=m$. The conditions are
+$\ord_p(a_0)=m$, which is a condition modulo $p^{m+1}$ satisfied by exactly
+$p^{m+1}(p^{-m}-p^{-m-1})$ residues, and $\ord_p(a_i)\ge c_i$ for $1\le i\le n-1$, which is satisfied
+by a proportion $p^{-c_i}$ of residues. The conditions on distinct coefficients are independent,
+so by Lemma~\ref{lem:box} the density exists and equals
+\[
+  \Bigl(\frac1{p^{m}}-\frac1{p^{m+1}}\Bigr)\prod_{i=1}^{n-1}p^{-c_i}
+  =\Bigl(1-\frac1p\Bigr)p^{-\left(m+\sum_{i=1}^{n-1}c_i\right)} .
+\]
+Substituting $j=n-i$ turns $m+\sum_{i=1}^{n-1}c_i$ into $\sum_{j=1}^{n}\lceil mj/n\rceil=S(m,n)$.
+
+For the closed form, note that $\gcd(m,n)=1$ implies $n\nmid mj$ for $1\le j\le n-1$, so
+$\lceil mj/n\rceil=\lfloor mj/n\rfloor+1$ for those $j$, while the term $j=n$ contributes $m$.
+Pairing $j$ with $n-j$ and using $\lfloor y\rfloor+\lfloor -y\rfloor=-1$ for $y\notin\Z$,
+\[
+  \Bigl\lfloor\frac{mj}{n}\Bigr\rfloor+\Bigl\lfloor\frac{m(n-j)}{n}\Bigr\rfloor=m-1
+  \qquad(1\le j\le n-1),
+\]
+so that $2\sum_{j=1}^{n-1}\lfloor mj/n\rfloor=(m-1)(n-1)$. Hence
+\[
+  S(m,n)=m+(n-1)+\frac{(m-1)(n-1)}{2}=\frac{(m+1)(n+1)}{2}-1 . \qedhere
+\]
+\end{proof}
+
+Note that $m$ and $n$ coprime are not both even, so $(m-1)(n-1)$ is even and $S(m,n)$ is an
+integer, as it must be. For $m=1$ we get $S(1,n)=n$ and
+$E_{p,1}(n)=p^{-n}-p^{-n-1}$, the density of $p$-Eisenstein polynomials computed by Dubickas
+\cite{Dubickas}.
+
+\subsection{Monic polynomials over a finite field without roots}
+
+\begin{proposition}\label{prop:rootless}
+Let $\F$ be a finite field with $q$ elements, let $n\ge 1$, and let $T\subseteq\F$. The number of
+monic polynomials of degree $n$ over $\F$ with no root in $T$ is
+\[
+  A_q(n,T)=\sum_{k=0}^{n}(-1)^k\binom{\#T}{k}q^{\,n-k} .
+\]
+In particular, writing $A_q(n)=A_q(n,\F)$ and $C_q(n)=A_q(n)/q^{\,n}$, we have
+\[
+  A_q(n)=\sum_{k=0}^n(-1)^k\binom{q}{k}q^{\,n-k},
+  \qquad\text{and}\qquad
+  C_q(n)=\Bigl(1-\frac1q\Bigr)^{q}\ \text{ if } n\ge q .
+\]
+\end{proposition}
+
+\begin{proof}
+For $r\in T$ let $S_r$ be the set of monic polynomials of degree $n$ vanishing at $r$. By
+inclusion--exclusion, the number of monic polynomials of degree $n$ avoiding every root in $T$ is
+$\sum_{U\subseteq T}(-1)^{\#U}\#\bigl(\bigcap_{r\in U}S_r\bigr)$. Fix $U$ with $\#U=k$ and put
+$g_U=\prod_{r\in U}(x-r)$, a monic polynomial of degree $k$. Since the elements of $U$ are
+distinct, a polynomial vanishes on $U$ if and only if it is divisible by $g_U$; and
+$h\mapsto g_Uh$ is a bijection from the monic polynomials of degree $n-k$ onto the monic
+polynomials of degree $n$ divisible by $g_U$, with inverse $f\mapsto f/g_U$. Hence
+$\#\bigcap_{r\in U}S_r=q^{\,n-k}$ when $k\le n$. When $k>n$ the intersection is empty, because a
+nonzero polynomial of degree $n$ has at most $n$ roots. Grouping the subsets $U$ by their size
+gives the stated formula, the terms with $k>n$ being absent and the terms with $k>\#T$ vanishing
+because $\binom{\#T}{k}=0$.
+
+For $T=\F$ and $n\ge q$ the binomial coefficients $\binom qk$ vanish for $k>q$, so
+\[
+  A_q(n)=\sum_{k=0}^{q}(-1)^k\binom qk q^{\,n-k}
+  =q^{\,n-q}\sum_{k=0}^{q}\binom qk(-1)^kq^{\,q-k}
+  =q^{\,n-q}(q-1)^q,
+\]
+by the binomial theorem, whence $C_q(n)=(1-1/q)^q$.
+\end{proof}
+
+\begin{proposition}\label{prop:bounds}
+For $n\ge2$ and any prime power $q\ge2$,
+\[
+  \frac14\ \le\ \frac{q^2-1}{3q^2}\ \le\ C_q(n)\ \le\ \frac{q-1}{2q}\ <\ \frac12 .
+\]
+\end{proposition}
+
+\begin{proof}
+Dividing the formula of Proposition~\ref{prop:rootless} by $q^n$ gives
+$C_q(n)=\sum_{k=0}^{n}(-1)^k\varphi(k)$ with $\varphi(k)=\binom qk q^{-k}$. We have
+$\varphi(0)=\varphi(1)=1$, so the first two terms cancel and
+\[
+  C_q(n)=\sum_{k=2}^{n}(-1)^k\varphi(k).
+\]
+The sequence $\varphi$ is nonnegative and nonincreasing. Indeed, from
+$\binom{q}{k+1}(k+1)=\binom qk (q-k)$ we get
+$\binom{q}{k+1}(k+1)\le\binom qk q\,(k+1)$, hence $\binom{q}{k+1}\le q\binom qk$, which is
+$\varphi(k+1)\le\varphi(k)$ after dividing by $q^{k+1}$.
+
+We use the following elementary bound: if $\psi$ is nonincreasing and nonnegative then, for
+every $d\ge0$,
+\[
+  0\ \le\ \sum_{k=0}^{d-1}(-1)^k\psi(k)\ \le\ \psi(0),
+\]
+the empty sum being $0$. This is immediate by induction on $d$: for $d\ge1$,
+\[
+  \sum_{k=0}^{d-1}(-1)^k\psi(k)=\psi(0)-\sum_{k=0}^{d-2}(-1)^k\psi(k+1),
+\]
+and by the inductive hypothesis applied to the shifted sequence $k\mapsto\psi(k+1)$ the
+subtracted sum lies in $[0,\psi(1)]\subseteq[0,\psi(0)]$. Applying this with $\psi(k)=\varphi(k+2)$ gives $C_q(n)\le\varphi(2)$, and applying
+it once more after peeling off the first term,
+$C_q(n)=\varphi(2)-\sum_{k=0}^{n-3}(-1)^k\varphi(k+3)\ge\varphi(2)-\varphi(3)$.
+
+Finally $\varphi(2)=\binom q2/q^2=(q-1)/(2q)$ and $\varphi(3)=\binom q3/q^3=(q-1)(q-2)/(6q^2)$, so
+\[
+  \varphi(2)-\varphi(3)=\frac{(q-1)\bigl(3q-(q-2)\bigr)}{6q^2}=\frac{(q-1)(q+1)}{3q^2}=\frac{q^2-1}{3q^2},
+\]
+and $q\ge 2$ gives $(q^2-1)/(3q^2)\ge 1/4$ and $(q-1)/(2q)<1/2$.
+\end{proof}
+
+\begin{remark}
+The bounds of Proposition~\ref{prop:bounds} appear in \cite{HMT}. The argument there deduces that
+$\varphi$ is decreasing from the computation $\varphi(k)/\varphi(k+1)=(k+1)q/(q-k)>0$; positivity
+of the ratio does not imply monotonicity, and in fact $\varphi$ is not strictly decreasing, since
+$\varphi(0)=\varphi(1)=1$. The correct statement is that the ratio is at least $1$, with strict
+inequality for $k\ge1$, which is what the proof above uses; the conclusion is unaffected.
+\end{remark}
+
+For the two smallest primes, Proposition~\ref{prop:rootless} gives the exact values
+\[
+  C_2(n)=\Bigl(1-\tfrac12\Bigr)^2=\tfrac14\ (n\ge2),\qquad
+  C_3(n)=\Bigl(1-\tfrac13\Bigr)^3=\tfrac{8}{27}\ (n\ge3),
+\]
+while Proposition~\ref{prop:bounds} gives $C_5(n)\ge 8/25$ for all $n\ge2$.
+
+\section{Proof of the main theorem}\label{sec:proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:master}]
+Fix $n$, $m$, $p$ and $Q$ as in the statement. For a monic $f$ of degree $n$ let
+\[
+  R(f)=\{q\in Q:\ f \text{ has no root modulo } q\}.
+\]
+We claim that if $\#R(f)\ge2$ and $f\in\mathcal F_{p,m,n}$ then $K_f$ is not norm-Euclidean.
+Indeed, choose $q_1<q_2$ in $R(f)$. By Theorem~\ref{thm:main-ram}, $f$ is irreducible, so
+$K_f=\Q(\theta)$ with $\theta$ a root of $f$, and $p$ is totally ramified in $K_f$; note
+$\theta\in\OK$ since $f$ is monic. By \eqref{eq:pair-condition} we may write
+$p=uq_1+vq_2$ with $u,v>0$, $q_1\nmid u$, $q_2\nmid v$. Now Lemma~\ref{lem:heilbronn-applies}
+applies and $K_f$ is not norm-Euclidean.
+
+It remains to compute the density of $\{f\in\mathcal F_{p,m,n}: \#R(f)\ge2\}$ inside
+$\mathcal F_{p,m,n}$. Whether $q\in R(f)$ depends only on the reduction of the coefficient vector
+of $f$ modulo $q$, and by Proposition~\ref{prop:rootless} the proportion of coefficient vectors in
+$(\Z/q\Z)^n$ for which the associated monic polynomial has no root modulo $q$ is exactly $C_q(n)$.
+For a subset $T\subseteq Q$ let $R_q=\{$vectors with no root mod $q\}$ for $q\in T$ and its
+complement for $q\in Q\setminus T$; then Proposition~\ref{prop:localdensities} shows that the
+number of $f\in\mathcal F_{p,m,n}$ with $\Ht(f)\le X$ and $R(f)=T$, divided by $(2X+1)^n$, tends to
+\[
+  E_{p,m}(n)\prod_{q\in T}C_q(n)\prod_{q\in Q\setminus T}\bigl(1-C_q(n)\bigr).
+\]
+Taking $Q=\emptyset$ in Proposition~\ref{prop:localdensities} shows that the denominator
+$N_{p,m,n}(X)=\#\{f\in\mathcal F_{p,m,n}:\Ht(f)\le X\}$ satisfies
+$N_{p,m,n}(X)/(2X+1)^n\to E_{p,m}(n)>0$. Summing the finitely many disjoint classes with $\#T\ge2$
+and dividing, the proportion of $f\in\mathcal F_{p,m,n}$ with $\Ht(f)\le X$ and $\#R(f)\ge2$ tends
+to $\sum_{\#T\ge2}\prod_{q\in T}C_q(n)\prod_{q\notin T}(1-C_q(n))$. Since every such $f$ generates
+a field that is not norm-Euclidean, the lower density of the latter family is at least this
+number.
+\end{proof}
+
+It is convenient to record the complementary form of the bound. Writing $c_q=C_q(n)$,
+\begin{equation}\label{eq:complement}
+  \sum_{\substack{T\subseteq Q\\ \#T\ge2}}\prod_{q\in T}c_q\prod_{q\notin T}(1-c_q)
+  \;=\;1-\prod_{q\in Q}(1-c_q)\Bigl(1+\sum_{q\in Q}\frac{c_q}{1-c_q}\Bigr),
+\end{equation}
+since the omitted classes are $T=\emptyset$ and the singletons.
+
+The density computation in the proof above did not use the hypothesis
+\eqref{eq:pair-condition}, which entered only when passing from ``two rootless primes'' to
+``not norm-Euclidean''. We isolate it for use in Section~\ref{sec:gcd}.
+
+\begin{proposition}\label{prop:two-rootless}
+Let $n\ge2$, let $m\ge1$ be coprime to $n$, let $p$ be a prime and let $Q$ be a finite set of
+primes with $p\notin Q$. Among the $f\in\mathcal F_{p,m,n}$ with $\Ht(f)\le X$, the proportion of
+those having no root modulo $q$ for at least two $q\in Q$ tends, as $X\to\infty$, to
+$\sum_{\#T\ge2}\prod_{q\in T}C_q(n)\prod_{q\notin T}(1-C_q(n))$, and this quantity is at least
+$1-(1+\#Q)(3/4)^{\#Q}$.
+\end{proposition}
+
+\begin{proof}
+The limit is the content of the second half of the proof of Theorem~\ref{thm:master}. For the
+lower bound use \eqref{eq:complement} together with $C_q(n)\ge\frac14$ and $C_q(n)<\frac12$,
+which hold by Proposition~\ref{prop:bounds} because $n\ge2$: the first gives
+$1-C_q(n)\le\frac34$ and the second gives $C_q(n)/(1-C_q(n))\le1$.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:227}]
+Suppose first that $p\notin\{7,11,19\}$ and take $Q=\{2,3\}$. If $p\ge36=2^23^2$ then
+\eqref{eq:pair-condition} holds by Lemma~\ref{lem:frobenius}. If $p<36$ then
+$p\in\{5,13,17,23,29,31\}$, and \eqref{eq:pair-condition} is verified directly by
+\[
+  5=2\cdot1+3\cdot1,\quad 13=2\cdot 5+3\cdot 1,\quad 17=2\cdot7+3\cdot1,
+\]
+\[
+  23=2\cdot1+3\cdot7,\quad 29=2\cdot13+3\cdot1,\quad 31=2\cdot5+3\cdot7,
+\]
+in each of which the coefficient of $2$ is odd and the coefficient of $3$ is prime to $3$. With
+$\#Q=2$ the sum in Theorem~\ref{thm:master} has the single term $C_2(n)C_3(n)$, and since $n\ge3$
+Proposition~\ref{prop:rootless} gives
+$C_2(n)C_3(n)=\frac14\cdot\frac8{27}=\frac{2}{27}$.
+
+If $p\in\{7,11,19\}$ take instead $Q=\{2,5\}$ and use
+\[
+  7=2\cdot1+5\cdot1,\qquad 11=2\cdot3+5\cdot1,\qquad 19=2\cdot7+5\cdot1 ,
+\]
+which again satisfy \eqref{eq:pair-condition}. The bound is then
+$C_2(n)C_5(n)\ge\frac14\cdot\frac8{25}=\frac2{25}>\frac2{27}$ by Propositions~\ref{prop:rootless}
+and~\ref{prop:bounds}.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:235}]
+Take $Q=\{2,3,5\}$; the largest pair product is $3^25^2=225\le p$, so
+\eqref{eq:pair-condition} holds by Lemma~\ref{lem:frobenius}. With $c_2=\frac14$, $c_3=\frac8{27}$ and $c_5\ge\frac8{25}$, the right-hand side of
+\eqref{eq:complement} is nondecreasing in each $c_q$, so it is at least the value at
+$(\frac14,\frac8{27},\frac8{25})$, namely
+\[
+  1-\frac{969+323+408+456}{2700}=1-\frac{2156}{2700}=\frac{544}{2700}=\frac{136}{675}. \qedhere
+\]
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:eps}]
+Let $Y=\lfloor p^{1/4}\rfloor$ and let $Q$ be the set of primes $q\le Y$, so $\#Q=t$. If
+$t\le1$ then $\varepsilon(p)\ge1$ and there is nothing to prove. If $t\ge2$, then for $q_1<q_2$
+in $Q$ we have $q_1^2q_2^2\le Y^4\le p$, so \eqref{eq:pair-condition} holds by
+Lemma~\ref{lem:frobenius}, and $p\notin Q$.
+Theorem~\ref{thm:master} together with the lower bound of Proposition~\ref{prop:two-rootless}
+gives $\liminf\delta_{p,m,n}(X)\ge1-(1+t)(3/4)^t$. Finally $Y\to\infty$ as $p\to\infty$, so
+$t=\pi(Y)\to\infty$ and $(1+t)(3/4)^t\to0$; the bound involves neither $n$ nor $m$.
+\end{proof}
+
+Since $\mathcal F_{p,m,n}$ has positive density inside the monic polynomials of degree $n$
+(Theorem~\ref{thm:main-density-family}), we obtain in particular:
+
+\begin{corollary}\label{cor:positive}
+Let $n\ge3$ be odd and let $m\ge1$ be coprime to $n$. A positive proportion of the monic integer
+polynomials of degree $n$ satisfying the Eisenstein--Dumas condition of slope $m/n$ at $5$
+generate fields that are not norm-Euclidean; the same holds inside the family of all monic
+polynomials of degree $n$.
+\end{corollary}
+
+\begin{proof}
+Apply Corollary~\ref{cor:227} with $p=5$, which satisfies $\gcd(4,n)=1$ for odd $n$, and combine
+with Theorem~\ref{thm:main-density-family}.
+\end{proof}
+
+\section{Weakening the coprimality condition}\label{sec:gcd}
+
+The hypothesis $\gcd(p-1,n)=1$ was used only to guarantee that $a=uq_1$ is an $n$-th power residue
+modulo $p$. For a fixed $n$ there are infinitely many primes $p$ with $\gcd(p-1,n)=1$, but the
+condition fails identically when $n$ is even. It can be relaxed at the cost of taking $p$ large,
+by choosing $u$ inside a suitable arithmetic progression; the price is a character sum estimate,
+for which we quote the classical inequality of P\'olya and Vinogradov \cite{Polya,Vinogradov}: for
+a non-principal primitive Dirichlet character $\chi$ modulo $M$ and any $N$,
+\begin{equation}\label{eq:PV}
+  \Bigl|\sum_{u<N}\chi(u)\Bigr|\ \le\ C\,M^{1/2}\log M
+\end{equation}
+with an absolute constant $C$.
+
+\begin{theorem}\label{thm:gcd}
+Let $n\ge2$ and let $m\ge1$ be coprime to $n$. Put $Y=(\log p)^{1/5}$ and
+$\hat\varepsilon(p)=(1+\pi(Y))(3/4)^{\pi(Y)}$. There is an absolute constant $p_0$ such that for
+every prime $p\ge p_0$ with
+\[
+  g:=\gcd(p-1,n)\ <\ \frac{p^{1/2}}{(\log p)^2}
+\]
+one has $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\hat\varepsilon(p)$; in particular
+$\hat\varepsilon(p)\to0$ as $p\to\infty$.
+\end{theorem}
+
+\begin{proof}
+Let $Q$ be the set of primes $q\le Y$ and let $\mathcal F^{*}$ be the set of
+$f\in\mathcal F_{p,m,n}$ having no root modulo $q$ for at least two $q\in Q$. By
+Proposition~\ref{prop:two-rootless} the density of $\mathcal F^{*}$ inside $\mathcal F_{p,m,n}$ is
+at least $1-\hat\varepsilon(p)$. Fix $f\in\mathcal F^{*}$ and primes $q_1<q_2\le Y$ modulo which
+$f$ has no root. By Theorem~\ref{thm:main-ram}, $f$ is irreducible and $p$ is totally ramified in
+$K_f$, so by Lemma~\ref{lem:heilbronn-applies} it suffices to produce positive integers $u,v$ with
+\begin{equation}\label{eq:target}
+  p=uq_1+vq_2,\qquad q_1\nmid u,\qquad q_2\nmid v,\qquad uq_1 \text{ an } n\text{-th power residue mod } p .
+\end{equation}
+
+Let $\psi$ be a Dirichlet character modulo $p$ of order $g$. Since the character group modulo $p$
+is cyclic of order $p-1$ and $g\mid n$, such a $\psi$ exists; its kernel has index $g$ and
+contains all $n$-th powers, hence equals the group of $n$-th powers, which also has index
+$g=\gcd(n,p-1)$ in $(\Z/p\Z)^{\times}$. Thus for $p\nmid y$ we have $\psi(y)=1$ if and only if $y$
+is an $n$-th power residue modulo $p$.
+
+Instead of first choosing $u$ and then correcting for a possible divisibility $q_2\mid v$, we
+impose the condition $q_2\nmid v$ from the start, as a congruence modulo $q_2^2$. Indeed, if
+$p=uq_1+vq_2$ then
+\[
+  q_2\mid v \iff q_2^{2}\mid p-uq_1 \iff uq_1\equiv p \pmod{q_2^{2}} .
+\]
+Choose $c$ modulo $q_2^{2}$ with $cq_1\equiv p+q_1q_2 \pmod{q_2^{2}}$; this is possible since
+$q_1$ is invertible modulo $q_2^2$, and $\gcd(c,q_2)=1$ because $cq_1\equiv p\pmod{q_2}$ and
+$q_2\nmid p$. If $u\equiv c\pmod {q_2^{2}}$ then $q_2\mid p-uq_1$, so $v=(p-uq_1)/q_2$ is an
+integer, and $p-uq_1\equiv -q_1q_2 \pmod {q_2^{2}}$ gives $v\equiv -q_1\not\equiv0\pmod{q_2}$.
+
+Put $N=p/q_1$ and count the positive integers $u<N$ with
+\begin{equation}\label{eq:three}
+  \gcd(u,q_1)=1,\qquad u\equiv c \pmod{q_2^{2}},\qquad \psi(q_1u)=1 .
+\end{equation}
+The three conditions are detected respectively by
+\[
+  \varphi_0(u),\qquad
+  \frac{1}{\phi(q_2^{2})}\sum_{\chi \bmod q_2^{2}}\chi(u)\overline{\chi}(c),\qquad
+  \frac1g\sum_{k=1}^{g}\psi^k(q_1u),
+\]
+where $\varphi_0$ is the principal character modulo $q_1$. Multiplying out, the number of such $u$
+equals
+\[
+  \frac{1}{\phi(q_2^{2})\,g}\sum_{\chi\bmod q_2^{2}}\ \sum_{k=1}^{g}\ \overline{\chi}(c)\,\psi^k(q_1)
+  \sum_{u<N}\bigl(\varphi_0\,\chi\,\psi^k\bigr)(u).
+\]
+The moduli $q_1$, $q_2^2$ and $p$ are pairwise coprime, so the character $\varphi_0\chi\psi^k$
+modulo $M=pq_1q_2^{2}$ is principal precisely when $\chi=\chi_0$ and $\psi^k=1$, that is when
+$(\chi,k)=(\chi_0,g)$. That pair contributes
+\[
+  \frac{1}{\phi(q_2^{2})g}\,\#\{u<N:\gcd(u,q_1q_2)=1\}
+  =\frac{N}{\phi(q_2^{2})g}\Bigl(1-\frac1{q_1}\Bigr)\Bigl(1-\frac1{q_2}\Bigr)+O(1)
+  =\frac{N}{q_2^{2}\,g}\Bigl(1-\frac1{q_1}\Bigr)+O(1),
+\]
+using $\phi(q_2^2)=q_2(q_2-1)$. Every other pair contributes a non-principal character sum modulo
+$M$. For a primitive character these are bounded by \eqref{eq:PV}; a non-principal character
+$\chi'$ modulo $M$ induced by a primitive $\chi^{*}$ modulo $M^{*}\mid M$ satisfies
+$\sum_{u<N}\chi'(u)=\sum_{d\mid \mathrm{rad}(M)}\mu(d)\chi^{*}(d)\sum_{w<N/d}\chi^{*}(w)$, so the
+same bound holds after multiplying by $2^{\omega(M)}\le 8$. Since there are $\phi(q_2^{2})g$ pairs
+in all, the total contribution of the non-principal pairs is $O(M^{1/2}\log M)$ with an absolute
+implied constant. Hence the number of $u<N$ satisfying \eqref{eq:three} is
+\begin{equation}\label{eq:count}
+  \frac{N}{q_2^{2}\,g}\Bigl(1-\frac1{q_1}\Bigr)+O\bigl(M^{1/2}\log M\bigr),
+  \qquad M=pq_1q_2^{2}.
+\end{equation}
+Using $q_1\ge2$, $N=p/q_1$ and $q_1,q_2\le Y$, the main term is at least $p/(2Y^{3}g)$, while
+$M\le pY^{3}$. So \eqref{eq:count} is positive as soon as
+\[
+  g\ <\ \frac{p^{1/2}}{C'\,Y^{9/2}\log (pY^{3})}
+\]
+for a suitable absolute constant $C'$. With $Y=(\log p)^{1/5}$ the right-hand side is
+$\bigl(C'+o(1)\bigr)^{-1}p^{1/2}(\log p)^{-19/10}$, which exceeds $p^{1/2}(\log p)^{-2}$ for all
+large $p$. Therefore the hypothesis on $g$ produces a positive integer $u<N=p/q_1$ satisfying
+\eqref{eq:three}. Then $v=(p-uq_1)/q_2$ is a positive integer with $q_2\nmid v$, while
+$q_1\nmid u$ and $\psi(q_1u)=1$ give the remaining two conditions in \eqref{eq:target}. By
+Lemma~\ref{lem:heilbronn-applies}, $K_f$ is not norm-Euclidean.
+\end{proof}
+
+\begin{remark}
+In \cite{HMT} the divisibility $q_2\mid v$ is instead repaired afterwards, by replacing
+$(u,v)$ with $(u+q_2,v-q_1)$ or with $(u+2q_2,v-2q_1)$. This does restore $q_2\nmid v$ and
+$q_1\nmid u$, but it also changes $a=uq_1$ into $a=(u+q_2)q_1$ or $(u+2q_2)q_1$, and there is no
+reason for the new value to remain an $n$-th power residue modulo $p$, which is what Heilbronn's
+criterion needs. Detecting the condition $q_2\nmid v$ directly, as a congruence modulo $q_2^{2}$,
+avoids the issue; the only cost is that the modulus of the character sum grows from $pq_1q_2$ to
+$pq_1q_2^{2}$, which is absorbed by taking $Y=(\log p)^{1/5}$ in place of $(\log p)^{1/4}$.
+\end{remark}
+
+\begin{corollary}
+Fix $n\ge2$. A positive proportion of the monic integer polynomials of degree $n$ satisfying an
+Eisenstein--Dumas condition fail to generate norm-Euclidean fields.
+\end{corollary}
+
+\begin{proof}
+For odd $n$ this is Corollary~\ref{cor:positive}. For even $n$, choose a prime $p\ge p_0$ with
+$p\equiv-1\pmod{2n}$, which exists by Dirichlet's theorem; then $\gcd(p-1,n)=2$, which is smaller
+than $p^{1/2}(\log p)^{-2}$ for $p$ large, so Theorem~\ref{thm:gcd} applies and gives a positive
+lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
+Theorem~\ref{thm:main-density-family}.
+\end{proof}
+
+\begin{thebibliography}{99}
+
+\bibitem{Dubickas} A.~Dubickas, \emph{Polynomials irreducible by Eisenstein's criterion},
+Appl. Algebra Engrg. Comm. Comput. \textbf{14} (2003), 127--132.
+
+\bibitem{Dumas} G.~Dumas, \emph{Sur quelques cas d'irr\'eductibilit\'e des polyn\^omes \`a
+coefficients rationnels}, J. Math. Pures Appl. \textbf{2} (1906), 191--258.
+
+\bibitem{Egami} S.~Egami, \emph{On finiteness of the numbers of Euclidean fields in some classes
+of number fields}, Tokyo J. Math. \textbf{7} (1984), 183--198.
+
+\bibitem{EK} P.~Erd\H{o}s and C.~Ko, \emph{Note on the Euclidean algorithm},
+J. London Math. Soc. \textbf{13} (1938), 3--8.
+
+\bibitem{H1} H.~Heilbronn, \emph{On Euclid's algorithm in cubic self-conjugate fields},
+Proc. Cambridge Philos. Soc. \textbf{46} (1950), 377--382.
+
+\bibitem{H2} H.~Heilbronn, \emph{On Euclid's algorithm in cyclic fields},
+Canad. J. Math. \textbf{3} (1951), 257--268.
+
+\bibitem{HMT} A.~Hibbler, K.~J.~McGown and E.~Trevi\~no, \emph{Polynomial densities and
+Heilbronn's criterion}, arXiv:2512.16220.
+
+\bibitem{Lemmermeyer} F.~Lemmermeyer, \emph{The Euclidean algorithm in algebraic number fields},
+Exposition. Math. \textbf{13} (1995), 385--416.
+
+\bibitem{Polya} G.~P\'olya, \emph{\"Uber die Verteilung der quadratischen Reste und Nichtreste},
+Nachr. Akad. Wiss. G\"ottingen (1918), 21--29.
+
+\bibitem{Vinogradov} I.~M.~Vinogradov, \emph{Sur la distribution des r\'esidus et des non-r\'esidus
+des puissances}, J. Phys.-Math. Soc. Perm \textbf{1} (1918), 94--98.
+
+\end{thebibliography}
+
+\end{document}

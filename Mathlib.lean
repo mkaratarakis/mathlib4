@@ -5958,6 +5958,13 @@ public import Mathlib.NumberTheory.NumberField.ProductFormula
 public import Mathlib.NumberTheory.NumberField.Units.Basic
 public import Mathlib.NumberTheory.NumberField.Units.DirichletTheorem
 public import Mathlib.NumberTheory.NumberField.Units.Regulator
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Counting
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.DegreeOne
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Dumas
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Heilbronn
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Norm
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Rootless
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Density
 public import Mathlib.NumberTheory.Ostrowski
 public import Mathlib.NumberTheory.Padics.AddChar
 public import Mathlib.NumberTheory.Padics.Complex
