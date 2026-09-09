@@ -1297,3 +1297,32 @@ theorem tendsto_density_eisensteinDumas {n m p : ℕ} (hn : 0 < n) (hm : 0 < m) 
   exact key
 
 end NumberField
+
+namespace NumberField
+
+open scoped Classical in
+/-- **The lower density form of the master theorem.**  For `n ≥ 2` and a finite set `Q` of primes
+different from `p`, the proportion of the Eisenstein–Dumas family whose polynomial has no root
+modulo at least two primes of `Q` is eventually at least `1 - (1 + #Q) (3/4) ^ #Q - ε`.
+
+Every polynomial counted in the numerator generates a field that is not norm-Euclidean, by
+`not_normEuclidean_of_eisensteinDumas_fin` applied to two of those primes; so this is the lower
+density bound of the master theorem. -/
+theorem eventually_le_density_atLeastTwo {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : Fin n → ℕ}
+    {Q : Finset ℕ} (hp : p.Prime) (hQ : ∀ q ∈ Q, q.Prime) (hpQ : p ∉ Q) {ε : ℝ} (hε : 0 < ε) :
+    ∀ᶠ N : ℕ in Filter.atTop,
+      1 - (1 + #Q) * (3 / 4 : ℝ) ^ #Q - ε ≤
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩) ∧
+            2 ≤ #{q ∈ Q | ∀ r : ZMod q,
+              ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r}} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩} : ℝ) := by
+  have hlim := tendsto_density_atLeastTwo (n := n) (c := c) (by omega) hp hQ hpQ
+  have hbound := le_sum_atLeastTwo_of_prime (n := n) hn hQ
+  refine hlim.eventually_const_le ?_
+  linarith
+
+end NumberField
