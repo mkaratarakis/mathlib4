@@ -6,14 +6,9 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Data.Int.CardIntervalMod
-public import Mathlib.Data.ZMod.Basic
-public import Mathlib.Data.Fintype.BigOperators
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 public import Mathlib.Order.Filter.AtTopBot.Archimedean
-public import Mathlib.Order.Filter.AtTopBot.Field
-public import Mathlib.Topology.Algebra.Monoid
-public import Mathlib.Topology.Algebra.Order.Field
 public import Mathlib.Topology.Instances.Real.Lemmas
 
 /-!
@@ -41,6 +36,7 @@ the `i`-th coefficient varies with `i`.
   `count / (2 * X + 1) ^ card ι → #S / ∏ i, M i`.
 * `Int.tendsto_card_box_filter_div_piFinset`: for a product set `S = ∏ i, T i` the density
   factorises as `∏ i, #(T i) / M i`.
+
 ## References
 
 The counting lemma of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's

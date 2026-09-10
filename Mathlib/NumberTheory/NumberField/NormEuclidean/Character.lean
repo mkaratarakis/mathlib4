@@ -6,12 +6,10 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Density
-public import Mathlib.NumberTheory.DirichletCharacter.Orthogonality
 public import Mathlib.NumberTheory.DirichletCharacter.Bounds
 public import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 public import Mathlib.RingTheory.ZMod.UnitsCyclic
 public import Mathlib.Analysis.Complex.Polynomial.Basic
-public import Mathlib.Data.ZMod.QuotientGroup
 
 /-!
 # Producing an `n`-th power residue by a character sum
@@ -24,9 +22,9 @@ a character sum.
 Let `ψ` be a Dirichlet character modulo `p` of order `g = gcd (p - 1, n)`, so that `ψ y = 1`
 exactly when `y` is an `n`-th power residue.  For `1 ≤ k ≤ g` the sums `ψ ^ k` detect that
 condition (`NumberField.sum_pow_apply_eq`), and summing over a set `S` of candidates `u` — in the
-application, those `u < p / q₁` prime to `q₁` and lying in a fixed class modulo `q₂ ^ 2`, the
-class that forces `q₂ ∤ v` — expresses the number of good `u` as a main term plus character sums
-attached to the `k` with `ψ ^ k ≠ 1`.  If those are small the count is positive, and a good `u`
+application, an arithmetic progression modulo `q₁ q₂ ^ 2` chosen so that `q₁ ∤ u` and so that
+`q₂ ∤ v` — expresses the number of good `u` as a main term plus character sums attached to the `k`
+with `ψ ^ k ≠ 1`.  If those are small the count is positive, and a good `u`
 exists: this is `NumberField.exists_apply_eq_one_of_lt_card`.
 
 Such a `ψ` always exists, and this is proved here: `(ZMod p)ˣ` is cyclic of order `p - 1`, so it
@@ -40,7 +38,11 @@ whose kernel is the group of `n`-th powers.
   non-principal `ψ ^ k` are bounded by `B`, and the number of `u ∈ S` with `q₁ u` invertible
   exceeds `(g - 1) B`, then some `u ∈ S` has `ψ (q₁ u) = 1`.
 * `NumberField.exists_dirichletCharacter_pow_residues`: existence of the detecting character.
-* `NumberField.not_normEuclidean_of_forall_charSum`: Section 7 with no hypothesis on `ψ` at all.
+* `NumberField.not_normEuclidean_of_charSum`: the criterion, given a detecting character and a
+  bound for the character sums.
+* `NumberField.not_normEuclidean_of_forall_charSum`: the same with no hypothesis on `ψ` at all,
+  the character being produced rather than assumed.
+
 ## References
 
 The character-sum argument is the one sketched in the final section of [Hibbler, McGown,
@@ -251,7 +253,7 @@ theorem exists_dirichletCharacter_pow_residues (p n : ℕ) (hp : p.Prime) :
       exact absurd hy zero_ne_one
 
 open scoped Classical in
-/-- **Section 7, assembled.**  Let `f` satisfy the Eisenstein–Dumas condition at `p` of slope
+/-- **The criterion, assembled.**  Let `f` satisfy the Eisenstein–Dumas condition at `p` of slope
 `m / n`, and suppose `f` has no root modulo two primes `q₁ ≠ q₂`, both different from `p`.  Let
 `ψ` be a Dirichlet character mod `p` with `ψ ^ g = 1` whose value `1` characterises the `n`-th
 power residues, and let `r₀` be a residue with `r₀ q₁ ≡ p + q₁ q₂ (mod q₂ ^ 2)`.  Let `S` be any
@@ -351,7 +353,8 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
     ⟨hu0, hv0, hpuv, hqu, hqv⟩ hres hdeg hroot hc hdvd hnd hq₁ hq₂ hr₁ hr₂
 
 open scoped Classical in
-/-- **Section 7 with no hypothesis on the character.**  Same as `not_normEuclidean_of_charSum`,
+/-- **The criterion with no hypothesis on the character.**  Same as
+`not_normEuclidean_of_charSum`,
 but with the detecting character produced rather than assumed: the only analytic input left is
 the bound `hPV`, quantified over *all* non-principal characters modulo `p`, which is precisely
 the shape in which the Pólya–Vinogradov inequality is applied. -/

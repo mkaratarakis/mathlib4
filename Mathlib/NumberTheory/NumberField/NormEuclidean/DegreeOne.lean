@@ -7,8 +7,6 @@ module
 
 public import Mathlib.NumberTheory.NumberField.Basic
 public import Mathlib.RingTheory.Ideal.Norm.AbsNorm
-public import Mathlib.FieldTheory.Finite.Basic
-public import Mathlib.GroupTheory.Perm.Cycle.Type
 
 /-!
 # Primes of residue degree one and integers that are exactly divisible by a norm
@@ -31,6 +29,7 @@ more familiar "`q` is not a norm".
   root modulo `q`.
 * `NumberField.norm_ne_mul_of_forall_eval_ne_zero`: if `f` has no root modulo `q` and `q ∤ u`,
   then no algebraic integer has norm `u * q`.
+
 ## References
 
 This is Lemma 2.3 of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's

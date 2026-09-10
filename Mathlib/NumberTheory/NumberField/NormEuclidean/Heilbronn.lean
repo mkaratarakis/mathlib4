@@ -7,7 +7,6 @@ module
 
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Norm
 public import Mathlib.NumberTheory.NumberField.Basic
-public import Mathlib.RingTheory.Ideal.Norm.AbsNorm
 
 /-!
 # Heilbronn's criterion
@@ -34,6 +33,7 @@ is the `n`-th power map on the residue field.
 * `NumberField.natAbs_norm_eq_of_pow_eq_span`: a generator of a totally ramified prime has norm
   `± p`.
 * `NumberField.not_normEuclidean_of_totallyRamified`: **Heilbronn's criterion**.
+
 ## References
 
 Heilbronn's criterion is due to [Heilbronn, *On Euclid's algorithm in cubic self-conjugate

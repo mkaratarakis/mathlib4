@@ -5,10 +5,8 @@ Authors: Michail Karatarakis
 -/
 module
 
-public import Mathlib.NumberTheory.GaussSum
 public import Mathlib.Analysis.Fourier.ZMod
 public import Mathlib.NumberTheory.Harmonic.Bounds
-public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 public import Mathlib.NumberTheory.DirichletCharacter.Bounds
 
 /-!

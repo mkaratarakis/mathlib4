@@ -11,9 +11,6 @@ public import Mathlib.NumberTheory.NumberField.NormEuclidean.DegreeOne
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Heilbronn
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Rootless
 public import Mathlib.NumberTheory.FrobeniusNumber
-public import Mathlib.GroupTheory.OrderOfElement
-public import Mathlib.Data.ZMod.Units
-public import Mathlib.Data.ZMod.QuotientRing
 
 /-!
 # Eisenstein–Dumas polynomials that fail to generate norm-Euclidean fields
@@ -38,6 +35,7 @@ power modulo `p` when `gcd (p - 1) n = 1`.
 * `NumberField.not_normEuclidean_of_eisensteinDumas`: the arithmetic core — a number field of
   degree `n` containing a root of an Eisenstein–Dumas polynomial that has no root modulo two
   suitable primes is not norm-Euclidean.
+
 ## References
 
 The density statements extend those of [Hibbler, McGown, Treviño, *Polynomial densities and

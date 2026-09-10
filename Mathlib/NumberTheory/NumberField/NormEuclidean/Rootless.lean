@@ -6,9 +6,6 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Combinatorics.Enumerative.InclusionExclusion
-public import Mathlib.Algebra.Polynomial.Roots
-public import Mathlib.RingTheory.Coprime.Lemmas
-public import Mathlib.Data.Nat.Choose.Sum
 public import Mathlib.FieldTheory.Finite.Basic
 public import Mathlib.Data.Real.Basic
 
@@ -32,6 +29,7 @@ an algebraic integer unless the polynomial has a root modulo `q`.
 * `Polynomial.card_no_root_eq_of_le`: the closed form `(q - 1) ^ q * q ^ (n - q)` when `n ≥ q`.
 * `Polynomial.card_no_root_div_le` and `Polynomial.le_card_no_root_div`: the bounds
   `(q ^ 2 - 1) / (3 * q ^ 2) ≤ C ≤ (q - 1) / (2 * q)` for the proportion `C`, valid for `n ≥ 2`.
+
 ## References
 
 The count of rootless monic polynomials over a finite field and the bounds for it are those of
@@ -462,28 +460,6 @@ theorem card_no_root_univ_div_bounds {n : ℕ} (hn : 2 ≤ n) :
       _ = ((Fintype.card F : ℝ) - 1) / (2 * Fintype.card F) := hg2
 
 /-! ### Reformulations -/
-
-omit [DecidableEq F] in
-/-- `Set.ncard` form of `card_no_root_eq_sum`. -/
-theorem ncard_no_root_eq_sum (n : ℕ) (T : Finset F) :
-    ({a : Fin n → F | ∀ r ∈ T,
-        ¬ (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).IsRoot r}.ncard : ℤ) =
-      ∑ k ∈ range (n + 1), (-1) ^ k * ((#T).choose k : ℤ) * (Fintype.card F : ℤ) ^ (n - k) := by
-  classical
-  rw [← card_no_root_eq_sum n T]
-  congr 2
-  rw [← Set.ncard_coe_finset]
-  congr 1
-  ext a
-  simp
-
-/-- The count over `Fintype.piFinset` is the same as the count over the universal finite set. -/
-theorem card_piFinset_no_root (n : ℕ) (T : Finset F) :
-    #{a ∈ Fintype.piFinset fun _ : Fin n => (Finset.univ : Finset F) |
-        ∀ r ∈ T, ¬ (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).IsRoot r} =
-      #{a : Fin n → F | ∀ r ∈ T, ¬ (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).IsRoot r} := by
-  classical
-  congr 1
 
 /-- The proportion of rootless monic polynomials of degree `n ≥ 2` is at least `1 / 4`. -/
 theorem card_no_root_univ_div_ge_quarter {n : ℕ} (hn : 2 ≤ n) :

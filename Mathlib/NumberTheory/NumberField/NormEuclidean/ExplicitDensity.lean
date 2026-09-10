@@ -7,7 +7,6 @@ module
 
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Coprimality
 public import Mathlib.NumberTheory.PrimeCounting
-public import Mathlib.Analysis.SpecificLimits.Normed
 
 /-!
 # Explicit density bounds
@@ -29,9 +28,12 @@ norm-Euclidean.
   Heilbronn's criterion holds for every pair of primes in that set because `q₁ ^ 2 q₂ ^ 2 ≤ p`
   (`NumberField.exists_rep_of_mem_primesLE`).
 
-The last section restates Section 7 in the indexing used by the density theorems, so that the two
+The last section restates the criterion of
+`Mathlib.NumberTheory.NumberField.NormEuclidean.Coprimality` in the indexing used by the density
+theorems, so that the two
 halves can be combined:
 `NumberField.not_normEuclidean_of_eisensteinDumas_fin_of_gcd_lt`.
+
 ## References
 
 The bounds `2 / 27` and `1 - ε(p)` are those of [Hibbler, McGown, Treviño, *Polynomial densities
@@ -67,15 +69,6 @@ theorem sum_atLeastTwo_three (c : ℕ → ℝ) :
     Finset.prod_pair (show (3 : ℕ) ≠ 5 by decide),
     Finset.prod_singleton, Finset.prod_empty]
   ring
-
-/-- With `C_2 = 1/4`, `C_3 = 8/27` and `C_5 ≥ 8/25`, at least two of the three events occur with
-probability at least `136 / 675`. -/
-theorem le_sum_atLeastTwo_three {c : ℕ → ℝ} (h2 : c 2 = 1 / 4) (h3 : c 3 = 8 / 27)
-    (h5 : 8 / 25 ≤ c 5) :
-    136 / 675 ≤ ∑ U ∈ {U ∈ ({2, 3, 5} : Finset ℕ).powerset | 2 ≤ #U},
-        (∏ q ∈ U, c q) * ∏ q ∈ ({2, 3, 5} : Finset ℕ) \ U, (1 - c q) := by
-  rw [sum_atLeastTwo_three, h2, h3]
-  linarith
 
 /-- The local density at `2` is exactly `1 / 4`, in the form used by the master theorem. -/
 theorem card_no_root_div_two_eq {n : ℕ} (hn : 2 ≤ n) :
@@ -243,9 +236,9 @@ theorem tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero :
     exact h3.congr fun t => by ring
   exact hbase.comp hcomp
 
-/-! ### The Fin-indexed form of Section 7 -/
+/-! ### The Fin-indexed form of the criterion -/
 
-/-- **Section 7, in the indexing of the density theorems.**  The same statement as
+/-- **The criterion, in the indexing of the density theorems.**  The same statement as
 `not_normEuclidean_of_eisensteinDumas_of_gcd_lt`, with the coefficients indexed by `Fin n` and
 the rootlessness expressed by `Polynomial.IsRoot`, so that it applies directly to the tuples
 counted by the density theorems.  No hypothesis on `gcd (p - 1, n)` beyond the explicit size

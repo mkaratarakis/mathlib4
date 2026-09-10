@@ -5965,6 +5965,7 @@ public import Mathlib.NumberTheory.NumberField.NormEuclidean.Counting
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.DegreeOne
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Density
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Dumas
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Examples
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.ExplicitDensity
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Heilbronn
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Norm

@@ -6,9 +6,6 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.RingTheory.Norm.Basic
-public import Mathlib.LinearAlgebra.Matrix.Charpoly.Coeff
-public import Mathlib.RingTheory.Polynomial.Nilpotent
-public import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
 
 /-!
 # Norms modulo a totally ramified element
@@ -31,6 +28,7 @@ makes sense inside a Galois closure.
 * `Algebra.dvd_norm_add_sub_pow`: the congruence `norm A (x + t) ≡ x ^ n [mod p]` above.
 * `Algebra.dvd_norm_sub_pow`: the same congruence for `ρ` congruent to `x` modulo an ideal `I`
   with `I ^ n ≤ (p)`, which is the form used for a totally ramified prime.
+
 ## References
 
 The reduction of the norm form to the `n`-th power map modulo a totally ramified prime is the

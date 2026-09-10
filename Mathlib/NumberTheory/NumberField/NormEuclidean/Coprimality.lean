@@ -7,41 +7,29 @@ module
 
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Character
 public import Mathlib.NumberTheory.DirichletCharacter.PolyaVinogradov
-public import Mathlib.Data.Int.CardIntervalMod
 
 /-!
 # Weakening the coprimality condition
 
 The character-sum argument of `Mathlib.NumberTheory.NumberField.NormEuclidean.Character` needs a
-lower bound for the number of candidates
-`S = {u < p / q₁ : q₁ ∤ u, u ≡ r₀ (mod q₂ ^ 2)}`,
-and needs to know that every candidate `u` has `q₁ u` invertible modulo `p`.  Both are proved
-here, giving the argument a completely explicit sufficient condition.
-
-The count is elementary: the residue class of `r₀` modulo `q₂ ^ 2` contributes at least
-`M / q₂ ^ 2 - 1` integers below `M`, and the multiples of `q₁` inside it form a single class
-modulo `q₁ q₂ ^ 2` (the moduli are coprime) and so contribute at most `M / (q₁ q₂ ^ 2) + 1`.
-With `M = p / q₁` this gives `#S ≥ p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
-
-Taking instead for `S` a *single* arithmetic progression `u ≡ ρ (mod q₁ q₂ ^ 2)`, with `ρ ≡ 1`
-modulo `q₁`, makes the condition `q₁ ∤ u` automatic and lets the Pólya–Vinogradov inequality be
-applied directly, giving the theorem with no analytic hypothesis at all:
+set of candidates `u` that are `< p / q₁`, prime to `q₁`, and congruent to a fixed `r₀` modulo
+`q₂ ^ 2`, together with a lower bound for how many there are.  Taking for that set a *single*
+arithmetic progression `u ≡ ρ (mod q₁ q₂ ^ 2)`, with `ρ ≡ 1` modulo `q₁`, makes the condition
+`q₁ ∤ u` automatic and leaves a character sum over an interval, to which the Pólya–Vinogradov
+inequality applies directly.  The result is the criterion with no analytic hypothesis at all:
 `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`.
 
 ## Main results
 
 * `Nat.sum_filter_range_modEq`: a sum over a residue class below `M`, reindexed by an initial
   segment.
-* `NumberField.le_card_filter_range_div_not_dvd`: the lower bound
-  `p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
-* `NumberField.not_normEuclidean_of_charSum_bound_lt`: Section 7, with the size condition on the
-  character-sum bound `B` made explicit.
 * `NumberField.norm_sum_filter_range_modEq_le`: the character sum over one progression.
 * `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`: the criterion unconditionally,
   with the Pólya–Vinogradov inequality supplied.
 * `NumberField.gcd_condition_of_sq_mul_sq_le`: the explicit condition of that theorem holds
   whenever `8 n q₁ ^ 2 q₂ ^ 2 ≤ ⌊p ^ (1 / 4)⌋`, uniformly in the auxiliary primes; so it is not
   vacuous, and `NumberField.eventually_gcd_condition` records that it holds for all large `p`.
+
 ## References
 
 This is the final section of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
@@ -71,95 +59,6 @@ theorem sum_filter_range_modEq {M Q r : ℕ} (hQ : 0 < Q) (hr : r < Q) {A : Type
 end Nat
 
 namespace NumberField
-
-/-- The candidate set, with the congruence rewritten as a `Nat.ModEq`. -/
-theorem filter_range_natCast_eq {M Q : ℕ} (q v : ℕ) :
-    {u ∈ Finset.range M | ¬ q ∣ u ∧ ((u : ℕ) : ZMod Q) = ((v : ℕ) : ZMod Q)}
-      = {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} := by
-  refine Finset.filter_congr fun u _ => ?_
-  simp only [ZMod.natCast_eq_natCast_iff]
-
-/-- **Lower bound for the number of candidates.**  At least
-`p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3` of the `u < p / q₁` are prime to `q₁` and congruent to `v`
-modulo `q₂ ^ 2`. -/
-theorem le_card_filter_range_div_not_dvd {p q₁ q₂ : ℕ} (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
-    (hne : q₁ ≠ q₂) (v : ℕ) :
-    (p : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 3 ≤
-      #{u ∈ Finset.range (p / q₁) |
-        ¬ q₁ ∣ u ∧ ((u : ℕ) : ZMod (q₂ ^ 2)) = ((v : ℕ) : ZMod (q₂ ^ 2))} := by
-  rw [filter_range_natCast_eq]
-  set M := p / q₁ with hM
-  have hq₁pos : (0 : ℝ) < q₁ := by exact_mod_cast hq₁.pos
-  have hq₂pos : (0 : ℝ) < q₂ := by exact_mod_cast hq₂.pos
-  have hcop : Nat.Coprime (q₂ ^ 2) q₁ :=
-    Nat.Coprime.pow_left _ ((Nat.coprime_primes hq₂ hq₁).2 (Ne.symm hne))
-  have hQ : 0 < q₂ ^ 2 := pow_pos hq₂.pos 2
-  have hbase := Nat.le_card_range_filter_modEq_not_dvd (M := M) hQ hq₁.pos hcop v
-  have hreal : (M : ℝ) / ((q₂ : ℝ) ^ 2) - (M : ℝ) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2) - 2 ≤
-      #{u ∈ Finset.range M | ¬ q₁ ∣ u ∧ u ≡ v [MOD q₂ ^ 2]} := by
-    have h := (Rat.cast_le (K := ℝ)).2 hbase
-    push_cast at h
-    linarith
-  -- `M = p / q₁` is between `p / q₁ - 1` and `p / q₁`
-  have hq₁ge : (1 : ℝ) ≤ (q₁ : ℝ) := by exact_mod_cast hq₁.one_lt.le
-  have hq₂one : (1 : ℝ) ≤ (q₂ : ℝ) ^ 2 := by
-    have : (1 : ℝ) ≤ (q₂ : ℝ) := by exact_mod_cast hq₂.one_lt.le
-    nlinarith
-  have hdm : q₁ * M + p % q₁ = p := by rw [hM]; exact Nat.div_add_mod p q₁
-  have h2 : (q₁ : ℝ) * (M : ℝ) + ((p % q₁ : ℕ) : ℝ) = (p : ℝ) := by exact_mod_cast hdm
-  have h3 : ((p % q₁ : ℕ) : ℝ) < (q₁ : ℝ) := by exact_mod_cast Nat.mod_lt _ hq₁.pos
-  have hMge : (p : ℝ) / q₁ - 1 ≤ (M : ℝ) := by
-    rw [sub_le_iff_le_add, div_le_iff₀ hq₁pos]
-    nlinarith
-  have hden : (0 : ℝ) < (q₁ : ℝ) * (q₂ : ℝ) ^ 2 := by positivity
-  have e1 : (M : ℝ) / ((q₂ : ℝ) ^ 2) - (M : ℝ) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2)
-      = (M : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2) := by field_simp
-  have e2 : (p : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2)
-      = ((p : ℝ) / q₁) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2) := by field_simp
-  have hstep : ((p : ℝ) / q₁) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2)
-      - (M : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2) ≤ 1 := by
-    rw [div_sub_div_same, div_le_one hden]
-    nlinarith [mul_le_mul_of_nonneg_right (show (p : ℝ) / q₁ - (M : ℝ) ≤ 1 by linarith)
-      (show (0 : ℝ) ≤ (q₁ : ℝ) - 1 by linarith), hq₂one, hq₁ge, hq₁pos]
-  rw [e2]
-  rw [e1] at hreal
-  linarith
-
-open scoped Classical in
-/-- **Section 7 with an explicit sufficient condition.**  If the Pólya–Vinogradov bound `B` for
-the character sums over the candidate set satisfies
-`(g - 1) B < p (q₁ - 1) / (q₁² q₂²) - 3`, where `g = gcd (p - 1, n)`,
-then the field generated by a root of `f` is not norm-Euclidean.  No hypothesis on the character
-and none on the size of the candidate set is left. -/
-theorem not_normEuclidean_of_charSum_bound_lt {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
-    {n m p q₁ q₂ r₀ : ℕ} {a : ℕ → ℤ} {cc : ℕ → ℕ}
-    (hp : p.Prime) (hn : 0 < n) (hm : 0 < m) (hmn : Nat.Coprime m n)
-    (hdeg : Module.finrank ℚ K = n)
-    (hroot : θ ^ n + ∑ i ∈ Finset.range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
-    (hc : ∀ i < n, m * (n - i) ≤ n * cc i) (hdvd : ∀ i < n, (p : ℤ) ^ cc i ∣ a i)
-    (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a 0)
-    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hne : q₁ ≠ q₂) (hq₁p : q₁ ≠ p)
-    (hr₁ : ∀ r : ZMod q₁, Polynomial.eval₂ (Int.castRingHom (ZMod q₁)) r
-      (Polynomial.X ^ n + ∑ i ∈ Finset.range n, Polynomial.C (a i) * Polynomial.X ^ i) ≠ 0)
-    (hr₂ : ∀ r : ZMod q₂, Polynomial.eval₂ (Int.castRingHom (ZMod q₂)) r
-      (Polynomial.X ^ n + ∑ i ∈ Finset.range n, Polynomial.C (a i) * Polynomial.X ^ i) ≠ 0)
-    (hr₀ : ((r₀ * q₁ : ℕ) : ZMod (q₂ ^ 2)) = ((p + q₁ * q₂ : ℕ) : ZMod (q₂ ^ 2)))
-    {B : ℝ} (hB : 0 ≤ B)
-    (hPV : ∀ χ : DirichletCharacter ℂ p, χ ≠ 1 →
-      ‖∑ u ∈ {u ∈ Finset.range (p / q₁) |
-          ¬ q₁ ∣ u ∧ ((u : ℕ) : ZMod (q₂ ^ 2)) = ((r₀ : ℕ) : ZMod (q₂ ^ 2))},
-        χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖ ≤ B)
-    (hcond : ((Nat.gcd (p - 1) n : ℝ) - 1) * B <
-      (p : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 3) :
-    ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
-      (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
-  classical
-  refine not_normEuclidean_of_forall_charSum hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
-    (fun h => hne (((Nat.prime_dvd_prime_iff_eq hq₂ hq₁).1 (by exact_mod_cast h)).symm)) hq₁p
-    hr₁ hr₂ hr₀ _ (fun u hu => Finset.mem_range.1 (Finset.mem_filter.1 hu).1)
-    (fun u hu => (Finset.mem_filter.1 hu).2.1)
-    (fun u hu => (Finset.mem_filter.1 hu).2.2) hB hPV ?_
-  exact lt_of_lt_of_le hcond (le_card_filter_range_div_not_dvd hq₁ hq₂ hne r₀)
 
 open scoped Classical in
 /-- **The character sum over a single progression.**  For a non-principal Dirichlet character `χ`
@@ -199,9 +98,9 @@ theorem norm_sum_filter_range_modEq_le {p q₁ R ρ : ℕ} (hp : p.Prime) (hR : 
     _ = Real.sqrt p * (1 + Real.log p) := one_mul _
 
 open scoped Classical in
-/-- **Section 7, unconditionally.**  Let `f` satisfy the Eisenstein–Dumas condition at the prime
-`p` with slope `m / n`, and suppose `f` has no root modulo two primes `q₁ ≠ q₂`, both different
-from `p`.  If
+/-- **The criterion without the coprimality hypothesis.**  Let `f` satisfy the Eisenstein–Dumas
+condition at the prime `p` with slope `m / n`, and suppose `f` has no root modulo two primes
+`q₁ ≠ q₂`, both different from `p`.  If
 `(gcd (p - 1, n) - 1) √p (1 + log p) < p / (q₁ ^ 2 q₂ ^ 2) - 2`
 then the field generated by a root of `f` is not norm-Euclidean.
 
@@ -237,7 +136,7 @@ theorem not_normEuclidean_of_eisensteinDumas_of_gcd_lt {K : Type*} [Field K] [Nu
   have hQ'pos : 0 < Q' := Nat.mul_pos hq₁.pos hQpos
   have hcopQ : Nat.Coprime q₁ Q :=
     Nat.Coprime.pow_right _ ((Nat.coprime_primes hq₁ hq₂).2 hne)
-  -- the residue `r₀` of Section 7
+  -- the residue `r₀` that forces `q₂ ∤ v`
   obtain ⟨r₀, hr₀⟩ := exists_residue_mul_eq (p := p) hq₁ hq₂ hne
   -- combine it with `1 mod q₁`
   obtain ⟨ρ₀, hρ₁, hρ₂⟩ := Nat.chineseRemainder hcopQ 1 r₀
@@ -307,7 +206,7 @@ theorem not_normEuclidean_of_eisensteinDumas_of_gcd_lt {K : Type*} [Field K] [Nu
       have h8 : (1 : ℝ) ≤ (q₂ : ℝ) := by exact_mod_cast hq₂.one_lt.le
       nlinarith
     linarith
-  -- apply Section 7
+  -- apply the character-sum criterion
   refine not_normEuclidean_of_forall_charSum hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
     (fun h => hne (((Nat.prime_dvd_prime_iff_eq hq₂ hq₁).1 (by exact_mod_cast h)).symm)) hq₁p
     hr₁ hr₂ hr₀ S hSlt hSnd hScong (by positivity) hPV (lt_of_lt_of_le hcond hcount)

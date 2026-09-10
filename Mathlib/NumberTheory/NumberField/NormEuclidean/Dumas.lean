@@ -7,8 +7,6 @@ module
 
 public import Mathlib.NumberTheory.NumberField.Basic
 public import Mathlib.RingTheory.Ideal.Norm.AbsNorm
-public import Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas
-public import Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity
 
 /-!
 # The Eisenstein–Dumas condition forces total ramification
@@ -38,6 +36,7 @@ field of degree exactly `n`) and that `p` is totally ramified there, `𝔭 ^ n =
 * `NumberField.EisensteinDumas.finrank_eq`: the root generates a field of degree `n`, i.e. the
   Eisenstein–Dumas irreducibility criterion.
 * `NumberField.EisensteinDumas.pow_eq_span`: `𝔭 ^ n = (p)`, total ramification.
+
 ## References
 
 The criterion goes back to [Dumas, *Sur quelques cas d'irréductibilité des polynômes à
