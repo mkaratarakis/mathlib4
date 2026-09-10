@@ -817,16 +817,9 @@ modulo a prime $p$, any $c\in\Z/p\Z$ and any $N\ge0$,
 \begin{equation}\label{eq:PV}
   \Bigl|\sum_{t<N}\chi(c+t)\Bigr|\ \le\ p^{1/2}\bigl(1+\log p\bigr).
 \end{equation}
-Indeed, a non-principal character modulo a prime is primitive, so its finite Fourier expansion has
-coefficients $\overline\chi(-k)\tau(\chi)$ with $|\tau(\chi)|=p^{1/2}$; the resulting complete
-exponential sums are geometric series bounded by $1/|\sin(\pi k/p)|$; and
-$\sin(\pi a/p)\ge 2\min(a,p-a)/p$ by concavity, so that
-\[
-  \sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)}
-  \ \le\ \frac p2\sum_{a=1}^{p-1}\Bigl(\frac1a+\frac1{p-a}\Bigr)
-  \ =\ p\,H_{p-1}\ \le\ p\,(1+\log p),
-\]
-which after division by $p$ and multiplication by $|\tau(\chi)|=p^{1/2}$ gives \eqref{eq:PV}.
+For a prime modulus the classical completion argument gives \eqref{eq:PV} with the explicit
+constant shown, and with no exceptional moduli; since we shall use it in exactly this form, a
+complete proof is given in Appendix~\ref{app:pv}.
 
 The point of the argument below is that the three conditions to be imposed on $u$ --- two
 congruence conditions and one multiplicative condition --- can be reduced to a
@@ -990,6 +983,147 @@ $\gcd(p-1,n)=2$, and Corollary~\ref{cor:gcd-density} with $Y=\lfloor p^{1/17}\rf
 gives a positive lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
 Theorem~\ref{thm:main-density-family}.
 \end{proof}
+
+\appendix
+
+\section{The Pólya--Vinogradov inequality for a prime modulus}\label{app:pv}
+
+The estimate \eqref{eq:PV} is classical, but the form we use --- an explicit constant, valid for
+every prime $p$ and every $N$, with no reduction to primitive characters --- is short enough to
+prove in full. Throughout, $p$ is a prime, $e_p(x)=\exp(2\pi i x/p)$ for $x\in\Z/p\Z$, and
+\[
+  \tau(\chi)\ =\ \sum_{x\in\Z/p\Z}\chi(x)\,e_p(x)
+\]
+is the Gauss sum of a Dirichlet character $\chi$ modulo $p$.
+
+\begin{lemma}[The chord of the unit circle]\label{lem:chord}
+For every real $\theta$ one has $\bigl|e^{i\theta}-1\bigr|=2\bigl|\sin(\theta/2)\bigr|$.
+\end{lemma}
+
+\begin{proof}
+$\bigl|e^{i\theta}-1\bigr|^{2}=(\cos\theta-1)^{2}+\sin^{2}\theta=2-2\cos\theta$, and
+$\cos\theta=1-2\sin^{2}(\theta/2)$ by the double-angle formula, so
+$\bigl|e^{i\theta}-1\bigr|^{2}=4\sin^{2}(\theta/2)$. Both sides being nonnegative, take square
+roots.
+\end{proof}
+
+\begin{lemma}[Jordan's inequality, rescaled]\label{lem:jordan}
+Let $0<x<y$. Then
+\[
+  \sin\Bigl(\frac{\pi x}{y}\Bigr)\ \ge\ \frac{2\min(x,\,y-x)}{y}
+  \qquad\text{and hence}\qquad
+  \frac1{\sin(\pi x/y)}\ \le\ \frac y2\Bigl(\frac1x+\frac1{y-x}\Bigr).
+\]
+\end{lemma}
+
+\begin{proof}
+Concavity of $\sin$ on $[0,\pi/2]$ gives $\sin t\ge (2/\pi)t$ there. If $2x\le y$ then
+$\pi x/y\le\pi/2$ and the bound applies directly, giving
+$\sin(\pi x/y)\ge (2/\pi)(\pi x/y)=2x/y$ with $\min(x,y-x)=x$. If $2x>y$ put $t=\pi-\pi x/y$;
+then $0\le t\le \pi/2$ and $\sin(\pi x/y)=\sin t\ge (2/\pi)t=2(y-x)/y$, while
+$\min(x,y-x)=y-x$. For the second assertion, invert and use
+$1/\min(x,y-x)\le 1/x+1/(y-x)$, which holds because $\min(x,y-x)$ is one of $x$ and $y-x$ and
+both reciprocals are positive.
+\end{proof}
+
+\begin{lemma}[The completed sine sum]\label{lem:sinesum}
+For every prime $p$,
+\[
+  \sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)}\ \le\ p\,\bigl(1+\log p\bigr).
+\]
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:jordan} with $x=a$ and $y=p$,
+\[
+  \sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)}
+  \ \le\ \frac p2\sum_{a=1}^{p-1}\Bigl(\frac1a+\frac1{p-a}\Bigr).
+\]
+The substitution $a\mapsto p-a$ is an involution of $\{1,\dots,p-1\}$, so the two halves of the
+right-hand sum are equal and each is the harmonic number $H_{p-1}$. Hence the bound is
+$p\,H_{p-1}\le p\,(1+\log(p-1))\le p\,(1+\log p)$.
+\end{proof}
+
+\begin{lemma}[The absolute value of a Gauss sum]\label{lem:gauss}
+Let $\chi$ be a non-principal Dirichlet character modulo $p$. Then $|\tau(\chi)|=p^{1/2}$.
+\end{lemma}
+
+\begin{proof}
+The values of $\chi$ on $(\Z/p\Z)^{\times}$ are roots of unity and $\chi(0)=0$, so
+$\overline{\chi(x)}=\chi^{-1}(x)$ for every $x$; likewise $\overline{e_p(x)}=e_p(-x)$. Hence
+$\overline{\tau(\chi)}=\sum_x\chi^{-1}(x)e_p(-x)$ and
+\[
+  \tau(\chi)\,\overline{\tau(\chi)}
+  \ =\ \sum_{a,b\in\Z/p\Z}\chi(a)\chi^{-1}(b)\,e_p(a-b).
+\]
+The terms with $b=0$ vanish, since $\chi^{-1}(0)=0$. For $b\ne0$ write $a=bc$; as $c$ runs over
+$\Z/p\Z$ so does $a$, and $\chi(a)\chi^{-1}(b)=\chi(c)$, so the sum equals
+\[
+  \sum_{c\in\Z/p\Z}\chi(c)\sum_{b\ne0}e_p\bigl(b(c-1)\bigr)
+  \ =\ \sum_{c\in\Z/p\Z}\chi(c)\bigl(p\,[c=1]-1\bigr)
+  \ =\ p-\sum_{c\in\Z/p\Z}\chi(c)\ =\ p ,
+\]
+the inner sum over $b\ne0$ being $p-1$ when $c=1$ and $-1$ otherwise, and
+$\sum_c\chi(c)=0$ because $\chi$ is non-principal. Thus $|\tau(\chi)|^{2}=p$.
+\end{proof}
+
+\begin{theorem}[Pólya--Vinogradov, explicit form]\label{thm:pv}
+Let $p$ be a prime, let $\chi$ be a non-principal Dirichlet character modulo $p$, let
+$c\in\Z/p\Z$ and let $N\ge0$. Then
+\[
+  \Bigl|\sum_{t<N}\chi(c+t)\Bigr|\ \le\ p^{1/2}\bigl(1+\log p\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+We first record the finite Fourier transform of $\chi$. For $k\ne0$ the substitution
+$x=-y/k$ permutes $\Z/p\Z$ and gives
+\[
+  \widehat\chi(k)\ =\ \sum_{x\in\Z/p\Z}\chi(x)e_p(-xk)
+  \ =\ \sum_{y\in\Z/p\Z}\chi(-y/k)\,e_p(y)
+  \ =\ \chi^{-1}(-k)\,\tau(\chi),
+\]
+while for $k=0$ both sides vanish, the left because $\chi$ is non-principal and the right because
+$\chi^{-1}(0)=0$. So $\widehat\chi(k)=\chi^{-1}(-k)\tau(\chi)$ for all $k$, and Fourier inversion
+on $\Z/p\Z$ gives, for every $x$,
+\[
+  \chi(x)\ =\ \frac1p\sum_{k\in\Z/p\Z}\widehat\chi(k)\,e_p(kx)
+  \ =\ \frac{\tau(\chi)}p\sum_{k\in\Z/p\Z}\chi^{-1}(-k)\,e_p(kx).
+\]
+Summing over $x=c+t$ for $t<N$ and interchanging the two finite sums,
+\[
+  \sum_{t<N}\chi(c+t)
+  \ =\ \frac{\tau(\chi)}p\sum_{k\in\Z/p\Z}\chi^{-1}(-k)\sum_{t<N}e_p\bigl(k(c+t)\bigr).
+\]
+The term $k=0$ contributes nothing, because $0$ is not a unit modulo $p$ and so
+$\chi^{-1}(0)=0$. For $k\ne0$ we have $|\chi^{-1}(-k)|\le1$ and, since
+$e_p\bigl(k(c+t)\bigr)=e_p(kc)\,e_p(k)^{t}$ with $|e_p(kc)|=1$ and $e_p(k)\ne1$,
+\[
+  \Bigl|\sum_{t<N}e_p\bigl(k(c+t)\bigr)\Bigr|
+  \ =\ \Bigl|\sum_{t<N}e_p(k)^{t}\Bigr|
+  \ =\ \Bigl|\frac{e_p(k)^{N}-1}{e_p(k)-1}\Bigr|
+  \ \le\ \frac2{|e_p(k)-1|}
+  \ =\ \frac1{\bigl|\sin(\pi k/p)\bigr|},
+\]
+the last step by Lemma~\ref{lem:chord} applied to $\theta=2\pi k/p$. Writing $k$ for its
+representative in $\{1,\dots,p-1\}$ and using Lemma~\ref{lem:gauss},
+\[
+  \Bigl|\sum_{t<N}\chi(c+t)\Bigr|
+  \ \le\ \frac{|\tau(\chi)|}p\sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)}
+  \ =\ \frac1{p^{1/2}}\sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)} ,
+\]
+and Lemma~\ref{lem:sinesum} bounds the sum by $p(1+\log p)$, giving
+$p^{-1/2}\cdot p(1+\log p)=p^{1/2}(1+\log p)$.
+\end{proof}
+
+\begin{remark}
+Only the case of a prime modulus is needed here, and it is the case in which the argument is
+cleanest: a non-principal character is automatically primitive, so no imprimitive character has
+to be reduced to its inducing one, and the Gauss sum has absolute value exactly $p^{1/2}$. This is
+what makes the constant in Theorem~\ref{thm:pv} explicit, and in turn what makes
+condition~\eqref{eq:gcd-condition} of Theorem~\ref{thm:gcd} an inequality between named
+quantities rather than one involving an unspecified absolute constant.
+\end{remark}
 
 \begin{thebibliography}{99}
 
