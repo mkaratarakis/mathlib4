@@ -5958,6 +5958,7 @@ public import Mathlib.NumberTheory.NumberField.ProductFormula
 public import Mathlib.NumberTheory.NumberField.Units.Basic
 public import Mathlib.NumberTheory.NumberField.Units.DirichletTheorem
 public import Mathlib.NumberTheory.NumberField.Units.Regulator
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Character
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Counting
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.DegreeOne
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Dumas
