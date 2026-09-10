@@ -26,9 +26,11 @@ an algebraic integer unless the polynomial has a root modulo `q`.
 
 * `Polynomial.card_no_root_eq_sum`: the inclusion–exclusion formula for the number of tuples whose
   monic polynomial avoids every root in `T`.
-* `Polynomial.card_no_root_eq_of_le`: the closed form `(q - 1) ^ q * q ^ (n - q)` when `n ≥ q`.
-* `Polynomial.card_no_root_div_le` and `Polynomial.le_card_no_root_div`: the bounds
+* `Polynomial.card_no_root_univ_eq`: the closed form `(q - 1) ^ q * q ^ (n - q)` when `n ≥ q`.
+* `Polynomial.card_no_root_univ_div_bounds`: the bounds
   `(q ^ 2 - 1) / (3 * q ^ 2) ≤ C ≤ (q - 1) / (2 * q)` for the proportion `C`, valid for `n ≥ 2`.
+* `Polynomial.card_no_root_univ_div_ge_quarter` and `Polynomial.card_no_root_univ_div_lt_half`:
+  the coarser bounds `1 / 4 ≤ C < 1 / 2` in the form the density theorems use.
 
 ## References
 

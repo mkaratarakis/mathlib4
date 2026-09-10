@@ -30,9 +30,21 @@ norm-Euclidean.
 
 The last section restates the criterion of
 `Mathlib.NumberTheory.NumberField.NormEuclidean.Coprimality` in the indexing used by the density
-theorems, so that the two
-halves can be combined:
-`NumberField.not_normEuclidean_of_eisensteinDumas_fin_of_gcd_lt`.
+theorems, so that the two halves can be combined.
+
+## Main results
+
+* `NumberField.eventually_le_density_two_three_five`: the lower density `136 / 675`.
+* `NumberField.eventually_le_density_primesLE`: the lower density
+  `1 - (1 + π Y) (3/4) ^ π Y` for the primes up to any `Y < p`, and
+  `NumberField.eventually_le_density_primesLE_sqrt_sqrt` for `Y = ⌊p ^ (1/4)⌋`.
+* `NumberField.tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero`: that error term tends
+  to `0`.
+* `NumberField.exists_rep_of_mem_primesLE`: every pair of primes up to `⌊p ^ (1/4)⌋` satisfies
+  the condition of Heilbronn's criterion.
+* `NumberField.not_normEuclidean_of_eisensteinDumas_fin_of_gcd_lt`: the criterion of
+  `Mathlib.NumberTheory.NumberField.NormEuclidean.Coprimality` in the indexing of the density
+  theorems.
 
 ## References
 
