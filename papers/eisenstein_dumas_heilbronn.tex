@@ -223,9 +223,12 @@ inequality
 \[
   \bigl(\gcd(p-1,n)-1\bigr)\,p^{1/2}\bigl(1+\log p\bigr)\ <\ \frac{p}{q_1^{2}q_2^{2}}-2 ,
 \]
-in which $q_1,q_2$ are the two auxiliary primes, and Corollary~\ref{cor:gcd-density} recovers from
-it the asymptotic statement that $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ge1-\hat\varepsilon(p)$
-for all large $p$ with $\gcd(p-1,n)<p^{1/2}(\log p)^{-2}$.
+in which $q_1,q_2$ are the two auxiliary primes. Since the bound is independent of $q_1$ and
+$q_2$, the auxiliary primes may be taken as large as a fixed power of $p$, and
+Corollary~\ref{cor:gcd-density} gives
+$\liminf_{X\to\infty}\delta_{p,m,n}(X)\ge1-(1+\pi(Y))(3/4)^{\pi(Y)}$ for every $Y$ with
+$8nY^{4}\le\lfloor p^{1/4}\rfloor$, for instance $Y=\lfloor p^{1/17}\rfloor$ once
+$p\ge(8n)^{68}$.
 
 \subsection*{Notation}
 $K$ always denotes a number field, $\OK$ its ring of integers, $\N=\N_{K/\Q}$ the norm, and
@@ -897,32 +900,46 @@ $K_f$ is not norm-Euclidean.
 \end{proof}
 
 Combining Theorem~\ref{thm:gcd} with Proposition~\ref{prop:two-rootless} gives the asymptotic form
-announced in the introduction.
+announced in the introduction. Because the character sums in the proof are taken modulo the prime
+$p$ alone, their bound $p^{1/2}(1+\log p)$ does not grow with the auxiliary primes; only the main
+term $p/(q_1^2q_2^2)$ shrinks. The admissible range of auxiliary primes is therefore a
+\emph{power} of $p$, not a power of $\log p$.
 
 \begin{corollary}\label{cor:gcd-density}
-Let $n\ge2$ and let $m\ge1$ be coprime to $n$. Put $Y=(\log p)^{1/5}$ and
-$\hat\varepsilon(p)=(1+\pi(Y))(3/4)^{\pi(Y)}$. There is an absolute constant $p_0$ such that for
-every prime $p\ge p_0$ with
+Let $n\ge2$, let $m\ge1$ be coprime to $n$, let $p$ be a prime and let $Y\ge2$ satisfy
+\begin{equation}\label{eq:Y-condition}
+  8\,n\,Y^{4}\ \le\ \lfloor p^{1/4}\rfloor .
+\end{equation}
+Then, with $\hat\varepsilon(p,Y)=(1+\pi(Y))(3/4)^{\pi(Y)}$,
 \[
-  g:=\gcd(p-1,n)\ <\ \frac{p^{1/2}}{(\log p)^2}
+  \liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\hat\varepsilon(p,Y).
 \]
-one has $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\hat\varepsilon(p)$; in particular
-$\hat\varepsilon(p)\to0$ as $p\to\infty$.
+One may take $Y=\lfloor p^{1/17}\rfloor$ as soon as $p\ge(8n)^{68}$, so that
+$\hat\varepsilon(p,Y)\to0$ as $p\to\infty$ for each fixed $n$.
 \end{corollary}
 
 \begin{proof}
 Let $Q$ be the set of primes $q\le Y$ and let $\mathcal F^{*}$ be the set of
 $f\in\mathcal F_{p,m,n}$ having no root modulo $q$ for at least two $q\in Q$. By
 Proposition~\ref{prop:two-rootless} the density of $\mathcal F^{*}$ inside $\mathcal F_{p,m,n}$ is
-at least $1-\hat\varepsilon(p)$. Fix $f\in\mathcal F^{*}$ and primes $q_1<q_2\le Y$ modulo which
-$f$ has no root; they are different from $p$ once $p>Y$. Then $q_1^{2}q_2^{2}\le Y^{4}=(\log
-p)^{4/5}$, so the right-hand side of \eqref{eq:gcd-condition} is at least $p(\log p)^{-4/5}-2$,
-while the hypothesis on $g$ bounds the left-hand side by $p(1+\log p)(\log p)^{-2}$. Since
+at least $1-\hat\varepsilon(p,Y)$, since $\#Q=\pi(Y)$. Fix $f\in\mathcal F^{*}$ and primes
+$q_1<q_2\le Y$ modulo which $f$ has no root; both are different from $p$, because
+$Y^{4}\le p^{1/4}$ forces $Y<p$. Writing $g=\gcd(p-1,n)$ we have $g\le n$ and
+$q_1^{2}q_2^{2}\le Y^{4}$, so \eqref{eq:Y-condition} gives
+$8\,g\,q_1^{2}q_2^{2}\le\lfloor p^{1/4}\rfloor$. Put $t=p^{1/4}$. Then $\sqrt p=t^{2}$ and, since
+$\log p=4\log t\le 4(t-1)$,
 \[
-  \frac{(1+\log p)}{(\log p)^{6/5}}\ \longrightarrow\ 0 ,
+  (g-1)\,p^{1/2}(1+\log p)\ \le\ 4g\,t^{3}
+  \qquad\text{while}\qquad
+  \frac{p}{q_1^{2}q_2^{2}}=\frac{t^{4}}{q_1^{2}q_2^{2}}\ \ge\ 8g\,t^{3},
 \]
-condition \eqref{eq:gcd-condition} holds for all $p$ beyond an absolute bound $p_0$, and
-Theorem~\ref{thm:gcd} applies to every $f\in\mathcal F^{*}$.
+the last step because $q_1^2q_2^2\le t/(8g)$. As $t\ge8$ and $g\ge1$ we get $4gt^{3}+2<8gt^{3}$,
+which is \eqref{eq:gcd-condition}. Theorem~\ref{thm:gcd} therefore applies to every
+$f\in\mathcal F^{*}$.
+
+For the final assertion, $Y=\lfloor p^{1/17}\rfloor$ gives $Y^{4}\le p^{4/17}$, and
+$8np^{4/17}\le p^{1/4}$ as soon as $8n\le p^{1/68}$, that is $p\ge(8n)^{68}$; and
+$\pi(\lfloor p^{1/17}\rfloor)\to\infty$.
 \end{proof}
 
 \begin{remark}
@@ -939,9 +956,11 @@ Imposing the two congruence conditions on $u$ as the single congruence $u\equiv\
 is what keeps the estimate explicit. Detecting them by characters modulo $q_1$ and modulo $q_2^2$
 instead leads to sums of characters modulo $M=pq_1q_2^{2}$, most of which are imprimitive; bounding
 those requires passing to the inducing primitive character and costs a factor $2^{\omega(M)}$, and
-the resulting condition on $g$ carries an unspecified absolute constant. With a single progression
-the only characters that occur are the $\psi^{k}$ modulo the prime $p$, for which
-\eqref{eq:PV} applies directly.
+the resulting condition on $g$ carries an unspecified absolute constant; worse, the bound then
+grows with the auxiliary primes, which forces them to be of size $O((\log p)^{1/5})$. With a
+single progression the only characters that occur are the $\psi^{k}$ modulo the prime $p$, for
+which \eqref{eq:PV} applies directly and with a bound independent of $q_1,q_2$; the auxiliary
+primes may then be as large as a fixed power of $p$, as in Corollary~\ref{cor:gcd-density}.
 \end{remark}
 
 \begin{corollary}
@@ -950,10 +969,10 @@ Eisenstein--Dumas condition fail to generate norm-Euclidean fields.
 \end{corollary}
 
 \begin{proof}
-For odd $n$ this is Corollary~\ref{cor:positive}. For even $n$, choose a prime $p\ge p_0$ with
-$p\equiv-1\pmod{2n}$, which exists by Dirichlet's theorem; then $\gcd(p-1,n)=2$, which is smaller
-than $p^{1/2}(\log p)^{-2}$ for $p$ large, so Corollary~\ref{cor:gcd-density} applies and gives a
-positive lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
+For odd $n$ this is Corollary~\ref{cor:positive}. For even $n$, choose a prime
+$p\ge(8n)^{68}$ with $p\equiv-1\pmod{2n}$, which exists by Dirichlet's theorem; then
+$\gcd(p-1,n)=2$, and Corollary~\ref{cor:gcd-density} with $Y=\lfloor p^{1/17}\rfloor$ applies and
+gives a positive lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
 Theorem~\ref{thm:main-density-family}.
 \end{proof}
 

@@ -36,10 +36,12 @@ applied directly, giving the theorem with no analytic hypothesis at all:
   `p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
 * `NumberField.not_normEuclidean_of_charSum_bound_lt`: Section 7, with the size condition on the
   character-sum bound `B` made explicit.
-* `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`: Section 7 unconditionally, with
-  the Pólya–Vinogradov inequality supplied.
-* `NumberField.eventually_gcd_condition`, `NumberField.eventually_gcd_condition_gcd`: the
-  explicit condition of that theorem holds for all large `p`, so it is not vacuous.
+* `NumberField.norm_sum_filter_range_modEq_le`: the character sum over one progression.
+* `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`: the criterion unconditionally,
+  with the Pólya–Vinogradov inequality supplied.
+* `NumberField.gcd_condition_of_sq_mul_sq_le`: the explicit condition of that theorem holds
+  whenever `8 n q₁ ^ 2 q₂ ^ 2 ≤ ⌊p ^ (1 / 4)⌋`, uniformly in the auxiliary primes; so it is not
+  vacuous, and `NumberField.eventually_gcd_condition` records that it holds for all large `p`.
 ## References
 
 This is the final section of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
@@ -160,6 +162,43 @@ theorem not_normEuclidean_of_charSum_bound_lt {K : Type*} [Field K] [NumberField
   exact lt_of_lt_of_le hcond (le_card_filter_range_div_not_dvd hq₁ hq₂ hne r₀)
 
 open scoped Classical in
+/-- **The character sum over a single progression.**  For a non-principal Dirichlet character `χ`
+modulo a prime `p`, and `R` with `q₁ R` invertible modulo `p`, the sum of `χ (q₁ u)` over the
+`u < M` lying in a fixed class `ρ` modulo `R` obeys the Pólya–Vinogradov bound:  the substitution
+`u = ρ + R t` writes `q₁ u` as `q₁ R (c + t)`, turning the sum into a character sum over `t` in an
+interval. -/
+theorem norm_sum_filter_range_modEq_le {p q₁ R ρ : ℕ} (hp : p.Prime) (hR : 0 < R) (hρ : ρ < R)
+    (hb : ((q₁ * R : ℕ) : ZMod p) ≠ 0) (χ : DirichletCharacter ℂ p) (hχ : χ ≠ 1) (M : ℕ) :
+    ‖∑ u ∈ {u ∈ Finset.range M | u ≡ ρ [MOD R]},
+        χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖ ≤ Real.sqrt p * (1 + Real.log p) := by
+  classical
+  have : Fact p.Prime := ⟨hp⟩
+  have hkey : ∀ t : ℕ, (q₁ : ZMod p) * ((ρ + R * t : ℕ) : ZMod p)
+      = ((q₁ * R : ℕ) : ZMod p) *
+        (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * R : ℕ) : ZMod p) + ((t : ℕ) : ZMod p)) := by
+    intro t
+    have h1 : ((q₁ * R : ℕ) : ZMod p) * (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * R : ℕ) : ZMod p))
+        = ((q₁ * ρ : ℕ) : ZMod p) := by field_simp
+    rw [mul_add, h1]
+    push_cast
+    ring
+  calc ‖∑ u ∈ {u ∈ Finset.range M | u ≡ ρ [MOD R]}, χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖
+      = ‖∑ t ∈ Finset.range ((M - ρ + R - 1) / R),
+          χ ((q₁ : ZMod p) * ((ρ + R * t : ℕ) : ZMod p))‖ := by
+        rw [Nat.sum_filter_range_modEq hR hρ]
+    _ = ‖χ ((q₁ * R : ℕ) : ZMod p) * ∑ t ∈ Finset.range ((M - ρ + R - 1) / R),
+          χ (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * R : ℕ) : ZMod p) + ((t : ℕ) : ZMod p))‖ := by
+        rw [Finset.mul_sum]
+        congr 1
+        exact Finset.sum_congr rfl fun t _ => by rw [hkey t, map_mul]
+    _ ≤ 1 * (Real.sqrt p * (1 + Real.log p)) := by
+        rw [norm_mul]
+        exact mul_le_mul (DirichletCharacter.norm_le_one _ _)
+          (DirichletCharacter.norm_sum_le_sqrt_mul_one_add_log hp χ hχ _ _)
+          (norm_nonneg _) zero_le_one
+    _ = Real.sqrt p * (1 + Real.log p) := one_mul _
+
+open scoped Classical in
 /-- **Section 7, unconditionally.**  Let `f` satisfy the Eisenstein–Dumas condition at the prime
 `p` with slope `m / n`, and suppose `f` has no root modulo two primes `q₁ ≠ q₂`, both different
 from `p`.  If
@@ -232,32 +271,9 @@ theorem not_normEuclidean_of_eisensteinDumas_of_gcd_lt {K : Type*} [Field K] [Nu
   have hb : ((q₁ * Q' : ℕ) : ZMod p) ≠ 0 := ((ZMod.isUnit_iff_coprime _ p).2 hcop).ne_zero
   have hPV : ∀ χ : DirichletCharacter ℂ p, χ ≠ 1 →
       ‖∑ u ∈ S, χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖
-        ≤ Real.sqrt p * (1 + Real.log p) := by
-    intro χ hχ
-    have hkey : ∀ t : ℕ, (q₁ : ZMod p) * ((ρ + Q' * t : ℕ) : ZMod p)
-        = ((q₁ * Q' : ℕ) : ZMod p) *
-          (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * Q' : ℕ) : ZMod p) + ((t : ℕ) : ZMod p)) := by
-      intro t
-      have h1 : ((q₁ * Q' : ℕ) : ZMod p) * (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * Q' : ℕ) : ZMod p))
-          = ((q₁ * ρ : ℕ) : ZMod p) := by field_simp
-      rw [mul_add, h1]
-      push_cast
-      ring
-    calc ‖∑ u ∈ S, χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖
-        = ‖∑ t ∈ Finset.range ((M - ρ + Q' - 1) / Q'),
-            χ ((q₁ : ZMod p) * ((ρ + Q' * t : ℕ) : ZMod p))‖ := by
-          rw [hSdef, Nat.sum_filter_range_modEq hQ'pos hρlt]
-      _ = ‖χ ((q₁ * Q' : ℕ) : ZMod p) * ∑ t ∈ Finset.range ((M - ρ + Q' - 1) / Q'),
-            χ (((q₁ * ρ : ℕ) : ZMod p) / ((q₁ * Q' : ℕ) : ZMod p) + ((t : ℕ) : ZMod p))‖ := by
-          rw [Finset.mul_sum]
-          congr 1
-          exact Finset.sum_congr rfl fun t _ => by rw [hkey t, map_mul]
-      _ ≤ 1 * (Real.sqrt p * (1 + Real.log p)) := by
-          rw [norm_mul]
-          exact mul_le_mul (DirichletCharacter.norm_le_one _ _)
-            (DirichletCharacter.norm_sum_le_sqrt_mul_one_add_log hp χ hχ _ _)
-            (norm_nonneg _) zero_le_one
-      _ = Real.sqrt p * (1 + Real.log p) := one_mul _
+        ≤ Real.sqrt p * (1 + Real.log p) := fun χ hχ => by
+    rw [hSdef]
+    exact norm_sum_filter_range_modEq_le hp hQ'pos hρlt hb χ hχ M
   -- the count
   have hq₁R : (0 : ℝ) < q₁ := by exact_mod_cast hq₁.pos
   have hq₂R : (0 : ℝ) < q₂ := by exact_mod_cast hq₂.pos
@@ -296,101 +312,99 @@ theorem not_normEuclidean_of_eisensteinDumas_of_gcd_lt {K : Type*} [Field K] [Nu
     (fun h => hne (((Nat.prime_dvd_prime_iff_eq hq₂ hq₁).1 (by exact_mod_cast h)).symm)) hq₁p
     hr₁ hr₂ hr₀ S hSlt hSnd hScong (by positivity) hPV (lt_of_lt_of_le hcond hcount)
 
-/-- **The explicit condition of Section 7 is satisfiable.**  For fixed `g` and fixed auxiliary
-primes `q₁, q₂`, the inequality required by
-`NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt` holds for every sufficiently large
-`p`, because `√p (1 + log p) = O(p ^ (3/4))`. -/
-theorem eventually_gcd_condition (g q₁ q₂ : ℕ) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂) :
-    ∀ᶠ p : ℕ in Filter.atTop,
-      ((g : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
-        (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
-  set D : ℕ := q₁ ^ 2 * q₂ ^ 2 with hDdef
-  have hD1 : 1 ≤ D := Nat.one_le_iff_ne_zero.2 (by positivity)
-  filter_upwards [Filter.eventually_ge_atTop ((8 * D * g + 4 * D + 1) ^ 4)] with p hp
-  set T : ℝ := 8 * (D : ℝ) * (g : ℝ) + 4 * (D : ℝ) + 1 with hTdef
-  have hDR : (1 : ℝ) ≤ (D : ℝ) := by exact_mod_cast hD1
-  have hgR : (0 : ℝ) ≤ (g : ℝ) := by positivity
-  have hT1 : 1 ≤ T := by rw [hTdef]; nlinarith
-  have hpR : (0 : ℝ) < p := by
-    have : 0 < p := lt_of_lt_of_le (by positivity) hp
-    exact_mod_cast this
+/-- **The explicit condition of the criterion, uniformly in the auxiliary primes.**  Whenever
+`8 n q₁ ^ 2 q₂ ^ 2 ≤ ⌊p ^ (1 / 4)⌋`, the inequality required by
+`not_normEuclidean_of_eisensteinDumas_of_gcd_lt` holds.  Writing `t = p ^ (1 / 4)`, the left-hand
+side is at most `4 n t ^ 3` because `1 + log p ≤ 4 t`, while the right-hand side is at least
+`8 n t ^ 3 - 2`. -/
+theorem gcd_condition_of_sq_mul_sq_le {n p q₁ q₂ : ℕ} (hn : 0 < n) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂)
+    (h : 8 * n * (q₁ ^ 2 * q₂ ^ 2) ≤ Nat.sqrt (Nat.sqrt p)) :
+    ((Nat.gcd (p - 1) n : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
+      (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
+  have hnR : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hD1 : (1 : ℝ) ≤ (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 := by
+    have h1 : (1 : ℝ) ≤ (q₁ : ℝ) := by exact_mod_cast hq₁
+    have h2 : (1 : ℝ) ≤ (q₂ : ℝ) := by exact_mod_cast hq₂
+    have h3 : (1 : ℝ) ≤ (q₁ : ℝ) ^ 2 := by nlinarith
+    have h4 : (1 : ℝ) ≤ (q₂ : ℝ) ^ 2 := by nlinarith
+    nlinarith
+  set D : ℝ := (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 with hDdef
   set t : ℝ := Real.sqrt (Real.sqrt p) with htdef
-  have ht0 : 0 < t := Real.sqrt_pos.2 (Real.sqrt_pos.2 hpR)
-  -- `t = p ^ (1/4)`, so `t ^ 4 = p` and `√p = t ^ 2`
-  have hsq : Real.sqrt p = t ^ 2 := by
-    rw [htdef, Real.sq_sqrt (Real.sqrt_nonneg _)]
+  -- the natural fourth root is at most the real one
+  have hnat : ((Nat.sqrt (Nat.sqrt p) : ℕ) : ℝ) ≤ t := by
+    refine Real.le_sqrt_of_sq_le (Real.le_sqrt_of_sq_le ?_)
+    have h1 : (Nat.sqrt (Nat.sqrt p)) ^ 2 ≤ Nat.sqrt p := Nat.sqrt_le' _
+    have h2 : (Nat.sqrt p) ^ 2 ≤ p := Nat.sqrt_le' _
+    have h3 : ((Nat.sqrt (Nat.sqrt p) : ℕ) : ℝ) ^ 2 ≤ ((Nat.sqrt p : ℕ) : ℝ) := by
+      exact_mod_cast h1
+    have h4 : ((Nat.sqrt p : ℕ) : ℝ) ^ 2 ≤ (p : ℝ) := by exact_mod_cast h2
+    calc ((((Nat.sqrt (Nat.sqrt p) : ℕ) : ℝ) ^ 2) ^ 2) ≤ ((Nat.sqrt p : ℕ) : ℝ) ^ 2 := by
+          gcongr
+      _ ≤ (p : ℝ) := h4
+  have hDt : 8 * (n : ℝ) * D ≤ t := by
+    refine le_trans ?_ hnat
+    have h1 : ((8 * n * (q₁ ^ 2 * q₂ ^ 2) : ℕ) : ℝ) ≤ ((Nat.sqrt (Nat.sqrt p) : ℕ) : ℝ) := by
+      exact_mod_cast h
+    rw [hDdef]
+    push_cast at h1 ⊢
+    linarith
+  -- hence `t ≥ 8`, and in particular `p ≥ 1`
+  have ht8 : (8 : ℝ) ≤ t := by nlinarith
+  have ht0 : (0 : ℝ) < t := by linarith
+  have hp1 : (1 : ℝ) ≤ (p : ℝ) := by
+    by_contra hcon
+    have h1 : (p : ℝ) < 1 := by linarith
+    have h2 : p = 0 := by
+      have : p < 1 := by exact_mod_cast h1
+      omega
+    rw [h2] at htdef
+    simp only [Nat.cast_zero, Real.sqrt_zero] at htdef
+    rw [htdef] at ht8
+    linarith
+  have hpR : (0 : ℝ) < (p : ℝ) := by linarith
+  -- `p = t ^ 4` and `√p = t ^ 2`
+  have hsq : Real.sqrt p = t ^ 2 := by rw [htdef, Real.sq_sqrt (Real.sqrt_nonneg _)]
   have ht4 : t ^ 4 = (p : ℝ) := by
     have h1 : t ^ 4 = (t ^ 2) ^ 2 := by ring
     rw [h1, ← hsq, Real.sq_sqrt hpR.le]
-  -- `t ≥ T`
-  have htT : T ≤ t := by
-    have hTp : T ^ 4 ≤ (p : ℝ) := by
-      have h1 : ((8 * D * g + 4 * D + 1 : ℕ) : ℝ) = T := by rw [hTdef]; push_cast; ring
-      have h2 : (((8 * D * g + 4 * D + 1) ^ 4 : ℕ) : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp
-      rw [Nat.cast_pow, h1] at h2
-      exact h2
-    have h3 : T ^ 2 ≤ Real.sqrt p := by
-      refine Real.le_sqrt_of_sq_le ?_
-      calc (T ^ 2) ^ 2 = T ^ 4 := by ring
-        _ ≤ (p : ℝ) := hTp
-    rw [htdef]
-    exact Real.le_sqrt_of_sq_le h3
-  have hp1 : (1 : ℝ) ≤ (p : ℝ) := by
-    have h : 1 ≤ p := le_trans (Nat.one_le_pow _ _ (by positivity)) hp
-    exact_mod_cast h
-  have hlogpos : 0 ≤ Real.log p := Real.log_nonneg hp1
-  have ht1 : (1 : ℝ) ≤ t := le_trans hT1 htT
-  have ht3 : (1 : ℝ) ≤ t ^ 3 := by nlinarith
-  -- the logarithm
   have hlog : 1 + Real.log p ≤ 4 * t := by
     have h5 := Real.log_le_four_mul_sqrt_sqrt_sub_one hpR
     rw [← htdef] at h5
     linarith
-  -- put it together
-  have hden : (0 : ℝ) < (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 := by
-    have h1 : (0 : ℝ) < q₁ := by exact_mod_cast hq₁
-    have h2 : (0 : ℝ) < q₂ := by exact_mod_cast hq₂
-    positivity
-  have hDeq : (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 = (D : ℝ) := by rw [hDdef]; push_cast; ring
-  have hpd : (p : ℝ) / (D : ℝ) = t ^ 4 * ((D : ℝ))⁻¹ := by rw [ht4, div_eq_mul_inv]
-  rw [hDeq, hsq, hpd]
-  have hub : ((g : ℝ) - 1) * (t ^ 2 * (1 + Real.log p)) ≤ 4 * (g : ℝ) * t ^ 3 := by
-    have h1 : t ^ 2 * (1 + Real.log p) ≤ t ^ 2 * (4 * t) :=
-      mul_le_mul_of_nonneg_left hlog (sq_nonneg t)
-    rcases le_or_gt 1 (g : ℝ) with hg1 | hg1
-    · nlinarith
-    · have h3 : 0 ≤ t ^ 2 * (1 + Real.log p) :=
-        mul_nonneg (sq_nonneg t) (by linarith)
-      nlinarith
-  have hkey : 4 * (g : ℝ) * t ^ 3 + 2 < t ^ 4 * ((D : ℝ))⁻¹ := by
-    rw [lt_mul_inv_iff₀ (by linarith)]
-    have h6 : t ^ 3 * (8 * (D : ℝ) * (g : ℝ) + 4 * (D : ℝ) + 1) ≤ t ^ 4 := by
-      have := mul_le_mul_of_nonneg_left htT (pow_nonneg ht0.le 3)
-      rw [hTdef] at this
-      nlinarith [this]
-    have h7 : (D : ℝ) ≤ (D : ℝ) * t ^ 3 := by nlinarith
-    have h8 : (0 : ℝ) ≤ (D : ℝ) * (g : ℝ) * t ^ 3 := by positivity
-    nlinarith [h6, h7, h8]
-  linarith
-
-/-- **The condition of Section 7 is satisfiable for the relevant `g`.**  The `g` in
-`not_normEuclidean_of_eisensteinDumas_of_gcd_lt` is `gcd (p - 1, n)`, which depends on `p`; since
-it is at most `n` and the left-hand side is increasing in it, the condition still holds for every
-sufficiently large `p`, with `n` and the auxiliary primes fixed. -/
-theorem eventually_gcd_condition_gcd (n q₁ q₂ : ℕ) (hn : 0 < n) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂) :
-    ∀ᶠ p : ℕ in Filter.atTop,
-      ((Nat.gcd (p - 1) n : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
-        (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
-  filter_upwards [eventually_gcd_condition n q₁ q₂ hq₁ hq₂, Filter.eventually_ge_atTop 1]
-    with p hpc hp1
+  have hlogpos : 0 ≤ Real.log p := Real.log_nonneg hp1
+  -- `g ≤ n`
   have hg : (Nat.gcd (p - 1) n : ℝ) ≤ (n : ℝ) := by
     have h : Nat.gcd (p - 1) n ≤ n := Nat.gcd_le_right _ hn
     exact_mod_cast h
-  have hnn : (0 : ℝ) ≤ Real.sqrt p * (1 + Real.log p) := by
-    have h1 : (1 : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp1
-    have h2 : 0 ≤ Real.log p := Real.log_nonneg h1
-    positivity
-  refine lt_of_le_of_lt ?_ hpc
-  exact mul_le_mul_of_nonneg_right (by linarith) hnn
+  -- the two estimates
+  have hub : ((Nat.gcd (p - 1) n : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p))
+      ≤ 4 * (n : ℝ) * t ^ 3 := by
+    rw [hsq]
+    have h1 : t ^ 2 * (1 + Real.log p) ≤ t ^ 2 * (4 * t) :=
+      mul_le_mul_of_nonneg_left hlog (sq_nonneg t)
+    have h2 : 0 ≤ t ^ 2 * (1 + Real.log p) := mul_nonneg (sq_nonneg t) (by linarith)
+    rcases le_or_gt 1 ((Nat.gcd (p - 1) n : ℝ)) with hg1 | hg1
+    · nlinarith
+    · nlinarith
+  have hlb : 8 * (n : ℝ) * t ^ 3 ≤ (p : ℝ) / D := by
+    rw [← ht4, le_div_iff₀ (by linarith)]
+    have h1 : 0 ≤ t ^ 3 := by positivity
+    nlinarith [hDt, h1]
+  have ht3 : (512 : ℝ) ≤ t ^ 3 := by nlinarith
+  nlinarith [hub, hlb, ht3, hnR]
+
+/-- The condition holds for all large `p`, with `n` and the auxiliary primes fixed:  the natural
+fourth root of `p` tends to infinity. -/
+theorem eventually_gcd_condition (n q₁ q₂ : ℕ) (hn : 0 < n) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂) :
+    ∀ᶠ p : ℕ in Filter.atTop,
+      ((Nat.gcd (p - 1) n : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
+        (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
+  filter_upwards [Filter.eventually_ge_atTop ((8 * n * (q₁ ^ 2 * q₂ ^ 2)) ^ 4)] with p hp
+  refine gcd_condition_of_sq_mul_sq_le hn hq₁ hq₂ ?_
+  rw [Nat.le_sqrt, Nat.le_sqrt]
+  calc 8 * n * (q₁ ^ 2 * q₂ ^ 2) * (8 * n * (q₁ ^ 2 * q₂ ^ 2)) *
+        (8 * n * (q₁ ^ 2 * q₂ ^ 2) * (8 * n * (q₁ ^ 2 * q₂ ^ 2)))
+      = (8 * n * (q₁ ^ 2 * q₂ ^ 2)) ^ 4 := by ring
+    _ ≤ p := hp
 
 end NumberField

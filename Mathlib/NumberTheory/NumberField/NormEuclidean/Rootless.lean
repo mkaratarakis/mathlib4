@@ -191,6 +191,7 @@ theorem card_no_root_eq_sum (n : ℕ) (T : Finset F) :
           Multiset.card_le_card hsub
       _ ≤ (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).natDegree := card_roots' _
       _ = n := natDegree_X_pow_add_sum n a
+  -- the tuples vanishing on a set `t` of size `k ≤ n` are a `q ^ (n - k)`-element set
   have hinf : ∀ t : Finset F,
       (#(t.inf Sr) : ℤ) = if #t ≤ n then (Fintype.card F : ℤ) ^ (n - #t) else 0 := by
     intro t
@@ -206,6 +207,7 @@ theorem card_no_root_eq_sum (n : ℕ) (T : Finset F) :
       intro a ha
       simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha
       exact h (hroots t a ha)
+  -- the rootless tuples are the intersection of the complements, so inclusion-exclusion applies
   have hcompl : T.inf (fun r => (Sr r)ᶜ) =
       ({a | ∀ r ∈ T, ¬ (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).IsRoot r} :
         Finset (Fin n → F)) := by
@@ -357,6 +359,7 @@ theorem card_no_root_univ_div_bounds {n : ℕ} (hn : 2 ≤ n) :
   have hq2 : 2 ≤ Fintype.card F := Fintype.one_lt_card
   have hq : (0 : ℝ) < (Fintype.card F : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le two_pos hq2
   have hq2' : (2 : ℝ) ≤ (Fintype.card F : ℝ) := by exact_mod_cast hq2
+  -- the inclusion-exclusion sum has terms `g k = C(q, k) / q ^ k`, which decrease in `k`
   set g : ℕ → ℝ := fun k => ((Fintype.card F).choose k : ℝ) / (Fintype.card F : ℝ) ^ k with hg
   have hpos : ∀ k, 0 ≤ g k := fun k => by positivity
   have hanti : ∀ k, g (k + 1) ≤ g k := by
@@ -405,6 +408,7 @@ theorem card_no_root_univ_div_bounds {n : ℕ} (hn : 2 ≤ n) :
     norm_num
   -- the two-sided estimate for the alternating tail
   obtain ⟨hlow, hhigh⟩ := Finset.sum_range_alternating_bounds hanti hpos (d + 1) 2
+  -- the first two terms of the tail, which bracket it
   have hg2 : g 2 = ((Fintype.card F : ℝ) - 1) / (2 * Fintype.card F) := by
     have h1 := Nat.choose_succ_right_eq (Fintype.card F) 1
     rw [Nat.choose_one_right] at h1
@@ -439,6 +443,7 @@ theorem card_no_root_univ_div_bounds {n : ℕ} (hn : 2 ≤ n) :
     dsimp only
     rw [div_eq_div_iff (by positivity) (by positivity)]
     linear_combination (Fintype.card F : ℝ) ^ 2 * h6
+  -- the tail lies between `g 2 - g 3` and `g 2`
   constructor
   · -- lower bound
     rw [hsum, Finset.sum_range_alternating_succ (fun k => g k) d 2]
@@ -451,7 +456,8 @@ theorem card_no_root_univ_div_bounds {n : ℕ} (hn : 2 ≤ n) :
       ring
     rw [this]
     linarith
-  · rw [hsum]
+  · -- upper bound
+    rw [hsum]
     calc ∑ k ∈ range (d + 1), (-1 : ℝ) ^ k * g (2 + k) ≤ g 2 := hhigh
       _ = ((Fintype.card F : ℝ) - 1) / (2 * Fintype.card F) := hg2
 

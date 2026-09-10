@@ -164,9 +164,11 @@ theorem sum_one_div_sin_le {p : ℕ} (hp : 1 < p) :
     ∑ a ∈ Finset.Icc 1 (p - 1), 1 / Real.sin (π * (a : ℝ) / p) ≤ (p : ℝ) * (1 + Real.log p) := by
   have hp0 : 0 < p := by omega
   have hpR : (0 : ℝ) < p := by exact_mod_cast hp0
+  -- rewrite the index set as `[1, p)`, so that both halves reindex to `range (p - 1)`
   have hIco : Finset.Icc 1 (p - 1) = Finset.Ico 1 p := by
     rw [show p = (p - 1) + 1 by omega]
     exact (Finset.val_inj.mp rfl).symm
+  -- bound each term by the rescaled Jordan inequality
   have h1 : ∑ a ∈ Finset.Icc 1 (p - 1), 1 / Real.sin (π * (a : ℝ) / p)
       ≤ ∑ a ∈ Finset.Icc 1 (p - 1), ((p : ℝ) / 2) * (1 / a + 1 / ((p : ℝ) - a)) := by
     refine Finset.sum_le_sum fun a ha => ?_
@@ -179,6 +181,7 @@ theorem sum_one_div_sin_le {p : ℕ} (hp : 1 < p) :
   refine le_trans h1 ?_
   rw [← Finset.mul_sum, Finset.sum_add_distrib, hIco,
     Finset.sum_Ico_eq_sum_range, Finset.sum_Ico_eq_sum_range]
+  -- both halves are the harmonic number `H_{p-1}`, the second one summed backwards
   have e1 : ∑ i ∈ Finset.range (p - 1), 1 / ((1 + i : ℕ) : ℝ) = (harmonic (p - 1) : ℝ) := by
     rw [harmonic_eq_sum_range_one_div]
     refine Finset.sum_congr rfl fun j _ => ?_
@@ -197,6 +200,7 @@ theorem sum_one_div_sin_le {p : ℕ} (hp : 1 < p) :
     push_cast
     ring_nf
   rw [e1, e2]
+  -- and `H_{p-1} ≤ 1 + log (p - 1) ≤ 1 + log p`
   have hH := harmonic_le_one_add_log (p - 1)
   have hlog : Real.log ((p - 1 : ℕ) : ℝ) ≤ Real.log p := by
     have hpos : (0 : ℝ) < ((p - 1 : ℕ) : ℝ) := by

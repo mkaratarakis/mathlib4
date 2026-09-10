@@ -1184,6 +1184,7 @@ theorem tendsto_density_exact_dvd {n : ℕ} (hn : 0 < n) {p : ℕ} (hp : 0 < p) 
               ¬ (p : ℤ) ^ (c ⟨0, hn⟩ + 1) ∣ a ⟨0, hn⟩} : ℝ) / (2 * N + 1) ^ n)
       Filter.atTop (nhds ((1 - 1 / (p : ℝ)) / (p : ℝ) ^ (∑ i, c i))) := by
   classical
+  -- `c'` raises the exponent at `0` by one, so the exact condition is the difference of the two
   set c' : Fin n → ℕ := Function.update c ⟨0, hn⟩ (c ⟨0, hn⟩ + 1) with hc'
   have hle : ∀ i, c i ≤ c' i := by
     intro i
@@ -1237,10 +1238,12 @@ theorem tendsto_density_exact_dvd {n : ℕ} (hn : 0 < n) {p : ℕ} (hp : 0 < p) 
     rw [hset, Finset.card_sdiff, Finset.inter_eq_left.2 (hsub N),
       Nat.cast_sub (Finset.card_le_card (hsub N))]
   simp only [hdiff]
+  -- each family has a density, and the densities subtract
   have h1 := tendsto_density_dvd (n := n) hp c
   have h2 := tendsto_density_dvd (n := n) hp c'
   have hlim := h1.sub h2
   rw [hsum] at hlim
+  -- and the difference of the two values is `(1 - 1/p) p ^ (-∑ c i)`
   have hvalue : (1 : ℝ) / (p : ℝ) ^ (∑ i, c i) - 1 / (p : ℝ) ^ ((∑ i, c i) + 1)
       = (1 - 1 / (p : ℝ)) / (p : ℝ) ^ (∑ i, c i) := by
     have hppos : (0 : ℝ) < p := by exact_mod_cast hp
@@ -1277,6 +1280,8 @@ theorem tendsto_density_eisensteinDumas {n m p : ℕ} (hn : 0 < n) (hm : 0 < m) 
       rw [Nat.sub_zero, Nat.mul_comm m n]
       omega
     rw [hc]
+    -- `change` reduces the `Fin` coercion `((⟨0, hn⟩ : Fin n) : ℕ)` to the literal `0`, which
+    -- `rw` cannot do because the two are not syntactically equal
     change (m * (n - (0 : ℕ)) + n - 1) / n = m
     rw [h1, Nat.mul_add_div (by omega), Nat.div_eq_of_lt (by omega)]
     omega

@@ -102,6 +102,7 @@ Eisenstein–Dumas condition at `p` with slope `m / n`, and `𝔭` is a maximal 
 theorem mul_multiplicity_eq :
     n * multiplicity 𝔭 (Ideal.span {θ}) = m * multiplicity 𝔭 (Ideal.span {(p : 𝓞 K)}) := by
   classical
+  -- everything in sight is nonzero, so all the multiplicities below are finite
   have hp0 : (p : ℤ) ≠ 0 := by exact_mod_cast hp.ne_zero
   have ha0 : a 0 ≠ 0 := by rintro h; exact hnd (by simp [h])
   have hθ0 : θ ≠ 0 := by
@@ -126,6 +127,7 @@ theorem mul_multiplicity_eq :
   have hfinθ : FiniteMultiplicity 𝔭 (Ideal.span {θ}) := FiniteMultiplicity.of_prime_left hPp hspanθ
   have hfinp : FiniteMultiplicity 𝔭 (Ideal.span {(p : 𝓞 K)}) :=
     FiniteMultiplicity.of_prime_left hPp hspanp
+  -- `w = v_𝔭(θ)` and `e = v_𝔭(p)` are the two valuations to be compared
   set w := multiplicity 𝔭 (Ideal.span {θ}) with hw
   set e := multiplicity 𝔭 (Ideal.span {(p : 𝓞 K)}) with he
   have hθmem : θ ∈ 𝔭 ^ w := (pow_dvd_span_iff θ w).1 (pow_multiplicity_dvd _ _)
@@ -177,6 +179,7 @@ theorem mul_multiplicity_eq :
     have hge : m ≤ c 0 := by have := hc 0 hn; simp only [Nat.sub_zero] at this; nlinarith
     by_contra hne
     exact hnd (dvd_trans (pow_dvd_pow _ (by omega)) (hdvd 0 hn))
+  -- write `a 0 = p ^ m u` with `p ∤ u`, so that `v_𝔭(a 0) = m e` exactly
   obtain ⟨u, hu⟩ := hdvd 0 hn
   have hunot : ¬ (p : ℤ) ∣ u := by
     rintro ⟨v, rfl⟩

@@ -22,8 +22,9 @@ norm-Euclidean.
   (`NumberField.eventually_le_density_two_three_five`): the local densities are
   `C_2 = 1/4`, `C_3 = 8/27` and `C_5 ≥ 8/25`, and the probability that at least two of three
   independent events occur is increasing in each probability.
-* `Q =` all primes at most `⌊p ^ (1/4)⌋` gives `1 - (1 + t)(3/4) ^ t` with `t = π (⌊p ^ (1/4)⌋)`
-  (`NumberField.eventually_le_density_primesLE`), which tends to `1` as `p → ∞`
+* `Q =` all primes at most `Y < p` gives `1 - (1 + π Y)(3/4) ^ π Y`
+  (`NumberField.eventually_le_density_primesLE`); for `Y = ⌊p ^ (1/4)⌋` this tends to `1` as
+  `p → ∞`
   (`NumberField.tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero`).  The condition of
   Heilbronn's criterion holds for every pair of primes in that set because `q₁ ^ 2 q₂ ^ 2 ≤ p`
   (`NumberField.exists_rep_of_mem_primesLE`).
@@ -176,6 +177,30 @@ Every pair of primes in `Q` satisfies the condition of Heilbronn's criterion by
 is not norm-Euclidean; and `1 - (1 + t) (3/4) ^ t → 1` as `p → ∞` by
 `tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero`. -/
 theorem eventually_le_density_primesLE {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : Fin n → ℕ}
+    (hp : p.Prime) (Y : ℕ) (hY : Y < p) {ε : ℝ} (hε : 0 < ε) :
+    ∀ᶠ N : ℕ in Filter.atTop,
+      1 - (1 + (Nat.primeCounting Y : ℝ)) * (3 / 4 : ℝ) ^ Nat.primeCounting Y - ε ≤
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            ((∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩) ∧
+            2 ≤ #{q ∈ Nat.primesLE Y | ∀ r : ZMod q,
+              ¬ (X ^ n + ∑ i : Fin n, C (((a i : ℤ) : ZMod q)) * X ^ (i : ℕ)).IsRoot r}} : ℝ) /
+        (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
+            (∀ i, (p : ℤ) ^ c i ∣ a i) ∧
+              ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩} : ℝ) := by
+  have hQ : ∀ q ∈ Nat.primesLE Y, q.Prime := fun q hq => (Nat.mem_primesLE.1 hq).2
+  have hpQ : p ∉ Nat.primesLE Y := by
+    intro h
+    have h1 : p ≤ Y := (Nat.mem_primesLE.1 h).1
+    omega
+  have h := eventually_le_density_atLeastTwo (n := n) (c := c) hn hp hQ hpQ hε
+  rwa [Nat.primesLE_card_eq_primeCounting] at h
+
+open scoped Classical in
+/-- **Corollary 1.8 for the fourth root.**  Taking `Y = ⌊p ^ (1 / 4)⌋`, every pair of primes of
+`Q` satisfies the condition of Heilbronn's criterion (`exists_rep_of_mem_primesLE`), so the
+density bound applies with `t = π (⌊p ^ (1 / 4)⌋)`. -/
+theorem eventually_le_density_primesLE_sqrt_sqrt {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : Fin n → ℕ}
     (hp : p.Prime) {ε : ℝ} (hε : 0 < ε) :
     ∀ᶠ N : ℕ in Filter.atTop,
       1 - (1 + (Nat.primeCounting (Nat.sqrt (Nat.sqrt p)) : ℝ)) *
@@ -188,16 +213,10 @@ theorem eventually_le_density_primesLE {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : F
         (#{a ∈ Fintype.piFinset fun _ : Fin n => Finset.Icc (-(N : ℤ)) (N : ℤ) |
             (∀ i, (p : ℤ) ^ c i ∣ a i) ∧
               ¬ (p : ℤ) ^ (c ⟨0, by omega⟩ + 1) ∣ a ⟨0, by omega⟩} : ℝ) := by
-  have hQ : ∀ q ∈ Nat.primesLE (Nat.sqrt (Nat.sqrt p)), q.Prime :=
-    fun q hq => (Nat.mem_primesLE.1 hq).2
-  have hpQ : p ∉ Nat.primesLE (Nat.sqrt (Nat.sqrt p)) := by
-    intro h
-    have h1 : p ≤ Nat.sqrt (Nat.sqrt p) := (Nat.mem_primesLE.1 h).1
-    have h2 : Nat.sqrt (Nat.sqrt p) ≤ Nat.sqrt p := Nat.sqrt_le_self _
-    have h3 : Nat.sqrt p < p := Nat.sqrt_lt_self hp.one_lt
-    omega
-  have h := eventually_le_density_atLeastTwo (n := n) (c := c) hn hp hQ hpQ hε
-  rwa [Nat.primesLE_card_eq_primeCounting] at h
+  refine eventually_le_density_primesLE hn hp _ ?_ hε
+  have h2 : Nat.sqrt (Nat.sqrt p) ≤ Nat.sqrt p := Nat.sqrt_le_self _
+  have h3 : Nat.sqrt p < p := Nat.sqrt_lt_self hp.one_lt
+  omega
 
 /-- The error term of Corollary 1.8, `(1 + π (⌊p ^ (1/4)⌋)) (3/4) ^ π (⌊p ^ (1/4)⌋)`, tends to
 `0` as `p → ∞`:  the number of primes below `⌊p ^ (1/4)⌋` tends to infinity, and
