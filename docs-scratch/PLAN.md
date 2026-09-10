@@ -134,3 +134,5 @@ as the following series, each green on its own:
    interest.
 3. **Norm-Euclidean densities** — the ten files under
    `Mathlib/NumberTheory/NumberField/NormEuclidean/`.
+
+`Examples.lean` (the worked example `ℚ[x]/(x³+5x+5)`) belongs to PR 3, after `Density.lean`.

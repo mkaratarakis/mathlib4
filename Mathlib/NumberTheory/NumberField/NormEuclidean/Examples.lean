@@ -25,8 +25,11 @@ computations in `ZMod 2` and `ZMod 3`.
 
 ## Main results
 
+* `NumberField.irreducible_X_pow_three_add_five_X_add_five` and
+  `NumberField.irreducible_map_X_pow_three_add_five_X_add_five`:  irreducibility over `ℤ` and
+  over `ℚ`, by Eisenstein at `5`.
 * `NumberField.not_normEuclidean_adjoinRoot_X_pow_three_add_five_X_add_five`:  the field
-  `ℚ[x] / (x ^ 3 + 5 x + 5)` is not norm-Euclidean.
+  `ℚ[x] / (x ^ 3 + 5 x + 5)` is not norm-Euclidean.  The statement has no hypotheses.
 
 ## References
 
@@ -43,20 +46,54 @@ namespace NumberField
 
 set_option linter.style.haveILetI false
 
+/-- `X ^ 3 + 5 X + 5` is monic. -/
+theorem monic_X_pow_three_add_five_X_add_five : (X ^ 3 + 5 * X + 5 : ℤ[X]).Monic := by
+  have h : (X ^ 3 + 5 * X + 5 : ℤ[X]) = X ^ 3 + (5 * X + 5) := by ring
+  rw [h]
+  refine monic_X_pow_add ?_
+  compute_degree!
+
+/-- `X ^ 3 + 5 X + 5` is irreducible over `ℤ`, by Eisenstein's criterion at `5`. -/
+theorem irreducible_X_pow_three_add_five_X_add_five :
+    Irreducible (X ^ 3 + 5 * X + 5 : ℤ[X]) := by
+  have hmon := monic_X_pow_three_add_five_X_add_five
+  have hdeg : (X ^ 3 + 5 * X + 5 : ℤ[X]).degree = 3 := by compute_degree!
+  refine irreducible_of_eisenstein_criterion (P := Ideal.span {(5 : ℤ)}) ?_ ?_ ?_ ?_ ?_
+    hmon.isPrimitive
+  · exact (Ideal.span_singleton_prime (by norm_num)).2
+      (by rw [Int.prime_iff_natAbs_prime]; exact Nat.prime_five)
+  · rw [hmon.leadingCoeff, Ideal.mem_span_singleton]
+    norm_num
+  · intro k hk
+    rw [hdeg] at hk
+    have hk3 : k < 3 := by exact_mod_cast hk
+    rw [Ideal.mem_span_singleton]
+    interval_cases k <;> simp [coeff_add, coeff_X_pow, coeff_ofNat_succ]
+  · rw [hdeg]; norm_num
+  · rw [Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+    simp [coeff_add, coeff_X_pow]
+
+/-- `X ^ 3 + 5 X + 5` is irreducible over `ℚ`:  it is primitive, being monic. -/
+theorem irreducible_map_X_pow_three_add_five_X_add_five :
+    Irreducible (Polynomial.map (Int.castRingHom ℚ) (X ^ 3 + 5 * X + 5 : ℤ[X])) :=
+  (IsPrimitive.Int.irreducible_iff_irreducible_map_cast
+    monic_X_pow_three_add_five_X_add_five.isPrimitive).1
+      irreducible_X_pow_three_add_five_X_add_five
+
+instance : Fact (Irreducible (Polynomial.map (Int.castRingHom ℚ) (X ^ 3 + 5 * X + 5 : ℤ[X]))) :=
+  ⟨irreducible_map_X_pow_three_add_five_X_add_five⟩
+
 /-- **A concrete field to which the criterion applies.**  The polynomial `X ^ 3 + 5 X + 5` is
 Eisenstein at `5`, has no root modulo `2` and none modulo `3`, and `5 = 1 · 2 + 1 · 3` with
 `2 ∤ 1` and `3 ∤ 1`; since `gcd (5 - 1, 3) = 1`, Heilbronn's criterion applies and the cubic field
 it generates is not norm-Euclidean. -/
-theorem not_normEuclidean_adjoinRoot_X_pow_three_add_five_X_add_five
-    [Fact (Irreducible (Polynomial.map (Int.castRingHom ℚ) (X ^ 3 + 5 * X + 5 : ℤ[X])))] :
+theorem not_normEuclidean_adjoinRoot_X_pow_three_add_five_X_add_five :
     ¬ ∀ α β : 𝓞 (AdjoinRoot (Polynomial.map (Int.castRingHom ℚ) (X ^ 3 + 5 * X + 5 : ℤ[X]))),
       β ≠ 0 → ∃ γ ρ : 𝓞 (AdjoinRoot (Polynomial.map (Int.castRingHom ℚ)
         (X ^ 3 + 5 * X + 5 : ℤ[X]))), α = γ * β + ρ ∧
         (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
   set g : ℚ[X] := Polynomial.map (Int.castRingHom ℚ) (X ^ 3 + 5 * X + 5 : ℤ[X]) with hg
-  have hmonZ : (X ^ 3 + 5 * X + 5 : ℤ[X]).Monic := by
-    have h : (X ^ 3 + 5 * X + 5 : ℤ[X]) = X ^ 3 + (5 * X + 5) := by ring
-    rw [h]; refine monic_X_pow_add ?_; compute_degree!
+  have hmonZ := monic_X_pow_three_add_five_X_add_five
   have hgmon : g.Monic := by rw [hg]; exact hmonZ.map _
   have hgne : g ≠ 0 := hgmon.ne_zero
   have hgdeg : g.natDegree = 3 := by rw [hg, hmonZ.natDegree_map]; compute_degree!
@@ -92,6 +129,8 @@ theorem not_normEuclidean_adjoinRoot_X_pow_three_add_five_X_add_five
       Polynomial.eval r (X ^ 3 + ∑ i : Fin 3, C (((![5, 5, 0] i : ℤ) : R)) * X ^ (i : ℕ))
         = r ^ 3 + 5 + 5 * r := by
     intro R _ r
+    -- `simp` expands the three-term sum and pushes `eval` through; the `Fin.val` exponents it
+    -- leaves are settled by `ring`
     simp [Fin.sum_univ_succ]
     ring
   refine not_normEuclidean_of_eisensteinDumas_fin (n := 3) (m := 1) (p := 5) (q₁ := 2) (q₂ := 3)

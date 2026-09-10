@@ -8,6 +8,7 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{example}[theorem]{Example}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \theoremstyle{remark}
@@ -774,6 +775,20 @@ Theorem~\ref{thm:master} together with the lower bound of Proposition~\ref{prop:
 gives $\liminf\delta_{p,m,n}(X)\ge1-(1+t)(3/4)^t$. Finally $Y\to\infty$ as $p\to\infty$, so
 $t=\pi(Y)\to\infty$ and $(1+t)(3/4)^t\to0$; the bound involves neither $n$ nor $m$.
 \end{proof}
+
+\begin{example}\label{ex:cubic}
+Take $f=x^{3}+5x+5$. It is Eisenstein at $5$, so it satisfies the Eisenstein--Dumas condition of
+slope $1/3$ and $5$ is totally ramified in $K_f=\Q[x]/(f)$; moreover $\gcd(5-1,3)=1$. Modulo $2$
+we have $f\equiv x^{3}+x+1$, with $f(0)=f(1)=1$, and modulo $3$ we have $f\equiv x^{3}+2x+2$,
+with $f(0)=f(1)=f(2)=2$; so $f$ has no root modulo $2$ and none modulo $3$. Finally
+$5=1\cdot2+1\cdot3$ with $2\nmid1$ and $3\nmid1$. Theorem~\ref{thm:heilbronn-intro}, in the form
+of Section~\ref{sec:proof}, therefore applies:
+\[
+  \Q[x]/(x^{3}+5x+5)\quad\text{is not norm-Euclidean.}
+\]
+The density theorems say that a positive proportion of the cubics Eisenstein at $5$ behave in
+this way; this is one of them, made explicit.
+\end{example}
 
 Since $\mathcal F_{p,m,n}$ has positive density inside the monic polynomials of degree $n$
 (Theorem~\ref{thm:main-density-family}), we obtain in particular:
