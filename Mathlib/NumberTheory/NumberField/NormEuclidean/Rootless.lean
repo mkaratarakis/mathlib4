@@ -32,6 +32,11 @@ an algebraic integer unless the polynomial has a root modulo `q`.
 * `Polynomial.card_no_root_eq_of_le`: the closed form `(q - 1) ^ q * q ^ (n - q)` when `n ≥ q`.
 * `Polynomial.card_no_root_div_le` and `Polynomial.le_card_no_root_div`: the bounds
   `(q ^ 2 - 1) / (3 * q ^ 2) ≤ C ≤ (q - 1) / (2 * q)` for the proportion `C`, valid for `n ≥ 2`.
+## References
+
+The count of rootless monic polynomials over a finite field and the bounds for it are those of
+[Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025].
 -/
 
 public section
@@ -46,12 +51,14 @@ section Dictionary
 
 variable {R : Type*} [Semiring R]
 
+/-- The polynomial attached to a coefficient tuple is monic. -/
 theorem monic_X_pow_add_sum (n : ℕ) (a : Fin n → R) :
     (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).Monic := by
   refine monic_X_pow_add (lt_of_le_of_lt (degree_sum_le _ _) ?_)
   rw [Finset.sup_lt_iff (by exact_mod_cast WithBot.bot_lt_coe n)]
   exact fun i _ => lt_of_le_of_lt (degree_C_mul_X_pow_le _ _) (by exact_mod_cast i.isLt)
 
+/-- The polynomial attached to a coefficient tuple has degree `n`. -/
 theorem natDegree_X_pow_add_sum [Nontrivial R] (n : ℕ) (a : Fin n → R) :
     (X ^ n + ∑ i : Fin n, C (a i) * X ^ (i : ℕ)).natDegree = n := by
   refine natDegree_eq_of_degree_eq_some ?_
@@ -61,6 +68,8 @@ theorem natDegree_X_pow_add_sum [Nontrivial R] (n : ℕ) (a : Fin n → R) :
   rw [Finset.sup_lt_iff (by exact_mod_cast WithBot.bot_lt_coe n)]
   exact fun i _ => lt_of_le_of_lt (degree_C_mul_X_pow_le _ _) (by exact_mod_cast i.isLt)
 
+/-- The coefficients of the polynomial attached to a tuple are the entries of the tuple:  the
+assignment `a ↦ X ^ n + ∑ a i X ^ i` is injective, with the coefficient map as its inverse. -/
 theorem coeff_X_pow_add_sum {n : ℕ} (a : Fin n → R) (i : Fin n) :
     (X ^ n + ∑ j : Fin n, C (a j) * X ^ (j : ℕ)).coeff i = a i := by
   have hi : (i : ℕ) ≠ n := by omega
@@ -72,6 +81,9 @@ theorem coeff_X_pow_add_sum {n : ℕ} (a : Fin n → R) (i : Fin n) :
     simp [coeff_C_mul, coeff_X_pow, this]
   · simp
 
+/-- Every monic polynomial of degree `n` is the one attached to its own tuple of coefficients:
+together with `coeff_X_pow_add_sum` this identifies the monic polynomials of degree `n` with the
+tuples in `Fin n → R`. -/
 theorem eq_X_pow_add_sum_of_monic {f : R[X]} (hf : f.Monic) {n : ℕ} (hd : f.natDegree = n) :
     f = X ^ n + ∑ i : Fin n, C (f.coeff i) * X ^ (i : ℕ) := by
   conv_lhs => rw [f.as_sum_range_C_mul_X_pow' (n := n + 1) (by omega)]

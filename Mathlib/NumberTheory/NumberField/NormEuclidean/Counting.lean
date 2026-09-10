@@ -41,6 +41,12 @@ the `i`-th coefficient varies with `i`.
   `count / (2 * X + 1) ^ card ι → #S / ∏ i, M i`.
 * `Int.tendsto_card_box_filter_div_piFinset`: for a product set `S = ∏ i, T i` the density
   factorises as `∏ i, #(T i) / M i`.
+## References
+
+The counting lemma of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025] uses a single modulus for all coordinates, which suffices
+for the Eisenstein condition; the version here allows one modulus per coordinate, as the
+Eisenstein–Dumas condition requires.
 -/
 
 public section

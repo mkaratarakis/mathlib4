@@ -111,3 +111,26 @@ Pólya–Vinogradov is not in Mathlib; the second theorem is formalized *conditi
 explicit character-sum hypothesis (which is exactly how the source paper uses it: quoted
 from the literature).  Everything else in that proof (the character detectors, the shifting
 trick for q₂ | v, the choice Y = (log p)^{1/4}) is proved.
+
+## PR split (review: scope, placement)
+
+The branch is one coherent development but three separable contributions.  Reviewed against the
+Tau Ceti `scope` rubric ("split the PR if it combines multiple topics"), it should be submitted
+as the following series, each green on its own:
+
+1. **Upstream prerequisites** — general facts with no connection to norm-Euclidean fields:
+   * `Mathlib/GroupTheory/SpecificGroups/Cyclic.lean`:
+     `IsCyclic.exists_pow_eq_of_pow_natCard_div_gcd`
+   * `Mathlib/Analysis/Complex/Trigonometric.lean`: `Complex.norm_exp_ofReal_mul_I_sub_one`
+   * `Mathlib/Analysis/SpecialFunctions/Trigonometric/Bounds.lean`:
+     `Real.two_mul_min_div_le_sin`, `Real.one_div_sin_pi_mul_div_le`
+   * `Mathlib/Analysis/SpecialFunctions/Log/Basic.lean`:
+     `Real.log_le_four_mul_sqrt_sqrt_sub_one`
+   * `Mathlib/NumberTheory/Harmonic/Bounds.lean`: `harmonic_eq_sum_range_one_div`,
+     `harmonic_eq_sum_range_one_div_sub`
+   * `Mathlib/Data/Int/CardIntervalMod.lean`: the five `Nat.*_range_filter_modEq*` lemmas
+2. **The Pólya–Vinogradov inequality** — `Mathlib/NumberTheory/DirichletCharacter/
+   PolyaVinogradov.lean`, which imports nothing from this development and is of independent
+   interest.
+3. **Norm-Euclidean densities** — the ten files under
+   `Mathlib/NumberTheory/NumberField/NormEuclidean/`.

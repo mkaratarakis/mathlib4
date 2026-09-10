@@ -31,6 +31,14 @@ makes sense inside a Galois closure.
 * `Algebra.dvd_norm_add_sub_pow`: the congruence `norm A (x + t) ≡ x ^ n [mod p]` above.
 * `Algebra.dvd_norm_sub_pow`: the same congruence for `ρ` congruent to `x` modulo an ideal `I`
   with `I ^ n ≤ (p)`, which is the form used for a totally ramified prime.
+## References
+
+The reduction of the norm form to the `n`-th power map modulo a totally ramified prime is the
+ingredient of Heilbronn's criterion [Heilbronn, *On Euclid's algorithm in cubic self-conjugate
+fields*][heilbronn1950], [Heilbronn, *On Euclid's algorithm in cyclic fields*][heilbronn1951]
+that is usually obtained through the conjugates of an element; the treatment here follows the
+account in [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025], with the passage to a Galois closure removed.
 -/
 
 public section
@@ -59,10 +67,11 @@ theorem dvd_norm_add_sub_pow {ι : Type*} [Fintype ι] (b : Module.Basis ι A B)
   have hNpow : N ^ Fintype.card ι = 0 := by
     obtain ⟨y, hy⟩ := ht
     rw [hN, ← map_pow, ← map_pow, hy, map_mul, map_mul, AlgHom.commutes]
-    convert zero_mul _
-    ext i j
-    simp [Matrix.algebraMap_eq_diagonal, RingHom.mapMatrix_apply, Matrix.diagonal, hp0,
-      apply_ite φ]
+    have hz : φ.mapMatrix ((algebraMap A (Matrix ι ι A)) p) = 0 := by
+      ext i j
+      simp [Matrix.algebraMap_eq_diagonal, RingHom.mapMatrix_apply, Matrix.diagonal, hp0,
+        apply_ite φ]
+    rw [hz, zero_mul]
   have hNnil : IsNilpotent (-N) := IsNilpotent.neg ⟨_, hNpow⟩
   -- hence its characteristic polynomial is `X ^ n`
   have hchar : (-N).charpoly = X ^ Fintype.card ι := by

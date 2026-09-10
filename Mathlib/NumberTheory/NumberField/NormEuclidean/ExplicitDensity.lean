@@ -5,12 +5,12 @@ Authors: Michail Karatarakis
 -/
 module
 
-public import Mathlib.NumberTheory.NumberField.NormEuclidean.Section7
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Coprimality
 public import Mathlib.NumberTheory.PrimeCounting
 public import Mathlib.Analysis.SpecificLimits.Normed
 
 /-!
-# Corollaries of the master density theorem
+# Explicit density bounds
 
 Specialising the master theorem
 `NumberField.tendsto_density_atLeastTwo` to concrete sets `Q` of auxiliary primes gives explicit
@@ -24,13 +24,18 @@ norm-Euclidean.
   independent events occur is increasing in each probability.
 * `Q =` all primes at most `⌊p ^ (1/4)⌋` gives `1 - (1 + t)(3/4) ^ t` with `t = π (⌊p ^ (1/4)⌋)`
   (`NumberField.eventually_le_density_primesLE`), which tends to `1` as `p → ∞`
-  (`NumberField.tendsto_eps_atTop_zero`).  The condition of Heilbronn's criterion holds for every
-  pair of primes in that set because `q₁ ^ 2 q₂ ^ 2 ≤ p`
+  (`NumberField.tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero`).  The condition of
+  Heilbronn's criterion holds for every pair of primes in that set because `q₁ ^ 2 q₂ ^ 2 ≤ p`
   (`NumberField.exists_rep_of_mem_primesLE`).
 
 The last section restates Section 7 in the indexing used by the density theorems, so that the two
 halves can be combined:
 `NumberField.not_normEuclidean_of_eisensteinDumas_fin_of_gcd_lt`.
+## References
+
+The bounds `2 / 27` and `1 - ε(p)` are those of [Hibbler, McGown, Treviño, *Polynomial densities
+and Heilbronn's criterion*][hibbler_mcgown_trevino2025]; the intermediate bounds, of which
+`136 / 675` is an instance, come from the master theorem that interpolates between them.
 -/
 
 public section
@@ -168,7 +173,8 @@ polynomial has no root modulo at least two primes of `Q` is eventually at least
 
 Every pair of primes in `Q` satisfies the condition of Heilbronn's criterion by
 `exists_rep_of_mem_primesLE`, so every polynomial counted in the numerator generates a field that
-is not norm-Euclidean; and `1 - (1 + t) (3/4) ^ t → 1` as `p → ∞` by `tendsto_eps_atTop_zero`. -/
+is not norm-Euclidean; and `1 - (1 + t) (3/4) ^ t → 1` as `p → ∞` by
+`tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero`. -/
 theorem eventually_le_density_primesLE {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : Fin n → ℕ}
     (hp : p.Prime) {ε : ℝ} (hε : 0 < ε) :
     ∀ᶠ N : ℕ in Filter.atTop,
@@ -193,9 +199,10 @@ theorem eventually_le_density_primesLE {n : ℕ} (hn : 2 ≤ n) {p : ℕ} {c : F
   have h := eventually_le_density_atLeastTwo (n := n) (c := c) hn hp hQ hpQ hε
   rwa [Nat.primesLE_card_eq_primeCounting] at h
 
-/-- The error term `(1 + π (⌊p ^ (1/4)⌋)) (3/4) ^ π (⌊p ^ (1/4)⌋)` of Corollary 1.8 tends to `0`
-as `p → ∞`. -/
-theorem tendsto_eps_atTop_zero :
+/-- The error term of Corollary 1.8, `(1 + π (⌊p ^ (1/4)⌋)) (3/4) ^ π (⌊p ^ (1/4)⌋)`, tends to
+`0` as `p → ∞`:  the number of primes below `⌊p ^ (1/4)⌋` tends to infinity, and
+`(1 + t) (3/4) ^ t → 0`. -/
+theorem tendsto_one_add_primeCounting_mul_pow_atTop_nhds_zero :
     Filter.Tendsto (fun p : ℕ => (1 + (Nat.primeCounting (Nat.sqrt (Nat.sqrt p)) : ℝ)) *
         (3 / 4 : ℝ) ^ Nat.primeCounting (Nat.sqrt (Nat.sqrt p)))
       Filter.atTop (nhds 0) := by

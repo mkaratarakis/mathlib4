@@ -21,6 +21,25 @@ lemma harmonic_eq_sum_Icc {n : ℕ} : harmonic n = ∑ i ∈ Finset.Icc 1 n, (�
   rw [harmonic, Finset.range_eq_Ico, Finset.sum_Ico_add' (fun (i : ℕ) ↦ (i : ℚ)⁻¹) 0 n (c := 1)]
   simp only [Finset.Ico_add_one_right_eq_Icc]
 
+/-- The harmonic number as a real sum over `Finset.range`. -/
+theorem harmonic_eq_sum_range_one_div (n : ℕ) :
+    (harmonic n : ℝ) = ∑ j ∈ Finset.range n, 1 / ((j : ℝ) + 1) := by
+  rw [harmonic]
+  push_cast
+  exact Finset.sum_congr rfl fun j _ => by rw [one_div]
+
+/-- The harmonic number, summed backwards:  `∑_{j < n} 1 / (n - j) = H_n`. -/
+theorem harmonic_eq_sum_range_one_div_sub (n : ℕ) :
+    (harmonic n : ℝ) = ∑ j ∈ Finset.range n, 1 / ((n : ℝ) - j) := by
+  rw [harmonic_eq_sum_range_one_div, ← Finset.sum_range_reflect (fun i : ℕ => 1 / ((i : ℝ) + 1)) n]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  rw [Finset.mem_range] at hj
+  have hcast : ((n - 1 - j : ℕ) : ℝ) + 1 = (n : ℝ) - j := by
+    rw [Nat.cast_sub (by omega : j ≤ n - 1), Nat.cast_sub (by omega : 1 ≤ n)]
+    push_cast
+    ring
+  simp only [hcast]
+
 theorem log_add_one_le_harmonic (n : ℕ) :
     Real.log ↑(n + 1) ≤ harmonic n := by
   calc _ = ∫ x in (1 : ℕ)..↑(n + 1), x⁻¹ := ?_

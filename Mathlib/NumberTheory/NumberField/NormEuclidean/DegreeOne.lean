@@ -31,6 +31,12 @@ more familiar "`q` is not a norm".
   root modulo `q`.
 * `NumberField.norm_ne_mul_of_forall_eval_ne_zero`: if `f` has no root modulo `q` and `q ∤ u`,
   then no algebraic integer has norm `u * q`.
+## References
+
+This is Lemma 2.3 of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025], in the corrected form: the conclusion there is that `q`
+is not a norm, which is not what Heilbronn's criterion consumes, and its proof gives the
+statement about `u * q` proved here.
 -/
 
 public section

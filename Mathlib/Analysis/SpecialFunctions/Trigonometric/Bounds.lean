@@ -85,6 +85,61 @@ theorem mul_le_sin {x : ℝ} (hx : 0 ≤ x) (hx' : x ≤ π / 2) : 2 / π * x �
     (mul_nonneg (inv_nonneg.2 pi_div_two_pos.le) hx)
     (by rwa [← div_eq_inv_mul, div_le_one pi_div_two_pos])
 
+/-- **Jordan's inequality**, rescaled to the interval `(0, y)`:  on it the sine of `π x / y` is
+at least `2 min (x, y - x) / y`.  Both endpoints are covered by the linear bound `mul_le_sin`,
+one of them after the reflection `sin (π - x) = sin x`. -/
+theorem two_mul_min_div_le_sin {x y : ℝ} (hx : 0 < x) (hxy : x < y) :
+    2 * min x (y - x) / y ≤ sin (π * x / y) := by
+  have hy : (0 : ℝ) < y := hx.trans hxy
+  rcases le_or_gt (2 * x) y with h | h
+  · have hmin : min x (y - x) = x := min_eq_left (by linarith)
+    rw [hmin]
+    have hle : π * x / y ≤ π / 2 := by
+      rw [div_le_iff₀ hy]
+      nlinarith [pi_pos]
+    have hms := mul_le_sin (by positivity) hle
+    have heq : 2 / π * (π * x / y) = 2 * x / y := by field_simp
+    rwa [heq] at hms
+  · have hmin : min x (y - x) = y - x := min_eq_right (by linarith)
+    rw [hmin]
+    have hhalf : π / 2 ≤ π * x / y := by
+      rw [le_div_iff₀ hy]
+      nlinarith [pi_pos]
+    have hle : π - π * x / y ≤ π / 2 := by linarith
+    have h0 : 0 ≤ π - π * x / y := by
+      have : π * x / y < π := by
+        rw [div_lt_iff₀ hy]
+        nlinarith [pi_pos]
+      linarith
+    have hms := mul_le_sin h0 hle
+    have heq : 2 / π * (π - π * x / y) = 2 * (y - x) / y := by field_simp
+    rwa [heq, sin_pi_sub] at hms
+
+/-- On `(0, y)` the reciprocal of `sin (π x / y)` is at most `(y / 2) (1 / x + 1 / (y - x))`.
+This is the form in which `two_mul_min_div_le_sin` is used to bound sums of `1 / sin (π a / p)`
+over a full period. -/
+theorem one_div_sin_pi_mul_div_le {x y : ℝ} (hx : 0 < x) (hxy : x < y) :
+    1 / sin (π * x / y) ≤ y / 2 * (1 / x + 1 / (y - x)) := by
+  have hy : (0 : ℝ) < y := hx.trans hxy
+  have hyx : (0 : ℝ) < y - x := by linarith
+  have hminpos : 0 < min x (y - x) := lt_min hx hyx
+  have hsin : 0 < sin (π * x / y) :=
+    lt_of_lt_of_le (by positivity) (two_mul_min_div_le_sin hx hxy)
+  have h1 : 1 / sin (π * x / y) ≤ y / (2 * min x (y - x)) := by
+    have h2 := one_div_le_one_div_of_le (by positivity) (two_mul_min_div_le_sin hx hxy)
+    rwa [one_div_div] at h2
+  refine h1.trans ?_
+  have h3 : y / (2 * min x (y - x)) = y / 2 * (1 / min x (y - x)) := by field_simp
+  rw [h3]
+  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+  rcases le_total x (y - x) with h | h
+  · rw [min_eq_left h]
+    have : 0 < 1 / (y - x) := by positivity
+    linarith
+  · rw [min_eq_right h]
+    have : 0 < 1 / x := by positivity
+    linarith
+
 /-- Half of **Jordan's inequality** for negative values. -/
 lemma sin_le_mul (hx : -(π / 2) ≤ x) (hx₀ : x ≤ 0) : sin x ≤ 2 / π * x := by
   simpa using mul_le_sin (neg_nonneg.2 hx₀) (neg_le.2 hx)

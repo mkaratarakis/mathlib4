@@ -38,6 +38,12 @@ field of degree exactly `n`) and that `p` is totally ramified there, `𝔭 ^ n =
 * `NumberField.EisensteinDumas.finrank_eq`: the root generates a field of degree `n`, i.e. the
   Eisenstein–Dumas irreducibility criterion.
 * `NumberField.EisensteinDumas.pow_eq_span`: `𝔭 ^ n = (p)`, total ramification.
+## References
+
+The criterion goes back to [Dumas, *Sur quelques cas d'irréductibilité des polynômes à
+coefficients rationnels*][dumas1906].  The use made of it here extends the Eisenstein case
+treated in [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025].
 -/
 
 public section

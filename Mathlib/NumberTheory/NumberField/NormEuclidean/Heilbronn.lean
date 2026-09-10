@@ -34,6 +34,14 @@ is the `n`-th power map on the residue field.
 * `NumberField.natAbs_norm_eq_of_pow_eq_span`: a generator of a totally ramified prime has norm
   `± p`.
 * `NumberField.not_normEuclidean_of_totallyRamified`: **Heilbronn's criterion**.
+## References
+
+Heilbronn's criterion is due to [Heilbronn, *On Euclid's algorithm in cubic self-conjugate
+fields*][heilbronn1950] and [Heilbronn, *On Euclid's algorithm in cyclic
+fields*][heilbronn1951]; see [Lemmermeyer, *The Euclidean algorithm in algebraic number
+fields*][lemmermeyer1995] for a survey of norm-Euclidean fields.  The form proved here, and its
+use, follow [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025].
 -/
 
 public section

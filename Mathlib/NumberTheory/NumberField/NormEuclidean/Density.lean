@@ -38,6 +38,12 @@ power modulo `p` when `gcd (p - 1) n = 1`.
 * `NumberField.not_normEuclidean_of_eisensteinDumas`: the arithmetic core — a number field of
   degree `n` containing a root of an Eisenstein–Dumas polynomial that has no root modulo two
   suitable primes is not norm-Euclidean.
+## References
+
+The density statements extend those of [Hibbler, McGown, Treviño, *Polynomial densities and
+Heilbronn's criterion*][hibbler_mcgown_trevino2025] from the Eisenstein family to the
+Eisenstein–Dumas family, and replace the two separate bounds proved there by a single theorem
+indexed by the set of auxiliary primes.
 -/
 
 public section

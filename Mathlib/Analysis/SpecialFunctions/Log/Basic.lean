@@ -312,6 +312,18 @@ theorem log_le_sub_one_of_pos {x : ℝ} (hx : 0 < x) : log x ≤ x - 1 := by
 lemma one_sub_inv_le_log_of_pos (hx : 0 < x) : 1 - x⁻¹ ≤ log x := by
   simpa [add_comm] using log_le_sub_one_of_pos (inv_pos.2 hx)
 
+/-- A sublinear bound for the logarithm:  `log x ≤ 4 (x ^ (1 / 4) - 1)`, written with two square
+roots.  It follows from `log y ≤ y - 1` at `y = x ^ (1 / 4)`, since `log x = 4 log y`. -/
+theorem log_le_four_mul_sqrt_sqrt_sub_one {x : ℝ} (hx : 0 < x) :
+    log x ≤ 4 * (√(√x) - 1) := by
+  have h1 : log (√(√x)) = log x / 4 := by
+    rw [log_sqrt (Real.sqrt_nonneg x), log_sqrt hx.le]
+    ring
+  have h2 : 0 < √(√x) := Real.sqrt_pos.2 (Real.sqrt_pos.2 hx)
+  have h3 := log_le_sub_one_of_pos h2
+  rw [h1] at h3
+  linarith
+
 /-- See `Real.log_le_sub_one_of_pos` for the stronger version when `x ≠ 0`. -/
 lemma log_le_self (hx : 0 ≤ x) : log x ≤ x := by
   obtain rfl | hx := hx.eq_or_lt

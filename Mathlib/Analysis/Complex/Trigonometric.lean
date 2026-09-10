@@ -949,6 +949,24 @@ theorem norm_cos_add_sin_mul_I (x : ℝ) : ‖cos x + sin x * I‖ = 1 := by
 theorem norm_exp_ofReal_mul_I (x : ℝ) : ‖exp (x * I)‖ = 1 := by
   rw [exp_mul_I, norm_cos_add_sin_mul_I]
 
+/-- The chord of the unit circle:  `‖exp (i θ) - 1‖ = 2 |sin (θ / 2)|`. -/
+theorem norm_exp_ofReal_mul_I_sub_one (θ : ℝ) : ‖exp (θ * I) - 1‖ = 2 * |Real.sin (θ / 2)| := by
+  have h1 : ‖exp ((θ : ℂ) * I) - 1‖ ^ 2 = 2 - 2 * Real.cos θ := by
+    rw [← normSq_eq_norm_sq, normSq_apply]
+    simp only [sub_re, sub_im, one_re, one_im, exp_ofReal_mul_I_re, exp_ofReal_mul_I_im, sub_zero]
+    nlinarith [Real.sin_sq_add_cos_sq θ]
+  have h2 : 2 - 2 * Real.cos θ = (2 * |Real.sin (θ / 2)|) ^ 2 := by
+    have hc := Real.cos_two_mul (θ / 2)
+    have hhalf : 2 * (θ / 2) = θ := by ring
+    rw [hhalf] at hc
+    have hs := Real.sin_sq_add_cos_sq (θ / 2)
+    rw [mul_pow, sq_abs]
+    nlinarith
+  calc ‖exp ((θ : ℂ) * I) - 1‖ = Real.sqrt (‖exp ((θ : ℂ) * I) - 1‖ ^ 2) :=
+        (Real.sqrt_sq (norm_nonneg _)).symm
+    _ = Real.sqrt ((2 * |Real.sin (θ / 2)|) ^ 2) := by rw [h1, h2]
+    _ = 2 * |Real.sin (θ / 2)| := Real.sqrt_sq (by positivity)
+
 @[simp]
 theorem norm_exp_I_mul_ofReal (x : ℝ) : ‖exp (I * x)‖ = 1 := by
   rw [mul_comm, norm_exp_ofReal_mul_I]

@@ -10,13 +10,13 @@ public import Mathlib.NumberTheory.DirichletCharacter.PolyaVinogradov
 public import Mathlib.Data.Int.CardIntervalMod
 
 /-!
-# The candidate set of Section 7
+# Weakening the coprimality condition
 
 The character-sum argument of `Mathlib.NumberTheory.NumberField.NormEuclidean.Character` needs a
 lower bound for the number of candidates
 `S = {u < p / q₁ : q₁ ∤ u, u ≡ r₀ (mod q₂ ^ 2)}`,
 and needs to know that every candidate `u` has `q₁ u` invertible modulo `p`.  Both are proved
-here, giving Section 7 with a completely explicit sufficient condition.
+here, giving the argument a completely explicit sufficient condition.
 
 The count is elementary: the residue class of `r₀` modulo `q₂ ^ 2` contributes at least
 `M / q₂ ^ 2 - 1` integers below `M`, and the multiples of `q₁` inside it form a single class
@@ -25,19 +25,28 @@ With `M = p / q₁` this gives `#S ≥ p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
 
 Taking instead for `S` a *single* arithmetic progression `u ≡ ρ (mod q₁ q₂ ^ 2)`, with `ρ ≡ 1`
 modulo `q₁`, makes the condition `q₁ ∤ u` automatic and lets the Pólya–Vinogradov inequality be
-applied directly, giving Section 7 with no analytic hypothesis at all:
+applied directly, giving the theorem with no analytic hypothesis at all:
 `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`.
 
 ## Main results
 
-* `Nat.le_card_range_filter_modEq_not_dvd`: the elementary count.
-* `NumberField.le_card_candidates`: the lower bound `p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
-* `NumberField.not_normEuclidean_of_charSum_of_lt`: Section 7, with the size condition on the
+* `Nat.sum_filter_range_modEq`: a sum over a residue class below `M`, reindexed by an initial
+  segment.
+* `NumberField.le_card_filter_range_div_not_dvd`: the lower bound
+  `p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3`.
+* `NumberField.not_normEuclidean_of_charSum_bound_lt`: Section 7, with the size condition on the
   character-sum bound `B` made explicit.
-* `Nat.filter_range_modEq_eq_image`, `Nat.sum_filter_range_modEq`: a residue class below `M`,
-  parametrised by an initial segment.
 * `NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt`: Section 7 unconditionally, with
   the Pólya–Vinogradov inequality supplied.
+* `NumberField.eventually_gcd_condition`, `NumberField.eventually_gcd_condition_gcd`: the
+  explicit condition of that theorem holds for all large `p`, so it is not vacuous.
+## References
+
+This is the final section of [Hibbler, McGown, Treviño, *Polynomial densities and Heilbronn's
+criterion*][hibbler_mcgown_trevino2025], with the two congruence conditions on the auxiliary
+integer combined into a single arithmetic progression, so that only characters modulo the prime
+`p` occur and the inequality of [Pólya][polya1918] and [Vinogradov][vinogradov1918] applies
+without a reduction to primitive characters.
 -/
 
 public section
@@ -46,98 +55,9 @@ open Finset
 
 namespace Nat
 
-theorem card_range_filter_modEq {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
-    (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ)
-      = ((⌈((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ)⌉ : ℤ) : ℚ) := by
-  have h : ((#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℕ) : ℤ)
-      = ⌈((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ)⌉ := by
-    rw [← Nat.count_eq_card_filter_range]
-    exact Nat.count_modEq_card_eq_ceil _ hQ v
-  exact_mod_cast congrArg (fun z : ℤ => (z : ℚ)) h
-
-theorem le_card_range_filter_modEq {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
-    (M : ℚ) / Q - 1 ≤ #{u ∈ Finset.range M | u ≡ v [MOD Q]} := by
-  have hQQ : (0 : ℚ) < Q := by exact_mod_cast hQ
-  rw [card_range_filter_modEq hQ v]
-  have h1 := Int.le_ceil (((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ))
-  have h2 : ((v % Q : ℕ) : ℚ) < Q := by exact_mod_cast Nat.mod_lt _ hQ
-  have h3 : ((M : ℚ) - (v % Q : ℕ)) / Q = (M : ℚ) / Q - ((v % Q : ℕ) : ℚ) / Q := by ring
-  have h4 : ((v % Q : ℕ) : ℚ) / Q ≤ 1 := by rw [div_le_one hQQ]; linarith
-  linarith
-
-theorem card_range_filter_modEq_le {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
-    (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ) ≤ (M : ℚ) / Q + 1 := by
-  have hQQ : (0 : ℚ) < Q := by exact_mod_cast hQ
-  rw [card_range_filter_modEq hQ v]
-  have h1 := Int.ceil_lt_add_one (((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ))
-  have h2 : (0 : ℚ) ≤ ((v % Q : ℕ) : ℚ) := by positivity
-  have h3 : ((M : ℚ) - (v % Q : ℕ)) / Q ≤ (M : ℚ) / Q := by
-    rw [div_le_div_iff_of_pos_right hQQ]; linarith
-  linarith
-
-theorem le_card_range_filter_modEq_not_dvd {M Q q : ℕ} (hQ : 0 < Q) (hq : 0 < q)
-    (hcop : Nat.Coprime Q q) (v : ℕ) :
-    (M : ℚ) / Q - (M : ℚ) / (q * Q) - 2 ≤
-      #{u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} := by
-  classical
-  obtain ⟨c, hcQ, hcq⟩ := Nat.chineseRemainder hcop v 0
-  have hsub : {u ∈ Finset.range M | u ≡ v [MOD Q]} ⊆
-      {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} ∪
-      {u ∈ Finset.range M | u ≡ c [MOD Q * q]} := by
-    intro u hu
-    rw [Finset.mem_filter] at hu
-    rw [Finset.mem_union, Finset.mem_filter, Finset.mem_filter]
-    by_cases hdvd : q ∣ u
-    · refine Or.inr ⟨hu.1, ?_⟩
-      refine (Nat.modEq_and_modEq_iff_modEq_mul hcop).1 ⟨hu.2.trans hcQ.symm, ?_⟩
-      exact ((Nat.modEq_zero_iff_dvd).2 hdvd).trans hcq.symm
-    · exact Or.inl ⟨hu.1, hdvd, hu.2⟩
-  have hcard := Finset.card_le_card hsub
-  have hunion := Finset.card_union_le
-    {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]}
-    {u ∈ Finset.range M | u ≡ c [MOD Q * q]}
-  have hA := le_card_range_filter_modEq (M := M) hQ v
-  have hC := card_range_filter_modEq_le (M := M) (Nat.mul_pos hQ hq) c
-  have hcast : (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ) ≤
-      (#{u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} : ℚ) +
-      (#{u ∈ Finset.range M | u ≡ c [MOD Q * q]} : ℚ) := by
-    exact_mod_cast le_trans hcard hunion
-  have hqQ : ((Q * q : ℕ) : ℚ) = (q : ℚ) * (Q : ℚ) := by push_cast; ring
-  rw [hqQ] at hC
-  linarith
-
-theorem filter_range_modEq_eq_image {M Q r : ℕ} (hQ : 0 < Q) (hr : r < Q) :
-    {u ∈ Finset.range M | u ≡ r [MOD Q]}
-      = (Finset.range ((M - r + Q - 1) / Q)).image (fun t => r + Q * t) := by
-  classical
-  ext u
-  simp only [Finset.mem_filter, Finset.mem_range, Finset.mem_image]
-  constructor
-  · rintro ⟨huM, hucong⟩
-    have hmod : u % Q = r := by
-      have h : u % Q = r % Q := hucong
-      rwa [Nat.mod_eq_of_lt hr] at h
-    have hu : r + Q * (u / Q) = u := by rw [← hmod]; exact Nat.mod_add_div u Q
-    refine ⟨u / Q, ?_, hu⟩
-    rw [Nat.lt_iff_add_one_le, Nat.le_div_iff_mul_le hQ]
-    have hru : r ≤ u := Nat.le.intro hu
-    calc (u / Q + 1) * Q = Q * (u / Q) + Q := by ring
-      _ = (u - r) + Q := by rw [Nat.eq_sub_of_add_eq' hu]
-      _ ≤ M - r + Q - 1 := by omega
-  · rintro ⟨t, htT, rfl⟩
-    have hle : Q * t + Q ≤ M - r + Q - 1 := by
-      have h1 : (t + 1) * Q ≤ M - r + Q - 1 := by
-        rw [← Nat.le_div_iff_mul_le hQ]
-        omega
-      calc Q * t + Q = (t + 1) * Q := by ring
-        _ ≤ M - r + Q - 1 := h1
-    refine ⟨?_, ?_⟩
-    · obtain ⟨s, hs⟩ : ∃ s, Q * t = s := ⟨_, rfl⟩
-      rw [hs] at hle ⊢
-      omega
-    · change (r + Q * t) % Q = r % Q
-      exact Nat.add_mul_mod_self_left r Q t
-
+/-- Reindexing a sum over a residue class below `M` as a sum over an initial segment.  The
+underlying description of the class, `Nat.filter_range_modEq_eq_image`, is in
+`Mathlib/Data/Int/CardIntervalMod.lean`; only this consequence needs big operators. -/
 theorem sum_filter_range_modEq {M Q r : ℕ} (hQ : 0 < Q) (hr : r < Q) {A : Type*}
     [AddCommMonoid A] (f : ℕ → A) :
     ∑ u ∈ {u ∈ Finset.range M | u ≡ r [MOD Q]}, f u
@@ -150,21 +70,22 @@ end Nat
 
 namespace NumberField
 
-/-- The set of candidates in Section 7, rewritten with `Nat.ModEq`. -/
-theorem filter_natCast_zmod_eq {M Q : ℕ} [NeZero Q] (q v : ℕ) :
+/-- The candidate set, with the congruence rewritten as a `Nat.ModEq`. -/
+theorem filter_range_natCast_eq {M Q : ℕ} (q v : ℕ) :
     {u ∈ Finset.range M | ¬ q ∣ u ∧ ((u : ℕ) : ZMod Q) = ((v : ℕ) : ZMod Q)}
       = {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} := by
   refine Finset.filter_congr fun u _ => ?_
   simp only [ZMod.natCast_eq_natCast_iff]
 
-/-- **Lower bound for the number of candidates.** -/
-theorem le_card_candidates {p q₁ q₂ : ℕ} (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hne : q₁ ≠ q₂)
-    (v : ℕ) :
+/-- **Lower bound for the number of candidates.**  At least
+`p (q₁ - 1) / (q₁ ^ 2 q₂ ^ 2) - 3` of the `u < p / q₁` are prime to `q₁` and congruent to `v`
+modulo `q₂ ^ 2`. -/
+theorem le_card_filter_range_div_not_dvd {p q₁ q₂ : ℕ} (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
+    (hne : q₁ ≠ q₂) (v : ℕ) :
     (p : ℝ) * ((q₁ : ℝ) - 1) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 3 ≤
       #{u ∈ Finset.range (p / q₁) |
         ¬ q₁ ∣ u ∧ ((u : ℕ) : ZMod (q₂ ^ 2)) = ((v : ℕ) : ZMod (q₂ ^ 2))} := by
-  have : NeZero (q₂ ^ 2) := ⟨pow_ne_zero 2 hq₂.pos.ne'⟩
-  rw [filter_natCast_zmod_eq]
+  rw [filter_range_natCast_eq]
   set M := p / q₁ with hM
   have hq₁pos : (0 : ℝ) < q₁ := by exact_mod_cast hq₁.pos
   have hq₂pos : (0 : ℝ) < q₂ := by exact_mod_cast hq₂.pos
@@ -174,9 +95,9 @@ theorem le_card_candidates {p q₁ q₂ : ℕ} (hq₁ : q₁.Prime) (hq₂ : q�
   have hbase := Nat.le_card_range_filter_modEq_not_dvd (M := M) hQ hq₁.pos hcop v
   have hreal : (M : ℝ) / ((q₂ : ℝ) ^ 2) - (M : ℝ) / ((q₁ : ℝ) * (q₂ : ℝ) ^ 2) - 2 ≤
       #{u ∈ Finset.range M | ¬ q₁ ∣ u ∧ u ≡ v [MOD q₂ ^ 2]} := by
-    have := (Rat.cast_le (K := ℝ)).2 hbase
-    push_cast at this
-    convert this using 2
+    have h := (Rat.cast_le (K := ℝ)).2 hbase
+    push_cast at h
+    linarith
   -- `M = p / q₁` is between `p / q₁ - 1` and `p / q₁`
   have hq₁ge : (1 : ℝ) ≤ (q₁ : ℝ) := by exact_mod_cast hq₁.one_lt.le
   have hq₂one : (1 : ℝ) ≤ (q₂ : ℝ) ^ 2 := by
@@ -208,8 +129,8 @@ the character sums over the candidate set satisfies
 `(g - 1) B < p (q₁ - 1) / (q₁² q₂²) - 3`, where `g = gcd (p - 1, n)`,
 then the field generated by a root of `f` is not norm-Euclidean.  No hypothesis on the character
 and none on the size of the candidate set is left. -/
-theorem not_normEuclidean_of_charSum_of_lt {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
-    {n m p q₁ q₂ r₀ : ℕ} {a : ℕ → ℤ} {cc : ℕ → ℕ} [NeZero p] [NeZero (q₂ ^ 2)]
+theorem not_normEuclidean_of_charSum_bound_lt {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
+    {n m p q₁ q₂ r₀ : ℕ} {a : ℕ → ℤ} {cc : ℕ → ℕ}
     (hp : p.Prime) (hn : 0 < n) (hm : 0 < m) (hmn : Nat.Coprime m n)
     (hdeg : Module.finrank ℚ K = n)
     (hroot : θ ^ n + ∑ i ∈ Finset.range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
@@ -231,12 +152,12 @@ theorem not_normEuclidean_of_charSum_of_lt {K : Type*} [Field K] [NumberField K]
     ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
       (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
   classical
-  refine not_normEuclidean_of_charSum' hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
+  refine not_normEuclidean_of_forall_charSum hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
     (fun h => hne (((Nat.prime_dvd_prime_iff_eq hq₂ hq₁).1 (by exact_mod_cast h)).symm)) hq₁p
     hr₁ hr₂ hr₀ _ (fun u hu => Finset.mem_range.1 (Finset.mem_filter.1 hu).1)
     (fun u hu => (Finset.mem_filter.1 hu).2.1)
     (fun u hu => (Finset.mem_filter.1 hu).2.2) hB hPV ?_
-  exact lt_of_lt_of_le hcond (le_card_candidates hq₁ hq₂ hne r₀)
+  exact lt_of_lt_of_le hcond (le_card_filter_range_div_not_dvd hq₁ hq₂ hne r₀)
 
 open scoped Classical in
 /-- **Section 7, unconditionally.**  Let `f` satisfy the Eisenstein–Dumas condition at the prime
@@ -371,10 +292,105 @@ theorem not_normEuclidean_of_eisensteinDumas_of_gcd_lt {K : Type*} [Field K] [Nu
       nlinarith
     linarith
   -- apply Section 7
-  refine not_normEuclidean_of_charSum' hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
+  refine not_normEuclidean_of_forall_charSum hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂
     (fun h => hne (((Nat.prime_dvd_prime_iff_eq hq₂ hq₁).1 (by exact_mod_cast h)).symm)) hq₁p
     hr₁ hr₂ hr₀ S hSlt hSnd hScong (by positivity) hPV (lt_of_lt_of_le hcond hcount)
 
+/-- **The explicit condition of Section 7 is satisfiable.**  For fixed `g` and fixed auxiliary
+primes `q₁, q₂`, the inequality required by
+`NumberField.not_normEuclidean_of_eisensteinDumas_of_gcd_lt` holds for every sufficiently large
+`p`, because `√p (1 + log p) = O(p ^ (3/4))`. -/
+theorem eventually_gcd_condition (g q₁ q₂ : ℕ) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂) :
+    ∀ᶠ p : ℕ in Filter.atTop,
+      ((g : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
+        (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
+  set D : ℕ := q₁ ^ 2 * q₂ ^ 2 with hDdef
+  have hD1 : 1 ≤ D := Nat.one_le_iff_ne_zero.2 (by positivity)
+  filter_upwards [Filter.eventually_ge_atTop ((8 * D * g + 4 * D + 1) ^ 4)] with p hp
+  set T : ℝ := 8 * (D : ℝ) * (g : ℝ) + 4 * (D : ℝ) + 1 with hTdef
+  have hDR : (1 : ℝ) ≤ (D : ℝ) := by exact_mod_cast hD1
+  have hgR : (0 : ℝ) ≤ (g : ℝ) := by positivity
+  have hT1 : 1 ≤ T := by rw [hTdef]; nlinarith
+  have hpR : (0 : ℝ) < p := by
+    have : 0 < p := lt_of_lt_of_le (by positivity) hp
+    exact_mod_cast this
+  set t : ℝ := Real.sqrt (Real.sqrt p) with htdef
+  have ht0 : 0 < t := Real.sqrt_pos.2 (Real.sqrt_pos.2 hpR)
+  -- `t = p ^ (1/4)`, so `t ^ 4 = p` and `√p = t ^ 2`
+  have hsq : Real.sqrt p = t ^ 2 := by
+    rw [htdef, Real.sq_sqrt (Real.sqrt_nonneg _)]
+  have ht4 : t ^ 4 = (p : ℝ) := by
+    have h1 : t ^ 4 = (t ^ 2) ^ 2 := by ring
+    rw [h1, ← hsq, Real.sq_sqrt hpR.le]
+  -- `t ≥ T`
+  have htT : T ≤ t := by
+    have hTp : T ^ 4 ≤ (p : ℝ) := by
+      have h1 : ((8 * D * g + 4 * D + 1 : ℕ) : ℝ) = T := by rw [hTdef]; push_cast; ring
+      have h2 : (((8 * D * g + 4 * D + 1) ^ 4 : ℕ) : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp
+      rw [Nat.cast_pow, h1] at h2
+      exact h2
+    have h3 : T ^ 2 ≤ Real.sqrt p := by
+      refine Real.le_sqrt_of_sq_le ?_
+      calc (T ^ 2) ^ 2 = T ^ 4 := by ring
+        _ ≤ (p : ℝ) := hTp
+    rw [htdef]
+    exact Real.le_sqrt_of_sq_le h3
+  have hp1 : (1 : ℝ) ≤ (p : ℝ) := by
+    have h : 1 ≤ p := le_trans (Nat.one_le_pow _ _ (by positivity)) hp
+    exact_mod_cast h
+  have hlogpos : 0 ≤ Real.log p := Real.log_nonneg hp1
+  have ht1 : (1 : ℝ) ≤ t := le_trans hT1 htT
+  have ht3 : (1 : ℝ) ≤ t ^ 3 := by nlinarith
+  -- the logarithm
+  have hlog : 1 + Real.log p ≤ 4 * t := by
+    have h5 := Real.log_le_four_mul_sqrt_sqrt_sub_one hpR
+    rw [← htdef] at h5
+    linarith
+  -- put it together
+  have hden : (0 : ℝ) < (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 := by
+    have h1 : (0 : ℝ) < q₁ := by exact_mod_cast hq₁
+    have h2 : (0 : ℝ) < q₂ := by exact_mod_cast hq₂
+    positivity
+  have hDeq : (q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2 = (D : ℝ) := by rw [hDdef]; push_cast; ring
+  have hpd : (p : ℝ) / (D : ℝ) = t ^ 4 * ((D : ℝ))⁻¹ := by rw [ht4, div_eq_mul_inv]
+  rw [hDeq, hsq, hpd]
+  have hub : ((g : ℝ) - 1) * (t ^ 2 * (1 + Real.log p)) ≤ 4 * (g : ℝ) * t ^ 3 := by
+    have h1 : t ^ 2 * (1 + Real.log p) ≤ t ^ 2 * (4 * t) :=
+      mul_le_mul_of_nonneg_left hlog (sq_nonneg t)
+    rcases le_or_gt 1 (g : ℝ) with hg1 | hg1
+    · nlinarith
+    · have h3 : 0 ≤ t ^ 2 * (1 + Real.log p) :=
+        mul_nonneg (sq_nonneg t) (by linarith)
+      nlinarith
+  have hkey : 4 * (g : ℝ) * t ^ 3 + 2 < t ^ 4 * ((D : ℝ))⁻¹ := by
+    rw [lt_mul_inv_iff₀ (by linarith)]
+    have h6 : t ^ 3 * (8 * (D : ℝ) * (g : ℝ) + 4 * (D : ℝ) + 1) ≤ t ^ 4 := by
+      have := mul_le_mul_of_nonneg_left htT (pow_nonneg ht0.le 3)
+      rw [hTdef] at this
+      nlinarith [this]
+    have h7 : (D : ℝ) ≤ (D : ℝ) * t ^ 3 := by nlinarith
+    have h8 : (0 : ℝ) ≤ (D : ℝ) * (g : ℝ) * t ^ 3 := by positivity
+    nlinarith [h6, h7, h8]
+  linarith
 
+/-- **The condition of Section 7 is satisfiable for the relevant `g`.**  The `g` in
+`not_normEuclidean_of_eisensteinDumas_of_gcd_lt` is `gcd (p - 1, n)`, which depends on `p`; since
+it is at most `n` and the left-hand side is increasing in it, the condition still holds for every
+sufficiently large `p`, with `n` and the auxiliary primes fixed. -/
+theorem eventually_gcd_condition_gcd (n q₁ q₂ : ℕ) (hn : 0 < n) (hq₁ : 0 < q₁) (hq₂ : 0 < q₂) :
+    ∀ᶠ p : ℕ in Filter.atTop,
+      ((Nat.gcd (p - 1) n : ℝ) - 1) * (Real.sqrt p * (1 + Real.log p)) <
+        (p : ℝ) / ((q₁ : ℝ) ^ 2 * (q₂ : ℝ) ^ 2) - 2 := by
+  filter_upwards [eventually_gcd_condition n q₁ q₂ hq₁ hq₂, Filter.eventually_ge_atTop 1]
+    with p hpc hp1
+  have hg : (Nat.gcd (p - 1) n : ℝ) ≤ (n : ℝ) := by
+    have h : Nat.gcd (p - 1) n ≤ n := Nat.gcd_le_right _ hn
+    exact_mod_cast h
+  have hnn : (0 : ℝ) ≤ Real.sqrt p * (1 + Real.log p) := by
+    have h1 : (1 : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp1
+    have h2 : 0 ≤ Real.log p := Real.log_nonneg h1
+    positivity
+  refine lt_of_le_of_lt ?_ hpc
+  exact mul_le_mul_of_nonneg_right (by linarith) hnn
 
 end NumberField

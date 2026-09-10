@@ -156,3 +156,108 @@ theorem count_modEq_card (v : ℕ) :
     exact ⟨(mod_lt _ hr).trans_le (by simp), not_lt.mp h⟩
 
 end Nat
+
+namespace Nat
+
+/-! ### Counts over an initial segment -/
+
+/-- The number of `u < M` congruent to `v` mod `Q`, as a single ceiling. -/
+theorem card_range_filter_modEq {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
+    (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ)
+      = ((⌈((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ)⌉ : ℤ) : ℚ) := by
+  have h : ((#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℕ) : ℤ)
+      = ⌈((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ)⌉ := by
+    rw [← Nat.count_eq_card_filter_range]
+    exact Nat.count_modEq_card_eq_ceil _ hQ v
+  exact_mod_cast congrArg (fun z : ℤ => (z : ℚ)) h
+
+/-- At least `M / Q - 1` of the `u < M` are congruent to `v` mod `Q`. -/
+theorem le_card_range_filter_modEq {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
+    (M : ℚ) / Q - 1 ≤ #{u ∈ Finset.range M | u ≡ v [MOD Q]} := by
+  have hQQ : (0 : ℚ) < Q := by exact_mod_cast hQ
+  rw [card_range_filter_modEq hQ v]
+  have h1 := Int.le_ceil (((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ))
+  have h2 : ((v % Q : ℕ) : ℚ) < Q := by exact_mod_cast Nat.mod_lt _ hQ
+  have h3 : ((M : ℚ) - (v % Q : ℕ)) / Q = (M : ℚ) / Q - ((v % Q : ℕ) : ℚ) / Q := by ring
+  have h4 : ((v % Q : ℕ) : ℚ) / Q ≤ 1 := by rw [div_le_one hQQ]; linarith
+  linarith
+
+/-- At most `M / Q + 1` of the `u < M` are congruent to `v` mod `Q`. -/
+theorem card_range_filter_modEq_le {M Q : ℕ} (hQ : 0 < Q) (v : ℕ) :
+    (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ) ≤ (M : ℚ) / Q + 1 := by
+  have hQQ : (0 : ℚ) < Q := by exact_mod_cast hQ
+  rw [card_range_filter_modEq hQ v]
+  have h1 := Int.ceil_lt_add_one (((M : ℚ) - (v % Q : ℕ)) / (Q : ℚ))
+  have h2 : (0 : ℚ) ≤ ((v % Q : ℕ) : ℚ) := by positivity
+  have h3 : ((M : ℚ) - (v % Q : ℕ)) / Q ≤ (M : ℚ) / Q := by
+    rw [div_le_div_iff_of_pos_right hQQ]; linarith
+  linarith
+
+/-- At least `M / Q - M / (q Q) - 2` of the `u < M` are congruent to `v` mod `Q` and prime to
+`q`, whenever `q` and `Q` are coprime:  the multiples of `q` in the class of `v` form a single
+class modulo `q Q`. -/
+theorem le_card_range_filter_modEq_not_dvd {M Q q : ℕ} (hQ : 0 < Q) (hq : 0 < q)
+    (hcop : Nat.Coprime Q q) (v : ℕ) :
+    (M : ℚ) / Q - (M : ℚ) / (q * Q) - 2 ≤
+      #{u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} := by
+  classical
+  obtain ⟨c, hcQ, hcq⟩ := Nat.chineseRemainder hcop v 0
+  have hsub : {u ∈ Finset.range M | u ≡ v [MOD Q]} ⊆
+      {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} ∪
+      {u ∈ Finset.range M | u ≡ c [MOD Q * q]} := by
+    intro u hu
+    rw [Finset.mem_filter] at hu
+    rw [Finset.mem_union, Finset.mem_filter, Finset.mem_filter]
+    by_cases hdvd : q ∣ u
+    · refine Or.inr ⟨hu.1, ?_⟩
+      refine (Nat.modEq_and_modEq_iff_modEq_mul hcop).1 ⟨hu.2.trans hcQ.symm, ?_⟩
+      exact ((Nat.modEq_zero_iff_dvd).2 hdvd).trans hcq.symm
+    · exact Or.inl ⟨hu.1, hdvd, hu.2⟩
+  have hcard := Finset.card_le_card hsub
+  have hunion := Finset.card_union_le
+    {u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]}
+    {u ∈ Finset.range M | u ≡ c [MOD Q * q]}
+  have hA := le_card_range_filter_modEq (M := M) hQ v
+  have hC := card_range_filter_modEq_le (M := M) (Nat.mul_pos hQ hq) c
+  have hcast : (#{u ∈ Finset.range M | u ≡ v [MOD Q]} : ℚ) ≤
+      (#{u ∈ Finset.range M | ¬ q ∣ u ∧ u ≡ v [MOD Q]} : ℚ) +
+      (#{u ∈ Finset.range M | u ≡ c [MOD Q * q]} : ℚ) := by
+    exact_mod_cast le_trans hcard hunion
+  have hqQ : ((Q * q : ℕ) : ℚ) = (q : ℚ) * (Q : ℚ) := by push_cast; ring
+  rw [hqQ] at hC
+  linarith
+
+/-- The `u < M` congruent to `r` mod `Q`, for `r < Q`, are exactly the `r + Q t` with
+`t < (M - r + Q - 1) / Q`. -/
+theorem filter_range_modEq_eq_image {M Q r : ℕ} (hQ : 0 < Q) (hr : r < Q) :
+    {u ∈ Finset.range M | u ≡ r [MOD Q]}
+      = (Finset.range ((M - r + Q - 1) / Q)).image (fun t => r + Q * t) := by
+  classical
+  ext u
+  simp only [Finset.mem_filter, Finset.mem_range, Finset.mem_image]
+  constructor
+  · rintro ⟨huM, hucong⟩
+    have hmod : u % Q = r := by
+      have h : u % Q = r % Q := hucong
+      rwa [Nat.mod_eq_of_lt hr] at h
+    have hu : r + Q * (u / Q) = u := by rw [← hmod]; exact Nat.mod_add_div u Q
+    refine ⟨u / Q, ?_, hu⟩
+    rw [Nat.lt_iff_add_one_le, Nat.le_div_iff_mul_le hQ]
+    have hru : r ≤ u := Nat.le.intro hu
+    calc (u / Q + 1) * Q = Q * (u / Q) + Q := by ring
+      _ = (u - r) + Q := by rw [Nat.eq_sub_of_add_eq' hu]
+      _ ≤ M - r + Q - 1 := by omega
+  · rintro ⟨t, htT, rfl⟩
+    have hle : Q * t + Q ≤ M - r + Q - 1 := by
+      have h1 : (t + 1) * Q ≤ M - r + Q - 1 := by
+        rw [← Nat.le_div_iff_mul_le hQ]
+        omega
+      calc Q * t + Q = (t + 1) * Q := by ring
+        _ ≤ M - r + Q - 1 := h1
+    refine ⟨?_, ?_⟩
+    · obtain ⟨s, hs⟩ : ∃ s, Q * t = s := ⟨_, rfl⟩
+      rw [hs] at hle ⊢
+      omega
+    · simp [Nat.ModEq, Nat.add_mul_mod_self_left]
+
+end Nat

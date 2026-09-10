@@ -155,6 +155,57 @@ lemma IsCyclic.card_orderOf_eq_totient [IsCyclic α] [Fintype α] {d : ℕ} (hd 
     #{a : α | orderOf a = d} = totient d := by
   classical apply card_orderOf_eq_totient_aux₂ (fun n => IsCyclic.card_pow_eq_one_le) hd
 
+/-- In a finite cyclic group of order `N`, an element killed by `N / gcd (N, n)` is an `n`-th
+power.  The `n`-th powers form the unique subgroup of index `gcd (N, n)`, namely the kernel of
+`x ↦ x ^ (N / gcd (N, n))`, and this is the "if" half of that description. -/
+@[to_additive /-- In a finite additive cyclic group of order `N`, an element killed by
+`N / gcd (N, n)` is an `n`-th multiple. -/]
+theorem IsCyclic.exists_pow_eq_of_pow_natCard_div_gcd [Finite α] [IsCyclic α] {n : ℕ} {y : α}
+    (hy : y ^ (Nat.card α / Nat.gcd (Nat.card α) n) = 1) :
+    ∃ x : α, x ^ n = y := by
+  obtain ⟨ζ, hζ⟩ := IsCyclic.exists_generator (α := α)
+  have hNpos : 0 < Nat.card α := Nat.card_pos
+  set N := Nat.card α with hN
+  set d := Nat.gcd N n with hd
+  have hdpos : 0 < d := Nat.gcd_pos_of_pos_left _ hNpos
+  obtain ⟨w, hw⟩ : d ∣ N := Nat.gcd_dvd_left _ _
+  have hwpos : 0 < w := by
+    rcases Nat.eq_zero_or_pos w with rfl | h
+    · simp [hw] at hNpos
+    · exact h
+  have hord : orderOf ζ = N := by
+    rw [hN, ← Nat.card_zpowers]
+    exact (Nat.card_congr (Equiv.subtypeUnivEquiv hζ)).symm ▸ rfl
+  -- write `y` as a power of the generator; the hypothesis says the exponent is divisible by `d`
+  obtain ⟨j, hj⟩ := Subgroup.mem_zpowers_iff.1 (hζ y)
+  have hNw : N / d = w := by rw [hw]; exact Nat.mul_div_cancel_left w hdpos
+  have hdj : (d : ℤ) ∣ j := by
+    have h1 : ζ ^ (j * (w : ℤ)) = 1 := by
+      rw [zpow_mul, hj, ← hNw]
+      exact_mod_cast hy
+    have h2 : ((orderOf ζ : ℕ) : ℤ) ∣ j * (w : ℤ) := orderOf_dvd_iff_zpow_eq_one.2 h1
+    rw [hord, hw] at h2
+    push_cast at h2
+    exact (mul_dvd_mul_iff_right (by exact_mod_cast hwpos.ne' : (w : ℤ) ≠ 0)).1 h2
+  obtain ⟨j', hj'⟩ := hdj
+  -- Bézout for `d = gcd (N, n)` turns the `d`-th root into an `n`-th root
+  have hbez : (d : ℤ) = (N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n := by
+    rw [hd]; exact Nat.gcd_eq_gcd_ab N n
+  refine ⟨ζ ^ (Nat.gcdB N n * j'), ?_⟩
+  have hζN : ζ ^ (N : ℤ) = 1 := by
+    rw [← hord]; exact_mod_cast pow_orderOf_eq_one ζ
+  have key : ζ ^ (((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j')
+      = ζ ^ ((n : ℤ) * (Nat.gcdB N n * j')) := by
+    have h1 : ((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j'
+        = (N : ℤ) * (Nat.gcdA N n * j') + (n : ℤ) * (Nat.gcdB N n * j') := by ring
+    rw [h1, zpow_add, zpow_mul, hζN, one_zpow, one_mul]
+  calc (ζ ^ (Nat.gcdB N n * j')) ^ n = ζ ^ ((n : ℤ) * (Nat.gcdB N n * j')) := by
+        rw [← zpow_natCast (ζ ^ (Nat.gcdB N n * j')) n, ← zpow_mul]
+        ring_nf
+    _ = ζ ^ (((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j') := key.symm
+    _ = ζ ^ j := by rw [← hbez, ← hj']
+    _ = y := hj
+
 /-- A finite group of prime order is simple. -/
 @[to_additive /-- A finite group of prime order is simple. -/]
 theorem isSimpleGroup_of_prime_card {p : ℕ} [hp : Fact p.Prime]
