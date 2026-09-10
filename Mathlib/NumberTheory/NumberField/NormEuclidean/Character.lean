@@ -266,4 +266,18 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
   exact not_normEuclidean_of_eisensteinDumas_of_isPow hp hn hm hmn
     ⟨hu0, hv0, hpuv, hqu, hqv⟩ hres hdeg hroot hc hdvd hnd hq₁ hq₂ hr₁ hr₂
 
+/-- The residue `r₀` required by `not_normEuclidean_of_charSum` always exists: `q₁` is invertible
+modulo `q₂ ^ 2` whenever `q₁` and `q₂` are distinct primes. -/
+theorem exists_residue_mul_eq {p q₁ q₂ : ℕ} [NeZero (q₂ ^ 2)] (hq₁ : q₁.Prime) (hq₂ : q₂.Prime)
+    (hne : q₁ ≠ q₂) :
+    ∃ r₀ : ℕ, ((r₀ * q₁ : ℕ) : ZMod (q₂ ^ 2)) = ((p + q₁ * q₂ : ℕ) : ZMod (q₂ ^ 2)) := by
+  have hcop : Nat.Coprime q₁ (q₂ ^ 2) :=
+    Nat.Coprime.pow_right _ ((Nat.coprime_primes hq₁ hq₂).2 hne)
+  have hunit : IsUnit ((q₁ : ZMod (q₂ ^ 2))) := (ZMod.isUnit_iff_coprime q₁ (q₂ ^ 2)).2 hcop
+  obtain ⟨w, hw⟩ := hunit
+  refine ⟨(((p + q₁ * q₂ : ℕ) : ZMod (q₂ ^ 2)) * (↑w⁻¹ : ZMod (q₂ ^ 2))).val, ?_⟩
+  push_cast
+  rw [ZMod.natCast_val, ZMod.cast_id, ← hw, mul_assoc]
+  simp
+
 end NumberField
