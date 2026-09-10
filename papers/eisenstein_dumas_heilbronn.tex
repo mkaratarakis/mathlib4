@@ -39,7 +39,7 @@ Heilbronn's criterion is a sufficient condition for a number field with a totall
 prime to fail to be norm-Euclidean. Hibbler, McGown and Trevi\~no recently showed that, among
 the monic integer polynomials of degree $n$ that are Eisenstein at a prime $p$, the proportion
 of those to which the criterion applies has lower density at least $\max\{2/27,\,1-\varepsilon(p)\}$.
-We extend their results in three directions. First, we replace the Eisenstein condition by the
+We extend their results in four directions. First, we replace the Eisenstein condition by the
 much weaker Eisenstein--Dumas condition, that the Newton polygon at $p$ consist of a single
 segment of slope $-m/n$ with $\gcd(m,n)=1$; we prove that this condition already forces total
 ramification, and we compute the density of the resulting family to be
@@ -51,7 +51,11 @@ of $p$, for instance $136/675 \approx 0.2015$ for all $p \ge 225$. Third, we giv
 Heilbronn's criterion that uses no embeddings and no Galois closure, resting instead on the fact
 that the norm form of a totally ramified prime reduces to the $n$-th power map on the residue
 field. Along the way we isolate the exact non-norm statement that the argument requires, which is
-slightly stronger than the one usually quoted.
+slightly stronger than the one usually quoted. Finally, we make the removal of the hypothesis
+$\gcd(p-1,n)=1$ effective: imposing the two congruence conditions on the auxiliary integer as a
+single arithmetic progression leaves only character sums modulo the prime $p$ itself, so that the
+Pólya--Vinogradov inequality applies without any reduction of imprimitive characters, and the
+resulting criterion is an explicit inequality with no unspecified constant.
 \end{abstract}
 
 \maketitle
@@ -214,7 +218,14 @@ Section~\ref{sec:counting} gives the counting lemma, with one modulus per coeffi
 what the Eisenstein--Dumas condition requires. Section~\ref{sec:local} computes the local
 densities, proving Theorem~\ref{thm:main-density-family} and the estimates for $C_q(n)$.
 Section~\ref{sec:proof} proves Theorem~\ref{thm:master} and its corollaries. Section~\ref{sec:gcd}
-weakens the condition $\gcd(p-1,n)=1$.
+weakens the condition $\gcd(p-1,n)=1$: Theorem~\ref{thm:gcd} there replaces it by the explicit
+inequality
+\[
+  \bigl(\gcd(p-1,n)-1\bigr)\,p^{1/2}\bigl(1+\log p\bigr)\ <\ \frac{p}{q_1^{2}q_2^{2}}-2 ,
+\]
+in which $q_1,q_2$ are the two auxiliary primes, and Corollary~\ref{cor:gcd-density} recovers from
+it the asymptotic statement that $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ge1-\hat\varepsilon(p)$
+for all large $p$ with $\gcd(p-1,n)<p^{1/2}(\log p)^{-2}$.
 
 \subsection*{Notation}
 $K$ always denotes a number field, $\OK$ its ring of integers, $\N=\N_{K/\Q}$ the norm, and
@@ -782,41 +793,56 @@ The hypothesis $\gcd(p-1,n)=1$ was used only to guarantee that $a=uq_1$ is an $n
 modulo $p$. For a fixed $n$ there are infinitely many primes $p$ with $\gcd(p-1,n)=1$, but the
 condition fails identically when $n$ is even. It can be relaxed at the cost of taking $p$ large,
 by choosing $u$ inside a suitable arithmetic progression; the price is a character sum estimate,
-for which we quote the classical inequality of P\'olya and Vinogradov \cite{Polya,Vinogradov}: for
-a non-principal primitive Dirichlet character $\chi$ modulo $M$ and any $N$,
+for which we use the classical inequality of P\'olya and Vinogradov \cite{Polya,Vinogradov} in the
+following explicit form, for a prime modulus. For a non-principal Dirichlet character $\chi$
+modulo a prime $p$, any $c\in\Z/p\Z$ and any $N\ge0$,
 \begin{equation}\label{eq:PV}
-  \Bigl|\sum_{u<N}\chi(u)\Bigr|\ \le\ C\,M^{1/2}\log M
+  \Bigl|\sum_{t<N}\chi(c+t)\Bigr|\ \le\ p^{1/2}\bigl(1+\log p\bigr).
 \end{equation}
-with an absolute constant $C$.
+Indeed, a non-principal character modulo a prime is primitive, so its finite Fourier expansion has
+coefficients $\overline\chi(-k)\tau(\chi)$ with $|\tau(\chi)|=p^{1/2}$; the resulting complete
+exponential sums are geometric series bounded by $1/|\sin(\pi k/p)|$; and
+$\sin(\pi a/p)\ge 2\min(a,p-a)/p$ by concavity, so that
+\[
+  \sum_{a=1}^{p-1}\frac1{\sin(\pi a/p)}
+  \ \le\ \frac p2\sum_{a=1}^{p-1}\Bigl(\frac1a+\frac1{p-a}\Bigr)
+  \ =\ p\,H_{p-1}\ \le\ p\,(1+\log p),
+\]
+which after division by $p$ and multiplication by $|\tau(\chi)|=p^{1/2}$ gives \eqref{eq:PV}.
+
+The point of the argument below is that the three conditions to be imposed on $u$ --- two
+congruence conditions and one multiplicative condition --- can be reduced to a
+\emph{single} arithmetic progression together with the multiplicative condition. Consequently only
+characters modulo $p$ occur, no reduction of imprimitive characters to primitive ones is needed,
+and the resulting criterion is completely explicit.
 
 \begin{theorem}\label{thm:gcd}
-Let $n\ge2$ and let $m\ge1$ be coprime to $n$. Put $Y=(\log p)^{1/5}$ and
-$\hat\varepsilon(p)=(1+\pi(Y))(3/4)^{\pi(Y)}$. There is an absolute constant $p_0$ such that for
-every prime $p\ge p_0$ with
-\[
-  g:=\gcd(p-1,n)\ <\ \frac{p^{1/2}}{(\log p)^2}
-\]
-one has $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\hat\varepsilon(p)$; in particular
-$\hat\varepsilon(p)\to0$ as $p\to\infty$.
+Let $n\ge2$, let $m\ge1$ be coprime to $n$, let $p$ be a prime and put $g=\gcd(p-1,n)$. Let
+$q_1\ne q_2$ be primes different from $p$ and suppose that
+\begin{equation}\label{eq:gcd-condition}
+  (g-1)\,p^{1/2}\bigl(1+\log p\bigr)\ <\ \frac{p}{q_1^{2}q_2^{2}}-2 .
+\end{equation}
+If $f\in\mathcal F_{p,m,n}$ has no root modulo $q_1$ and no root modulo $q_2$, then $K_f$ is not
+norm-Euclidean.
 \end{theorem}
 
 \begin{proof}
-Let $Q$ be the set of primes $q\le Y$ and let $\mathcal F^{*}$ be the set of
-$f\in\mathcal F_{p,m,n}$ having no root modulo $q$ for at least two $q\in Q$. By
-Proposition~\ref{prop:two-rootless} the density of $\mathcal F^{*}$ inside $\mathcal F_{p,m,n}$ is
-at least $1-\hat\varepsilon(p)$. Fix $f\in\mathcal F^{*}$ and primes $q_1<q_2\le Y$ modulo which
-$f$ has no root. By Theorem~\ref{thm:main-ram}, $f$ is irreducible and $p$ is totally ramified in
-$K_f$, so by Lemma~\ref{lem:heilbronn-applies} it suffices to produce positive integers $u,v$ with
+By Theorem~\ref{thm:main-ram}, $f$ is irreducible and $p$ is totally ramified in $K_f$, so by
+Lemma~\ref{lem:heilbronn-applies} it suffices to produce positive integers $u,v$ with
 \begin{equation}\label{eq:target}
   p=uq_1+vq_2,\qquad q_1\nmid u,\qquad q_2\nmid v,\qquad uq_1 \text{ an } n\text{-th power residue mod } p .
 \end{equation}
 
-Let $\psi$ be a Dirichlet character modulo $p$ of order $g$. Such a $\psi$ exists because the
-character group modulo $p$ is cyclic of order $p-1$ and $g=\gcd(p-1,n)$ divides $p-1$. Its kernel
-has index $g$, and it contains every $n$-th power, since $\psi(y^n)=\psi(y)^n=1$ as $g\mid n$;
-the $n$-th powers also form a subgroup of index $g$ in $(\Z/p\Z)^{\times}$, so the two subgroups
-coincide. Thus for $p\nmid y$ we have $\psi(y)=1$ if and only if $y$
-is an $n$-th power residue modulo $p$.
+Let $\psi$ be a Dirichlet character modulo $p$ with $\psi^{g}=1$ whose kernel is exactly the group
+of $n$-th powers. Such a $\psi$ exists: the group $(\Z/p\Z)^{\times}$ is cyclic of order $N=p-1$,
+so it is isomorphic to the group $\mu_N\subset\mathbb{C}^{\times}$ of $N$-th roots of unity; composing
+such an isomorphism with the inclusion gives an injective character $\phi$, and
+$\psi=\phi^{N/g}$ satisfies $\psi^{g}=\phi^{N}=1$ while $\psi(y)=1$ forces $y^{N/g}=1$, which for
+a cyclic group of order $N$ says exactly that $y$ is an $n$-th power, the $n$-th powers being the
+unique subgroup of index $g=\gcd(N,n)$. Thus for $p\nmid y$ we have $\psi(y)=1$ if and only if $y$
+is an $n$-th power residue modulo $p$. Moreover $\psi$ has order exactly $g$: since $\phi$ is
+injective, $\psi^{k}=\phi^{kN/g}=1$ holds if and only if $N\mid kN/g$, that is if and only if
+$g\mid k$; in particular $\psi^{k}\ne1$ for $1\le k\le g-1$.
 
 Instead of first choosing $u$ and then correcting for a possible divisibility $q_2\mid v$, we
 impose the condition $q_2\nmid v$ from the start, as a congruence modulo $q_2^2$. Indeed, if
@@ -829,52 +855,74 @@ $q_1$ is invertible modulo $q_2^2$, and $\gcd(c,q_2)=1$ because $cq_1\equiv p\pm
 $q_2\nmid p$. If $u\equiv c\pmod {q_2^{2}}$ then $q_2\mid p-uq_1$, so $v=(p-uq_1)/q_2$ is an
 integer, and $p-uq_1\equiv -q_1q_2 \pmod {q_2^{2}}$ gives $v\equiv -q_1\not\equiv0\pmod{q_2}$.
 
-Put $N=p/q_1$ and count the positive integers $u<N$ with
-\begin{equation}\label{eq:three}
-  \gcd(u,q_1)=1,\qquad u\equiv c \pmod{q_2^{2}},\qquad \psi(q_1u)=1 .
-\end{equation}
-The three conditions are detected respectively by
+Now put $R=q_1q_2^{2}$ and, using the Chinese remainder theorem, choose $\rho$ with $0\le\rho<R$,
 \[
-  \varphi_0(u),\qquad
-  \frac{1}{\phi(q_2^{2})}\sum_{\chi \bmod q_2^{2}}\chi(u)\overline{\chi}(c),\qquad
-  \frac1g\sum_{k=1}^{g}\psi^k(q_1u),
+  \rho\equiv1 \pmod{q_1},\qquad \rho\equiv c \pmod{q_2^{2}} .
 \]
-where $\varphi_0$ is the principal character modulo $q_1$. Multiplying out, the number of such $u$
-equals
+Every $u\equiv\rho\pmod R$ then satisfies $q_1\nmid u$ automatically, as well as
+$u\equiv c\pmod{q_2^2}$. Let $M=\lfloor p/q_1\rfloor$ and
 \[
-  \frac{1}{\phi(q_2^{2})\,g}\sum_{\chi\bmod q_2^{2}}\ \sum_{k=1}^{g}\ \overline{\chi}(c)\,\psi^k(q_1)
-  \sum_{u<N}\bigl(\varphi_0\,\chi\,\psi^k\bigr)(u).
+  S=\{\,u<M:\ u\equiv\rho \pmod R\,\},\qquad T=\#S .
 \]
-The moduli $q_1$, $q_2^2$ and $p$ are pairwise coprime, so the character $\varphi_0\chi\psi^k$
-modulo $M=pq_1q_2^{2}$ is principal precisely when $\chi=\chi_0$ and $\psi^k=1$, that is when
-$(\chi,k)=(\chi_0,g)$. That pair contributes
-\[
-  \frac{1}{\phi(q_2^{2})g}\,\#\{u<N:\gcd(u,q_1q_2)=1\}
-  =\frac{N}{\phi(q_2^{2})g}\Bigl(1-\frac1{q_1}\Bigr)\Bigl(1-\frac1{q_2}\Bigr)+O(1)
-  =\frac{N}{q_2^{2}\,g}\Bigl(1-\frac1{q_1}\Bigr)+O(1),
-\]
-using $\phi(q_2^2)=q_2(q_2-1)$. Every other pair contributes a non-principal character sum modulo
-$M$. For a primitive character these are bounded by \eqref{eq:PV}; a non-principal character
-$\chi'$ modulo $M$ induced by a primitive $\chi^{*}$ modulo $M^{*}\mid M$ satisfies
-$\sum_{u<N}\chi'(u)=\sum_{d\mid \mathrm{rad}(M)}\mu(d)\chi^{*}(d)\sum_{w<N/d}\chi^{*}(w)$, so the
-same bound holds after multiplying by $2^{\omega(M)}\le 8$. Since there are $\phi(q_2^{2})g$ pairs
-in all, the total contribution of the non-principal pairs is $O(M^{1/2}\log M)$ with an absolute
-implied constant. Hence the number of $u<N$ satisfying \eqref{eq:three} is
+Since $S$ consists of the integers $\rho+Rt$ with $0\le t<T$, and since $M\ge p/q_1-1$ and
+$R=q_1q_2^{2}$,
 \begin{equation}\label{eq:count}
-  \frac{N}{q_2^{2}\,g}\Bigl(1-\frac1{q_1}\Bigr)+O\bigl(M^{1/2}\log M\bigr),
-  \qquad M=pq_1q_2^{2}.
+  T\ \ge\ \frac MR-1\ \ge\ \frac{p}{q_1^{2}q_2^{2}}-2 .
 \end{equation}
-Using $q_1\ge2$, $N=p/q_1$ and $q_1,q_2\le Y$, the main term is at least $p/(2Y^{3}g)$, while
-$M\le pY^{3}$. So \eqref{eq:count} is positive as soon as
+For $1\le k\le g$ the sums $\frac1g\sum_{k=1}^{g}\psi^{k}(q_1u)$ detect the condition
+$\psi(q_1u)=1$: the sum is $1$ when $\psi(q_1u)=1$ and $0$ otherwise, because $\psi(q_1u)$ is then
+a $g$-th root of unity $\ne1$. Hence
 \[
-  g\ <\ \frac{p^{1/2}}{C'\,Y^{9/2}\log (pY^{3})}
+  \#\{u\in S:\ \psi(q_1u)=1\}\ =\ \frac1g\sum_{k=1}^{g}\ \sum_{u\in S}\psi^{k}(q_1u)
+  \ =\ \frac{T}g+\frac1g\sum_{k=1}^{g-1}\ \sum_{u\in S}\psi^{k}(q_1u),
 \]
-for a suitable absolute constant $C'$. With $Y=(\log p)^{1/5}$ the right-hand side is
-$\bigl(C'+o(1)\bigr)^{-1}p^{1/2}(\log p)^{-19/10}$, which exceeds $p^{1/2}(\log p)^{-2}$ for all
-large $p$. Therefore the hypothesis on $g$ produces a positive integer $u<N=p/q_1$ satisfying
-\eqref{eq:three}. Then $v=(p-uq_1)/q_2$ is a positive integer with $q_2\nmid v$, while
-$q_1\nmid u$ and $\psi(q_1u)=1$ give the remaining two conditions in \eqref{eq:target}. By
-Lemma~\ref{lem:heilbronn-applies}, $K_f$ is not norm-Euclidean.
+the term $k=g$ contributing $T$ because $\psi^{g}=1$ and $\gcd(q_1u,p)=1$ for $u\in S$
+(indeed $0<u<p$ and $q_1\ne p$). For $1\le k\le g-1$ the character $\psi^{k}$ is non-principal,
+and the substitution $u=\rho+Rt$ turns the inner sum into a character sum over an interval:
+writing $b=q_1R$, which is invertible modulo $p$, and $c_0=b^{-1}q_1\rho$ in $\Z/p\Z$, we have
+$q_1(\rho+Rt)=b(c_0+t)$, so that
+\[
+  \Bigl|\sum_{u\in S}\psi^{k}(q_1u)\Bigr|
+  =\Bigl|\psi^{k}(b)\sum_{t<T}\psi^{k}(c_0+t)\Bigr|
+  \ \le\ p^{1/2}\bigl(1+\log p\bigr)
+\]
+by \eqref{eq:PV}. Combining the last two displays with \eqref{eq:count},
+\[
+  g\cdot\#\{u\in S:\ \psi(q_1u)=1\}\ \ge\ \frac{p}{q_1^{2}q_2^{2}}-2-(g-1)p^{1/2}(1+\log p)\ >\ 0
+\]
+by \eqref{eq:gcd-condition}. So there is $u\in S$ with $\psi(q_1u)=1$; then $u>0$ since $q_1\nmid
+u$, $v=(p-uq_1)/q_2$ is a positive integer with $q_2\nmid v$, and $uq_1$ is an $n$-th power
+residue modulo $p$. This is \eqref{eq:target}, and Lemma~\ref{lem:heilbronn-applies} shows that
+$K_f$ is not norm-Euclidean.
+\end{proof}
+
+Combining Theorem~\ref{thm:gcd} with Proposition~\ref{prop:two-rootless} gives the asymptotic form
+announced in the introduction.
+
+\begin{corollary}\label{cor:gcd-density}
+Let $n\ge2$ and let $m\ge1$ be coprime to $n$. Put $Y=(\log p)^{1/5}$ and
+$\hat\varepsilon(p)=(1+\pi(Y))(3/4)^{\pi(Y)}$. There is an absolute constant $p_0$ such that for
+every prime $p\ge p_0$ with
+\[
+  g:=\gcd(p-1,n)\ <\ \frac{p^{1/2}}{(\log p)^2}
+\]
+one has $\liminf_{X\to\infty}\delta_{p,m,n}(X)\ \ge\ 1-\hat\varepsilon(p)$; in particular
+$\hat\varepsilon(p)\to0$ as $p\to\infty$.
+\end{corollary}
+
+\begin{proof}
+Let $Q$ be the set of primes $q\le Y$ and let $\mathcal F^{*}$ be the set of
+$f\in\mathcal F_{p,m,n}$ having no root modulo $q$ for at least two $q\in Q$. By
+Proposition~\ref{prop:two-rootless} the density of $\mathcal F^{*}$ inside $\mathcal F_{p,m,n}$ is
+at least $1-\hat\varepsilon(p)$. Fix $f\in\mathcal F^{*}$ and primes $q_1<q_2\le Y$ modulo which
+$f$ has no root; they are different from $p$ once $p>Y$. Then $q_1^{2}q_2^{2}\le Y^{4}=(\log
+p)^{4/5}$, so the right-hand side of \eqref{eq:gcd-condition} is at least $p(\log p)^{-4/5}-2$,
+while the hypothesis on $g$ bounds the left-hand side by $p(1+\log p)(\log p)^{-2}$. Since
+\[
+  \frac{(1+\log p)}{(\log p)^{6/5}}\ \longrightarrow\ 0 ,
+\]
+condition \eqref{eq:gcd-condition} holds for all $p$ beyond an absolute bound $p_0$, and
+Theorem~\ref{thm:gcd} applies to every $f\in\mathcal F^{*}$.
 \end{proof}
 
 \begin{remark}
@@ -883,8 +931,17 @@ $(u,v)$ with $(u+q_2,v-q_1)$ or with $(u+2q_2,v-2q_1)$. This does restore $q_2\n
 $q_1\nmid u$, but it also changes $a=uq_1$ into $a=(u+q_2)q_1$ or $(u+2q_2)q_1$, and there is no
 reason for the new value to remain an $n$-th power residue modulo $p$, which is what Heilbronn's
 criterion needs. Detecting the condition $q_2\nmid v$ directly, as a congruence modulo $q_2^{2}$,
-avoids the issue; the only cost is that the modulus of the character sum grows from $pq_1q_2$ to
-$pq_1q_2^{2}$, which is absorbed by taking $Y=(\log p)^{1/5}$ in place of $(\log p)^{1/4}$.
+avoids the issue.
+\end{remark}
+
+\begin{remark}
+Imposing the two congruence conditions on $u$ as the single congruence $u\equiv\rho\pmod{q_1q_2^2}$
+is what keeps the estimate explicit. Detecting them by characters modulo $q_1$ and modulo $q_2^2$
+instead leads to sums of characters modulo $M=pq_1q_2^{2}$, most of which are imprimitive; bounding
+those requires passing to the inducing primitive character and costs a factor $2^{\omega(M)}$, and
+the resulting condition on $g$ carries an unspecified absolute constant. With a single progression
+the only characters that occur are the $\psi^{k}$ modulo the prime $p$, for which
+\eqref{eq:PV} applies directly.
 \end{remark}
 
 \begin{corollary}
@@ -895,8 +952,8 @@ Eisenstein--Dumas condition fail to generate norm-Euclidean fields.
 \begin{proof}
 For odd $n$ this is Corollary~\ref{cor:positive}. For even $n$, choose a prime $p\ge p_0$ with
 $p\equiv-1\pmod{2n}$, which exists by Dirichlet's theorem; then $\gcd(p-1,n)=2$, which is smaller
-than $p^{1/2}(\log p)^{-2}$ for $p$ large, so Theorem~\ref{thm:gcd} applies and gives a positive
-lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
+than $p^{1/2}(\log p)^{-2}$ for $p$ large, so Corollary~\ref{cor:gcd-density} applies and gives a
+positive lower density inside $\mathcal F_{p,m,n}$, a family of positive density by
 Theorem~\ref{thm:main-density-family}.
 \end{proof}
 
