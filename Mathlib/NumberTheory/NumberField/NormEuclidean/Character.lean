@@ -8,6 +8,10 @@ module
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Density
 public import Mathlib.NumberTheory.DirichletCharacter.Orthogonality
 public import Mathlib.NumberTheory.DirichletCharacter.Bounds
+public import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Data.ZMod.QuotientGroup
 
 /-!
 # Producing an `n`-th power residue by a character sum
@@ -25,9 +29,9 @@ class that forces `q₂ ∤ v` — expresses the number of good `u` as a main te
 attached to the `k` with `ψ ^ k ≠ 1`.  If those are small the count is positive, and a good `u`
 exists: this is `NumberField.exists_apply_eq_one_of_lt_card`.
 
-The smallness of the character sums is the Pólya–Vinogradov inequality, which is not available in
-Mathlib; it is therefore carried as the hypothesis `hPV`, exactly as it is quoted from the
-literature in the classical treatment.  Everything else is proved.
+Such a `ψ` always exists, and this is proved here: `(ZMod p)ˣ` is cyclic of order `p - 1`, so it
+embeds in `ℂˣ` by a faithful character `f`, and the `(p - 1) / g`-th power of `f` is a character
+whose kernel is the group of `n`-th powers.
 
 ## Main results
 
@@ -35,6 +39,8 @@ literature in the classical treatment.  Everything else is proved.
 * `NumberField.exists_apply_eq_one_of_lt_card`: if the character sums over `S` attached to the
   non-principal `ψ ^ k` are bounded by `B`, and the number of `u ∈ S` with `q₁ u` invertible
   exceeds `(g - 1) B`, then some `u ∈ S` has `ψ (q₁ u) = 1`.
+* `NumberField.exists_dirichletCharacter_pow_residues`: existence of the detecting character.
+* `NumberField.not_normEuclidean_of_charSum'`: Section 7 with no hypothesis on `ψ` at all.
 -/
 
 public section
@@ -178,16 +184,123 @@ theorem exists_apply_eq_one_of_lt_card {p q₁ g : ℕ} [NeZero p] (hg : 0 < g)
       (#{u ∈ S | IsUnit ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))})]
   linarith [hmain, hMle]
 
+/-- In a finite cyclic group of order `N`, an element killed by `N / gcd (N, n)` is an `n`-th
+power: the `n`-th powers form the unique subgroup of index `gcd (N, n)`, namely the kernel of
+`x ↦ x ^ (N / gcd (N, n))`. -/
+theorem exists_pow_eq_of_pow_card_div_gcd {G : Type*} [CommGroup G] [Finite G] [IsCyclic G]
+    {n : ℕ} {y : G} (hy : y ^ (Nat.card G / Nat.gcd (Nat.card G) n) = 1) :
+    ∃ x : G, x ^ n = y := by
+  obtain ⟨ζ, hζ⟩ := IsCyclic.exists_generator (α := G)
+  have hNpos : 0 < Nat.card G := Nat.card_pos
+  set N := Nat.card G with hN
+  set d := Nat.gcd N n with hd
+  have hdpos : 0 < d := Nat.gcd_pos_of_pos_left _ hNpos
+  have hdvd : d ∣ N := Nat.gcd_dvd_left _ _
+  obtain ⟨w, hw⟩ := hdvd
+  have hwpos : 0 < w := by
+    rcases Nat.eq_zero_or_pos w with rfl | h
+    · simp [hw] at hNpos
+    · exact h
+  have hord : orderOf ζ = N := by
+    rw [hN, ← Nat.card_zpowers]
+    exact (Nat.card_congr (Equiv.subtypeUnivEquiv hζ)).symm ▸ rfl
+  -- write `y` as a power of the generator
+  obtain ⟨j, hj⟩ := Subgroup.mem_zpowers_iff.1 (hζ y)
+  -- the hypothesis says `d ∣ j`
+  have hNw : N / d = w := by rw [hw]; exact Nat.mul_div_cancel_left w hdpos
+  have hdj : (d : ℤ) ∣ j := by
+    have h1 : ζ ^ (j * (w : ℤ)) = 1 := by
+      rw [zpow_mul, hj, ← hNw]
+      exact_mod_cast hy
+    have h2 : ((orderOf ζ : ℕ) : ℤ) ∣ j * (w : ℤ) := orderOf_dvd_iff_zpow_eq_one.2 h1
+    rw [hord, hw] at h2
+    push_cast at h2
+    exact (mul_dvd_mul_iff_right (by exact_mod_cast hwpos.ne' : (w : ℤ) ≠ 0)).1 h2
+  obtain ⟨j', hj'⟩ := hdj
+  -- Bézout for `d = gcd (N, n)`
+  have hbez : (d : ℤ) = (N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n := by
+    rw [hd]; exact Nat.gcd_eq_gcd_ab N n
+  refine ⟨ζ ^ (Nat.gcdB N n * j'), ?_⟩
+  have hζN : ζ ^ (N : ℤ) = 1 := by
+    rw [← hord]; exact_mod_cast pow_orderOf_eq_one ζ
+  have key : ζ ^ (((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j')
+      = ζ ^ ((n : ℤ) * (Nat.gcdB N n * j')) := by
+    have h1 : ((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j'
+        = (N : ℤ) * (Nat.gcdA N n * j') + (n : ℤ) * (Nat.gcdB N n * j') := by ring
+    rw [h1, zpow_add, zpow_mul, hζN, one_zpow, one_mul]
+  calc (ζ ^ (Nat.gcdB N n * j')) ^ n = ζ ^ ((n : ℤ) * (Nat.gcdB N n * j')) := by
+        rw [← zpow_natCast (ζ ^ (Nat.gcdB N n * j')) n, ← zpow_mul]
+        ring_nf
+    _ = ζ ^ (((N : ℤ) * Nat.gcdA N n + (n : ℤ) * Nat.gcdB N n) * j') := key.symm
+    _ = ζ ^ j := by rw [← hbez, ← hj']
+    _ = y := hj
+
+/-- **Existence of the detecting character.**  For `p` prime there is a Dirichlet character `ψ`
+modulo `p` with `ψ ^ gcd (p - 1, n) = 1` whose value `1` characterises the `n`-th power residues.
+
+The group `(ZMod p)ˣ` is cyclic of order `N = p - 1`, hence isomorphic to the group of `N`-th
+roots of unity in `ℂˣ`; composing such an isomorphism with the inclusion gives a faithful
+character `f`, and `ψ = f ^ (N / g)` has kernel the `n`-th powers. -/
+theorem exists_dirichletCharacter_pow_residues (p n : ℕ) (hp : p.Prime) :
+    ∃ ψ : DirichletCharacter ℂ p, ψ ^ Nat.gcd (p - 1) n = 1 ∧
+      ∀ y : ZMod p, ψ y = 1 → ∃ x : ZMod p, x ^ n = y := by
+  haveI : Fact p.Prime := ⟨hp⟩
+  set N := p - 1 with hNdef
+  have hN : 0 < N := by have := hp.one_lt; omega
+  have hcard : Nat.card (ZMod p)ˣ = N := by
+    rw [Nat.card_eq_fintype_card, ZMod.card_units_eq_totient, Nat.totient_prime hp]
+  haveI : NeZero ((N : ℕ) : ℂ) := ⟨by exact_mod_cast hN.ne'⟩
+  -- a primitive `N`-th root of unity in `ℂˣ`
+  obtain ⟨ζ, hζ⟩ := HasEnoughRootsOfUnity.exists_primitiveRoot ℂ N
+  set ω : ℂˣ := (hζ.isUnit hN.ne').unit with hωdef
+  have hω : IsPrimitiveRoot ω N := hζ.isUnit_unit hN.ne'
+  have hordω : orderOf ω = N := hω.eq_orderOf.symm
+  -- a faithful character of `(ZMod p)ˣ`
+  haveI : IsCyclic (ZMod p)ˣ := ZMod.isCyclic_units_prime hp
+  have hcards : Nat.card (ZMod p)ˣ = Nat.card (Subgroup.zpowers ω) := by
+    rw [hcard, Nat.card_zpowers, hordω]
+  set e := mulEquivOfCyclicCardEq hcards with hedef
+  set f : (ZMod p)ˣ →* ℂˣ := (Subgroup.zpowers ω).subtype.comp e.toMonoidHom with hfdef
+  have hfinj : Function.Injective f := fun a b hab => e.injective (Subtype.val_injective hab)
+  -- the character
+  set d := Nat.gcd N n with hddef
+  have hdN : d ∣ N := Nat.gcd_dvd_left _ _
+  have hdpos : 0 < d := Nat.gcd_pos_of_pos_left _ hN
+  set k := N / d with hkdef
+  have hkd : k * d = N := Nat.div_mul_cancel hdN
+  refine ⟨(MulChar.ofUnitHom f) ^ k, ?_, ?_⟩
+  · rw [← pow_mul, hkd]
+    refine MulChar.ext fun a => ?_
+    rw [MulChar.pow_apply_coe, MulChar.ofUnitHom_coe, MulChar.one_apply_coe]
+    have h1 : (f a) ^ N = 1 := by rw [← map_pow, ← hcard, pow_card_eq_one', map_one]
+    calc ((f a : ℂ)) ^ N = ((f a ^ N : ℂˣ) : ℂ) := by push_cast; ring
+      _ = 1 := by rw [h1]; rfl
+  · intro y hy
+    by_cases hyu : IsUnit y
+    · obtain ⟨u, rfl⟩ := hyu
+      rw [MulChar.pow_apply_coe, MulChar.ofUnitHom_coe] at hy
+      have hu : u ^ k = 1 := by
+        refine hfinj ?_
+        rw [map_pow, map_one]
+        refine Units.val_injective ?_
+        push_cast
+        exact hy
+      obtain ⟨x, hx⟩ : ∃ x : (ZMod p)ˣ, x ^ n = u := by
+        refine exists_pow_eq_of_pow_card_div_gcd ?_
+        rw [hcard, ← hddef, ← hkdef]
+        exact hu
+      exact ⟨(x : ZMod p), by rw [← Units.val_pow_eq_pow_val, hx]⟩
+    · rw [MulChar.map_nonunit _ hyu] at hy
+      exact absurd hy zero_ne_one
+
 open scoped Classical in
 /-- **Section 7, assembled.**  Let `f` satisfy the Eisenstein–Dumas condition at `p` of slope
 `m / n`, and suppose `f` has no root modulo two primes `q₁ ≠ q₂`, both different from `p`.  Let
 `ψ` be a Dirichlet character mod `p` with `ψ ^ g = 1` whose value `1` characterises the `n`-th
-power residues, and let `r₀` be a residue with `r₀ q₁ ≡ p + q₁ q₂ (mod q₂ ^ 2)`.  If the character
-sums over
-`S = {u < p / q₁ : q₁ ∤ u, u ≡ r₀ (mod q₂ ^ 2)}`
-attached to the non-principal `ψ ^ k` are bounded by `B`, and the number of `u ∈ S` with `q₁ u`
-invertible mod `p` exceeds `(g - 1) B`, then the field generated by a root of `f` is not
-norm-Euclidean.
+power residues, and let `r₀` be a residue with `r₀ q₁ ≡ p + q₁ q₂ (mod q₂ ^ 2)`.  Let `S` be any
+set of candidates `u`, each `< p / q₁`, prime to `q₁` and congruent to `r₀` modulo `q₂ ^ 2`.  If
+the character sums over `S` attached to the non-principal `ψ ^ k` are bounded by `B`, and
+`#S > (g - 1) B`, then the field generated by a root of `f` is not norm-Euclidean.
 
 No hypothesis on `gcd (p - 1, n)` is needed: the character sum produces the `n`-th power residue
 that the criterion requires. -/
@@ -198,7 +311,7 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
     (hroot : θ ^ n + ∑ i ∈ Finset.range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
     (hc : ∀ i < n, m * (n - i) ≤ n * cc i) (hdvd : ∀ i < n, (p : ℤ) ^ cc i ∣ a i)
     (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a 0)
-    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hq₁q₂ : ¬ (q₂ : ℤ) ∣ (q₁ : ℤ))
+    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hq₁q₂ : ¬ (q₂ : ℤ) ∣ (q₁ : ℤ)) (hq₁p : q₁ ≠ p)
     (hr₁ : ∀ r : ZMod q₁, Polynomial.eval₂ (Int.castRingHom (ZMod q₁)) r
       (Polynomial.X ^ n + ∑ i ∈ Finset.range n, Polynomial.C (a i) * Polynomial.X ^ i) ≠ 0)
     (hr₂ : ∀ r : ZMod q₂, Polynomial.eval₂ (Int.castRingHom (ZMod q₂)) r
@@ -206,22 +319,34 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
     (hg : 0 < g) (ψ : DirichletCharacter ℂ p) (hψg : ψ ^ g = 1)
     (hψres : ∀ y : ZMod p, ψ y = 1 → ∃ x : ZMod p, x ^ n = y)
     (hr₀ : ((r₀ * q₁ : ℕ) : ZMod (q₂ ^ 2)) = ((p + q₁ * q₂ : ℕ) : ZMod (q₂ ^ 2)))
+    (S : Finset ℕ) (hSlt : ∀ u ∈ S, u < p / q₁) (hSnd : ∀ u ∈ S, ¬ q₁ ∣ u)
+    (hScong : ∀ u ∈ S, ((u : ℕ) : ZMod (q₂ ^ 2)) = ((r₀ : ℕ) : ZMod (q₂ ^ 2)))
     {B : ℝ} (hB : 0 ≤ B)
     (hPV : ∀ k ∈ Finset.Icc 1 g, ψ ^ k ≠ 1 →
-      ‖∑ u ∈ {u ∈ Finset.range (p / q₁) |
-          ¬ q₁ ∣ u ∧ ((u : ℕ) : ZMod (q₂ ^ 2)) = ((r₀ : ℕ) : ZMod (q₂ ^ 2))},
-        (ψ ^ k) ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖ ≤ B)
-    (hmain : ((g : ℝ) - 1) * B <
-      #{u ∈ {u ∈ Finset.range (p / q₁) |
-          ¬ q₁ ∣ u ∧ ((u : ℕ) : ZMod (q₂ ^ 2)) = ((r₀ : ℕ) : ZMod (q₂ ^ 2))} |
-        IsUnit ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))}) :
+      ‖∑ u ∈ S, (ψ ^ k) ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖ ≤ B)
+    (hmain : ((g : ℝ) - 1) * B < #S) :
     ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
       (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
   classical
+  -- every candidate is prime to `p`, so `q₁ u` is invertible and the count is all of `S`
+  have hall : ∀ u ∈ S, IsUnit ((q₁ : ZMod p) * ((u : ℕ) : ZMod p)) := by
+    intro u hu
+    have hupos : 0 < u := by
+      rcases Nat.eq_zero_or_pos u with rfl | h
+      · exact absurd (dvd_zero q₁) (hSnd 0 hu)
+      · exact h
+    have hup : u < p := lt_of_lt_of_le (hSlt u hu) (Nat.div_le_self p q₁)
+    have hcop : Nat.Coprime (q₁ * u) p :=
+      Nat.coprime_mul_iff_left.2 ⟨(Nat.coprime_primes hq₁ hp).2 hq₁p,
+        (hp.coprime_iff_not_dvd.2 fun h => absurd (Nat.le_of_dvd hupos h) (not_le.2 hup)).symm⟩
+    have h := (ZMod.isUnit_iff_coprime (q₁ * u) p).2 hcop
+    rwa [Nat.cast_mul] at h
   -- the character sum produces a `u`
-  obtain ⟨u, huS, huψ⟩ := exists_apply_eq_one_of_lt_card hg ψ hψg _ hB hPV hmain
-  rw [Finset.mem_filter, Finset.mem_range] at huS
-  obtain ⟨huN, hqu, hucong⟩ := huS
+  obtain ⟨u, huS, huψ⟩ := exists_apply_eq_one_of_lt_card hg ψ hψg S hB hPV
+    (by rw [Finset.filter_true_of_mem hall]; exact hmain)
+  have huN := hSlt u huS
+  have hqu := hSnd u huS
+  have hucong := hScong u huS
   -- `u q₁ < p`
   have hult : u * q₁ < p := by
     have h1 : u + 1 ≤ p / q₁ := huN
@@ -229,9 +354,9 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
     have h3 : (p / q₁) * q₁ ≤ p := Nat.div_mul_le_self p q₁
     have h4 : 0 < q₁ := hq₁.pos
     calc u * q₁ < (u + 1) * q₁ := by
-          have : u * q₁ + 0 < u * q₁ + q₁ := by omega
+          have h5 : u * q₁ + 0 < u * q₁ + q₁ := by omega
           calc u * q₁ = u * q₁ + 0 := by ring
-            _ < u * q₁ + q₁ := this
+            _ < u * q₁ + q₁ := h5
             _ = (u + 1) * q₁ := by ring
       _ ≤ p := le_trans h2 h3
   -- the congruence forcing `q₂ ∤ v`
@@ -265,6 +390,38 @@ theorem not_normEuclidean_of_charSum {K : Type*} [Field K] [NumberField K] {θ :
     · exact h
   exact not_normEuclidean_of_eisensteinDumas_of_isPow hp hn hm hmn
     ⟨hu0, hv0, hpuv, hqu, hqv⟩ hres hdeg hroot hc hdvd hnd hq₁ hq₂ hr₁ hr₂
+
+open scoped Classical in
+/-- **Section 7 with no hypothesis on the character.**  Same as `not_normEuclidean_of_charSum`,
+but with the detecting character produced rather than assumed: the only analytic input left is
+the bound `hPV`, quantified over *all* non-principal characters modulo `p`, which is precisely
+the shape in which the Pólya–Vinogradov inequality is applied. -/
+theorem not_normEuclidean_of_charSum' {K : Type*} [Field K] [NumberField K] {θ : 𝓞 K}
+    {n m p q₁ q₂ r₀ : ℕ} {a : ℕ → ℤ} {cc : ℕ → ℕ} [NeZero p] [NeZero (q₂ ^ 2)]
+    (hp : p.Prime) (hn : 0 < n) (hm : 0 < m) (hmn : Nat.Coprime m n)
+    (hdeg : Module.finrank ℚ K = n)
+    (hroot : θ ^ n + ∑ i ∈ Finset.range n, ((a i : ℤ) : 𝓞 K) * θ ^ i = 0)
+    (hc : ∀ i < n, m * (n - i) ≤ n * cc i) (hdvd : ∀ i < n, (p : ℤ) ^ cc i ∣ a i)
+    (hnd : ¬ (p : ℤ) ^ (m + 1) ∣ a 0)
+    (hq₁ : q₁.Prime) (hq₂ : q₂.Prime) (hq₁q₂ : ¬ (q₂ : ℤ) ∣ (q₁ : ℤ)) (hq₁p : q₁ ≠ p)
+    (hr₁ : ∀ r : ZMod q₁, Polynomial.eval₂ (Int.castRingHom (ZMod q₁)) r
+      (Polynomial.X ^ n + ∑ i ∈ Finset.range n, Polynomial.C (a i) * Polynomial.X ^ i) ≠ 0)
+    (hr₂ : ∀ r : ZMod q₂, Polynomial.eval₂ (Int.castRingHom (ZMod q₂)) r
+      (Polynomial.X ^ n + ∑ i ∈ Finset.range n, Polynomial.C (a i) * Polynomial.X ^ i) ≠ 0)
+    (hr₀ : ((r₀ * q₁ : ℕ) : ZMod (q₂ ^ 2)) = ((p + q₁ * q₂ : ℕ) : ZMod (q₂ ^ 2)))
+    (S : Finset ℕ) (hSlt : ∀ u ∈ S, u < p / q₁) (hSnd : ∀ u ∈ S, ¬ q₁ ∣ u)
+    (hScong : ∀ u ∈ S, ((u : ℕ) : ZMod (q₂ ^ 2)) = ((r₀ : ℕ) : ZMod (q₂ ^ 2)))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hPV : ∀ χ : DirichletCharacter ℂ p, χ ≠ 1 →
+      ‖∑ u ∈ S, χ ((q₁ : ZMod p) * ((u : ℕ) : ZMod p))‖ ≤ B)
+    (hmain : ((Nat.gcd (p - 1) n : ℝ) - 1) * B < #S) :
+    ¬ ∀ α β : 𝓞 K, β ≠ 0 → ∃ γ ρ : 𝓞 K, α = γ * β + ρ ∧
+      (Algebra.norm ℤ ρ).natAbs < (Algebra.norm ℤ β).natAbs := by
+  classical
+  obtain ⟨ψ, hψg, hψres⟩ := exists_dirichletCharacter_pow_residues p n hp
+  exact not_normEuclidean_of_charSum hp hn hm hmn hdeg hroot hc hdvd hnd hq₁ hq₂ hq₁q₂ hq₁p
+    hr₁ hr₂ (Nat.gcd_pos_of_pos_right _ hn) ψ hψg hψres hr₀ S hSlt hSnd hScong hB
+    (fun k _ hk => hPV (ψ ^ k) hk) hmain
 
 /-- The residue `r₀` required by `not_normEuclidean_of_charSum` always exists: `q₁` is invertible
 modulo `q₂ ^ 2` whenever `q₁` and `q₂` are distinct primes. -/

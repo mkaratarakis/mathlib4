@@ -5804,6 +5804,7 @@ public import Mathlib.NumberTheory.DirichletCharacter.Basic
 public import Mathlib.NumberTheory.DirichletCharacter.Bounds
 public import Mathlib.NumberTheory.DirichletCharacter.GaussSum
 public import Mathlib.NumberTheory.DirichletCharacter.Orthogonality
+public import Mathlib.NumberTheory.DirichletCharacter.PolyaVinogradov
 public import Mathlib.NumberTheory.Divisors
 public import Mathlib.NumberTheory.EllipticDivisibilitySequence
 public import Mathlib.NumberTheory.EulerProduct.Basic
@@ -5965,6 +5966,7 @@ public import Mathlib.NumberTheory.NumberField.NormEuclidean.Dumas
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Heilbronn
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Norm
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Rootless
+public import Mathlib.NumberTheory.NumberField.NormEuclidean.Section7
 public import Mathlib.NumberTheory.NumberField.NormEuclidean.Density
 public import Mathlib.NumberTheory.Ostrowski
 public import Mathlib.NumberTheory.Padics.AddChar

@@ -181,7 +181,7 @@ theorem mul_multiplicity_eq :
       = (Ideal.span {(p : 𝓞 K)}) ^ m * Ideal.span {((u : ℤ) : 𝓞 K)} := by
     rw [Ideal.span_singleton_pow, Ideal.span_singleton_mul_span_singleton]
     congr 1
-    rw [hu, hc0]; push_cast; ring
+    rw [hu, hc0]; push_cast; ring_nf
   have hfin0 : FiniteMultiplicity 𝔭 (Ideal.span {((a 0 : ℤ) : 𝓞 K)}) := by
     refine FiniteMultiplicity.of_prime_left hPp ?_
     simp only [ne_eq, Ideal.zero_eq_bot, Ideal.span_singleton_eq_bot]
