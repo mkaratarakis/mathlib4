@@ -25,27 +25,12 @@ If `α` and `β` are algebraic, `α ≠ 0, 1` and `β` is irrational, then `α ^
 
 @[expose] public section
 
-open BigOperators Module.Free Fintype NumberField Embeddings FiniteDimensional
-   Matrix Set Polynomial Finset IntermediateField Complex AnalyticAt
+open NumberField Polynomial Complex
 
 noncomputable section
 
 
 namespace GelfondSchneider
-
-variable {K : Type*} [Field K] (α : ℂ) (β : ℂ) (σ : K →+* ℂ) (α' : K) (β' : K) (γ' : K)
-  (hirr : ∀ i j : ℤ, β ≠ i / j) (htriv : α ≠ 0 ∧ α ≠ 1)
-  (habc : α = σ α' ∧ β = σ β' ∧ α ^ β = σ γ')
-
-variable [NumberField K]
-
-variable (q : ℕ) (hq0 : 0 < q)
-
-variable (u : Fin (m K * n K q)) (t : Fin (q * q))
-
-variable (h2mq : 2 * m K ∣ q ^ 2)
-
-variable [DecidableEq (K →+* ℂ)]
 
 /-- The Gelfond-Schneider Theorem (Hilbert's Seventh Problem). -/
 theorem transcendental_cpow_of_isAlgebraic_of_irrational (α β : ℂ)
@@ -64,14 +49,6 @@ theorem transcendental_cpow_of_isAlgebraic_of_irrational (α β : ℂ)
       grind [(one_le_c₁₅ α β σ α' β' γ' hirr htriv habc)]
   have h2mq : 2 * (m K) ∣ q ^ 2 := by
     rw [pow_two, mul_assoc]; exact dvd_mul_right _ _
-  let u : Fin ((m K) * (n K) q) := ⟨0, by
-    apply mul_pos (Nat.zero_lt_succ (2 * (h K) + 1));
-    apply Nat.div_pos (Nat.le_of_dvd (Nat.pow_pos hq0) h2mq) ?_
-    · simp only [Nat.ofNat_pos, mul_pos_iff_of_pos_left]
-      exact Nat.zero_lt_succ (2 * (h K) + 1)⟩
-  let t : Fin (q * q) := ⟨0, mul_pos hq0 hq0⟩
-  -- have hnr : ((n K) q : ℝ) ≤ ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) :=
-  --   mod_cast n_le_r α β σ α' β' γ' hirr htriv habc q hq0 h2mq
   have H1 : (2 * (m K)) * (6 * (h K)) ≤ q := by
     unfold q
     apply mul_le_mul (le_refl _) ?_ (by positivity) (by positivity)
@@ -80,18 +57,6 @@ theorem transcendental_cpow_of_isAlgebraic_of_irrational (α β : ℂ)
       · simp only [Nat.one_le_ceil_iff];
         apply pow_pos
         grind [(one_le_c₁₅ α β σ α' β' γ' hirr htriv habc)]
-  have H2 : (2 * (m K)) * (c₁₅ α β α' β' γ') ^ 4 ≤ q := by
-    simp only [q, mul_assoc, Nat.cast_mul, Nat.cast_ofNat, Nat.ofNat_pos, mul_le_mul_iff_right₀]
-    apply mul_le_mul (le_refl _) ?_ ?_ (by positivity)
-    · nth_rw 1 [← one_mul (a := ((c₁₅ α β α' β' γ') ^ 4) )]
-      nth_rw 1 [← mul_assoc]
-      apply mul_le_mul ?_ (Nat.le_ceil ((c₁₅ α β α' β' γ') ^ 4)) (by positivity) (by positivity)
-      · unfold h;
-        refine one_le_mul_of_one_le_of_one_le (Nat.one_le_ofNat) ?_
-        · norm_cast
-          grind [Module.finrank_pos]
-    · apply pow_nonneg
-      grind [(one_le_c₁₅ α β σ α' β' γ' hirr htriv habc)]
   have H3 : 6* (h K) ≤ (n K) q := by
     unfold n
     calc _ ≤ ((2 * (m K)) * (6 * (h K))) ^ 2 / (2 * (m K)) := ?_
@@ -215,59 +180,18 @@ end GelfondSchneider
 /-!
 A formalization of a proof that `√2 ^ √2` is transcendental.
 -/
-lemma sqrt2sqrt_is_transcendental : Transcendental ℚ ((√2 : ℂ)^ (√2 : ℂ)) := by
-  apply GelfondSchneider.transcendental_cpow_of_isAlgebraic_of_irrational √2 √2
-  · refine IsAlgebraic.of_aeval ?_ (fun H ↦ ?_) ?_ ?_
-    · exact Polynomial.X ^ 2 - Polynomial.C 1
-    · have : ((((Polynomial.X ^ 2 - Polynomial.C 1) : ℚ[X])).natDegree : ℕ) = 2 := by {
-        refine (degree_eq_iff_natDegree_eq_of_pos ?_).mp ?_
-        · simp only [Nat.ofNat_pos]
-        · rw [Polynomial.degree_sub_C]
-          · simp only [degree_pow, degree_X, nsmul_eq_mul, Nat.cast_ofNat, mul_one]
-          simp only [degree_pow, degree_X, nsmul_eq_mul, Nat.cast_ofNat, mul_one, Nat.ofNat_pos]
-      }
-      have HC : 2 ≠ 0 := by {simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]}
-      apply HC
-      rw [← this, ← H]
-    · simp only [map_one, Nat.ofNat_pos, leadingCoeff_X_pow_sub_one,
-      mem_nonZeroDivisors_iff_ne_zero, ne_eq, one_ne_zero, not_false_eq_true]
-    · simp only [map_one, map_sub, map_pow, aeval_X]
-      norm_cast
-      rw [Real.sq_sqrt (x:=2)]
-      · ring_nf
-        exact isAlgebraic_one
-      · positivity
-  · refine IsAlgebraic.of_aeval ?_ (fun H ↦ ?_) ?_ ?_
-    · exact Polynomial.X ^ 2 - Polynomial.C 1
-    · have : ((((Polynomial.X ^ 2 - Polynomial.C 1) : ℚ[X])).natDegree : ℕ) = 2 := by {
-        refine (degree_eq_iff_natDegree_eq_of_pos ?_).mp ?_
-        · simp only [Nat.ofNat_pos]
-        · rw [Polynomial.degree_sub_C]
-          · simp only [degree_pow, degree_X, nsmul_eq_mul, Nat.cast_ofNat, mul_one]
-          simp only [degree_pow, degree_X, nsmul_eq_mul, Nat.cast_ofNat, mul_one, Nat.ofNat_pos]
-      }
-      have HC : 2 ≠ 0 := by {simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]}
-      apply HC
-      rw [← this, ← H]
-    · simp only [map_one, Nat.ofNat_pos, leadingCoeff_X_pow_sub_one,
-      mem_nonZeroDivisors_iff_ne_zero, ne_eq, one_ne_zero, not_false_eq_true]
-    · simp only [map_one, map_sub, map_pow, aeval_X]
-      norm_cast
-      rw [Real.sq_sqrt (x:=2)]
-      · ring_nf
-        exact isAlgebraic_one
-      · positivity
+lemma sqrt2sqrt_is_transcendental : Transcendental ℚ ((√2 : ℂ) ^ (√2 : ℂ)) := by
+  have halg : IsAlgebraic ℚ ((√2 : ℂ)) :=
+    .of_pow two_pos (by
+      rw [← Complex.ofReal_pow, Real.sq_sqrt (by positivity)]
+      exact_mod_cast isAlgebraic_natCast (R := ℚ) (A := ℂ) 2)
+  refine GelfondSchneider.transcendental_cpow_of_isAlgebraic_of_irrational √2 √2 halg halg ?_ ?_
   · simp only [ne_eq, ofReal_eq_zero, Nat.ofNat_nonneg, Real.sqrt_eq_zero, OfNat.ofNat_ne_zero,
-    not_false_eq_true, ofReal_eq_one, Real.sqrt_eq_one, OfNat.ofNat_ne_one, and_self]
-  · have :=  irrational_sqrt_two
-    unfold Irrational at this
-    simp only [Set.mem_range, not_exists] at this
-    intros i j
-    let x : ℚ := (i : ℚ)/ (j : ℚ)
-    intros H
-    have := this x
-    unfold x at this
-    apply this
+      not_false_eq_true, ofReal_eq_one, Real.sqrt_eq_one, OfNat.ofNat_ne_one, and_self]
+  · have h := irrational_sqrt_two
+    simp only [Irrational, Set.mem_range, not_exists] at h
+    intro i j H
+    refine h ((i : ℚ) / (j : ℚ)) ?_
     symm
     norm_num
     norm_cast at H
