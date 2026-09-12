@@ -214,7 +214,6 @@ def evaluationPoints (K : Type*) [Field K] [NumberField K] : Finset ℂ :=
    Finset.image (fun (k': ℕ) ↦ (k' + 1 : ℂ)) (Finset.range (m K))
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma mem_evaluationPoints_iff {z : ℂ} :
     z ∈ (evaluationPoints K) ↔ ∃ k : Fin (m K), z = k + 1 := by
   simp [evaluationPoints, Finset.mem_image, Fin.exists_iff]
@@ -225,7 +224,6 @@ def evaluationPointsCompl (K : Type*) [Field K] [NumberField K] : Set ℂ := ((e
 
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma S_U_isOpen : IsOpen (evaluationPointsCompl K) :=
   isOpen_compl_iff.mpr (Finset.isClosed _)
 
@@ -236,7 +234,6 @@ lemma S.U_nhds :
   fun _z hz ↦ IsOpen.mem_nhds (S_U_isOpen) hz
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma sub_ne_zero_of_mem_evaluationPoints_compl {z : ℂ}
     (hz : z ∈ (evaluationPointsCompl K)) (k : Fin (m K)) :
     z - (k + 1 : ℂ) ≠ 0 := by

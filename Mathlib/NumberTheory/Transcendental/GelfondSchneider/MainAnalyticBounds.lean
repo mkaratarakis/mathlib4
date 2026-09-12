@@ -44,7 +44,6 @@ variable [DecidableEq (K →+* ℂ)]
 
 omit [DecidableEq (K →+* ℂ)] in
 /-- A house bound for the scaled coefficient `c₁ • (a + b • β')`. -/
-@[nolint unusedArguments]
 lemma house_add_mul_le :
     house (c₁ α' β' γ' • ((a q t : K) + b q t • β')) ≤
       (|c₁ α' β' γ'| * |(q : ℤ)|) * (1 + house β') := by
@@ -75,7 +74,6 @@ lemma house_add_mul_le :
 /-! On the other hand `house (ρ) ≤ t c₄ⁿ n⁽ⁿ⁻¹⁾⁄₂ (c₆q)ʳ c₇^q ≤ c₈ʳ r⁽ʳ⁺³⁾⁄₂`.
 -/
 
-@[nolint unusedArguments]
 lemma one_le_c₄ : 1 ≤ c₄ α' β' γ' :=
   one_le_mul_of_one_le_of_one_le (one_le_houseC₁_sq_mul (K := K)) (one_le_c₃ α' β' γ')
 
@@ -83,12 +81,10 @@ lemma one_le_c₄ : 1 ≤ c₄ α' β' γ' :=
 def c₆ : ℝ := (|↑(c₁ α' β' γ')| * (1 + house β'))
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma c₆_nonneg : 0 ≤ c₆ α' β' γ' := by
   unfold c₆ house; positivity
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma one_le_c₆ : 1 ≤ c₆ α' β' γ' := by
   unfold c₆
   refine one_le_mul_of_one_le_of_one_le ?_ ?_
@@ -102,7 +98,6 @@ def c₇ : ℝ := ((((|↑(c₁ α' β' γ')| * |↑(c₁ α' β' γ')| *
 
 omit [DecidableEq (K →+* ℂ)] in
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma one_le_c₇ : 1 ≤ c₇ α' β' γ' := by
   unfold c₇
   have hc : 0 ≤ c₁ α' β' γ' := le_trans Int.one_nonneg (one_le_c₁ α' β' γ')
@@ -523,7 +518,6 @@ lemma sqt_etc : Real.sqrt (2*m K*(r α β σ α' β' γ' hirr htriv habc q hq0 h
 def c₈ : ℝ := (c₆ α' β' γ' * √(2 * ↑(m K)) * c₇ α' β' γ' ^ (2 * m K) * c₄ α' β' γ' * (2 * ↑(m K)))
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma c₇_nonneg : 0 ≤ c₇ α' β' γ' := by
   unfold c₇ house
   positivity
@@ -644,7 +638,6 @@ open Real
 omit habc in
 omit [DecidableEq (K →+* ℂ)] in
 include h2mq in
-@[nolint unusedArguments]
 lemma q_eq_sqrtmn : q = sqrt (2 * m K* n K q) := by
   norm_cast
   rw [← q_sq_eq_two_mn q h2mq]

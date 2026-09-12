@@ -49,15 +49,12 @@ def c₉ (K : Type*) [Field K] [NumberField K] : ℝ := Real.exp (|1 + ‖β‖|
     : ℝ))
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma c₉_pos : 0 < (c₉ α β K) := Real.exp_pos _
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma c₉_nonneg : 0 ≤ (c₉ α β K) := (c₉_pos α β).le
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma one_le_c₉ : 1 ≤ (c₉ α β K) := by
   apply Real.one_le_exp
   positivity
@@ -66,7 +63,6 @@ lemma one_le_c₉ : 1 ≤ (c₉ α β K) := by
 def c₁₁ (K : Type*) [Field K] [NumberField K] : ℝ := (↑(m K) ^ ((m K) - 1))
 
 omit [DecidableEq (K →+* ℂ)] in
-@[nolint unusedArguments]
 lemma one_le_c₁₁ : 1 ≤ (c₁₁ K) :=
   (one_le_pow_iff_of_nonneg (by simp) (by unfold m; grind)).mpr (mod_cast (one_le_m K))
 
@@ -88,7 +84,6 @@ lemma norm_le_of_mem_sphere_mul {w : ℂ} {a b : ℝ} (hw : w ∈ Metric.sphere 
 
 include hz in
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma abs_Rb : norm (((R α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) z) ≤ (q * q) * (((c₄ α' β' γ')
     ^ ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) *
     ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) ^ ((((r α β σ α' β' γ' hirr htriv habc) q hq0
@@ -270,7 +265,6 @@ lemma abs_Rb : norm (((R α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) z) �
 def c₁₀ : ℝ := (2*(m K)* (c₄ α' β' γ')* (c₉ α β K)* (c₉ α β K)^(2*(m K) : ℝ))
 
 include α β α' β' γ' in
-@[nolint unusedArguments]
 lemma c₁₀_nonneg : 0 ≤ (c₁₀ α β α' β' γ') := by
   unfold c₁₀
   apply mul_nonneg (mul_nonneg (mul_nonneg (by positivity)
@@ -279,7 +273,6 @@ lemma c₁₀_nonneg : 0 ≤ (c₁₀ α β α' β' γ') := by
   · apply Real.rpow_nonneg; exact c₉_nonneg α β
 
 include α β α' β' γ' in
-@[nolint unusedArguments]
 lemma one_le_c₁₀ : 1 ≤ (c₁₀ α β α' β' γ') := by
   unfold c₁₀
   have hm : (1 : ℝ) ≤ (m K) := by exact_mod_cast (one_le_m K)
@@ -293,7 +286,6 @@ lemma one_le_c₁₀ : 1 ≤ (c₁₀ α β α' β' γ') := by
   simpa [mul_assoc] using one_le_mul_of_one_le_of_one_le h3 h4
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma abs_R : (q * q) * (((c₄ α' β' γ') ^ ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) * ((r
     α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) ^
       ((((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ ) + 1) / 2)) * ((c₉ α β K)) ^ ((r α β σ
@@ -365,7 +357,6 @@ lemma abs_R : (q * q) * (((c₄ α' β' γ') ^ ((r α β σ α' β' γ' hirr htr
           (c₉_nonneg α β)
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma norm_sub_l0_lower_bound_on_sphere
     (hz : z ∈ Metric.sphere 0 (((m K) : ℝ) * (1 + ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq :
         ℝ) / (q : ℝ)))) :
@@ -393,7 +384,6 @@ lemma norm_sub_l0_lower_bound_on_sphere
 
 include hz in
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma norm_z_minus_km_lower_bound_on_sphere (km : Fin ((m K))) :
   (m K) * (r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq / q ≤ ‖z - ((km: ℂ) + 1)‖  := by
   have hz' : ‖z‖ = (m K) * (1 + ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) / (q : ℝ)) := by
@@ -419,7 +409,6 @@ lemma prod_bound {ι M : Type*} [CommMonoidWithZero M] [PartialOrder M] [PosMulS
 
 include hz h2mq in
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma abs_denom : norm (((z - ((l₀' α β σ α' β' γ' hirr htriv habc) q hq0 h2mq + 1 : ℂ)) ^ (-((r α β
     σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℤ))) *
   ∏ km ∈ (Finset.range ((m K)) \ {((l₀' α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℕ)}),
@@ -625,7 +614,6 @@ lemma abs_denom : norm (((z - ((l₀' α β σ α' β' γ' hirr htriv habc) q hq
 def c₁₂ : ℝ := (2*(m K) : ℝ)^((m K)/2 : ℝ) * (c₁₀ α β α' β' γ') * (c₁₁ K)
 
 include α β α' β' γ' in
-@[nolint unusedArguments]
 lemma one_le_c₁₂ : 1 ≤ (c₁₂ α β α' β' γ') := by
   unfold c₁₂
   refine one_le_mul_of_one_le_of_one_le ?_ ((one_le_c₁₁))
@@ -641,7 +629,6 @@ lemma c₁₂_nonneg : 0 ≤ (c₁₂ α β α' β' γ') :=
 
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma S_norm_bound : ∀ (_hz : z ∈ Metric.sphere 0 ((m K) * (1 + ((r α β σ α' β' γ' hirr htriv habc)
     q
     hq0 h2mq : ℝ) / (q : ℝ)))),
@@ -821,7 +808,6 @@ lemma S_norm_bound : ∀ (_hz : z ∈ Metric.sphere 0 ((m K) * (1 + ((r α β σ
     · exact c₁₁_nonneg
 
 /-- `ρᵣ` as the `η`-weighted sum of the system coefficients. -/
-@[nolint unusedArguments]
 theorem ρᵣ_eq_log_zpow_mul_S : ρᵣ α β σ α' β' γ' hirr htriv habc q hq0 h2mq =
   Complex.log (α) ^ (-((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℤ)) *
    ((S α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) (↑↑((l₀' α β σ α' β' γ' hirr htriv habc) q hq0
@@ -905,7 +891,6 @@ theorem ρᵣ_eq_log_zpow_mul_S : ρᵣ α β σ α' β' γ' hirr htriv habc q h
         norm_cast at HC
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma eq7 (_l' : Fin ((m K))) :
     ρᵣ α β σ α' β' γ' hirr htriv habc q hq0 h2mq = Complex.log (α) ^ (-((r α β σ α' β' γ' hirr htriv
         habc) q hq0 h2mq) : ℤ) * ((2 * ↑Real.pi * I)⁻¹ *
@@ -919,13 +904,11 @@ lemma eq7 (_l' : Fin ((m K))) :
 def c₁₃ : ℝ :=((‖Complex.log α‖⁻¹ + 1)*(m K)*(2 + 1/(m K))*(c₁₂ α β α' β' γ'))
 
 include α β α' β' γ' in
-@[nolint unusedArguments]
 lemma c₁₃_nonneg : 0 ≤ (c₁₃ α β α' β' γ') := by
   unfold c₁₃
   apply mul_nonneg (by positivity) ((c₁₂_nonneg α β α' β' γ'))
 
 include α β α' β' γ' in
-@[nolint unusedArguments]
 lemma one_le_c₁₃ : 1 ≤ (c₁₃ α β α' β' γ') := by
   unfold c₁₃
   refine one_le_mul_of_one_le_of_one_le ?_ ((one_le_c₁₂ α β α' β' γ'))
@@ -944,7 +927,6 @@ def Cnum : ℝ := (((m K) * ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq
       h2mq : ℝ)* (((3 : ℝ) - (m K)) / 2 : ℝ)) + (3 / 2 : ℝ))))
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma hf : ∀ z ∈ Metric.sphere 0 ((m K) * (1 + ↑((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ)
     / ↑q)),
     ‖(z - ((↑((l₀' α β σ α' β' γ' hirr htriv habc) q hq0 h2mq) : ℂ) + 1))⁻¹ * ((S α β σ α' β' γ'
@@ -963,7 +945,6 @@ lemma hf : ∀ z ∈ Metric.sphere 0 ((m K) * (1 + ↑((r α β σ α' β' γ' h
               [not_false_eq_true]⟩
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma eq8 :
     norm (ρᵣ α β σ α' β' γ' hirr htriv habc q hq0 h2mq) ≤ ((c₁₃ α β α' β' γ')) ^ ((r α β σ α' β' γ'
         hirr htriv habc) q hq0 h2mq : ℝ) *
@@ -1149,13 +1130,11 @@ lemma eq8 :
 def c₁₄ : ℝ := ((c₈ α' β' γ')^(((h K)-1)) * (c₁₃ α β α' β' γ'))
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma one_le_c₁₄ : 1 ≤ (c₁₄ α β α' β' γ') :=
   one_le_mul_of_one_le_of_one_le (one_le_pow₀ (one_le_c₈ α β σ α' β' γ' hirr htriv
       habc)) (one_le_c₁₃ α β α' β' γ')
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma norm_algebraNorm_rho_le :
     norm ((Algebra.norm ℚ (rho α β σ α' β' γ' hirr htriv habc q hq0 h2mq))) ≤
     ((c₁₄ α β α' β' γ'))^((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) *
@@ -1257,20 +1236,17 @@ lemma norm_algebraNorm_rho_le :
 def c₁₅ : ℝ := (c₁₄ α β α' β' γ') * (c₅ α' β' γ')
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma c₁₅_nonneg : 0 ≤ (c₁₅ α β α' β' γ') := by
   unfold c₁₅; exact mul_nonneg (zero_le_one.trans (one_le_c₁₄ α β σ α' β' γ' hirr htriv
       habc)) (c₅_pos α' β' γ').le
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma one_le_c₁₅ : 1 ≤ (c₁₅ α β α' β' γ') := by
   unfold c₁₅ c₅
   exact one_le_mul_of_one_le_of_one_le (one_le_c₁₄ α β σ α' β' γ' hirr htriv habc) (one_le_pow₀
       (by simp))
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 theorem norm_pos_rho : 0 < ‖(Algebra.norm ℚ) ((rho α β σ α' β' γ' hirr htriv habc) q hq0
     h2mq)‖ := by
   rw [norm_pos_iff, ne_eq, Algebra.norm_eq_zero_iff]
@@ -1279,7 +1255,6 @@ theorem norm_pos_rho : 0 < ‖(Algebra.norm ℚ) ((rho α β σ α' β' γ' hirr
   simpa [← rho_eq_ρᵣ]
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma norm_algebraNorm_rho_gtinv :
     norm ((Algebra.norm ℚ) ((rho α β σ α' β' γ' hirr htriv habc) q hq0 h2mq)) ⁻¹ < (c₅ α' β'
         γ') ^ (((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ)) := by
@@ -1291,7 +1266,6 @@ lemma norm_algebraNorm_rho_gtinv :
     apply pow_pos (c₅_pos α' β' γ')
 
 include α β σ α' β' γ' hirr htriv habc in
-@[nolint unusedArguments]
 lemma r_rpow_lt_c₁₅_rpow :
     ((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) ^
       ((((r α β σ α' β' γ' hirr htriv habc) q hq0 h2mq : ℝ) - 3 * (h K)) / 2) <
