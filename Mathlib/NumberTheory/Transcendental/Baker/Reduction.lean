@@ -186,7 +186,63 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
         (Matrix.linearIndependent_rows_of_det_ne_zero hYdet) hy1
       exact hij (by simpa only [hYentry] using hdotL i j)
     · -- First case: some but not all `A v` vanish; Corollary 4.3 gives a contradiction.
-      sorry
+      exfalso
+      push Not at hnone
+      set T : Finset (Fin d) := Finset.univ.filter (fun v => A v ≠ 0) with hTdef
+      have hTmem : ∀ v, v ∈ T ↔ A v ≠ 0 := by simp [hTdef]
+      set n : ℕ := T.card with hncard
+      have hn0 : 0 < n := by
+        obtain ⟨v, hv⟩ := hall
+        exact Finset.card_pos.2 ⟨v, (hTmem v).2 hv⟩
+      have hnd : n < d := by
+        obtain ⟨u, hu⟩ := hnone
+        have hsub : T ⊂ Finset.univ :=
+          Finset.ssubset_univ_iff.2 fun h => ((hTmem u).1 (h ▸ Finset.mem_univ u)) hu
+        simpa [hncard] using Finset.card_lt_card hsub
+      -- Index the embeddings at which `A` does not vanish.
+      set ef : Fin n ≃o T := T.orderIsoOfFin hncard.symm with hef
+      set f : Fin n → Fin d := fun v => (ef v : Fin d) with hf
+      have hfT : ∀ v, A (f v) ≠ 0 := fun v => (hTmem _).1 (ef v).2
+      have hefsymm : ∀ v, ef.symm ⟨f v, (ef v).2⟩ = v := fun v => by
+        simp [hf, Subtype.ext_iff]
+      -- Restricting the sum over all embeddings to `T` changes nothing, as `A` vanishes off `T`.
+      have hrestrict : ∀ F : Fin d → ℂ, (∀ u, u ∉ T → F u = 0) →
+          ∑ v : Fin n, F (f v) = ∑ u : Fin d, F u := by
+        intro F hF
+        rw [show ∑ v : Fin n, F (f v) = ∑ u ∈ T, F u from
+          (Fintype.sum_equiv ef.toEquiv (fun v => F (f v)) (fun x : T => F x)
+            fun v => rfl).trans (Finset.sum_coe_sort T F)]
+        exact Finset.sum_subset T.subset_univ fun u _ hu => hF u hu
+      -- The `d` vectors `y j` span `ℂⁿ`: solve `a ᵥ* M = c` and scale by the `A (f v)`.
+      have hspan : Submodule.span ℂ
+          (Set.range fun (j : Fin d) (v : Fin n) => (e (f v)) (β j) * A (f v)) = ⊤ := by
+        rw [Submodule.eq_top_iff']
+        intro w
+        rw [Submodule.mem_span_range_iff_exists_fun]
+        set c : Fin d → ℂ := fun u => if h : u ∈ T then w (ef.symm ⟨u, h⟩) / A u else 0 with hc
+        refine ⟨Matrix.vecMul c M⁻¹, ?_⟩
+        have hvm : Matrix.vecMul (Matrix.vecMul c M⁻¹) M = c := by
+          rw [Matrix.vecMul_vecMul, Matrix.nonsing_inv_mul M (Ne.isUnit hMdet), Matrix.vecMul_one]
+        funext v
+        have hmem : f v ∈ T := (ef v).2
+        have hcv : c (f v) = w v / A (f v) := by
+          rw [hc]
+          simp only
+          rw [dif_pos hmem, hefsymm v]
+        have hrow : ∑ x, Matrix.vecMul c M⁻¹ x * (e (f v)) (β x) = c (f v) := by
+          simpa [Matrix.vecMul, dotProduct, hM] using congrFun hvm (f v)
+        simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, ← mul_assoc]
+        rw [← Finset.sum_mul, hrow, hcv, div_mul_cancel₀ _ (hfT v)]
+      obtain ⟨i, j, hij⟩ := schneiderLang_zero (n := n) hnd
+        (fun i v => (e (f v)) (β i)) (fun i v => hxalg i (f v)) (hxli f hn0) _ hspan
+      refine hij ?_
+      have hsum_eq : (∑ v : Fin n, (e (f v)) (β i) * ((e (f v)) (β j) * A (f v)))
+          = ∑ v : Fin d, (e v) (β i) * ((e v) (β j) * A v) := by
+        refine hrestrict (fun u => (e u) (β i) * ((e u) (β j) * A u)) fun u hu => ?_
+        have hAu : A u = 0 := by by_contra h; exact hu ((hTmem u).2 h)
+        rw [hAu]; ring
+      rw [hsum_eq]
+      exact hdotL i j
 
 
 /-- **Theorem 1.6** of [waldschmidt2000], the nonhomogeneous case of Baker's theorem,
