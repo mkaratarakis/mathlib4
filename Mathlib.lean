@@ -6136,6 +6136,7 @@ public import Mathlib.NumberTheory.SumPrimeReciprocals
 public import Mathlib.NumberTheory.SumTwoSquares
 public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 public import Mathlib.NumberTheory.Transcendental.Baker.Basic
+public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
 public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.NumberTheory.Transcendental.Baker.Setup
 public import Mathlib.NumberTheory.Transcendental.Baker.ThueSiegel
