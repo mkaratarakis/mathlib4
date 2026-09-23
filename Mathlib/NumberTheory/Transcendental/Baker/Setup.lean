@@ -3,7 +3,9 @@ Copyright (c) 2026 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
-import Mathlib.NumberTheory.Transcendental.Baker.Basic
+module
+
+public import Mathlib.NumberTheory.Transcendental.Baker.Basic
 
 /-!
 # Baker's theorem: reduction to the normalized form
@@ -33,6 +35,8 @@ is `-1`.  In the book's notation, assuming the theorem false one may suppose
 
 * [A. Baker, *Transcendental Number Theory*][baker1975], Chapter 2, §3
 -/
+
+@[expose] public section
 
 open Complex Finset
 
@@ -112,7 +116,7 @@ theorem exists_bakerData_of_baker_counterexample {l : ι → ℂ}
   -- Some coefficient `β r` is nonzero (else the relation forces `β₀ = 0` as well).
   have hr : ∃ r, β r ≠ 0 := by
     by_contra h
-    push_neg at h
+    push Not at h
     exact hne ⟨by simpa [h] using hrel, h⟩
   obtain ⟨r, hr⟩ := hr
   -- Transport along `Fin (card ι) ≃ ι` and divide the relation by `-β r`.
@@ -124,7 +128,7 @@ theorem exists_bakerData_of_baker_counterexample {l : ι → ℂ}
   refine ⟨⟨Fin (Fintype.card ι), Fintype.equivFin ι r, fun j => l (e j),
     fun j => -β (e j) / β r, -β₀ / β r, ?_, fun j => hdiv _ (hβ (e j)), hdiv _ hβ₀,
     fun j => hl (e j), ?_, ?_⟩⟩
-  · show -β ((Fintype.equivFin ι).symm (Fintype.equivFin ι r)) / β r = -1
+  · change -β ((Fintype.equivFin ι).symm (Fintype.equivFin ι r)) / β r = -1
     rw [Equiv.symm_apply_apply, neg_div, div_self hr]
   · exact (linearIndependent_equiv e).mpr hli
   · show -β₀ / β r + ∑ j, -β (e j) / β r * l (e j) = 0

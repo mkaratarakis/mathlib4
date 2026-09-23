@@ -3,10 +3,12 @@ Copyright (c) 2026 Michail Karatarakis. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michail Karatarakis
 -/
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import Mathlib.RingTheory.Algebraic.Integral
-import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.SpecialFunctions.Pow.Complex
+public import Mathlib.RingTheory.Algebraic.Integral
+public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
 
 /-!
 # Baker's theorem on linear forms in logarithms
@@ -58,6 +60,8 @@ These will be formalized in subsequent files in this directory.
 
 * [A. Baker, *Transcendental Number Theory*][baker1975]
 -/
+
+@[expose] public section
 
 open Complex Finset
 
@@ -118,7 +122,7 @@ private theorem baker_aux_theorem22 (s : Finset ι) :
     · exact hβ₀0 (baker_linearIndepOn hl hli hβ₀ hβ hrel).1
     · -- Extract a nontrivial rational relation `∑ i ∈ s, ρ i • l i = 0`, `ρ r ≠ 0`.
       rw [linearIndepOn_finset_iff] at hli
-      push_neg at hli
+      push Not at hli
       obtain ⟨ρ, hρ0, r, hrs, hρr⟩ := hli
       have hρ0' : ∑ i ∈ s, (ρ i : ℂ) * l i = 0 := by
         simpa only [Rat.smul_def] using hρ0
@@ -181,7 +185,7 @@ theorem baker_transcendental_exp {l : ι → ℂ} (hl : ∀ i, IsAlgebraic ℚ (
     | none => exact isAlgebraic_one.neg
     | some i => exact hβ i
   · rw [Fintype.sum_option]
-    show β₀ + ((-1) * (β₀ + ∑ i, β i * l i) + ∑ i, β i * l i) = 0
+    change β₀ + ((-1) * (β₀ + ∑ i, β i * l i) + ∑ i, β i * l i) = 0
     ring
 
 end Theorem22
@@ -207,7 +211,7 @@ private theorem baker_aux_theorem24 (s : Finset ι) :
       exact hβli.ne_zero (Finset.mem_coe.mpr hi₀) (key.2 i₀ hi₀)
     · -- Otherwise remove an index participating in a rational relation among the `l i`.
       rw [linearIndepOn_finset_iff] at hli
-      push_neg at hli
+      push Not at hli
       obtain ⟨ρ, hρ0, r, hrs, hρr⟩ := hli
       have hρ0' : ∑ i ∈ s, (ρ i : ℂ) * l i = 0 := by
         simpa only [Rat.smul_def] using hρ0
@@ -249,11 +253,11 @@ private theorem baker_aux_theorem24 (s : Finset ι) :
             with hcdef
           have hcrel : ∑ i ∈ s, c i • β i = 0 := by
             rw [hsplit fun i => c i • β i]
-            have hcr : c r = -(∑ k ∈ t, q k * ρ k) := if_pos rfl
+            have hcr : c r = -(∑ k ∈ t, q k * ρ k) := ite_eq_left rfl
             have hct : ∑ i ∈ t, c i • β i = ∑ i ∈ t, (q i * ρ r) • β i :=
               Finset.sum_congr rfl fun i hi => by
                 rw [hcdef]
-                simp only [if_neg (Finset.ne_of_mem_erase hi)]
+                simp only [ite_eq_right (Finset.ne_of_mem_erase hi)]
             rw [hcr, hct]
             simp only [Rat.smul_def]
             push_cast
@@ -266,7 +270,7 @@ private theorem baker_aux_theorem24 (s : Finset ι) :
           rw [linearIndepOn_finset_iff] at hβli
           have hcj := hβli c hcrel j (Finset.mem_of_mem_erase hj)
           rw [hcdef] at hcj
-          simp only [if_neg (Finset.ne_of_mem_erase hj)] at hcj
+          simp only [ite_eq_right (Finset.ne_of_mem_erase hj)] at hcj
           exact (mul_eq_zero.mp hcj).resolve_right hρr
         refine IH t (Finset.erase_ssubset hrs) l β'
           (fun i hi => hl i (Finset.mem_of_mem_erase hi))
@@ -286,7 +290,7 @@ theorem baker_sum_ne_zero [Nonempty ι] {l : ι → ℂ} (hl : ∀ i, IsAlgebrai
     (hl0 : ∀ i, l i ≠ 0) {β : ι → ℂ} (hβ : ∀ i, IsAlgebraic ℚ (β i))
     (hβli : LinearIndependent ℚ β) : ∑ i, β i * l i ≠ 0 :=
   baker_aux_theorem24 Finset.univ l β (fun i _ => hl i) (fun i _ => hl0 i) (fun i _ => hβ i)
-    (by rwa [Finset.coe_univ, linearIndepOn_univ]) Finset.univ_nonempty
+    (by rwa [Finset.coe_univ, linearIndepOn_univ_iff]) Finset.univ_nonempty
 
 /-- **Theorem 2.4** of [baker1975]: `α₁^{β₁} ⋯ αₙ^{βₙ} = exp (∑ i, β i * l i)` is
 transcendental, where the `l i` are nonzero logarithms of the algebraic numbers `αᵢ`
@@ -314,7 +318,7 @@ theorem baker_transcendental_exp_sum [Nonempty ι] {l : ι → ℂ}
   refine baker_aux_theorem24 (Finset.univ : Finset (Option ι))
     (fun o => o.elim (∑ i, β i * l i) l) (fun o => o.elim (-1) β)
     (fun o _ => ?_) (fun o _ => ?_) (fun o _ => ?_)
-    (by rwa [Finset.coe_univ, linearIndepOn_univ]) Finset.univ_nonempty ?_
+    (by rwa [Finset.coe_univ, linearIndepOn_univ_iff]) Finset.univ_nonempty ?_
   · cases o with
     | none => exact halg
     | some i => exact hl i
@@ -325,7 +329,7 @@ theorem baker_transcendental_exp_sum [Nonempty ι] {l : ι → ℂ}
     | none => exact isAlgebraic_one.neg
     | some i => exact hβ i
   · rw [Fintype.sum_option]
-    show (-1) * (∑ i, β i * l i) + ∑ i, β i * l i = 0
+    change (-1) * (∑ i, β i * l i) + ∑ i, β i * l i = 0
     ring
 
 end Theorem24
