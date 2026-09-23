@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 public import Mathlib.RingTheory.Algebraic.Integral
 public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
@@ -28,9 +29,9 @@ Throughout, "`l` is a logarithm of an algebraic number" is encoded as
   If `l i` are `ℚ`-linearly independent logarithms of algebraic numbers, then
   `1` and the `l i` are linearly independent over the algebraic numbers: a relation
   `β₀ + ∑ i, β i * l i = 0` with all coefficients algebraic forces every coefficient
-  to vanish.  **The proof is under development**; this is the single `sorry` of this
-  file, and the remainder of the directory `Mathlib/NumberTheory/Transcendental/Baker/`
-  will be devoted to its proof, following Chapter 2 of [baker1975].
+  to vanish.  The proof follows Chapter 4 of [waldschmidt2000]: Baker's theorem is
+  deduced from the criterion of Schneider-Lang, by the argument of Bertrand and Masser.
+  See `Mathlib/NumberTheory/Transcendental/Baker/Reduction.lean`.
 * `Transcendental.baker_add_sum_ne_zero`: Theorem 2.2 of [baker1975], in the form
   "`β₀ + β₁ log α₁ + ⋯ + βₙ log αₙ ≠ 0` whenever `β₀ ≠ 0`".
 * `Transcendental.baker_transcendental_sum`: Theorem 2.2 of [baker1975]: any nonvanishing
@@ -77,13 +78,18 @@ being arbitrary), then `1` together with the `l i` is linearly independent over 
 of all algebraic numbers: any relation `β₀ + ∑ i, β i * l i = 0` with algebraic
 coefficients is trivial.
 
-The proof, following Chapter 2 of [baker1975], is under development in
-`Mathlib/NumberTheory/Transcendental/Baker/`. -/
+The proof follows Chapter 4 of [waldschmidt2000]; see
+`Transcendental.baker_of_theorem45`. -/
 theorem baker [Fintype ι] {l : ι → ℂ} (hl : ∀ i, IsAlgebraic ℚ (exp (l i)))
     (hli : LinearIndependent ℚ l) {β₀ : ℂ} {β : ι → ℂ}
     (hβ₀ : IsAlgebraic ℚ β₀) (hβ : ∀ i, IsAlgebraic ℚ (β i))
     (hrel : β₀ + ∑ i, β i * l i = 0) : β₀ = 0 ∧ ∀ i, β i = 0 := by
-  sorry
+  classical
+  let e : Fin (Fintype.card ι) ≃ ι := (Fintype.equivFin ι).symm
+  obtain ⟨h0, h⟩ := baker_of_theorem45 (l ∘ e) (fun j => hl _)
+    ((linearIndependent_equiv e).mpr hli) hβ₀ (fun j => hβ _)
+    (by rw [← Equiv.sum_comp e fun i => β i * l i] at hrel; exact hrel)
+  exact ⟨h0, fun i => by simpa using h (e.symm i)⟩
 
 /-- Every rational number, coerced into `ℂ`, is algebraic over `ℚ`. -/
 private theorem isAlgebraic_ratCast (q : ℚ) : IsAlgebraic ℚ (q : ℂ) := by

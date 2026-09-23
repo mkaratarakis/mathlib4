@@ -28,8 +28,9 @@ is `-1`.  In the book's notation, assuming the theorem false one may suppose
 * `Transcendental.exists_bakerData_of_baker_counterexample`: any counterexample to
   Baker's theorem yields a `BakerData`.
 * `Transcendental.baker_of_isEmpty_bakerData`: consequently, to prove Baker's theorem
-  it suffices to show `IsEmpty BakerData`.  This is what the remainder of the
-  formalization of Chapter 2 of [baker1975] (Lemmas 1–8, in subsequent files) will do.
+  it suffices to show `IsEmpty BakerData`, which is what Lemmas 1–8 of Chapter 2 of
+  [baker1975] do.  The proof of `Transcendental.baker` in Mathlib takes the shorter route
+  of Chapter 4 of [waldschmidt2000] instead, so this file is an alternative reduction.
 
 ## References
 
@@ -142,9 +143,11 @@ theorem exists_bakerData_of_baker_counterexample {l : ι → ℂ}
     ring
 
 /-- To prove Baker's theorem, it suffices to derive a contradiction from a normalized
-counterexample: this is the goal of the formalization of Lemmas 1–8 of Chapter 2 of
-[baker1975].  Once `IsEmpty BakerData` is established, this theorem will discharge the
-`sorry` in `Transcendental.baker`. -/
+counterexample, which is what Lemmas 1–8 of Chapter 2 of [baker1975] do.
+
+`Transcendental.baker` is not in fact proved this way: it is obtained from the criterion
+of Schneider-Lang in `Mathlib/NumberTheory/Transcendental/Baker/Reduction.lean`, following
+Chapter 4 of [waldschmidt2000].  This reduction is kept as an independent route. -/
 theorem baker_of_isEmpty_bakerData (h : IsEmpty BakerData) {l : ι → ℂ}
     (hl : ∀ i, IsAlgebraic ℚ (exp (l i))) (hli : LinearIndependent ℚ l)
     {β₀ : ℂ} {β : ι → ℂ} (hβ₀ : IsAlgebraic ℚ β₀) (hβ : ∀ i, IsAlgebraic ℚ (β i))
