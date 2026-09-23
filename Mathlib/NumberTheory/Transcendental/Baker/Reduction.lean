@@ -6,9 +6,12 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Polynomial.Basic
 public import Mathlib.FieldTheory.IntermediateField.Adjoin.Basic
 public import Mathlib.NumberTheory.Transcendental.Baker.SchneiderLang
 public import Mathlib.RingTheory.Algebraic.Integral
+public import Mathlib.RingTheory.Discriminant
+public import Mathlib.RingTheory.Trace.Basic
 
 /-!
 # Baker's theorem from the criterion of Schneider–Lang
@@ -90,7 +93,63 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
     (l : Fin d → ℂ) (hl : ∀ i, IsAlgebraic ℚ (exp (l i)))
     (hsum : IsAlgebraic ℚ (∑ i, (β i : ℂ) * l i)) :
     ∀ i, l i = 0 := by
-  sorry
+  classical
+  have hd0 : 0 < d := hd ▸ Module.finrank_pos
+  have hcard : Fintype.card (Fin d) = Module.finrank ℚ K := by simp [hd]
+  -- `β` is a `ℚ`-basis of `K`, so its embeddings matrix `M` is regular (Lemma 4.6).
+  set Bas : Module.Basis (Fin d) ℚ K := basisOfLinearIndependentOfCardEqFinrank' β hβ hcard
+    with hBas
+  have hBasβ : ⇑Bas = β := coe_basisOfLinearIndependentOfCardEqFinrank' β hβ hcard
+  have hcardAlg : Fintype.card (K →ₐ[ℚ] ℂ) = d := by rw [AlgHom.card, hd]
+  -- Index the embeddings so that index `0` is the natural inclusion `K ⊆ ℂ`.
+  set e : Fin d ≃ (K →ₐ[ℚ] ℂ) :=
+    (Fintype.equivFinOfCardEq hcardAlg).symm.trans
+      (Equiv.swap ((Fintype.equivFinOfCardEq hcardAlg).symm ⟨0, hd0⟩) K.val) with he
+  have he0 : e ⟨0, hd0⟩ = K.val := by simp [he]
+  set M : Matrix (Fin d) (Fin d) ℂ := Matrix.of fun i v => (e v) (β i) with hM
+  have hMdet : M.det ≠ 0 := by
+    have h2 := Algebra.discr_eq_det_embeddingsMatrixReindex_pow_two ℚ ℂ β e
+    have h1 : Algebra.discr ℚ β ≠ 0 := by
+      simpa [hBasβ] using Algebra.discr_not_zero_of_basis (K := ℚ) Bas
+    intro hdet
+    rw [show Algebra.embeddingsMatrixReindex ℚ ℂ β e = M from rfl, hdet] at h2
+    simp only [ne_eq, zero_pow, OfNat.ofNat_ne_zero, not_false_eq_true] at h2
+    exact h1 (by simpa using h2)
+  -- The numbers `λ v = ∑ₖ σ_v(βₖ) ℓₖ` of the book.
+  set A : Fin d → ℂ := fun v => ∑ k, (e v) (β k) * l k with hA
+  have hA0 : A ⟨0, hd0⟩ = ∑ i, (β i : ℂ) * l i := by
+    simp [hA, he0, IntermediateField.coe_val]
+  -- Each `xᵢ · y_j` is the trace combination `∑ₘ Tr(βᵢβⱼβₘ) ℓₘ`, hence lies in `L`.
+  have hdot : ∀ i j : Fin d, ∑ v, (e v) (β i) * ((e v) (β j) * A v) =
+      ∑ m, ((Algebra.trace ℚ K (β i * β j * β m) : ℚ) : ℂ) * l m := by
+    intro i j
+    have : ∀ m : Fin d, ((Algebra.trace ℚ K (β i * β j * β m) : ℚ) : ℂ)
+        = ∑ v, (e v) (β i * β j * β m) := by
+      intro m
+      have h := trace_eq_sum_embeddings (K := ℚ) (L := K) (E := ℂ)
+        (x := β i * β j * β m)
+      rw [← Equiv.sum_comp e fun σ : K →ₐ[ℚ] ℂ => σ (β i * β j * β m)] at h
+      rw [← h, eq_ratCast]
+    simp only [this, hA, Finset.mul_sum, Finset.sum_mul, map_mul]
+    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun v _ => Finset.sum_congr rfl fun m _ => by ring
+  have hdotL : ∀ i j : Fin d, IsAlgebraic ℚ (exp (∑ v, (e v) (β i) * ((e v) (β j) * A v))) := by
+    intro i j
+    rw [hdot i j]
+    exact isAlgebraic_exp_ratCast_combo _ l hl
+  -- Coordinates of the `xᵢ` are algebraic, being conjugates of algebraic numbers.
+  have hxalg : ∀ i v : Fin d, IsAlgebraic ℚ ((e v) (β i)) :=
+    fun i v => (IsAlgebraic.of_finite ℚ (β i)).algHom (e v)
+  -- The three cases of §4.2.4, according to how many of the `A v` vanish.
+  by_cases hall : ∀ v, A v = 0
+  · -- Third case: all `A v` vanish, and `M` is regular, so all `ℓ` vanish.
+    sorry
+  · push Not at hall
+    by_cases hnone : ∀ v, A v ≠ 0
+    · -- Second case: no `A v` vanishes; Corollary 4.4 applies and gives a contradiction.
+      sorry
+    · -- First case: some but not all `A v` vanish; Corollary 4.3 gives a contradiction.
+      sorry
 
 
 /-- **Theorem 1.6** of [waldschmidt2000], the nonhomogeneous case of Baker's theorem,
