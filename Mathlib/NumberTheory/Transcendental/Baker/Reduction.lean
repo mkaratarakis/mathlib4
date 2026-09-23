@@ -140,14 +140,51 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
   -- Coordinates of the `xᵢ` are algebraic, being conjugates of algebraic numbers.
   have hxalg : ∀ i v : Fin d, IsAlgebraic ℚ ((e v) (β i)) :=
     fun i v => (IsAlgebraic.of_finite ℚ (β i)).algHom (e v)
+  -- Whatever embeddings are selected, the rows of `M` stay `ℚ`-linearly independent:
+  -- a rational relation between them is pushed back through any single embedding.
+  have hxli : ∀ {p : ℕ} (g : Fin p → Fin d), 0 < p →
+      LinearIndependent ℚ (fun (i : Fin d) (v : Fin p) => (e (g v)) (β i)) := by
+    intro p g hp
+    rw [Fintype.linearIndependent_iff]
+    intro a ha i
+    have hev : ∑ k, a k • (e (g ⟨0, hp⟩)) (β k) = 0 := by
+      have h := congrFun ha ⟨0, hp⟩
+      simpa using h
+    have hker : (e (g ⟨0, hp⟩)) (∑ k, a k • β k) = 0 := by
+      rw [map_sum]
+      simpa [Algebra.smul_def] using hev
+    have : ∑ k, a k • β k = 0 :=
+      (map_eq_zero_iff _ (e (g ⟨0, hp⟩)).toRingHom.injective).mp hker
+    exact Fintype.linearIndependent_iff.mp hβ a this i
   -- The three cases of §4.2.4, according to how many of the `A v` vanish.
   by_cases hall : ∀ v, A v = 0
-  · -- Third case: all `A v` vanish, and `M` is regular, so all `ℓ` vanish.
-    sorry
+  · -- Third case: all `A v` vanish.  The book stops here; the conclusion needs one more
+    -- step, namely that `M` is regular, which is exactly Lemma 4.6.
+    have hvec : Matrix.vecMul l M = 0 := by
+      funext v
+      have h := hall v
+      simp only [hA] at h
+      simpa [Matrix.vecMul, dotProduct, hM, mul_comm] using h
+    exact fun i => congrFun (Matrix.eq_zero_of_vecMul_eq_zero hMdet hvec) i
   · push Not at hall
     by_cases hnone : ∀ v, A v ≠ 0
     · -- Second case: no `A v` vanishes; Corollary 4.4 applies and gives a contradiction.
-      sorry
+      exfalso
+      haveI : NeZero d := ⟨hd0.ne'⟩
+      have hzero : (0 : Fin d) = ⟨0, hd0⟩ := Fin.ext (by simp)
+      have hYdet : (M * Matrix.diagonal A).det ≠ 0 := by
+        rw [Matrix.det_mul, Matrix.det_diagonal]
+        exact mul_ne_zero hMdet (Finset.prod_ne_zero_iff.2 fun v _ => hnone v)
+      have hYentry : ∀ j v, (M * Matrix.diagonal A) j v = (e v) (β j) * A v := by
+        intro j v; simp [Matrix.mul_diagonal, hM]
+      have hy1 : ∀ j, IsAlgebraic ℚ ((M * Matrix.diagonal A) j 0) := by
+        intro j
+        rw [hYentry, hzero, hA0]
+        exact (hxalg j ⟨0, hd0⟩).mul hsum
+      obtain ⟨i, j, hij⟩ := schneiderLang_one (d := d) (fun i v => (e v) (β i)) hxalg
+        (hxli id hd0) (fun j => (M * Matrix.diagonal A) j)
+        (Matrix.linearIndependent_rows_of_det_ne_zero hYdet) hy1
+      exact hij (by simpa only [hYentry] using hdotL i j)
     · -- First case: some but not all `A v` vanish; Corollary 4.3 gives a contradiction.
       sorry
 
