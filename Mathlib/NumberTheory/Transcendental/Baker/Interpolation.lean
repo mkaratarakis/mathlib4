@@ -12,6 +12,7 @@ public import Mathlib.Analysis.Complex.AbsMax
 public import Mathlib.Analysis.Complex.Liouville
 public import Mathlib.Analysis.Complex.RemovableSingularity
 public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
+public import Mathlib.RingTheory.RootsOfUnity.Complex
 
 /-!
 # Truncated Taylor interpolation
@@ -38,6 +39,8 @@ uses.
   power series.
 * `HasFPowerSeriesOnBall.norm_sub_partialSum_le`: the Taylor remainder estimate, on any
   complex normed space.
+* `MultiIndex.norm_coeff_mul_pow_le`: Cauchy's inequality `‖c_α‖ ρ ^ |α| ≤ M` on a polydisc,
+  proved by averaging over roots of unity on a torus rather than by a Cauchy integral.
 * `MultiIndex.norm_le_of_hasFPowerSeriesOnBall`: Lemma 4.13 in Waldschmidt's form, with the
   Taylor polynomial expanded in multi-index coefficients.
 -/
@@ -271,6 +274,130 @@ lemma apply_diag_eq_sum_piAntidiag {𝕜 : Type*} [NontriviallyNormedField 𝕜]
         refine Finset.sum_subset hsub fun α _ hα => ?_
         have hk : ∑ i, α i ≠ k := fun h => hα (by simp [Finset.mem_piAntidiag, h])
         rw [coeffAt_eq_zero p hk, smul_zero]
+
+/-- Orthogonality of the characters of `ℤ / N`: for `a, b < N`, the sum over `j < N` of
+`ω ^ ((b + (N - a)) * j)` is `N` when `b = a` and `0` otherwise. -/
+private lemma sum_pow_mul_eq {N : ℕ} {ω : ℂ} (hω : IsPrimitiveRoot ω N) {a b : ℕ} (ha : a < N)
+    (hb : b < N) :
+    ∑ j : Fin N, ω ^ ((b + (N - a)) * (j : ℕ)) = if b = a then (N : ℂ) else 0 := by
+  split_ifs with hba
+  · subst hba
+    have h1 : ∀ j : Fin N, ω ^ ((b + (N - b)) * (j : ℕ)) = 1 := fun j => by
+      rw [show b + (N - b) = N by omega, pow_mul, hω.pow_eq_one, one_pow]
+    simp [h1]
+  · set m := b + (N - a) with hm
+    have hm1 : ω ^ m ≠ 1 := by
+      rw [Ne, hω.pow_eq_one_iff_dvd]
+      rintro ⟨q, hq⟩
+      rcases q with _ | _ | q
+      · omega
+      · omega
+      · have h2 : 2 * N ≤ N * (q + 1 + 1) := by nlinarith
+        omega
+    rw [Fin.sum_univ_eq_sum_range (fun j => ω ^ (m * j)) N]
+    simp_rw [pow_mul]
+    rw [geom_sum_eq hm1, show (ω ^ m) ^ N = 1 by
+      rw [← pow_mul, mul_comm, pow_mul, hω.pow_eq_one, one_pow], sub_self, zero_div]
+
+/-- **Cauchy's inequality on a polydisc.**
+
+If `F` has the power series `p` on the polydisc of polyradius `R` about `0` and `‖F‖ ≤ M`
+there, then each multi-index coefficient satisfies `‖c_α‖ * ρ ^ |α| ≤ M` for `ρ < R`.
+
+The degree-`k` part of `p` is a polynomial of degree at most `k` in each variable, so averaging
+it against a character over the points `(ρ ω ^ j i)ᵢ` of the torus of radius `ρ`, with `ω` a
+primitive `(k + 1)`-th root of unity, extracts the coefficient exactly; the average is bounded
+by `M` through Cauchy's estimate `HasFPowerSeriesOnBall.norm_apply_le`. -/
+theorem norm_coeff_mul_pow_le [CompleteSpace V] {F : (ι → ℂ) → V}
+    {p : FormalMultilinearSeries ℂ (ι → ℂ) V} {R : ℝ≥0} (hF : HasFPowerSeriesOnBall F p 0 R)
+    {M : ℝ} (hM : ∀ y : ι → ℂ, ‖y‖ < R → ‖F y‖ ≤ M) (α : ι → ℕ) {ρ : ℝ} (hρ0 : 0 ≤ ρ)
+    (hρ : ρ < R) : ‖coeff p α‖ * ρ ^ (∑ i, α i) ≤ M := by
+  set k := ∑ i, α i with hk
+  set N := k + 1 with hN
+  have hNpos : 0 < N := Nat.succ_pos k
+  have hω : IsPrimitiveRoot (Complex.exp (2 * Real.pi * Complex.I / N)) N :=
+    Complex.isPrimitiveRoot_exp N hNpos.ne'
+  set ω := Complex.exp (2 * Real.pi * Complex.I / N) with hωdef
+  have hωn : ‖ω‖ = 1 := hω.norm'_eq_one hNpos.ne'
+  have hle : ∀ β ∈ (Finset.univ : Finset ι).piAntidiag k, ∀ i, β i < N := by
+    intro β hβ i
+    rw [Finset.mem_piAntidiag] at hβ
+    exact Nat.lt_succ_of_le
+      (hβ.1 ▸ Finset.single_le_sum (fun j _ => Nat.zero_le (β j)) (Finset.mem_univ i))
+  have hα : α ∈ (Finset.univ : Finset ι).piAntidiag k := by simp [hk]
+  -- sample points on the torus of radius `ρ`, and the character picking out `α`
+  set z : (ι → Fin N) → ι → ℂ := fun j i => (ρ : ℂ) * ω ^ (j i : ℕ) with hz
+  set wt : (ι → Fin N) → ℂ := fun j => ∏ i, ω ^ ((N - α i) * (j i : ℕ)) with hwt
+  have hexp : ∀ j, p k (fun _ => z j) = ∑ β ∈ Finset.univ.piAntidiag k,
+      ((ρ : ℂ) ^ k * ∏ i, ω ^ ((j i : ℕ) * β i)) • coeff p β := by
+    intro j
+    rw [apply_diag_eq_sum_piAntidiag]
+    refine Finset.sum_congr rfl fun β hβ => ?_
+    rw [Finset.mem_piAntidiag] at hβ
+    congr 1
+    simp only [hz, mul_pow, Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum, hβ.1, ← pow_mul]
+  have hinner : ∀ β ∈ (Finset.univ : Finset ι).piAntidiag k,
+      ∑ j, wt j * ((ρ : ℂ) ^ k * ∏ i, ω ^ ((j i : ℕ) * β i))
+        = if β = α then (N : ℂ) ^ Fintype.card ι * (ρ : ℂ) ^ k else 0 := by
+    intro β hβ
+    calc ∑ j, wt j * ((ρ : ℂ) ^ k * ∏ i, ω ^ ((j i : ℕ) * β i))
+        = (ρ : ℂ) ^ k * ∑ j : ι → Fin N, ∏ i, ω ^ ((β i + (N - α i)) * (j i : ℕ)) := by
+          rw [Finset.mul_sum]
+          refine Finset.sum_congr rfl fun j _ => ?_
+          rw [hwt, mul_left_comm, ← Finset.prod_mul_distrib]
+          congr 1
+          refine Finset.prod_congr rfl fun i _ => ?_
+          rw [← pow_add]
+          congr 1
+          ring
+      _ = (ρ : ℂ) ^ k * ∏ i, ∑ a : Fin N, ω ^ ((β i + (N - α i)) * (a : ℕ)) := by
+          rw [Finset.prod_univ_sum, Fintype.piFinset_univ]
+      _ = (ρ : ℂ) ^ k * ∏ i, (if β i = α i then (N : ℂ) else 0) := by
+          congr 1
+          exact Finset.prod_congr rfl fun i _ =>
+            sum_pow_mul_eq hω (hle α hα i) (hle β hβ i)
+      _ = _ := by
+          split_ifs with h
+          · subst h
+            simp [Finset.prod_const, Finset.card_univ, mul_comm]
+          · obtain ⟨i, hi⟩ : ∃ i, β i ≠ α i := by
+              by_contra hc
+              push Not at hc
+              exact h (funext hc)
+            rw [Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi]), mul_zero]
+  have hkey : ∑ j, wt j • p k (fun _ => z j)
+      = ((N : ℂ) ^ Fintype.card ι * (ρ : ℂ) ^ k) • coeff p α := by
+    calc ∑ j, wt j • p k (fun _ => z j)
+        = ∑ β ∈ Finset.univ.piAntidiag k,
+            (∑ j, wt j * ((ρ : ℂ) ^ k * ∏ i, ω ^ ((j i : ℕ) * β i))) • coeff p β := by
+          simp_rw [hexp, Finset.smul_sum, smul_smul]
+          rw [Finset.sum_comm]
+          simp_rw [Finset.sum_smul]
+      _ = ∑ β ∈ Finset.univ.piAntidiag k,
+            (if β = α then (N : ℂ) ^ Fintype.card ι * (ρ : ℂ) ^ k else 0) • coeff p β :=
+          Finset.sum_congr rfl fun β hβ => by rw [hinner β hβ]
+      _ = _ := by
+          simp_rw [ite_smul, zero_smul]
+          rw [Finset.sum_ite_eq' _ α, ite_eq_left hα]
+  -- each sample is bounded by `M`, and the character has modulus one
+  have hbound : ‖∑ j, wt j • p k (fun _ => z j)‖ ≤ (N : ℝ) ^ Fintype.card ι * M := by
+    refine (norm_sum_le _ _).trans ?_
+    have hb : ∀ j ∈ (Finset.univ : Finset (ι → Fin N)), ‖wt j • p k (fun _ => z j)‖ ≤ M := by
+      intro j _
+      have hzj : ‖z j‖ < R := by
+        refine lt_of_le_of_lt ((pi_norm_le_iff_of_nonneg hρ0).2 fun i => ?_) hρ
+        simp [hz, norm_pow, hωn, abs_of_nonneg hρ0]
+      rw [norm_smul]
+      have hw1 : ‖wt j‖ = 1 := by simp [hwt, norm_prod, norm_pow, hωn]
+      rw [hw1, one_mul]
+      exact hF.norm_apply_le hM k hzj
+    simpa [nsmul_eq_mul, Fintype.card_fun, Fintype.card_fin] using
+      Finset.sum_le_card_nsmul _ _ _ hb
+  rw [hkey, norm_smul, norm_mul, norm_pow, norm_pow, Complex.norm_natCast, Complex.norm_real,
+    Real.norm_of_nonneg hρ0, mul_assoc] at hbound
+  have hNc : (0 : ℝ) < (N : ℝ) ^ Fintype.card ι := by positivity
+  rw [mul_comm]
+  exact le_of_mul_le_mul_left hbound hNc
 
 /-- **Truncated Taylor interpolation** (Waldschmidt, Lemma 4.13).
 
