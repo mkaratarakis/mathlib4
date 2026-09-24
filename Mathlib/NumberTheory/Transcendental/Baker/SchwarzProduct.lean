@@ -342,3 +342,157 @@ theorem analyticAt_dslope_slice {f : (ι → 𝕜) → F} (i : ι) (ζ : 𝕜) {
   · exact analyticAt_dslope_slice_of_ne i ζ h hf (analyticAt_comp_update i ζ hres)
 
 end MultiIndex
+
+/-!
+### Newton division in one coordinate
+
+Dividing successively by `z i - L 0, z i - L 1, …, z i - L (p - 1)` writes an analytic function
+on a polydisc in Newton form
+`g = ∑_{k < p} (∏_{l < k} (z i - L l)) • a k + (∏_{l < p} (z i - L l)) • q`, with `a k` not
+depending on `z i`.  Each division costs a factor `2 / (R - r)` in the sup norm on the
+polydisc of polyradius `R`, by the maximum modulus principle.
+-/
+
+namespace MultiIndex
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+  {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
+
+/-- `g` does not depend on the `j`-th coordinate. -/
+def IndepOf (g : (ι → ℂ) → V) (j : ι) : Prop := ∀ (z : ι → ℂ) (w : ℂ), g (update z j w) = g z
+
+omit [Fintype ι] [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V] in
+lemma indepOf_const (v : V) (j : ι) : IndepOf (fun _ : ι → ℂ => v) j := fun _ _ => rfl
+
+omit [Fintype ι] [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V] in
+lemma indepOf_comp_update (g : (ι → ℂ) → V) (i : ι) (ζ : ℂ) :
+    IndepOf (fun z => g (update z i ζ)) i := fun z w => by simp [update_idem]
+
+omit [Fintype ι] [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V] in
+lemma IndepOf.comp_update {g : (ι → ℂ) → V} {i j : ι} (hji : j ≠ i) (hg : IndepOf g j) (ζ : ℂ) :
+    IndepOf (fun z => g (update z i ζ)) j := fun z w => by
+  simp only
+  rw [update_comm hji, hg]
+
+omit [Fintype ι] [CompleteSpace V] in
+lemma IndepOf.dslope_slice {g : (ι → ℂ) → V} {i j : ι} (hji : j ≠ i) (hg : IndepOf g j)
+    (ζ : ℂ) : IndepOf (fun z => dslope (slice g i z) ζ (z i)) j := fun z w => by
+  have hsl : slice g i (update z j w) = slice g i z := by
+    funext v
+    simp only [slice]
+    rw [update_comm hji, hg]
+  simp only
+  rw [hsl, update_of_ne hji.symm]
+
+omit [DecidableEq ι] [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V] in
+lemma norm_update_le [DecidableEq ι] {y : ι → ℂ} {R : ℝ} (hy : ‖y‖ ≤ R) (i : ι) {v : ℂ}
+    (hv : ‖v‖ ≤ R) : ‖update y i v‖ ≤ R := by
+  have hR : 0 ≤ R := (norm_nonneg y).trans hy
+  refine (pi_norm_le_iff_of_nonneg hR).2 fun j => ?_
+  rcases eq_or_ne j i with rfl | hj
+  · simpa using hv
+  · rw [update_of_ne hj]; exact (norm_le_pi_norm y j).trans hy
+
+/-- **One division by a linear factor, with its estimate.**  On the polydisc of polyradius
+`R`, the divided difference of `g` in the `i`-th coordinate at a point `ζ` of the disc of
+radius `r < R` is analytic and bounded by `2 / (R - r)` times a bound for `g`. -/
+theorem dslope_slice_bound {g : (ι → ℂ) → V} {r R : ℝ} (hr : 0 ≤ r) (hrR : r < R) (i : ι)
+    {ζ : ℂ} (hζ : ‖ζ‖ ≤ r) (hg : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y) :
+    (∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ (fun z => dslope (slice g i z) ζ (z i)) y) ∧
+      ∀ M : ℝ, (∀ y : ι → ℂ, ‖y‖ ≤ R → ‖g y‖ ≤ M) →
+        ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖dslope (slice g i y) ζ (y i)‖ ≤ 2 / (R - r) * M := by
+  have hζR : ‖ζ‖ ≤ R := hζ.trans hrR.le
+  have han : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ (fun z => dslope (slice g i z) ζ (z i)) y :=
+    fun y hy => analyticAt_dslope_slice i ζ (hg y hy) (hg _ (norm_update_le hy i hζR))
+  refine ⟨han, fun M hM y hy => ?_⟩
+  have hbd := Complex.norm_le_of_eq_prod_smul (S := {ζ}) (m := 1) (M := 2 * M) hr hrR
+    (by simpa using hζ) i han
+    (f := fun z => g z - g (update z i ζ))
+    (fun z _ => by simpa using (sub_smul_dslope_slice g i ζ z).symm)
+    (fun z hz => (norm_sub_le _ _).trans (by
+      linarith [hM z hz, hM _ (norm_update_le hz i hζR)])) y hy
+  simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hbd
+
+/-- **Newton division in one coordinate.**
+
+For nodes `L 0, L 1, …` in the disc of radius `r < R` and an analytic `g` on the polydisc of
+polyradius `R`, there are analytic `a k` not depending on `z i`, and an analytic `q`, with
+`g = ∑_{k < p} (∏_{l < k} (z i - L l)) • a k + (∏_{l < p} (z i - L l)) • q`.  If `‖g‖ ≤ M` then
+`‖a k‖ ≤ (2 / (R - r)) ^ k * M` and `‖q‖ ≤ (2 / (R - r)) ^ p * M`; and `a k`, `q` do not depend
+on any coordinate `j ≠ i` that `g` does not depend on. -/
+theorem exists_newton {r R : ℝ} (hr : 0 ≤ r) (hrR : r < R) (i : ι) :
+    ∀ (p : ℕ) (L : ℕ → ℂ), (∀ k, ‖L k‖ ≤ r) → ∀ {g : (ι → ℂ) → V},
+      (∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y) →
+      ∃ (a : ℕ → (ι → ℂ) → V) (q : (ι → ℂ) → V),
+        (∀ k (y : ι → ℂ), ‖y‖ ≤ R → AnalyticAt ℂ (a k) y) ∧
+        (∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ q y) ∧
+        (∀ k, IndepOf (a k) i) ∧
+        (∀ j, j ≠ i → IndepOf g j → (∀ k, IndepOf (a k) j) ∧ IndepOf q j) ∧
+        (∀ z : ι → ℂ, g z = ∑ k ∈ Finset.range p, (∏ l ∈ Finset.range k, (z i - L l)) • a k z +
+          (∏ l ∈ Finset.range p, (z i - L l)) • q z) ∧
+        ∀ M : ℝ, (∀ y : ι → ℂ, ‖y‖ ≤ R → ‖g y‖ ≤ M) →
+          (∀ k < p, ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖a k y‖ ≤ (2 / (R - r)) ^ k * M) ∧
+          ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖q y‖ ≤ (2 / (R - r)) ^ p * M := by
+  intro p
+  induction p with
+  | zero =>
+    intro L _ g hg
+    refine ⟨fun _ _ => 0, g, fun _ _ _ => analyticAt_const, hg, fun _ => indepOf_const 0 i,
+      fun j _ hgj => ⟨fun _ => indepOf_const 0 j, hgj⟩, fun z => by simp, fun M hM => ?_⟩
+    exact ⟨fun k hk => absurd hk (Nat.not_lt_zero k), fun y hy => by simpa using hM y hy⟩
+  | succ p ih =>
+    intro L hL g hg
+    have hL0R : ‖L 0‖ ≤ R := (hL 0).trans hrR.le
+    set a₀ : (ι → ℂ) → V := fun z => g (update z i (L 0)) with ha₀
+    obtain ⟨hg₁an, hg₁bd⟩ := dslope_slice_bound hr hrR i (hL 0) hg
+    obtain ⟨a', q', ha'an, hq'an, ha'i, ha'j, hid, hbd⟩ :=
+      ih (fun k => L (k + 1)) (fun k => hL (k + 1)) hg₁an
+    refine ⟨fun k => if k = 0 then a₀ else a' (k - 1), q', fun k y hy => ?_, hq'an,
+      fun k => ?_, fun j hji hgj => ?_, fun z => ?_, fun M hM => ?_⟩
+    · by_cases hk : k = 0
+      · simp only [hk, ↓reduceIte]
+        exact analyticAt_comp_update i (L 0) (hg _ (norm_update_le hy i hL0R))
+      · simp only [hk, ↓reduceIte]
+        exact ha'an _ y hy
+    · by_cases hk : k = 0
+      · simp only [hk, ↓reduceIte]
+        exact indepOf_comp_update g i (L 0)
+      · simp only [hk, ↓reduceIte]
+        exact ha'i _
+    · obtain ⟨h1, h2⟩ := ha'j j hji (hgj.dslope_slice hji (L 0))
+      refine ⟨fun k => ?_, h2⟩
+      by_cases hk : k = 0
+      · simp only [hk, ↓reduceIte]
+        exact hgj.comp_update hji (L 0)
+      · simp only [hk, ↓reduceIte]
+        exact h1 _
+    · have hstep : g z = a₀ z + (z i - L 0) • dslope (slice g i z) (L 0) (z i) := by
+        rw [ha₀, sub_smul_dslope_slice]
+        abel
+      rw [hstep, hid z, Finset.sum_range_succ', Finset.prod_range_succ']
+      simp only [Finset.prod_range_zero, one_smul, ↓reduceIte,
+        Nat.add_sub_cancel, Nat.succ_ne_zero]
+      rw [smul_add, Finset.smul_sum]
+      have hterm : ∀ k ∈ Finset.range p,
+          (z i - L 0) • (∏ l ∈ Finset.range k, (z i - L (l + 1))) • a' k z
+            = (∏ l ∈ Finset.range (k + 1), (z i - L l)) • a' k z := by
+        intro k _
+        rw [smul_smul, Finset.prod_range_succ', mul_comm]
+      rw [Finset.sum_congr rfl hterm, smul_smul, mul_comm]
+      abel
+    · have hg₁M := hg₁bd M hM
+      obtain ⟨hak, hq⟩ := hbd (2 / (R - r) * M) hg₁M
+      refine ⟨fun k hk y hy => ?_, fun y hy => ?_⟩
+      · by_cases hk0 : k = 0
+        · simp only [hk0, ↓reduceIte, pow_zero, one_mul]
+          exact hM _ (norm_update_le hy i hL0R)
+        · simp only [hk0, ↓reduceIte]
+          obtain ⟨k', rfl⟩ := Nat.exists_eq_succ_of_ne_zero hk0
+          have := hak k' (by omega) y hy
+          simp only [Nat.succ_sub_one]
+          calc ‖a' k' y‖ ≤ (2 / (R - r)) ^ k' * (2 / (R - r) * M) := this
+            _ = (2 / (R - r)) ^ (k' + 1) * M := by ring
+      · calc ‖q' y‖ ≤ (2 / (R - r)) ^ p * (2 / (R - r) * M) := hq y hy
+          _ = (2 / (R - r)) ^ (p + 1) * M := by ring
+
+end MultiIndex
