@@ -7,6 +7,10 @@ module
 
 public import Mathlib.Analysis.Analytic.CPolynomial
 public import Mathlib.Analysis.Calculus.DSlope
+public import Mathlib.Algebra.MvPolynomial.Coeff
+public import Mathlib.Algebra.MvPolynomial.Funext
+public import Mathlib.Analysis.LocallyConvex.SeparatingDual
+public import Mathlib.Analysis.RCLike.Basic
 public import Mathlib.Analysis.Analytic.Tsum
 
 /-!
@@ -741,6 +745,53 @@ theorem exists_slice_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
     have := hGeq (L (w - x i)) (by rw [hLnorm]; exact hw)
     rw [hxz, hcoord] at this
     exact this
+
+/-!
+### Uniqueness of multi-index coefficients
+
+A polynomial function of several variables determines its coefficients.  This turns the
+vanishing of an analytic function into the vanishing of its coefficients, and is the
+prerequisite for the uniqueness half of a division lemma.
+-/
+
+/-- **A vanishing polynomial function has vanishing coefficients.**
+
+After separating points of the target with continuous linear functionals this is
+`MvPolynomial.funext`. -/
+theorem eq_zero_of_forall_sum_monomial_eq_zero {J : Type*} [Fintype J]
+    {K : Type*} [RCLike K] {G : Type*} [NormedAddCommGroup G] [NormedSpace K G]
+    {s : Finset (J → ℕ)} {c : (J → ℕ) → G}
+    (h : ∀ y : J → K, ∑ α ∈ s, (∏ i, y i ^ α i) • c α = 0) :
+    ∀ α ∈ s, c α = 0 := by
+  classical
+  intro α hα
+  refine SeparatingDual.eq_zero_of_forall_dual_eq_zero (R := K) fun φ => ?_
+  have hφ : ∀ y : J → K, ∑ β ∈ s, (∏ i, y i ^ β i) * φ (c β) = 0 := by
+    intro y
+    simpa using congrArg φ (h y)
+  set e : (J → ℕ) → (J →₀ ℕ) := fun β => Finsupp.equivFunOnFinite.symm β with he
+  set P : MvPolynomial J K := ∑ β ∈ s, MvPolynomial.monomial (e β) (φ (c β)) with hP
+  have hprod : ∀ (β : J → ℕ) (y : J → K),
+      (e β).prod (fun n k => y n ^ k) = ∏ i, y i ^ β i := by
+    intro β y
+    rw [Finsupp.prod_fintype]
+    · exact Finset.prod_congr rfl fun i _ => by simp [he]
+    · intro i; simp
+  have hP0 : P = 0 := by
+    refine MvPolynomial.funext fun y => ?_
+    rw [hP, map_sum, map_zero]
+    simpa [MvPolynomial.eval_monomial, hprod, mul_comm] using hφ y
+  have heinj : Function.Injective e := fun a b hab => by
+    simpa [he] using congrArg Finsupp.equivFunOnFinite hab
+  have hcoeff : (∑ β ∈ s, MvPolynomial.monomial (e β) (φ (c β)) :
+      MvPolynomial J K).coeff (e α) = 0 := by
+    rw [← hP, hP0]; simp
+  rw [MvPolynomial.coeff_sum, Finset.sum_eq_single α] at hcoeff
+  · simpa using hcoeff
+  · intro β hβ hne
+    rw [MvPolynomial.coeff_monomial, ite_eq_right]
+    exact fun hb => hne (heinj hb)
+  · intro hn; exact absurd hα hn
 
 end MultiIndex
 
