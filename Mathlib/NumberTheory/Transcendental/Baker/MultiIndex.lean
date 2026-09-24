@@ -130,4 +130,45 @@ theorem analyticAt_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r :
   refine Summable.of_nonneg_of_le (fun α => by positivity) (fun α => ?_) hsum
   exact mul_le_mul_of_nonneg_right (norm_monomialSeries_le _ _ _) (by positivity)
 
+/-- The multi-index geometric family is summable.  This is what makes
+`analyticAt_tsum_monomial` applicable in practice: Cauchy's inequalities bound the
+coefficients by a constant times `R ^ (-|α|)`, and any `r < R` then gives a summable
+family. -/
+lemma summable_pow_sum {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) :
+    Summable fun α : ι → ℕ => q ^ (∑ i, α i) := by
+  classical
+  have hgeom : HasSum (fun n : ℕ => q ^ n) (1 - q)⁻¹ := hasSum_geometric_of_lt_one hq0 hq1
+  have hgs : Summable fun n : ℕ => q ^ n := hgeom.summable
+  refine summable_of_sum_le (c := ∏ _i : ι, (1 - q)⁻¹) (fun α => by positivity) fun S => ?_
+  set N : ℕ := S.sup fun α => Finset.univ.sup α with hN
+  have hsub : S ⊆ Fintype.piFinset fun _ : ι => Finset.range (N + 1) := by
+    intro α hα
+    simp only [Fintype.mem_piFinset, Finset.mem_range]
+    intro i
+    have h1 : α i ≤ Finset.univ.sup α := Finset.le_sup (Finset.mem_univ i)
+    have h2 : Finset.univ.sup α ≤ N := Finset.le_sup hα
+    omega
+  calc ∑ α ∈ S, q ^ (∑ i, α i)
+      ≤ ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (N + 1), q ^ (∑ i, α i) :=
+        Finset.sum_le_sum_of_subset_of_nonneg hsub fun α _ _ => by positivity
+    _ = ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (N + 1), ∏ i, q ^ α i :=
+        Finset.sum_congr rfl fun α _ => by rw [← Finset.prod_pow_eq_pow_sum]
+    _ = ∏ _i : ι, ∑ k ∈ Finset.range (N + 1), q ^ k := (Finset.prod_univ_sum _ _).symm
+    _ ≤ ∏ _i : ι, (1 - q)⁻¹ := by
+        gcongr
+        · exact fun i _ => Finset.sum_nonneg fun k _ => by positivity
+        · exact (hgs.sum_le_tsum _ fun n _ => by positivity).trans_eq hgeom.tsum_eq
+
+/-- Cauchy-type coefficient bounds give a summable family on any smaller polydisc. -/
+lemma summable_norm_mul_pow {c : (ι → ℕ) → F} {M R r : ℝ} (hR : 0 < R) (hr0 : 0 ≤ r)
+    (hrR : r < R) (hc : ∀ α, ‖c α‖ ≤ M / R ^ (∑ i, α i)) :
+    Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ i, α i) := by
+  have hM : 0 ≤ M := le_trans (norm_nonneg (c 0)) (by simpa using hc 0)
+  refine Summable.of_nonneg_of_le (fun α => by positivity) (fun α => ?_)
+    ((summable_pow_sum (ι := ι) (div_nonneg hr0 hR.le) ((div_lt_one hR).2 hrR)).mul_left M)
+  have hRpow : (0 : ℝ) < R ^ (∑ i, α i) := by positivity
+  calc ‖c α‖ * r ^ (∑ i, α i) ≤ (M / R ^ (∑ i, α i)) * r ^ (∑ i, α i) := by
+        gcongr; exact hc α
+    _ = M * (r / R) ^ (∑ i, α i) := by rw [div_pow]; field_simp
+
 end
