@@ -170,7 +170,7 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
     by_cases hnone : ∀ v, A v ≠ 0
     · -- Second case: no `A v` vanishes; Corollary 4.4 applies and gives a contradiction.
       exfalso
-      haveI : NeZero d := ⟨hd0.ne'⟩
+      have : NeZero d := ⟨hd0.ne'⟩
       have hzero : (0 : Fin d) = ⟨0, hd0⟩ := Fin.ext (by simp)
       have hYdet : (M * Matrix.diagonal A).det ≠ 0 := by
         rw [Matrix.det_mul, Matrix.det_diagonal]
@@ -204,7 +204,7 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
       set f : Fin n → Fin d := fun v => (ef v : Fin d) with hf
       have hfT : ∀ v, A (f v) ≠ 0 := fun v => (hTmem _).1 (ef v).2
       have hefsymm : ∀ v, ef.symm ⟨f v, (ef v).2⟩ = v := fun v => by
-        simp [hf, Subtype.ext_iff]
+        simp [hf]
       -- Restricting the sum over all embeddings to `T` changes nothing, as `A` vanishes off `T`.
       have hrestrict : ∀ F : Fin d → ℂ, (∀ u, u ∉ T → F u = 0) →
           ∑ v : Fin n, F (f v) = ∑ u : Fin d, F u := by
@@ -228,7 +228,7 @@ theorem theorem45 (K : IntermediateField ℚ ℂ) [FiniteDimensional ℚ K] {d :
         have hcv : c (f v) = w v / A (f v) := by
           rw [hc]
           simp only
-          rw [dif_pos hmem, hefsymm v]
+          rw [dite_eq_left hmem, hefsymm v]
         have hrow : ∑ x, Matrix.vecMul c M⁻¹ x * (e (f v)) (β x) = c (f v) := by
           simpa [Matrix.vecMul, dotProduct, hM] using congrFun hvm (f v)
         simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, ← mul_assoc]
@@ -257,7 +257,7 @@ theorem baker_of_theorem45 {m : ℕ} (l : Fin m → ℂ) (hl : ∀ j, IsAlgebrai
   classical
   -- The number field `K = ℚ(γ₁, …, γ_m)` and a `ℚ`-basis `B` of it.
   set K : IntermediateField ℚ ℂ := IntermediateField.adjoin ℚ (Set.range γ) with hK
-  haveI : FiniteDimensional ℚ K :=
+  have : FiniteDimensional ℚ K :=
     IntermediateField.finiteDimensional_adjoin fun x hx => by
       obtain ⟨j, rfl⟩ := hx; exact (hγ j).isIntegral
   set d : ℕ := Module.finrank ℚ K with hdK
