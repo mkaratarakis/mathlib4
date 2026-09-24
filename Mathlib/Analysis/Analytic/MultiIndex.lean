@@ -252,4 +252,51 @@ lemma ContinuousMultilinearMap.apply_diag_eq_sum_multiIndex [DecidableEq ι] {k 
   simp only [Finset.mem_filter] at hg
   rw [← hg.2, MultiIndex.prod_eq_prod_pow_count]
 
+namespace MultiIndex
+
+variable [DecidableEq ι]
+
+lemma norm_pi_single_le (i : ι) : ‖(Pi.single i 1 : ι → 𝕜)‖ ≤ 1 := by
+  refine (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => ?_
+  rcases eq_or_ne j i with rfl | h
+  · simp
+  · simp [Pi.single_eq_of_ne h]
+
+/-- The multi-index coefficients of a formal multilinear series on `ι → 𝕜`: the coefficient of
+`z ^ α` is the sum of the values of the `|α|`-th term on the tuples of basis vectors whose
+coordinate counts are `α`. -/
+noncomputable def coeff (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (α : ι → ℕ) : F :=
+  ∑ g ∈ Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α,
+    p (∑ i, α i) fun j => Pi.single (g j) 1
+
+/-- Each coefficient is bounded by the size of its fibre times the norm of the term. -/
+lemma norm_coeff_le (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (α : ι → ℕ) :
+    ‖coeff p α‖ ≤
+      ((Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α).card : ℝ) *
+        ‖p (∑ i, α i)‖ := by
+  refine (norm_sum_le _ _).trans ?_
+  have hb : ∀ g ∈ Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α,
+      ‖p (∑ i, α i) fun j => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ ‖p (∑ i, α i)‖ := by
+    intro g _
+    have hm : ‖fun j : Fin (∑ i, α i) => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ 1 :=
+      (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => norm_pi_single_le _
+    simpa using ContinuousMultilinearMap.le_opNorm_mul_pow_card_of_le _ hm
+  simpa [nsmul_eq_mul] using Finset.sum_le_card_nsmul _ _ _ hb
+
+/-- The fibres of `count` in degree `k` partition the `(card ι) ^ k` tuples. -/
+lemma sum_card_fiber (k : ℕ) :
+    ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1),
+      (Finset.univ.filter fun g : Fin k → ι => count g = α).card = Fintype.card ι ^ k := by
+  have hmaps : Set.MapsTo (count (k := k))
+      ((Finset.univ : Finset (Fin k → ι)) : Set (Fin k → ι))
+      ((Fintype.piFinset fun _ : ι => Finset.range (k + 1) : Finset (ι → ℕ)) : Set (ι → ℕ)) := by
+    intro g _
+    simp only [Finset.mem_coe, Fintype.mem_piFinset, Finset.mem_range]
+    exact fun i => Nat.lt_succ_of_le (count_le g i)
+  have h := Finset.card_eq_sum_card_fiberwise hmaps
+  rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fin] at h
+  exact h.symm
+
+end MultiIndex
+
 end
