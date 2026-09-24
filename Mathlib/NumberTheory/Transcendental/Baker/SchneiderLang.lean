@@ -57,12 +57,14 @@ dependency order:
   multi-index series.  Division by a linear factor is `sub_smul_dslope_slice` together with
   `MultiIndex.exists_slice_eq_pow_smul`, which turns the coefficient condition into an
   ordinary one-variable zero of order `m` and so lets one division be followed by the next.
-  What is left is parts (a) and (b) -- for which the vanishing of `f` must be converted back
-  into vanishing of the coefficients, via `HasFPowerSeriesOnBall.unique` against the zero
-  series, phrased in terms of the formal multilinear series `p` rather than the multi-index
-  coefficients, since `coeff p α = 0` is immediate from `p = 0` whereas the reverse direction
-  carries a multinomial factor -- and the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants of
-  step 3.6).
+  Part (a) is `MultiIndex.coeffAt_eq_zero_of_eventuallyEq_zero`.  What is left is part (b),
+  which needs uniqueness at the level of *series* rather than polynomials: that
+  `∑' α, z ^ α • c α = 0` on a polydisc forces `c = 0`.  The route is to compare with
+  `hasFPowerSeriesOnBall_tsum_monomial` and apply part (a); the one computation still missing
+  is `MultiIndex.coeffAt (fun n => ∑' α, series α (c α) n) k β = c β`, which holds because
+  `MultiIndex.series` already picks a single tuple of basis vectors per multi-index, so no
+  multinomial factor appears.  Then come the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants
+  of step 3.6).
 * **§4.3, Proposition 4.7** — the Schwarz lemma for Cartesian products, from Lemma 4.8.  The
   maximum modulus principle is available in the needed generality:
   `Complex.norm_le_of_forall_mem_frontier_norm_le` is stated for an arbitrary complex normed
