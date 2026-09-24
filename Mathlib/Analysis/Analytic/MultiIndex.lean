@@ -930,6 +930,32 @@ lemma coeffAt_tsum_series (c : (ι → ℕ) → F) {k : ℕ} {β : ι → ℕ}
   rw [ite_eq_left]
   simp [MultiIndex.count_canonicalTuple hβ]
 
+/-- **Splitting a multi-index power series along a power of a coordinate.**
+
+`f = f₀ + z i ^ p * f₁`, where `f₀` collects the multi-indices of degree `< p` in the `i`-th
+coordinate -- Waldschmidt's "polynomial in `z i` of degree `< p`" -- and `f₁` is the series
+with that exponent shifted down by `p`.  This is Lemma 4.8 (c) of [waldschmidt2000] for a
+single coordinate and a single monic factor `z i ^ p`. -/
+theorem hasSum_split_coord_pow {c : (ι → ℕ) → F} (i : ι) (p : ℕ) {z : ι → 𝕜} {S T : F}
+    (h₀ : HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • (if α i < p then c α else 0)) S)
+    (h₁ : HasSum (fun β : ι → ℕ =>
+      (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) T) :
+    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (S + z i ^ p • T) := by
+  classical
+  set d : (ι → ℕ) → F := fun α => if α i < p then 0 else c α with hd
+  have hdvanish : ∀ α : ι → ℕ, α i < p → d α = 0 := fun α hα => by simp [hd, hα]
+  have hdshift : ∀ β : ι → ℕ, d (β + (Pi.single i p : ι → ℕ)) = c (β + Pi.single i p) := by
+    intro β
+    simp [hd]
+  have h₁' : HasSum (fun β : ι → ℕ =>
+      (∏ j, z j ^ β j) • d (β + (Pi.single i p : ι → ℕ))) T := by
+    simpa [hdshift] using h₁
+  have hsplit := h₀.add (hasSum_smul_shift_pow i p hdvanish h₁')
+  refine hsplit.congr_fun fun α => ?_
+  rw [← smul_add]
+  congr 1
+  by_cases hα : α i < p <;> simp [hd, hα]
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
