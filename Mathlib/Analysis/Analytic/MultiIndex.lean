@@ -112,10 +112,12 @@ lemma MultiIndex.hasFPowerSeriesOnBall_series (α : ι → ℕ) (c : F) {r : ℝ
 
 If the coefficients `c α`, indexed by multi-indices `α : ι → ℕ`, satisfy
 `∑ α, ‖c α‖ * r ^ |α| < ∞`, then `z ↦ ∑' α, z ^ α • c α` is analytic at the origin. -/
-theorem analyticAt_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r : ℝ≥0} (hr : 0 < r)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ i, α i)) :
-    AnalyticAt 𝕜 (fun z : ι → 𝕜 => ∑' α : ι → ℕ, (∏ i, z i ^ α i) • c α) 0 := by
-  refine analyticAt_tsum hr (fun α => MultiIndex.hasFPowerSeriesOnBall_series α (c α) hr) ?_
+theorem hasFPowerSeriesOnBall_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r : ℝ≥0}
+    (hr : 0 < r) (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ i, α i)) :
+    HasFPowerSeriesOnBall (fun z : ι → 𝕜 => ∑' α : ι → ℕ, (∏ i, z i ^ α i) • c α)
+      (fun k => ∑' α : ι → ℕ, MultiIndex.series α (c α) k) 0 r := by
+  refine hasFPowerSeriesOnBall_tsum hr
+    (fun α => MultiIndex.hasFPowerSeriesOnBall_series α (c α) hr) ?_
   set e : (ι → ℕ) → ℕ × (ι → ℕ) := fun α => (∑ j, α j, α) with he
   have hinj : Function.Injective e := fun a b h => by simpa [he] using congrArg Prod.snd h
   have hzero : ∀ kα : ℕ × (ι → ℕ), kα ∉ Set.range e →
@@ -461,6 +463,22 @@ theorem hasSum_smul_shift {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} {T
     rw [hvanish α hai, smul_zero]
   exact (hinj.hasSum_iff hzero).1 hshift
 
+omit [DecidableEq ι] in
+/-- A normally convergent multi-index power series is analytic at the origin. -/
+theorem analyticAt_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ i, α i)) :
+    AnalyticAt 𝕜 (fun z : ι → 𝕜 => ∑' α : ι → ℕ, (∏ i, z i ^ α i) • c α) 0 :=
+  (hasFPowerSeriesOnBall_tsum_monomial c hr hsum).analyticAt
+
+omit [DecidableEq ι] in
+/-- A normally convergent multi-index power series is analytic on the whole polydisc of
+convergence, not merely at its centre. -/
+theorem analyticOnNhd_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ i, α i)) :
+    AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 => ∑' α : ι → ℕ, (∏ i, z i ^ α i) • c α)
+      (Metric.eball (0 : ι → 𝕜) r) :=
+  (hasFPowerSeriesOnBall_tsum_monomial c hr hsum).analyticOnNhd
+
 /-- The shifted series is again analytic: dividing by a coordinate preserves analyticity. -/
 theorem analyticAt_tsum_monomial_shift [CompleteSpace F] (c : (ι → ℕ) → F)
     (i : ι) {r : ℝ≥0} (hr : 0 < r)
@@ -586,6 +604,16 @@ lemma summable_monomial_smul [CompleteSpace F] {c : (ι → ℕ) → F} {ρ : �
         exact (norm_le_pi_norm z j).trans hz
     _ = ρ ^ (∑ j, α j) := by rw [← Finset.prod_pow_eq_pow_sum]
 
+/-- The quotient of a normally convergent series by a power of a coordinate is analytic on
+the whole polydisc of convergence. -/
+theorem analyticOnNhd_tsum_monomial_shift_pow [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι)
+    (p : ℕ) {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
+    AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 =>
+        ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ)))
+      (Metric.eball (0 : ι → 𝕜) r) :=
+  analyticOnNhd_tsum_monomial _ hr (summable_shift_pow (by exact_mod_cast hr) i p hsum)
+
 /-- **Division of an analytic function by a power of a coordinate.**
 
 If the multi-index coefficients of `f` all vanish below degree `m` in the `i`-th coordinate,
@@ -597,10 +625,10 @@ theorem exists_analyticAt_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F
     (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
       Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
     (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
-    ∃ g : (ι → 𝕜) → F, AnalyticAt 𝕜 g 0 ∧
+    ∃ g : (ι → 𝕜) → F, AnalyticOnNhd 𝕜 g (Metric.eball (0 : ι → 𝕜) ρ) ∧
       ∀ z : ι → 𝕜, ‖z‖ < (ρ : ℝ) → f z = z i ^ m • g z := by
   refine ⟨fun z => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)),
-    analyticAt_tsum_monomial_shift_pow _ i m hρ hsum, fun z hz => ?_⟩
+    analyticOnNhd_tsum_monomial_shift_pow _ i m hρ hsum, fun z hz => ?_⟩
   have hshift : HasSum
       (fun β : ι → ℕ => (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)))
       (∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ))) :=
@@ -625,7 +653,7 @@ theorem exists_analyticAt_eq_sub_pow_smul [CompleteSpace F] {f : (ι → 𝕜) �
     (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
       Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
     (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
-    ∃ g : (ι → 𝕜) → F, AnalyticAt 𝕜 g 0 ∧
+    ∃ g : (ι → 𝕜) → F, AnalyticOnNhd 𝕜 g (Metric.eball (0 : ι → 𝕜) ρ) ∧
       ∀ z : ι → 𝕜, ‖z‖ < (ρ : ℝ) → f (x + z) = z i ^ m • g z := by
   have hf0 : HasFPowerSeriesOnBall (fun w : ι → 𝕜 => f (x + w)) p 0 r := by
     simpa [sub_neg_eq_add, add_comm] using hf.comp_sub (-x)
