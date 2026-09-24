@@ -44,41 +44,23 @@ is the sum `∑ v, x v * y v`.
 `schneiderLang_one` the nonhomogeneous case; both deductions are in
 `Mathlib/NumberTheory/Transcendental/Baker/Reduction.lean`.
 
-## What remains
+## The proof
 
-`schneiderLang` is the one open statement in this directory; everything else, including
-Baker's theorem itself, is proved from it.  Its proof is §§4.3-4.6 of [waldschmidt2000], in
-dependency order:
+`schneiderLang` is proved in §§4.3-4.6 of [waldschmidt2000], formalized across this directory:
 
-* **§4.3, Lemma 4.8** — division in the ring of entire functions by a monic polynomial in one
-  coordinate, with sup-norm estimates, by a double induction on the degree and on the number
-  of variables.  The analytic content is available: `MultiIndex.hasSum_split_coord` is the
-  degree-one case, `MultiIndex.hasSum_smul_shift` divides by a coordinate, and
-  `MultiIndex.hasSum_coeff` with `analyticAt_tsum_monomial` moves between a function and its
-  multi-index series.  Division by a linear factor is `sub_smul_dslope_slice` together with
-  `MultiIndex.exists_slice_eq_pow_smul`, which turns the coefficient condition into an
-  ordinary one-variable zero of order `m` and so lets one division be followed by the next.
-  Part (a) is `MultiIndex.coeffAt_eq_zero_of_eventuallyEq_zero`.  What is left is part (b),
-  which needs uniqueness at the level of *series* rather than polynomials: that
-  `∑' α, z ^ α • c α = 0` on a polydisc forces `c = 0`.  The route is to compare with
-  `hasFPowerSeriesOnBall_tsum_monomial` and apply part (a); the one computation still missing
-  is `MultiIndex.coeffAt (fun n => ∑' α, series α (c α) n) k β = c β`, which holds because
-  `MultiIndex.series` already picks a single tuple of basis vectors per multi-index, so no
-  multinomial factor appears.  Then come the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants
-  of step 3.6).
-* **§4.3, Proposition 4.7** — the Schwarz lemma for Cartesian products, from Lemma 4.8.  The
-  maximum modulus principle is available in the needed generality:
-  `Complex.norm_le_of_forall_mem_frontier_norm_le` is stated for an arbitrary complex normed
-  domain, and the closed polydisc is `Metric.closedBall` for the `Pi` sup norm.
-* **§4.4, Lemma 4.9** — the value of `D^σ (z^τ e^{t·z})` at a lattice point, with bounds on the
-  degree and length of the resulting polynomial.  Combinatorial; needs a multi-index
-  derivative API on a product domain, which mathlib does not have.
-* **§4.5, Proposition 4.10** — an auxiliary function small on a disc, from Lemmas 4.12 and
-  4.13.  `ThueSiegel.exists_int_vec_abs_le_of_pow_lt` (Lemma 4.11) is proved.
-* **§4.6** — the transcendence argument, with the parameter choices and the constants
-  `c₁, …, c₁₃`.  It also needs a Liouville inequality: a lower bound for a nonzero algebraic
-  number in terms of its degree and house.  Mathlib has `NumberField.house` and the `Height`
-  directory but not that inequality.
+* **§4.3, Proposition 4.7** (Schwarz's lemma for Cartesian products):
+  `MultiIndex.norm_le_of_taylorCoeff_eq_zero` in
+  `Mathlib/NumberTheory/Transcendental/Baker/SchwarzProduct.lean`, by Newton division one
+  coordinate at a time in place of the ideal-theoretic Lemma 4.8.
+* **§4.4, Lemma 4.9** (Taylor coefficients of `z ^ τ exp (w · z)`):
+  `MultiIndex.taylorCoeff_expMonomial` in `Mathlib/NumberTheory/Transcendental/Baker/ExpPoly.lean`.
+* **§4.5, Proposition 4.10** (the auxiliary function), from Lemmas 4.11-4.13:
+  `ThueSiegel.exists_auxiliary_function` in
+  `Mathlib/NumberTheory/Transcendental/Baker/AuxiliaryFunction.lean`.
+* **§4.6** (the transcendence argument): `Transcendental.SchneiderLangProof.core` in
+  `Mathlib/NumberTheory/Transcendental/Baker/Criterion.lean`, with the choice of parameters and the
+  conclusion `Transcendental.SchneiderLangProof.main` in
+  `Mathlib/NumberTheory/Transcendental/Baker/CriterionMain.lean`.
 
 ## References
 

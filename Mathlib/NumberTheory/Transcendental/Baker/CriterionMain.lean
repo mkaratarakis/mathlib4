@@ -109,11 +109,6 @@ lemma growth_eq {d₀ d₁ T : ℕ} {N Ax ρ : ℝ} (hρ : 0 ≤ ρ) :
 ### Elementary estimates
 -/
 
-lemma log_le_self_of_nonneg {x : ℝ} (hx : 0 ≤ x) : Real.log x ≤ x := by
-  rcases hx.eq_or_lt with rfl | hx
-  · simp
-  · linarith [Real.log_le_sub_one_of_pos hx]
-
 lemma log_add_one_le {x : ℝ} (hx : 0 ≤ x) : Real.log (x + 1) ≤ x := by
   linarith [Real.log_le_sub_one_of_pos (by linarith : 0 < x + 1)]
 
@@ -343,7 +338,7 @@ theorem hbig_of_large {n d₀ d₁ D δ K₁ S₁ : ℕ} (hn1 : 1 ≤ n) (hd : n
     have := mul_le_mul_of_nonneg_left hT2 (by positivity : (0 : ℝ) ≤ d₁ * n * S₁ * lH)
     linarith
   have hlogn : Real.log n ≤ n * Mr := by
-    have := log_le_self_of_nonneg (by positivity : (0 : ℝ) ≤ n)
+    have := Real.log_le_self (by positivity : (0 : ℝ) ≤ n)
     linarith [mul_le_mul_of_nonneg_left hM1 (by positivity : (0 : ℝ) ≤ n)]
   have hρ : (((d₀ * q ^ n : ℕ) : ℝ)) *
       Real.log (1 + Ay * (5 * 3 ^ n * Ep * (S₁ + 2 * B))) ≤ d₀ * (2 * K₁) * (Cr + d) * Mr := by
@@ -539,7 +534,7 @@ theorem hvan_of_large {n d₀ d₁ D δ K₁ S₁ : ℕ} (hn1 : 1 ≤ n) (hd : n
   set Tr : ℝ := (q : ℝ) ^ n with hTr
   have hTQ : Tr ≤ Qd := pow_le_pow_right₀ hq1 (by omega)
   have hTlog : Tr * lq ≤ Qd := by
-    calc Tr * lq ≤ Tr * q := mul_le_mul_of_nonneg_left (log_le_self_of_nonneg hq0.le)
+    calc Tr * lq ≤ Tr * q := mul_le_mul_of_nonneg_left (Real.log_le_self hq0.le)
           (by positivity)
       _ = (q : ℝ) ^ (n + 1) := by rw [hTr, pow_succ]
       _ ≤ Qd := pow_le_pow_right₀ hq1 (by omega)
@@ -712,7 +707,7 @@ theorem aux_conditions_of_large {n d₀ d₁ D : ℕ} (hn1 : 1 ≤ n) (hd : n + 
     calc Tr * q = (q : ℝ) ^ (n + 1) := by rw [hTr, pow_succ]
       _ ≤ Qd := pow_le_pow_right₀ hq1 (by omega)
   have hTlog : Tr * lq ≤ Qd :=
-    (mul_le_mul_of_nonneg_left (log_le_self_of_nonneg (by linarith)) (by positivity)).trans hTq
+    (mul_le_mul_of_nonneg_left (Real.log_le_self (by linarith)) (by positivity)).trans hTq
   have hc : (((q ^ n + 1) ^ d₀ * (q ^ n + 1) ^ d₁ : ℕ) : ℝ) = (Tr + 1) ^ d := by
     rw [hTr, hddef, pow_add]
     push_cast

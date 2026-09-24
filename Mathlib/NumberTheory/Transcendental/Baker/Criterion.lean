@@ -620,7 +620,13 @@ Liouville's inequality its Taylor coefficients of order `< S₀` in each coordin
 the points `s · y`, `s ∈ [0, S₁)ⁿ` (`hvan`).  Let `M₀ ≥ S₀` be the first total order at which
 some Taylor coefficient at some `s · y` is nonzero.  Schwarz's lemma for Cartesian products,
 applied to `F ∘ Y` with vanishing of order `M₀ / n` in each coordinate on `[0, S₁)ⁿ`, makes that
-coefficient too small for Liouville's inequality (`hbig`). -/
+coefficient too small for Liouville's inequality (`hbig`).
+
+The first nonvanishing order is measured by total degree, not by the order in each coordinate as
+in Waldschmidt's step 5: the linear change of variables `z ↦ ∑ⱼ zⱼ yⱼ` preserves vanishing in
+each total degree (`coeff_compContinuousLinearMap_eq_zero`) but not in each coordinate.
+Vanishing in total degree `< M₀` gives vanishing of order `M₀ / n` in each coordinate, which is
+what Proposition 4.7 needs; the loss of the factor `n` is absorbed in the choice of `S₁`. -/
 theorem core (hn1 : 1 ≤ n) (hd₀ : d₀ ≤ n)
     {x : Fin d₁ → Fin n → ℂ} (hxli : LinearIndependent ℚ x) {y : Fin n → Fin n → ℂ}
     (Yl : (Fin n → ℂ) ≃L[ℂ] (Fin n → ℂ)) (hYl : ∀ z, Yl z = fun v => ∑ j, z j * y j v)
