@@ -955,3 +955,24 @@ theorem coeffAt_eq_zero_of_eventuallyEq_zero {J : Type*} [Fintype J] [DecidableE
     rw [hdiag y] at hexp
     simpa [MultiIndex.coeffAt] using hexp.symm
   · exact MultiIndex.coeffAt_eq_zero_of_notMem p n hmem
+
+/-- **Uniqueness of multi-index power series.**
+
+A normally convergent multi-index power series vanishing on a polydisc has all coefficients
+zero.  This is `coeffAt_eq_zero_of_eventuallyEq_zero` applied to the assembled series and read
+back with `MultiIndex.coeffAt_tsum_series`; it is Lemma 4.8 (b) of [waldschmidt2000] in
+coefficient form. -/
+theorem eq_zero_of_tsum_monomial_eq_zero {J : Type*} [Fintype J]
+    {K : Type*} [RCLike K] {G : Type*} [NormedAddCommGroup G] [NormedSpace K G]
+    [CompleteSpace G] {c : (J → ℕ) → G} {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : J → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ i, α i))
+    (h0 : ∀ z : J → K, ‖z‖ < (r : ℝ) → ∑' α : J → ℕ, (∏ i, z i ^ α i) • c α = 0) :
+    ∀ β, c β = 0 := by
+  classical
+  intro β
+  have hfps := hasFPowerSeriesOnBall_tsum_monomial (𝕜 := K) c hr hsum
+  have hev : (fun z : J → K => ∑' α : J → ℕ, (∏ i, z i ^ α i) • c α) =ᶠ[nhds 0] 0 := by
+    filter_upwards [Metric.ball_mem_nhds (0 : J → K) (by exact_mod_cast hr)] with z hz
+    exact h0 z (by simpa using hz)
+  have hz := coeffAt_eq_zero_of_eventuallyEq_zero hfps.hasFPowerSeriesAt hev (∑ i, β i) β
+  rwa [MultiIndex.coeffAt_tsum_series c (MultiIndex.card_slots β)] at hz
