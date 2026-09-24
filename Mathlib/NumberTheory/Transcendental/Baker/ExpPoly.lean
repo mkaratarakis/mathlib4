@@ -226,3 +226,82 @@ theorem taylorCoeff_expMonomial (τ : ι → ℕ) (w ξ : ι → ℂ) (σ : ι �
     (fun y _ => hasSum_expMonomial τ w ξ y) σ
 
 end MultiIndex
+
+/-!
+### Linear combinations of exponential monomials
+-/
+
+namespace MultiIndex
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] {Λ : Type*} [Fintype Λ]
+
+omit [DecidableEq ι] in
+/-- A growth bound: `‖z ^ τ exp (w · z)‖ ≤ (1 + ‖z‖) ^ |τ| exp (‖w‖₁ ‖z‖)`. -/
+lemma norm_expMonomial_le (τ : ι → ℕ) (w z : ι → ℂ) :
+    ‖expMonomial τ w z‖ ≤ (1 + ‖z‖) ^ (∑ v, τ v) * Real.exp ((∑ v, ‖w v‖) * ‖z‖) := by
+  rw [expMonomial, norm_mul, norm_prod, ← Finset.prod_pow_eq_pow_sum]
+  gcongr with v hv
+  · rw [norm_pow]
+    exact pow_le_pow_left₀ (norm_nonneg _) ((norm_le_pi_norm z v).trans (by linarith)) _
+  · refine (Complex.norm_exp_le_exp_norm _).trans (Real.exp_le_exp.2 ?_)
+    refine (norm_sum_le _ _).trans ?_
+    rw [Finset.sum_mul]
+    refine Finset.sum_le_sum fun v _ => ?_
+    rw [norm_mul]
+    exact mul_le_mul_of_nonneg_left (norm_le_pi_norm z v) (norm_nonneg _)
+
+omit [DecidableEq ι] in
+/-- The expansion of a linear combination of exponential monomials at `ξ`. -/
+theorem hasSum_linComb (p : Λ → ℂ) (τ : Λ → ι → ℕ) (w : Λ → ι → ℂ) (ξ y : ι → ℂ) :
+    HasSum (fun σ : ι → ℕ => (∏ v, y v ^ σ v) •
+        ∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ)
+      (∑ l, p l * expMonomial (τ l) (w l) (ξ + y)) := by
+  have h := hasSum_sum fun l (_ : l ∈ Finset.univ) =>
+    (hasSum_expMonomial (τ l) (w l) ξ y).mul_left (p l)
+  refine h.congr_fun fun σ => ?_
+  rw [smul_eq_mul, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun l _ => ?_
+  rw [smul_eq_mul]
+  ring
+
+omit [DecidableEq ι] in
+theorem summable_linComb (p : Λ → ℂ) (τ : Λ → ι → ℕ) (w : Λ → ι → ℂ) (ξ : ι → ℂ) {ρ : ℝ}
+    (hρ : 0 ≤ ρ) :
+    Summable fun σ : ι → ℕ =>
+      ‖∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ‖ * ρ ^ (∑ v, σ v) := by
+  have hs : Summable fun σ : ι → ℕ =>
+      ∑ l, ‖p l‖ * (‖expMonomialCoeff (τ l) (w l) ξ σ‖ * ρ ^ (∑ v, σ v)) :=
+    summable_sum fun l _ => (summable_expMonomialCoeff (τ l) (w l) ξ ρ hρ).mul_left _
+  refine hs.of_nonneg_of_le (fun _ => by positivity) fun σ => ?_
+  calc ‖∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ‖ * ρ ^ (∑ v, σ v)
+      ≤ (∑ l, ‖p l * expMonomialCoeff (τ l) (w l) ξ σ‖) * ρ ^ (∑ v, σ v) := by
+        gcongr
+        exact norm_sum_le _ _
+    _ = ∑ l, ‖p l‖ * (‖expMonomialCoeff (τ l) (w l) ξ σ‖ * ρ ^ (∑ v, σ v)) := by
+        rw [Finset.sum_mul]
+        simp [mul_assoc]
+
+/-- **The Taylor coefficients of a linear combination of exponential monomials.** -/
+theorem taylorCoeff_linComb (p : Λ → ℂ) (τ : Λ → ι → ℕ) (w : Λ → ι → ℂ) (ξ : ι → ℂ)
+    (σ : ι → ℕ) :
+    taylorCoeff (fun z => ∑ l, p l * expMonomial (τ l) (w l) z) ξ σ =
+      ∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ :=
+  taylorCoeff_eq_of_hasSum (ρ := 1) one_pos (by simpa using summable_linComb p τ w ξ zero_le_one)
+    (fun y _ => hasSum_linComb p τ w ξ y) σ
+
+/-- **Power series of a translate on any polydisc.**  `h ↦ F (ξ + h)`, for `F` a linear
+combination of exponential monomials, has on every polydisc about `0` a power series whose
+multi-index coefficients are the Taylor coefficients of `F` at `ξ`. -/
+theorem exists_hasFPowerSeriesOnBall_linComb (p : Λ → ℂ) (τ : Λ → ι → ℕ) (w : Λ → ι → ℂ)
+    (ξ : ι → ℂ) {ρ : NNReal} (hρ : 0 < ρ) :
+    ∃ P : FormalMultilinearSeries ℂ (ι → ℂ) ℂ,
+      HasFPowerSeriesOnBall (fun h => ∑ l, p l * expMonomial (τ l) (w l) (ξ + h)) P 0 ρ ∧
+      ∀ σ, coeff P σ = ∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ := by
+  set c : (ι → ℕ) → ℂ := fun σ => ∑ l, p l * expMonomialCoeff (τ l) (w l) ξ σ with hc
+  have hsum := summable_linComb p τ w ξ ρ.2
+  have hP := hasFPowerSeriesOnBall_tsum_monomial (𝕜 := ℂ) c hρ hsum
+  refine ⟨_, hP.congr fun y _ => ?_, fun σ => coeffAt_tsum_series c (card_slots σ)⟩
+  have := (hasSum_linComb p τ w ξ y).tsum_eq
+  simpa [hc] using this
+
+end MultiIndex
