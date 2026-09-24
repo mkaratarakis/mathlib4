@@ -42,10 +42,37 @@ is the sum `∑ v, x v * y v`.
 `schneiderLang_one` the nonhomogeneous case; both deductions are in
 `Mathlib/NumberTheory/Transcendental/Baker/Reduction.lean`.
 
+## What remains
+
+`schneiderLang` is the one open statement in this directory; everything else, including
+Baker's theorem itself, is proved from it.  Its proof is §§4.3-4.6 of [waldschmidt2000], in
+dependency order:
+
+* **§4.3, Lemma 4.8** — division in the ring of entire functions by a monic polynomial in one
+  coordinate, with sup-norm estimates, by a double induction on the degree and on the number
+  of variables.  The analytic content is available: `MultiIndex.hasSum_split_coord` is the
+  degree-one case, `MultiIndex.hasSum_smul_shift` divides by a coordinate, and
+  `MultiIndex.hasSum_coeff` with `analyticAt_tsum_monomial` moves between a function and its
+  multi-index series.  What is left is the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants of
+  step 3.6) and the bookkeeping of the induction.
+* **§4.3, Proposition 4.7** — the Schwarz lemma for Cartesian products, from Lemma 4.8.  The
+  maximum modulus principle is available in the needed generality:
+  `Complex.norm_le_of_forall_mem_frontier_norm_le` is stated for an arbitrary complex normed
+  domain, and the closed polydisc is `Metric.closedBall` for the `Pi` sup norm.
+* **§4.4, Lemma 4.9** — the value of `D^σ (z^τ e^{t·z})` at a lattice point, with bounds on the
+  degree and length of the resulting polynomial.  Combinatorial; needs a multi-index
+  derivative API on a product domain, which mathlib does not have.
+* **§4.5, Proposition 4.10** — an auxiliary function small on a disc, from Lemmas 4.12 and
+  4.13.  `ThueSiegel.exists_int_vec_abs_le_of_pow_lt` (Lemma 4.11) is proved.
+* **§4.6** — the transcendence argument, with the parameter choices and the constants
+  `c₁, …, c₁₃`.  It also needs a Liouville inequality: a lower bound for a nonzero algebraic
+  number in terms of its degree and house.  Mathlib has `NumberField.house` and the `Height`
+  directory but not that inequality.
+
 ## References
 
 * [M. Waldschmidt, *Diophantine Approximation on Linear Algebraic
-  Groups*][waldschmidt2000], Chapter 4, §4.1
+  Groups*][waldschmidt2000], Chapter 4
 -/
 
 @[expose] public section
