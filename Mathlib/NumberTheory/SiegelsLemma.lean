@@ -237,19 +237,22 @@ bounded by `X` makes all the forms at most `U * X / l` in absolute value.
 
 The proof is Dirichlet's box principle: the `(X + 1) ^ ν` vectors of the box `[0, X] ^ ν` are
 sent to `l ^ μ` boxes, so two of them collide, and their difference is the required `ξ`. -/
-theorem exists_int_vec_abs_le_of_pow_lt (v : Fin ν → Fin μ → ℝ) {U : ℝ} (hU0 : 0 ≤ U)
+theorem exists_int_vec_abs_le_of_pow_lt {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (v : ι → κ → ℝ) {U : ℝ} (hU0 : 0 ≤ U)
     (hU : ∀ j, ∑ i, |v i j| ≤ U) {X l : ℕ} (hX : 0 < X) (hl : 0 < l)
-    (hcard : (l : ℝ) ^ μ < ((X : ℝ) + 1) ^ ν) :
-    ∃ ξ : Fin ν → ℤ, ξ ≠ 0 ∧ (∀ i, |ξ i| ≤ (X : ℤ)) ∧
+    (hcard : (l : ℝ) ^ Fintype.card κ < ((X : ℝ) + 1) ^ Fintype.card ι) :
+    ∃ ξ : ι → ℤ, ξ ≠ 0 ∧ (∀ i, |ξ i| ≤ (X : ℤ)) ∧
       ∀ j, |∑ i, v i j * (ξ i : ℝ)| ≤ U * X / l := by
   classical
   have hlR : (1 : ℝ) ≤ (l : ℝ) := by exact_mod_cast hl
-  have hν : 0 < ν := by
-    rcases Nat.eq_zero_or_pos ν with h | h
-    · subst h
-      simp only [pow_zero] at hcard
+  have hν : Nonempty ι := by
+    rcases isEmpty_or_nonempty ι with h | h
+    · exfalso
+      rw [Fintype.card_eq_zero (α := ι), pow_zero] at hcard
       exact absurd (one_le_pow₀ hlR) (not_le.2 hcard)
     · exact h
+  have := hν
+  set i₀ : ι := Classical.arbitrary ι with hi₀
   rcases hU0.eq_or_lt with hU00 | hUpos
   · -- Degenerate case: all coefficients vanish, so any nonzero vector in the box works.
     have hv0 : ∀ i j, v i j = 0 := by
@@ -258,23 +261,23 @@ theorem exists_int_vec_abs_le_of_pow_lt (v : Fin ν → Fin μ → ℝ) {U : ℝ
       have h1 : ∑ k, |v k j| = 0 :=
         le_antisymm (by rw [hU00]; exact hU j) (Finset.sum_nonneg hnn)
       exact abs_eq_zero.1 ((Finset.sum_eq_zero_iff_of_nonneg hnn).1 h1 i (Finset.mem_univ i))
-    refine ⟨fun i => if i = ⟨0, hν⟩ then 1 else 0, fun h => ?_, fun i => ?_, fun j => ?_⟩
-    · simpa using congrFun h ⟨0, hν⟩
+    refine ⟨fun i => if i = i₀ then 1 else 0, fun h => ?_, fun i => ?_, fun j => ?_⟩
+    · simpa using congrFun h i₀
     · have hX' : (1 : ℤ) ≤ (X : ℤ) := by exact_mod_cast hX
-      by_cases h : i = ⟨0, hν⟩ <;> simp [h, hX']
+      by_cases h : i = i₀ <;> simp [h, hX']
     · simp [hv0, ← hU00]
   · -- The `l` boxes have length `c`.
     set c : ℝ := (X : ℝ) * U / l with hcdef
     have hXR : (0 : ℝ) < (X : ℝ) := by exact_mod_cast hX
     have hc : 0 < c := div_pos (mul_pos hXR hUpos) (by linarith)
     have hlc : (l : ℝ) * c = (X : ℝ) * U := by rw [hcdef]; field_simp
-    set sh : Fin μ → ℝ := fun j => ∑ i, max 0 (-(v i j)) with hsh
-    set a : (Fin ν → ℤ) → Fin μ → ℝ :=
+    set sh : κ → ℝ := fun j => ∑ i, max 0 (-(v i j)) with hsh
+    set a : (ι → ℤ) → κ → ℝ :=
       fun ξ j => (∑ i, v i j * (ξ i : ℝ)) + (X : ℝ) * sh j with ha
     have haeq : ∀ ξ j, a ξ j = ∑ i, (v i j * (ξ i : ℝ) + (X : ℝ) * max 0 (-(v i j))) := by
       intro ξ j
       simp only [ha, hsh, Finset.mul_sum, Finset.sum_add_distrib]
-    set B : Finset (Fin ν → ℤ) := Fintype.piFinset fun _ => Finset.Icc (0 : ℤ) (X : ℤ) with hB
+    set B : Finset (ι → ℤ) := Fintype.piFinset fun _ => Finset.Icc (0 : ℤ) (X : ℤ) with hB
     have hBmem : ∀ ξ, ξ ∈ B ↔ ∀ i, 0 ≤ ξ i ∧ ξ i ≤ (X : ℤ) := by
       intro ξ; simp [hB, Fintype.mem_piFinset, Finset.mem_Icc]
     -- `a ξ j` lies in `[0, l * c]` for every `ξ` in the box.
@@ -291,7 +294,7 @@ theorem exists_int_vec_abs_le_of_pow_lt (v : Fin ν → Fin μ → ℝ) {U : ℝ
     have haU : ∀ ξ ∈ B, ∀ j, a ξ j ≤ (l : ℝ) * c := by
       intro ξ hξ j
       rw [hlc, haeq]
-      have hterm : ∀ i ∈ (Finset.univ : Finset (Fin ν)),
+      have hterm : ∀ i ∈ (Finset.univ : Finset (ι)),
           v i j * (ξ i : ℝ) + (X : ℝ) * max 0 (-(v i j)) ≤ (X : ℝ) * |v i j| := by
         intro i _
         obtain ⟨h1, h2⟩ := (hBmem ξ).1 hξ i
@@ -305,13 +308,15 @@ theorem exists_int_vec_abs_le_of_pow_lt (v : Fin ν → Fin μ → ℝ) {U : ℝ
         _ = (X : ℝ) * ∑ i, |v i j| := by rw [Finset.mul_sum]
         _ ≤ (X : ℝ) * U := mul_le_mul_of_nonneg_left (hU j) hXR.le
     -- Dirichlet's box principle.
-    set box : (Fin ν → ℤ) → Fin μ → Fin l :=
+    set box : (ι → ℤ) → κ → Fin l :=
       fun ξ j => ⟨min (l - 1) ⌊a ξ j / c⌋.toNat, by omega⟩ with hbox
-    have hlt : (Finset.univ : Finset (Fin μ → Fin l)).card < B.card := by
-      have h1 : (Finset.univ : Finset (Fin μ → Fin l)).card = l ^ μ := by simp
-      have h2 : B.card = (X + 1) ^ ν := by simp [hB, Fintype.card_piFinset, Int.card_Icc]
+    have hlt : (Finset.univ : Finset (κ → Fin l)).card < B.card := by
+      have h1 : (Finset.univ : Finset (κ → Fin l)).card = l ^ Fintype.card κ := by simp
+      have h2 : B.card = (X + 1) ^ Fintype.card ι := by
+        simp [hB, Fintype.card_piFinset, Int.card_Icc]
       rw [h1, h2]
-      have : ((l ^ μ : ℕ) : ℝ) < (((X + 1) ^ ν : ℕ) : ℝ) := by push_cast; exact hcard
+      have : ((l ^ Fintype.card κ : ℕ) : ℝ) < (((X + 1) ^ Fintype.card ι : ℕ) : ℝ) := by
+        push_cast; exact hcard
       exact_mod_cast this
     obtain ⟨ξ', hξ'B, ξ'', hξ''B, hne, heq⟩ :=
       Finset.exists_ne_map_eq_of_card_lt_of_maps_to hlt (fun ξ _ => Finset.mem_univ (box ξ))
