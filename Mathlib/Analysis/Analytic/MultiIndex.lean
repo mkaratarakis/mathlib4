@@ -203,4 +203,53 @@ lemma MultiIndex.summable_shift [DecidableEq ι] {c : (ι → ℕ) → F} {r : �
   field_simp
   ring
 
+namespace MultiIndex
+
+/-- The multi-index recording how often each coordinate occurs in `g : Fin k → ι`. -/
+def count [DecidableEq ι] {k : ℕ} (g : Fin k → ι) : ι → ℕ :=
+  fun i => (Finset.univ.filter fun j => g j = i).card
+
+lemma sum_count [DecidableEq ι] {k : ℕ} (g : Fin k → ι) : ∑ i, count g i = k :=
+  (Finset.card_eq_sum_card_fiberwise (f := g) (s := (Finset.univ : Finset (Fin k)))
+    (t := (Finset.univ : Finset ι)) fun x _ => Finset.mem_univ _).symm.trans (by simp)
+
+lemma count_le [DecidableEq ι] {k : ℕ} (g : Fin k → ι) (i : ι) : count g i ≤ k := by
+  have h := Finset.single_le_sum (f := count g) (fun _ _ => Nat.zero_le _) (Finset.mem_univ i)
+  rwa [sum_count] at h
+
+lemma prod_eq_prod_pow_count [DecidableEq ι] {k : ℕ} (g : Fin k → ι) (z : ι → 𝕜) :
+    ∏ j, z (g j) = ∏ i, z i ^ count g i := by
+  rw [← Finset.prod_fiberwise_of_maps_to (t := (Finset.univ : Finset ι))
+    (fun x _ => Finset.mem_univ (g x)) fun j => z (g j)]
+  refine Finset.prod_congr rfl fun i _ => ?_
+  have hconst : ∀ j ∈ Finset.univ.filter fun j => g j = i, z (g j) = z i := by
+    intro j hj
+    simp only [Finset.mem_filter] at hj
+    rw [hj.2]
+  rw [Finset.prod_congr rfl hconst, Finset.prod_const]
+  rfl
+
+end MultiIndex
+
+/-- The coordinate expansion of a continuous multilinear map on the diagonal, regrouped by
+multi-index.  Together with `analyticAt_tsum_monomial` this identifies analytic functions on
+`ι → 𝕜` with normally convergent multi-index power series. -/
+lemma ContinuousMultilinearMap.apply_diag_eq_sum_multiIndex [DecidableEq ι] {k : ℕ}
+    (p : ContinuousMultilinearMap 𝕜 (fun _ : Fin k => (ι → 𝕜)) F) (z : ι → 𝕜) :
+    p (fun _ => z) = ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1),
+      (∏ i, z i ^ α i) •
+        ∑ g ∈ Finset.univ.filter fun g : Fin k → ι => MultiIndex.count g = α,
+          p fun j => Pi.single (g j) 1 := by
+  have hmaps : ∀ g : Fin k → ι, g ∈ (Finset.univ : Finset (Fin k → ι)) →
+      MultiIndex.count g ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1) := by
+    intro g _
+    simp only [Fintype.mem_piFinset, Finset.mem_range]
+    exact fun i => Nat.lt_succ_of_le (MultiIndex.count_le g i)
+  rw [p.apply_diag_eq_sum z, ← Finset.sum_fiberwise_of_maps_to hmaps]
+  refine Finset.sum_congr rfl fun α _ => ?_
+  rw [Finset.smul_sum]
+  refine Finset.sum_congr rfl fun g hg => ?_
+  simp only [Finset.mem_filter] at hg
+  rw [← hg.2, MultiIndex.prod_eq_prod_pow_count]
+
 end
