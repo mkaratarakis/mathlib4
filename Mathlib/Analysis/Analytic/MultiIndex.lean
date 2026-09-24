@@ -832,6 +832,54 @@ lemma card_filter_slots_fst (α : ι → ℕ) (i : ι) :
   rw [← h1]
   exact (Fintype.card_subtype _).symm
 
+omit [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+/-- A tuple matching a multi-index's enumeration of its slots has that multi-index as its
+coordinate count.  So for a fixed tuple at most one multi-index can contribute, which is what
+collapses the sum over multi-indices to a single term. -/
+lemma count_eq_of_matching {α : ι → ℕ} {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots α) = k) {g : Fin k → ι}
+    (hmatch : ∀ t : MultiIndex.Slots α, g (Fintype.equivFinOfCardEq hk t) = t.1) :
+    MultiIndex.count g = α := by
+  classical
+  funext i
+  calc MultiIndex.count g i = Fintype.card {j : Fin k // g j = i} :=
+        (Fintype.card_subtype _).symm
+    _ = Fintype.card {t : MultiIndex.Slots α // t.1 = i} :=
+        (Fintype.card_congr (Equiv.subtypeEquiv (Fintype.equivFinOfCardEq hk)
+          fun t => by rw [hmatch t])).symm
+    _ = (Finset.univ.filter fun t : MultiIndex.Slots α => t.1 = i).card :=
+        Fintype.card_subtype _
+    _ = α i := MultiIndex.card_filter_slots_fst α i
+
+/-- The canonical tuple of basis-vector indices attached to a multi-index: the `j`-th slot
+carries the coordinate that the enumeration assigns to it. -/
+noncomputable def canonicalTuple {β : ι → ℕ} {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots β) = k) : Fin k → ι :=
+  fun j => ((Fintype.equivFinOfCardEq hk).symm j).1
+
+omit [DecidableEq ι] [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+lemma canonicalTuple_matching {β : ι → ℕ} {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots β) = k) (t : MultiIndex.Slots β) :
+    MultiIndex.canonicalTuple hk (Fintype.equivFinOfCardEq hk t) = t.1 := by
+  simp [MultiIndex.canonicalTuple]
+
+omit [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+/-- The canonical tuple has the expected coordinate count. -/
+lemma count_canonicalTuple {β : ι → ℕ} {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots β) = k) :
+    MultiIndex.count (MultiIndex.canonicalTuple hk) = β :=
+  MultiIndex.count_eq_of_matching hk (MultiIndex.canonicalTuple_matching hk)
+
+omit [DecidableEq ι] [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+/-- It is the only tuple matching that enumeration. -/
+lemma eq_canonicalTuple_of_matching {β : ι → ℕ} {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots β) = k) {g : Fin k → ι}
+    (hmatch : ∀ t : MultiIndex.Slots β, g (Fintype.equivFinOfCardEq hk t) = t.1) :
+    g = MultiIndex.canonicalTuple hk := by
+  funext j
+  have := hmatch ((Fintype.equivFinOfCardEq hk).symm j)
+  simpa [MultiIndex.canonicalTuple] using this
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
