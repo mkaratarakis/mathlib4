@@ -701,6 +701,47 @@ theorem analyticAt_dslope_slice_of_ne {f : (ι → 𝕜) → F} (i : ι) (ζ : �
     rw [← sub_smul_dslope_slice f i ζ z, smul_smul, inv_mul_cancel₀ (sub_ne_zero.2 hz), one_smul]
   exact ((hcoord.inv hne).smul (hf.sub hres)).congr (hform.mono fun z hz => hz.symm)
 
+/-- If the multi-index coefficients vanish below degree `m` in the `i`-th coordinate, then the
+slice of `f` through the centre along that coordinate has a zero of order at least `m`.
+
+This is the bridge to one-variable reasoning: it is what lets a division by one linear factor
+be followed by a division by the next, since a nonzero factor at the second root cannot absorb
+the vanishing. -/
+theorem exists_slice_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
+    {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F} {x : ι → 𝕜} {r : ℝ≥0}
+    (hf : HasFPowerSeriesOnBall f p x r) (i : ι) (m : ℕ)
+    (hvanish : ∀ α : ι → ℕ, α i < m → coeff p α = 0)
+    {ρ : ℝ≥0} (hρ : 0 < ρ) (hρr : (ρ : ℝ≥0∞) ≤ r)
+    (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
+      Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
+    (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
+    ∃ g : 𝕜 → F, AnalyticAt 𝕜 g 0 ∧
+      ∀ w : 𝕜, ‖w - x i‖ < (ρ : ℝ) →
+        f (Function.update x i w) = (w - x i) ^ m • g (w - x i) := by
+  obtain ⟨G, hG, hGeq⟩ := exists_analyticAt_eq_sub_pow_smul hf i m hvanish hρ hρr hconv hsum
+  -- the line through `x` in the `i`-th direction
+  set L : 𝕜 →L[𝕜] (ι → 𝕜) :=
+    (ContinuousLinearMap.id 𝕜 𝕜).smulRight (Pi.single i 1 : ι → 𝕜) with hL
+  have hLapp : ∀ u : 𝕜, L u = u • (Pi.single i 1 : ι → 𝕜) := fun u => rfl
+  have hLnorm : ∀ u : 𝕜, ‖L u‖ = ‖u‖ := by
+    intro u
+    rw [hLapp, norm_smul, Pi.norm_single, norm_one, mul_one]
+  have h0 : (0 : ι → 𝕜) ∈ Metric.eball (0 : ι → 𝕜) ρ :=
+    Metric.mem_eball_self (by exact_mod_cast hρ)
+  have hL0 : L (0 : 𝕜) = (0 : ι → 𝕜) := by simp [hLapp]
+  have hcomp : AnalyticAt 𝕜 (fun u : 𝕜 => G (L u)) 0 :=
+    (hG (L 0) (by rw [hL0]; exact h0)).comp (L.analyticAt 0)
+  refine ⟨fun u => G (L u), hcomp, fun w hw => ?_⟩
+  · have hxz : x + L (w - x i) = Function.update x i w := by
+      funext j
+      rcases eq_or_ne j i with rfl | hj
+      · simp [hLapp]
+      · simp [hLapp, Pi.single_eq_of_ne hj, Function.update_of_ne hj]
+    have hcoord : (L (w - x i)) i = w - x i := by simp [hLapp]
+    have := hGeq (L (w - x i)) (by rw [hLnorm]; exact hw)
+    rw [hxz, hcoord] at this
+    exact this
+
 end MultiIndex
 
 end
