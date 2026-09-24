@@ -102,4 +102,42 @@ theorem norm_le_of_eq_pow_smul {f g : (ι → ℂ) → F} {R M : ℝ} (hR : 0 < 
   calc ‖g y‖ * R ^ m = ‖f y‖ := by rw [h1]; ring
     _ ≤ M := hf y hy
 
+/-!
+### Products of linear factors
+
+The polynomial `∏ ζ ∈ S, (z - ζ) ^ m` with all roots in the disc of radius `r` is small on
+that disc and bounded below on a circle of radius `R > r`.  These are the two bounds a
+Schwarz lemma with prescribed zeros trades against each other.
+-/
+
+/-- A product of linear factors with roots in the disc of radius `r` is bounded below on the
+circle of radius `R`. -/
+lemma norm_prod_sub_pow_ge {S : Finset ℂ} {r R : ℝ} (hrR : r ≤ R)
+    (hS : ∀ ζ ∈ S, ‖ζ‖ ≤ r) (m : ℕ) {z : ℂ} (hz : ‖z‖ = R) :
+    (R - r) ^ (m * S.card) ≤ ‖∏ ζ ∈ S, (z - ζ) ^ m‖ := by
+  rw [norm_prod, pow_mul, ← Finset.prod_const]
+  have hfac : ∀ ζ ∈ S, (R - r) ^ m ≤ ‖(z - ζ) ^ m‖ := by
+    intro ζ hζ
+    rw [norm_pow]
+    refine pow_le_pow_left₀ (by linarith) ?_ m
+    calc R - r ≤ ‖z‖ - ‖ζ‖ := by rw [hz]; linarith [hS ζ hζ]
+      _ ≤ ‖z - ζ‖ := norm_sub_norm_le z ζ
+  gcongr with ζ hζ
+  exact hfac ζ hζ
+
+/-- A product of linear factors with roots in the disc of radius `r` is bounded above on that
+same disc. -/
+lemma norm_prod_sub_pow_le {S : Finset ℂ} {r : ℝ}
+    (hS : ∀ ζ ∈ S, ‖ζ‖ ≤ r) (m : ℕ) {z : ℂ} (hz : ‖z‖ ≤ r) :
+    ‖∏ ζ ∈ S, (z - ζ) ^ m‖ ≤ (2 * r) ^ (m * S.card) := by
+  rw [norm_prod, pow_mul, ← Finset.prod_const]
+  have hfac : ∀ ζ ∈ S, ‖(z - ζ) ^ m‖ ≤ (2 * r) ^ m := by
+    intro ζ hζ
+    rw [norm_pow]
+    refine pow_le_pow_left₀ (norm_nonneg _) ?_ m
+    calc ‖z - ζ‖ ≤ ‖z‖ + ‖ζ‖ := norm_sub_le z ζ
+      _ ≤ 2 * r := by linarith [hS ζ hζ]
+  gcongr with ζ hζ
+  exact hfac ζ hζ
+
 end Complex
