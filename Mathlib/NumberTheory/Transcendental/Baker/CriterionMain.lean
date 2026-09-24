@@ -461,6 +461,205 @@ theorem hbig_of_large {n d₀ d₁ D δ K₁ S₁ : ℕ} (hn1 : 1 ≤ n) (hd : n
         ring
     _ < 1 := Real.exp_lt_one_iff.2 hExneg
 
+/-- The linear bookkeeping at the end of `hvan_of_large`, over plain real variables. -/
+lemma phiE_lt_of_bounds {Mlog Mmax lnn d lq D lc Qd cA lδ Nq cdlQ MlW cHlH c₃ C₆ α₁ α₂ α₃ α₄ n K₁ :
+      ℝ} (hQd : 0 < Qd) (hD0 : 0 ≤ D)
+    (b1 : Mlog ≤ Mmax * (lnn + d * lq)) (b2 : lc ≤ d * Qd) (b3 : cA * lδ ≤ α₁ * Qd)
+    (b4 : cdlQ ≤ α₂ * Qd) (b5 : MlW ≤ Mmax * (α₃ + n * lq)) (b6 : cHlH ≤ α₄ * Qd)
+    (hMmax : Mmax = n * Qd / K₁) (hN : D * Nq = c₃ * Qd * lq / 4)
+    (hmain : (n * d + D * n ^ 2) / K₁ ≤ c₃ / 8)
+    (hC₆ : C₆ = n / K₁ * lnn + D * d + D * α₁ + D * α₂ + D * (n / K₁) * α₃ + D * α₄)
+    (hlq : 2 * C₆ / c₃ + 1 ≤ lq) (hlq0 : 0 ≤ lq) (hc₃ : 0 < c₃) (hK₁ : 0 < K₁) :
+    Mlog + D * (lc + cA * lδ + Nq + cdlQ + MlW + cHlH) < c₃ * Qd * lq := by
+  subst hMmax hC₆
+  have e1 := mul_le_mul_of_nonneg_left b2 hD0
+  have e2 := mul_le_mul_of_nonneg_left b3 hD0
+  have e3 := mul_le_mul_of_nonneg_left b4 hD0
+  have e4 := mul_le_mul_of_nonneg_left b5 hD0
+  have e5 := mul_le_mul_of_nonneg_left b6 hD0
+  have hmain' : (n * d + D * n ^ 2) / K₁ * (Qd * lq) ≤ c₃ / 8 * (Qd * lq) :=
+    mul_le_mul_of_nonneg_right hmain (mul_nonneg hQd.le hlq0)
+  have hsplit : n * Qd / K₁ * (lnn + d * lq) + D * (n * Qd / K₁ * (α₃ + n * lq)) =
+      (n * d + D * n ^ 2) / K₁ * (Qd * lq) + (n / K₁ * lnn + D * (n / K₁) * α₃) * Qd := by
+    field_simp
+    ring
+  have hlq' : 2 * (n / K₁ * lnn + D * d + D * α₁ + D * α₂ + D * (n / K₁) * α₃ + D * α₄) ≤
+      c₃ * (lq - 1) := by
+    have := hlq
+    rw [div_add_one hc₃.ne', div_le_iff₀ hc₃] at this
+    linarith
+  have hC6 : (n / K₁ * lnn + D * d + D * α₁ + D * α₂ + D * (n / K₁) * α₃ + D * α₄) * Qd ≤
+      c₃ * (lq - 1) / 2 * Qd := by
+    have := mul_le_mul_of_nonneg_right hlq' hQd.le
+    linarith
+  have hpos : 0 < c₃ * Qd := mul_pos hc₃ hQd
+  have hpos' : 0 ≤ c₃ * Qd * lq := mul_nonneg hpos.le hlq0
+  have hexp : c₃ * (lq - 1) / 2 * Qd = c₃ * Qd * lq / 2 - c₃ * Qd / 2 := by ring
+  have hexp' : c₃ / 8 * (Qd * lq) = c₃ * Qd * lq / 8 := by ring
+  linarith [hsplit, hmain', hC6, e1, e2, e3, e4, e5, hN, hexp, hexp']
+
+/-- **The vanishing inequality**: the condition `hvan` of `core` holds for all large `q`, with
+`T = q ^ n`, `S₀ = q ^ d / K₁`, `U = c₃ q ^ d log q` and `N = U / (4D)`. -/
+theorem hvan_of_large {n d₀ d₁ D δ K₁ S₁ : ℕ} (hn1 : 1 ≤ n) (hd : n + 1 ≤ d₀ + d₁)
+    (hD : 1 ≤ D) (hδ : 1 ≤ δ) (hK₁ : 1 ≤ K₁) {Hg c₃ : ℝ} (hHg : 1 ≤ Hg) (hc₃ : 0 < c₃)
+    (hK₁c : (n * ((d₀ + d₁ : ℕ) : ℝ) + D * n ^ 2) / K₁ ≤ c₃ / 8) :
+    ∃ Λ : ℝ, ∀ q : ℕ, 2 ≤ q → Λ ≤ Real.log q → ∀ M : ℕ, M ≤ n * (q ^ (d₀ + d₁) / K₁) →
+      liouvilleFactor d₀ d₁ n (q ^ n) S₁ δ D (c₃ * q ^ (d₀ + d₁) * Real.log q / (4 * D)) Hg M *
+        Real.exp (-(c₃ * q ^ (d₀ + d₁) * Real.log q)) < 1 := by
+  set d : ℕ := d₀ + d₁ with hddef
+  have hK₁R : (0 : ℝ) < K₁ := by exact_mod_cast hK₁
+  have hDR : (1 : ℝ) ≤ D := by exact_mod_cast hD
+  have hδR : (1 : ℝ) ≤ δ := by exact_mod_cast hδ
+  set lδ := Real.log δ with hlδ
+  set lH := Real.log Hg with hlH
+  have hlδ0 : 0 ≤ lδ := Real.log_nonneg hδR
+  have hlH0 : 0 ≤ lH := Real.log_nonneg hHg
+  set CQ := Real.log ((δ : ℝ) ^ 2 * n + n * S₁ * Hg + 1) with hCQ
+  have hCQ0 : 0 ≤ CQ := Real.log_nonneg (by
+    have : (0 : ℝ) ≤ (δ : ℝ) ^ 2 * n + n * S₁ * Hg := by positivity
+    linarith)
+  set CW := Real.log (d₁ * Hg + 1) with hCW
+  have hCW0 : 0 ≤ CW := Real.log_nonneg (by
+    have : (0 : ℝ) ≤ d₁ * Hg := by positivity
+    linarith)
+  set α₁ : ℝ := lδ * (d₀ + d₁ * n * S₁ + n / K₁) with hα₁
+  set α₂ : ℝ := d₀ * (CQ + d) with hα₂
+  set α₄ : ℝ := d₁ * n * S₁ * lH with hα₄
+  set lnn := Real.log n with hlnn
+  have hlnn0 : 0 ≤ lnn := Real.log_nonneg (by exact_mod_cast hn1)
+  set C₆ : ℝ := n / K₁ * lnn + D * d + D * α₁ + D * α₂ + D * (n / K₁) * CW + D * α₄ with hC₆
+  refine ⟨2 * C₆ / c₃ + 1, fun q hq hlq M hM => ?_⟩
+  have hq1 : (1 : ℝ) ≤ q := by exact_mod_cast (by omega : 1 ≤ q)
+  have hq0 : (0 : ℝ) < q := by linarith
+  set Qd : ℝ := (q : ℝ) ^ d with hQd
+  have hQd1 : 1 ≤ Qd := one_le_pow₀ hq1
+  have hQd0 : 0 < Qd := by linarith
+  set lq := Real.log q with hlq_def
+  have hlq0 : 0 ≤ lq := Real.log_nonneg hq1
+  set Tr : ℝ := (q : ℝ) ^ n with hTr
+  have hTQ : Tr ≤ Qd := pow_le_pow_right₀ hq1 (by omega)
+  have hTlog : Tr * lq ≤ Qd := by
+    calc Tr * lq ≤ Tr * q := mul_le_mul_of_nonneg_left (log_le_self_of_nonneg hq0.le)
+          (by positivity)
+      _ = (q : ℝ) ^ (n + 1) := by rw [hTr, pow_succ]
+      _ ≤ Qd := pow_le_pow_right₀ hq1 (by omega)
+  set Mmax : ℝ := n * Qd / K₁ with hMmax
+  have hMR : (M : ℝ) ≤ Mmax := by
+    have h1 : (M : ℝ) ≤ n * ((q ^ d / K₁ : ℕ) : ℝ) := by exact_mod_cast hM
+    have h2 : ((q ^ d / K₁ : ℕ) : ℝ) ≤ (q ^ d : ℕ) / (K₁ : ℝ) := Nat.cast_div_le
+    have h3 : ((q ^ d : ℕ) : ℝ) = Qd := by rw [hQd]; push_cast; ring
+    rw [h3] at h2
+    calc (M : ℝ) ≤ n * ((q ^ d / K₁ : ℕ) : ℝ) := h1
+      _ ≤ n * (Qd / K₁) := mul_le_mul_of_nonneg_left h2 (by positivity)
+      _ = Mmax := by rw [hMmax]; ring
+  have hMmax_le : Mmax ≤ n * Qd := by
+    rw [hMmax, div_le_iff₀ hK₁R]
+    have : (1 : ℝ) ≤ K₁ := by exact_mod_cast hK₁
+    nlinarith [show (0 : ℝ) ≤ n * Qd by positivity]
+  set Nq : ℝ := c₃ * q ^ d * Real.log q / (4 * D) with hNq
+  have hN0 : 0 ≤ Nq := by positivity
+  have hLF := liouvilleFactor_le_exp hD hδ hN0 hHg (d₀ := d₀) (d₁ := d₁) (n := n) (T := q ^ n)
+    (S₁ := S₁) M
+  -- the individual bounds
+  have b1 : (M : ℝ) * Real.log M ≤ Mmax * (lnn + d * lq) := by
+    rcases Nat.eq_zero_or_pos M with h0 | hpos
+    · rw [h0]
+      simp only [Nat.cast_zero, zero_mul]
+      have : 0 ≤ lnn + d * lq := by positivity
+      positivity
+    · have hM1 : (1 : ℝ) ≤ M := by exact_mod_cast hpos
+      have hlogM : Real.log M ≤ lnn + d * lq := by
+        rw [hlnn, hlq_def, ← Real.log_pow, ← Real.log_mul (by positivity) (by positivity)]
+        exact Real.log_le_log (by positivity) (hMR.trans hMmax_le)
+      have hlogM0 : 0 ≤ Real.log M := Real.log_nonneg hM1
+      calc (M : ℝ) * Real.log M ≤ Mmax * Real.log M := mul_le_mul_of_nonneg_right hMR hlogM0
+        _ ≤ Mmax * (lnn + d * lq) := mul_le_mul_of_nonneg_left hlogM (by positivity)
+  have b2 : Real.log ((((q ^ n + 1) ^ d₀ * (q ^ n + 1) ^ d₁ : ℕ) : ℝ)) ≤ d * Qd := by
+    have : ((((q ^ n + 1) ^ d₀ * (q ^ n + 1) ^ d₁ : ℕ) : ℝ)) = (Tr + 1) ^ d := by
+      rw [hTr, hddef, pow_add]
+      push_cast
+      ring
+    rw [this, Real.log_pow]
+    calc (d : ℝ) * Real.log (Tr + 1) ≤ d * Tr :=
+          mul_le_mul_of_nonneg_left (log_add_one_le (by positivity)) (by positivity)
+      _ ≤ d * Qd := mul_le_mul_of_nonneg_left hTQ (by positivity)
+  have b3 : (((d₀ * q ^ n + M + d₁ * n * q ^ n * S₁ : ℕ) : ℝ)) * lδ ≤ α₁ * Qd := by
+    have hcast : (((d₀ * q ^ n + M + d₁ * n * q ^ n * S₁ : ℕ) : ℝ)) =
+        d₀ * Tr + M + d₁ * n * S₁ * Tr := by rw [hTr]; push_cast; ring
+    rw [hcast, hα₁]
+    have h1 : d₀ * Tr + M + d₁ * n * S₁ * Tr ≤ (d₀ + d₁ * n * S₁ + n / K₁) * Qd := by
+      have e1 := mul_le_mul_of_nonneg_left hTQ (by positivity : (0 : ℝ) ≤ d₀ + d₁ * n * S₁)
+      have e2 : Mmax = n / K₁ * Qd := by rw [hMmax]; ring
+      calc d₀ * Tr + M + d₁ * n * S₁ * Tr = (d₀ + d₁ * n * S₁) * Tr + M := by ring
+        _ ≤ (d₀ + d₁ * n * S₁) * Qd + Mmax := by linarith
+        _ = (d₀ + d₁ * n * S₁ + n / K₁) * Qd := by rw [e2]; ring
+    calc (d₀ * Tr + M + d₁ * n * S₁ * Tr) * lδ ≤ ((d₀ + d₁ * n * S₁ + n / K₁) * Qd) * lδ :=
+          mul_le_mul_of_nonneg_right h1 hlδ0
+      _ = lδ * (d₀ + d₁ * n * S₁ + n / K₁) * Qd := by ring
+  have b4 : (((d₀ * q ^ n : ℕ) : ℝ)) * Real.log ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) ≤
+      α₂ * Qd := by
+    have hQle : Real.log ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) ≤ CQ + d * lq := by
+      rw [hCQ, hlq_def, ← Real.log_pow, ← Real.log_mul (by positivity) (by positivity)]
+      refine Real.log_le_log (by positivity) ?_
+      have hMn : (M : ℝ) ≤ n * Qd := hMR.trans hMmax_le
+      have e1 : (δ : ℝ) ^ 2 * M ≤ (δ : ℝ) ^ 2 * n * Qd := by
+        calc (δ : ℝ) ^ 2 * M ≤ (δ : ℝ) ^ 2 * (n * Qd) :=
+              mul_le_mul_of_nonneg_left hMn (by positivity)
+          _ = (δ : ℝ) ^ 2 * n * Qd := by ring
+      have e2 : (n * S₁ * Hg + 1 : ℝ) ≤ (n * S₁ * Hg + 1) * Qd :=
+        le_mul_of_one_le_right (by positivity) hQd1
+      rw [← hQd]
+      linarith
+    have hcast : (((d₀ * q ^ n : ℕ) : ℝ)) = d₀ * Tr := by rw [hTr]; push_cast; ring
+    rw [hcast, hα₂]
+    have hlog0 : 0 ≤ Real.log ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) := by
+      have : (0 : ℝ) ≤ (δ : ℝ) ^ 2 * M + n * S₁ * Hg := by positivity
+      exact Real.log_nonneg (by linarith)
+    calc d₀ * Tr * Real.log ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) ≤ d₀ * Tr * (CQ + d * lq) :=
+          mul_le_mul_of_nonneg_left hQle (by positivity)
+      _ = d₀ * (Tr * CQ + d * (Tr * lq)) := by ring
+      _ ≤ d₀ * (Qd * CQ + d * Qd) := by
+          gcongr
+      _ = d₀ * (CQ + d) * Qd := by ring
+  have b5 : (M : ℝ) * Real.log (d₁ * ((q ^ n : ℕ) : ℝ) * Hg + 1) ≤ Mmax * (CW + n * lq) := by
+    have hWle : Real.log (d₁ * ((q ^ n : ℕ) : ℝ) * Hg + 1) ≤ CW + n * lq := by
+      rw [hCW, hlq_def, ← Real.log_pow, ← Real.log_mul (by positivity) (by positivity)]
+      refine Real.log_le_log (by positivity) ?_
+      have hT1 : (1 : ℝ) ≤ Tr := one_le_pow₀ hq1
+      have : ((q ^ n : ℕ) : ℝ) = Tr := by rw [hTr]; push_cast; ring
+      rw [this, ← hTr]
+      linarith
+    have hW0 : 0 ≤ Real.log (d₁ * ((q ^ n : ℕ) : ℝ) * Hg + 1) := by
+      have : (0 : ℝ) ≤ d₁ * ((q ^ n : ℕ) : ℝ) * Hg := by positivity
+      exact Real.log_nonneg (by linarith)
+    calc (M : ℝ) * Real.log (d₁ * ((q ^ n : ℕ) : ℝ) * Hg + 1)
+        ≤ Mmax * Real.log (d₁ * ((q ^ n : ℕ) : ℝ) * Hg + 1) := mul_le_mul_of_nonneg_right hMR hW0
+      _ ≤ Mmax * (CW + n * lq) := mul_le_mul_of_nonneg_left hWle (by positivity)
+  have b6 : (((d₁ * n * q ^ n * S₁ : ℕ) : ℝ)) * lH ≤ α₄ * Qd := by
+    have hcast : (((d₁ * n * q ^ n * S₁ : ℕ) : ℝ)) = d₁ * n * S₁ * Tr := by
+      rw [hTr]; push_cast; ring
+    rw [hcast, hα₄]
+    calc d₁ * n * S₁ * Tr * lH = d₁ * n * S₁ * lH * Tr := by ring
+      _ ≤ d₁ * n * S₁ * lH * Qd := mul_le_mul_of_nonneg_left hTQ (by positivity)
+  have hN : (D : ℝ) * Nq = c₃ * Qd * lq / 4 := by
+    rw [hNq, hQd, hlq_def]
+    have : (D : ℝ) ≠ 0 := by positivity
+    field_simp
+  have hmain : (n * d + D * n ^ 2) / K₁ ≤ c₃ / 8 := by simpa [hddef] using hK₁c
+  have hphi := phiE_lt_of_bounds (Mlog := (M : ℝ) * Real.log M) (lc := _) (cA := _)
+    (cdlQ := _) (MlW := _) (cHlH := _) hQd0 (by positivity : (0 : ℝ) ≤ D) b1 b2 b3 b4 b5 b6
+    hMmax hN hmain hC₆ hlq hlq0 hc₃ hK₁R
+  have hphiE : phiE d₀ d₁ n (q ^ n) S₁ δ D Nq Hg M < c₃ * Qd * lq := by
+    unfold phiE
+    exact hphi
+  calc liouvilleFactor d₀ d₁ n (q ^ n) S₁ δ D Nq Hg M * Real.exp (-(c₃ * q ^ d * Real.log q))
+      ≤ Real.exp (phiE d₀ d₁ n (q ^ n) S₁ δ D Nq Hg M) * Real.exp (-(c₃ * q ^ d * Real.log q)) :=
+        mul_le_mul_of_nonneg_right hLF (Real.exp_pos _).le
+    _ = Real.exp (phiE d₀ d₁ n (q ^ n) S₁ δ D Nq Hg M - c₃ * Qd * lq) := by
+        rw [← Real.exp_add, hQd, hlq_def]
+        ring_nf
+    _ < 1 := Real.exp_lt_one_iff.2 (by linarith)
+
 /-- **The choice of parameters** (step 6 of §4.6 of [waldschmidt2000]).  For fixed data there
 are parameters satisfying all the inequalities used in `core`. -/
 theorem exists_parameters (hn1 : 1 ≤ n) (hd : n < d₀ + d₁) {D δ : ℕ} (hD : 1 ≤ D)
