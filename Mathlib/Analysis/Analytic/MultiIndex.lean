@@ -469,6 +469,47 @@ theorem analyticAt_tsum_monomial_shift [CompleteSpace F] (c : (ι → ℕ) → F
       (fun z : ι → 𝕜 => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) 0 :=
   analyticAt_tsum_monomial _ hr (MultiIndex.summable_shift (by exact_mod_cast hr) i hsum)
 
+/-- **Splitting a multi-index power series along a coordinate.**
+
+Every series decomposes as the part not involving `z i` plus `z i` times the shifted series.
+This is the `p = 1` case of the division lemma behind a Schwarz lemma for Cartesian
+products: `f = f₀ + z i * f₁` with `f₀` of degree `0` in `z i`. -/
+theorem hasSum_split_coord {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} {S T : F}
+    (h₀ : HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • (if α i = 0 then c α else 0)) S)
+    (h₁ : HasSum (fun β : ι → ℕ =>
+      (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) T) :
+    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (S + z i • T) := by
+  classical
+  set d : (ι → ℕ) → F := fun α => if α i = 0 then 0 else c α with hd
+  -- `d` is the part of `c` genuinely involving the `i`-th coordinate
+  have hdvanish : ∀ α : ι → ℕ, α i = 0 → d α = 0 := fun α hα => by simp [hd, hα]
+  have hdshift : ∀ β : ι → ℕ, d (β + (Pi.single i 1 : ι → ℕ)) = c (β + Pi.single i 1) := by
+    intro β
+    simp [hd]
+  have h₁' : HasSum (fun β : ι → ℕ =>
+      (∏ j, z j ^ β j) • d (β + (Pi.single i 1 : ι → ℕ))) T := by
+    simpa [hdshift] using h₁
+  have hsplit := h₀.add (hasSum_smul_shift i hdvanish h₁')
+  refine hsplit.congr_fun fun α => ?_
+  rw [← smul_add]
+  congr 1
+  by_cases hα : α i = 0 <;> simp [hd, hα]
+
+/-- The part of a series not involving the `i`-th coordinate really does not: its value is
+unchanged by moving `z i`. -/
+theorem tsum_ite_coord_eq_update [CompleteSpace F] {c : (ι → ℕ) → F} (i : ι) (z : ι → 𝕜)
+    (w : 𝕜) :
+    (∑' α : ι → ℕ, (∏ j, z j ^ α j) • (if α i = 0 then c α else 0))
+      = ∑' α : ι → ℕ, (∏ j, Function.update z i w j ^ α j) • (if α i = 0 then c α else 0) := by
+  refine tsum_congr fun α => ?_
+  by_cases hα : α i = 0
+  · congr 1
+    refine Finset.prod_congr rfl fun j _ => ?_
+    rcases eq_or_ne j i with rfl | hj
+    · rw [hα]; simp
+    · rw [Function.update_of_ne hj]
+  · simp [hα]
+
 end MultiIndex
 
 end
