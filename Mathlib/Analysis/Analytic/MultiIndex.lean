@@ -256,12 +256,6 @@ namespace MultiIndex
 
 variable [DecidableEq ι]
 
-lemma norm_pi_single_le (i : ι) : ‖(Pi.single i 1 : ι → 𝕜)‖ ≤ 1 := by
-  refine (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => ?_
-  rcases eq_or_ne j i with rfl | h
-  · simp
-  · simp [Pi.single_eq_of_ne h]
-
 /-- The degree-`k` multi-index coefficients of a formal multilinear series on `ι → 𝕜`: the
 coefficient of `z ^ α` is the sum of the values of the `k`-th term on the tuples of basis
 vectors whose coordinate counts are `α`.  It vanishes unless `α` has degree `k`. -/
@@ -283,7 +277,7 @@ lemma norm_coeffAt_le (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (k : �
       ‖p k fun j => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ ‖p k‖ := by
     intro g _
     have hm : ‖fun j : Fin k => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ 1 :=
-      (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => norm_pi_single_le _
+      (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => by simp [Pi.norm_single]
     simpa using ContinuousMultilinearMap.le_opNorm_mul_pow_card_of_le _ hm
   simpa [nsmul_eq_mul] using Finset.sum_le_card_nsmul _ _ _ hb
 
