@@ -26,8 +26,6 @@ this lemma turns the series into an honest `FormalMultilinearSeries`.
 Everything is stated over an arbitrary nontrivially normed field and arbitrary normed
 spaces; no finite-dimensionality is used.
 
-This file belongs in `Mathlib/Analysis/Analytic/Constructions.lean`.
-
 ## Main statements
 
 * `hasFPowerSeriesOnBall_tsum`: the power series of a normally convergent sum.

@@ -1681,10 +1681,12 @@ public import Mathlib.Analysis.Analytic.Inverse
 public import Mathlib.Analysis.Analytic.IsolatedZeros
 public import Mathlib.Analysis.Analytic.IteratedFDeriv
 public import Mathlib.Analysis.Analytic.Linear
+public import Mathlib.Analysis.Analytic.MultiIndex
 public import Mathlib.Analysis.Analytic.OfScalars
 public import Mathlib.Analysis.Analytic.Order
 public import Mathlib.Analysis.Analytic.Polynomial
 public import Mathlib.Analysis.Analytic.RadiusLiminf
+public import Mathlib.Analysis.Analytic.Tsum
 public import Mathlib.Analysis.Analytic.Uniqueness
 public import Mathlib.Analysis.Analytic.WithLp
 public import Mathlib.Analysis.Analytic.Within
@@ -6134,12 +6136,9 @@ public import Mathlib.NumberTheory.SmoothNumbers
 public import Mathlib.NumberTheory.SumFourSquares
 public import Mathlib.NumberTheory.SumPrimeReciprocals
 public import Mathlib.NumberTheory.SumTwoSquares
-public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 public import Mathlib.NumberTheory.Transcendental.Baker.Basic
-public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
 public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.NumberTheory.Transcendental.Baker.Setup
-public import Mathlib.NumberTheory.Transcendental.Baker.ThueSiegel
 public import Mathlib.NumberTheory.Transcendental.Baker.SchneiderLang
 public import Mathlib.NumberTheory.Transcendental.Lindemann.AnalyticalPart
 public import Mathlib.NumberTheory.Transcendental.Liouville.Basic
