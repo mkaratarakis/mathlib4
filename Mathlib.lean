@@ -6134,6 +6134,7 @@ public import Mathlib.NumberTheory.SmoothNumbers
 public import Mathlib.NumberTheory.SumFourSquares
 public import Mathlib.NumberTheory.SumPrimeReciprocals
 public import Mathlib.NumberTheory.SumTwoSquares
+public import Mathlib.NumberTheory.Transcendental.Baker.AlgSize
 public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 public import Mathlib.NumberTheory.Transcendental.Baker.AuxiliaryFunction
 public import Mathlib.NumberTheory.Transcendental.Baker.Basic
