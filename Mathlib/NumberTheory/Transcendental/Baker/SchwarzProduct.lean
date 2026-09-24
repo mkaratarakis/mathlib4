@@ -32,6 +32,23 @@ not have.
 `MultiIndex.analyticAt_dslope_slice_of_eq` shows that the divided difference of `f` in the
 `i`-th coordinate at `ζ` is analytic also on the hyperplane `z i = ζ`, where it is a
 derivative; off the hyperplane this is `MultiIndex.analyticAt_dslope_slice_of_ne`.
+
+## The proof
+
+This is the argument of Waldschmidt's Lemma 4.8, organised as operations on functions rather
+than on an ideal.  Newton division in one coordinate (`MultiIndex.exists_newton`), applied to
+each coordinate in turn (`MultiIndex.exists_newton_finset`), writes `f` as a polynomial main
+term with constant coefficients plus, for each coordinate `i`, the product
+`∏_{ζ ∈ E i} (z i - ζ) ^ m` times an analytic function whose size is controlled.  The
+vanishing of `f` forces the main term to be zero (`MultiIndex.eq_zero_of_tensor`,
+`MultiIndex.newton_eq_zero_of_taylor`), and each remaining product is small on the polydisc
+of polyradius `r`.
+
+## Main statements
+
+* `MultiIndex.norm_le_of_taylorCoeff_eq_zero`: Proposition 4.7, with explicit constants.
+* `MultiIndex.norm_le_of_taylorCoeff_eq_zero_of_five_mul_le`: the same for `R ≥ 5r`, in the
+  form `‖f‖ ≤ n (5 · 3ⁿ r / R) ^ (mS) M`.
 -/
 
 @[expose] public section
@@ -1161,6 +1178,54 @@ theorem norm_le_of_taylorCoeff_eq_zero [Nonempty ι] {f : (ι → ℂ) → V} {E
     _ = Fintype.card ι * (2 * r * (2 / (R - r))) ^ p * K ^ Fintype.card ι * M := by
         rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
           show 2 * r * (2 / (R - r)) = (r + r) * (2 / (R - r)) by ring, mul_pow]
+        ring
+
+/-- **Schwarz's lemma for Cartesian products, for `R ≥ 5r`**: on the polydisc of polyradius
+`r`, `‖f‖ ≤ n (5 · 3ⁿ r / R) ^ (mS) M`. -/
+theorem norm_le_of_taylorCoeff_eq_zero_of_five_mul_le [Nonempty ι] {f : (ι → ℂ) → V}
+    {E : ι → Finset ℂ} {S m : ℕ} (hE : ∀ i, (E i).card = S) {r R M : ℝ} (hr : 0 ≤ r)
+    (hR : 0 < R) (h5 : 5 * r ≤ R) (hEr : ∀ i, ∀ ζ ∈ E i, ‖ζ‖ ≤ r)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ f y)
+    (hM : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M)
+    (hvan : ∀ ξ : ι → ℂ, (∀ i, ξ i ∈ E i) → ∀ κ : ι → ℕ, (∀ i, κ i < m) →
+      taylorCoeff f ξ κ = 0)
+    {z : ι → ℂ} (hz : ‖z‖ ≤ r) :
+    ‖f z‖ ≤ Fintype.card ι * (5 * 3 ^ Fintype.card ι * r / R) ^ (m * S) * M := by
+  have hrR : r < R := by linarith
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM 0 (by simpa using hR.le))
+  have hRr : 0 < R - r := by linarith
+  have hmain := norm_le_of_taylorCoeff_eq_zero hE hr hrR hEr hf hM hvan hz
+  refine hmain.trans ?_
+  set p := m * S
+  set n := Fintype.card ι
+  have hc0 : 0 ≤ 2 / (R - r) := by positivity
+  have h1 : 2 * r * (2 / (R - r)) ≤ 5 * r / R := by
+    rw [show 2 * r * (2 / (R - r)) = 4 * r / (R - r) by ring, div_le_div_iff₀ hRr hR]
+    nlinarith
+  have hρ : 2 / (R - r) * (R + r) ≤ 3 := by
+    rw [div_mul_eq_mul_div, div_le_iff₀ hRr]
+    linarith
+  have hρ0 : 0 ≤ 2 / (R - r) * (R + r) := mul_nonneg hc0 (by linarith)
+  have hK : 1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k ≤ 3 ^ p := by
+    have hsum : ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k ≤
+        ∑ k ∈ Finset.range p, (3 : ℝ) ^ k :=
+      Finset.sum_le_sum fun k _ => pow_le_pow_left₀ hρ0 hρ k
+    have hgeom : ∑ k ∈ Finset.range p, (3 : ℝ) ^ k = (3 ^ p - 1) / 2 := by
+      rw [geom_sum_eq (by norm_num)]
+      norm_num
+    have h3 : (1 : ℝ) ≤ 3 ^ p := one_le_pow₀ (by norm_num)
+    linarith
+  have hK0 : 0 ≤ 1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k := by
+    have : 0 ≤ ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k :=
+      Finset.sum_nonneg fun k _ => pow_nonneg hρ0 k
+    linarith
+  calc (n : ℝ) * (2 * r * (2 / (R - r))) ^ p *
+        (1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k) ^ n * M
+      ≤ n * (5 * r / R) ^ p * (3 ^ p) ^ n * M := by
+        gcongr
+    _ = n * (5 * 3 ^ n * r / R) ^ p * M := by
+        rw [show 5 * 3 ^ n * r / R = 3 ^ n * (5 * r / R) by ring, mul_pow, ← pow_mul, ← pow_mul,
+          mul_comm n p]
         ring
 
 end MultiIndex
