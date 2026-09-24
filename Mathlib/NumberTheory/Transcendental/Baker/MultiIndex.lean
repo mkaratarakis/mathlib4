@@ -12,7 +12,7 @@ public import Mathlib.Algebra.MvPolynomial.Coeff
 public import Mathlib.Algebra.MvPolynomial.Funext
 public import Mathlib.Analysis.LocallyConvex.SeparatingDual
 public import Mathlib.Analysis.RCLike.Basic
-public import Mathlib.Analysis.Analytic.Tsum
+public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 
 /-!
 # Power series in several variables are analytic
