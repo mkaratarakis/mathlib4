@@ -31,8 +31,9 @@ is the sum `∑ v, x v * y v`.
 ## Main statements
 
 * `Transcendental.schneiderLang`: **Corollary 4.2** of [waldschmidt2000].  Given
-  `d₀ ≤ n < d₀ + d₁`, `ℚ`-linearly independent `x 1, …, x d₁` in `ℂⁿ` with algebraic coordinates, and a basis
-  `y 1, …, y n` of `ℂⁿ` over `ℂ`, one of the `(d₀ + d₁) * n` numbers `y j h`
+  `d₀ ≤ n < d₀ + d₁`, `ℚ`-linearly independent `x 1, …, x d₁` in `ℂⁿ` with algebraic
+  coordinates, and a basis `y 1, …, y n` of `ℂⁿ` over `ℂ`, one of the `(d₀ + d₁) * n`
+  numbers `y j h`
   (`h < d₀`) and `exp (x i · y j)` is transcendental.
 * `Transcendental.schneiderLang_zero`: **Corollary 4.3**, the case `d₀ = 0`, phrased as
   in the book with a family of rank at least `n + 1` and a spanning family of `ℂⁿ`.
@@ -118,7 +119,7 @@ theorem schneiderLang_zero {d l : ℕ} (hd : n + 1 ≤ d) (x : Fin d → Fin n �
   obtain ⟨κ, a, ha, hspan, hli⟩ := exists_linearIndependent' ℂ y
   rw [hy] at hspan
   let B : Module.Basis κ ℂ (Fin n → ℂ) := Module.Basis.mk hli hspan.ge
-  haveI : Fintype κ := IsNoetherian.fintypeBasisIndex B
+  have : Fintype κ := IsNoetherian.fintypeBasisIndex B
   have hcard : Fintype.card κ = n := by
     have h := Module.finrank_eq_card_basis B
     rw [Module.finrank_fin_fun] at h
