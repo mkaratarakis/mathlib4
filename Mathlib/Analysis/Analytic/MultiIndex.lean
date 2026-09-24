@@ -956,6 +956,26 @@ theorem hasSum_split_coord_pow {c : (ι → ℕ) → F} (i : ι) (p : ℕ) {z : 
   congr 1
   by_cases hα : α i < p <;> simp [hd, hα]
 
+omit [DecidableEq ι] in
+/-- Truncating the coefficients in one coordinate keeps a series normally convergent. -/
+lemma summable_truncate {c : (ι → ℕ) → F} {r : ℝ} (hr : 0 ≤ r) (i : ι) (p : ℕ)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ j, α j)) :
+    Summable fun α : ι → ℕ => ‖if α i < p then c α else 0‖ * r ^ (∑ j, α j) := by
+  classical
+  refine Summable.of_nonneg_of_le (fun α => by positivity) (fun α => ?_) hsum
+  gcongr
+  by_cases hα : α i < p <;> simp [hα]
+
+omit [DecidableEq ι] in
+/-- The truncated part of the decomposition is analytic on the same polydisc. -/
+theorem analyticOnNhd_tsum_monomial_truncate [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι)
+    (p : ℕ) {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
+    AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 =>
+        ∑' α : ι → ℕ, (∏ j, z j ^ α j) • (if α i < p then c α else 0))
+      (Metric.eball (0 : ι → 𝕜) r) :=
+  analyticOnNhd_tsum_monomial _ hr (MultiIndex.summable_truncate (by positivity) i p hsum)
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
