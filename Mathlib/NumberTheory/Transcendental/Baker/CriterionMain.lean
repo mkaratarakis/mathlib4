@@ -814,7 +814,81 @@ theorem exists_parameters (hn1 : 1 ≤ n) (hd : n < d₀ + d₁) {D δ : ℕ} (h
       (∀ M : ℕ, S₀ ≤ M → liouvilleFactor d₀ d₁ n T S₁ δ D N Hg M *
         (n * (1 / Ep M) ^ (M / n * S₁) * growth d₀ d₁ T N Ax
           (Ay * (5 * 3 ^ n * Ep M * (S₁ + 2 * B)))) < 1) := by
-  sorry
+  set d : ℕ := d₀ + d₁ with hddef
+  have hd' : n + 1 ≤ d := hd
+  have hdR : (1 : ℝ) ≤ d := by exact_mod_cast (by omega : 1 ≤ d)
+  have hDR : (1 : ℝ) ≤ D := by exact_mod_cast hD
+  set c₃ : ℝ := 1 / (4 * D * 6 ^ (n + 1)) with hc₃def
+  have hc₃ : 0 < c₃ := by rw [hc₃def]; positivity
+  -- `K₁` and `S₁`
+  set K₁ : ℕ := ⌈8 * (n * (d : ℝ) + D * n ^ 2) / c₃⌉₊ + 1 with hK₁def
+  have hK₁ : 1 ≤ K₁ := by omega
+  have hK₁R : (0 : ℝ) < K₁ := by exact_mod_cast hK₁
+  have hK₁c : (n * (d : ℝ) + D * n ^ 2) / K₁ ≤ c₃ / 8 := by
+    rw [div_le_iff₀ hK₁R]
+    have h1 : 8 * (n * (d : ℝ) + D * n ^ 2) / c₃ ≤ K₁ := by
+      rw [hK₁def]
+      push_cast
+      linarith [Nat.le_ceil (8 * (n * (d : ℝ) + D * n ^ 2) / c₃)]
+    rw [div_le_iff₀ hc₃] at h1
+    linarith
+  set S₁ : ℕ := ⌈2 * n * (d : ℝ) * (2 + D * n / d + c₃ * K₁ / d)⌉₊ + 1 with hS₁def
+  have hS₁ : 1 ≤ S₁ := by omega
+  have hS₁b : 2 * n * (d : ℝ) * (2 + D * n / d + c₃ * K₁ / d) ≤ (S₁ : ℝ) := by
+    rw [hS₁def]
+    push_cast
+    linarith [Nat.le_ceil (2 * n * (d : ℝ) * (2 + D * n / d + c₃ * K₁ / d))]
+  set r : ℝ := S₁ * Ay + 3 with hrdef
+  have hr1 : 1 ≤ r := by rw [hrdef]; nlinarith [show (0 : ℝ) ≤ S₁ * Ay by positivity]
+  -- the three families of conditions
+  obtain ⟨Mstar, hMstar⟩ := hbig_of_large (S₁ := S₁) hn1 hd' hD hδ hK₁ hHg hAx hAy hB hc₃ hS₁b
+  obtain ⟨Λ6, h6⟩ := hvan_of_large (S₁ := S₁) hn1 hd' hD hδ hK₁ hHg hc₃ hK₁c
+  obtain ⟨Λ5, h5⟩ := aux_conditions_of_large hn1 hd' hD hc₃def hAx hr1
+  -- the choice of `q`
+  set qR : ℝ := max (max 3 (3 / c₃)) (max (Real.exp (max Λ5 Λ6)) (K₁ * (Mstar + 1))) with hqR
+  set q : ℕ := ⌈qR⌉₊ + 3 with hqdef
+  have hqR_le : qR ≤ q := by rw [hqdef]; push_cast; linarith [Nat.le_ceil qR]
+  have hq3 : 3 ≤ q := by omega
+  have hq3R : (3 : ℝ) ≤ q := by exact_mod_cast hq3
+  have hq1 : (1 : ℝ) ≤ q := by linarith
+  have hqc : 3 / c₃ ≤ q := (le_max_right _ _).trans ((le_max_left _ _).trans hqR_le)
+  have hqexp : Real.exp (max Λ5 Λ6) ≤ q :=
+    (le_max_left _ _).trans ((le_max_right _ _).trans hqR_le)
+  have hqK : (K₁ : ℝ) * (Mstar + 1) ≤ q :=
+    (le_max_right _ _).trans ((le_max_right _ _).trans hqR_le)
+  have hlogq : max Λ5 Λ6 ≤ Real.log q := by
+    rw [Real.le_log_iff_exp_le (by linarith)]
+    exact hqexp
+  have hlog5 : Λ5 ≤ Real.log q := (le_max_left _ _).trans hlogq
+  have hlog6 : Λ6 ≤ Real.log q := (le_max_right _ _).trans hlogq
+  have hlogq0 : 0 < Real.log q := Real.log_pos (by linarith)
+  have hqd : (q : ℝ) ≤ (q : ℝ) ^ d := by
+    calc (q : ℝ) = (q : ℝ) ^ 1 := (pow_one _).symm
+      _ ≤ (q : ℝ) ^ d := pow_le_pow_right₀ hq1 (by omega)
+  -- `S₀ = q ^ d / K₁` is at least `Mstar + 1`
+  have hS₀ : Mstar + 1 ≤ q ^ d / K₁ := by
+    rw [Nat.le_div_iff_mul_le (by omega)]
+    have : ((Mstar + 1) * K₁ : ℝ) ≤ ((q ^ d : ℕ) : ℝ) := by
+      push_cast
+      nlinarith
+    exact_mod_cast this
+  obtain ⟨hW, hRr, hRr', hL, hMU⟩ := h5 q hq3 hqc hlog5
+  refine ⟨q ^ n, S₁, q ^ d / K₁, c₃ * q ^ d * Real.log q, c₃ * q ^ d * Real.log q / (4 * D), r,
+    ⟨q * r, by positivity⟩, fun M => Real.exp (Real.log M / ((d₀ + d₁ : ℕ) : ℝ)), hS₁,
+    by positivity, by linarith, by rw [hrdef]; linarith, hW, hRr, hRr', hL, ?_,
+    fun M hM => h6 q (by omega) hlog6 M hM,
+    fun M => Real.one_le_exp (div_nonneg (Real.log_natCast_nonneg M) (by positivity)),
+    fun M hM => hMstar q M (by omega) (by omega) ?_⟩
+  · exact hMU
+  · -- `q ^ d ≤ 2 K₁ M` for `M ≥ S₀`
+    have h1 : q ^ d < K₁ * (q ^ d / K₁ + 1) := Nat.lt_mul_div_succ _ (by omega)
+    have h2 : K₁ * (q ^ d / K₁ + 1) ≤ K₁ * (2 * M) := by
+      refine Nat.mul_le_mul_left _ ?_
+      omega
+    have h3 : q ^ d ≤ 2 * K₁ * M := by
+      have := h1.le.trans h2
+      linarith
+    exact_mod_cast h3
 
 /-- **Corollary 4.2 of [waldschmidt2000]**, proved. -/
 theorem main (hd₀ : d₀ ≤ n) (hn : n < d₀ + d₁)
