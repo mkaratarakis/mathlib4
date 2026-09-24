@@ -5,6 +5,7 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.Algebra.MvPolynomial.Coeff
 public import Mathlib.NumberTheory.Transcendental.Baker.AlgSize
 public import Mathlib.NumberTheory.Transcendental.Baker.AuxiliaryFunction
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpIndep
@@ -463,5 +464,117 @@ lemma norm_auxF_le (x : Fin d₁ → Fin n → ℂ) (T : ℕ) {p : Idx d₀ d₁
         · exact hτ
     _ = Real.exp N * (1 + ‖z‖) ^ (d₀ * T) * Real.exp (T * (∑ i, ∑ v, ‖x i v‖) * ‖z‖) := by
         ring
+
+end Transcendental.SchneiderLangProof
+
+namespace Transcendental.SchneiderLangProof
+
+variable {n d₀ d₁ : ℕ}
+
+/-!
+### A linear change of variables preserves vanishing in each total degree
+-/
+
+theorem coeff_compContinuousLinearMap_eq_zero {ι κ : Type*} [Fintype ι] [DecidableEq ι]
+    [Fintype κ] [DecidableEq κ] (P : FormalMultilinearSeries ℂ (ι → ℂ) ℂ)
+    (A : (κ → ℂ) →L[ℂ] (ι → ℂ)) {k : ℕ} (h : ∀ α : ι → ℕ, ∑ i, α i = k → coeff P α = 0) :
+    ∀ β : κ → ℕ, ∑ j, β j = k → coeff (P.compContinuousLinearMap A) β = 0 := by
+  have hdiag : ∀ u : κ → ℂ, (P.compContinuousLinearMap A) k (fun _ => u) = 0 := by
+    intro u
+    rw [FormalMultilinearSeries.compContinuousLinearMap_apply]
+    change P k (fun _ => A u) = 0
+    rw [apply_diag_eq_sum_piAntidiag]
+    refine Finset.sum_eq_zero fun α hα => ?_
+    rw [Finset.mem_piAntidiag] at hα
+    rw [h α hα.1, smul_zero]
+  intro β hβ
+  refine eq_zero_of_forall_sum_monomial_eq_zero (K := ℂ) (s := Finset.univ.piAntidiag k)
+    (c := fun β => coeff (P.compContinuousLinearMap A) β) (fun u => ?_) β
+    (by simp [Finset.mem_piAntidiag, hβ])
+  rw [← apply_diag_eq_sum_piAntidiag, hdiag]
+
+/-!
+### The auxiliary function is not zero
+-/
+
+lemma freq_injective {x : Fin d₁ → Fin n → ℂ} (hxli : LinearIndependent ℚ x)
+    {t t' : Fin d₁ → ℕ} (h : freq x t = freq x t') : t = t' := by
+  have hsum : ∑ i, ((t i : ℚ) - t' i) • x i = 0 := by
+    funext v
+    have hv := congrFun h v
+    simp only [freq] at hv
+    rw [← sub_eq_zero, ← Finset.sum_sub_distrib] at hv
+    simp only [Finset.sum_apply, Pi.smul_apply, Pi.zero_apply]
+    refine (Finset.sum_congr rfl fun i _ => ?_).trans hv
+    rw [Rat.smul_def]
+    push_cast
+    ring
+  funext i
+  have := Fintype.linearIndependent_iff.1 hxli _ hsum i
+  exact_mod_cast sub_eq_zero.1 this
+
+lemma tauVec_injective (hd₀ : d₀ ≤ n) : Function.Injective (tauVec (n := n) (d₀ := d₀)) := by
+  intro τ τ' h
+  funext k
+  have := congrFun h (Fin.castLE hd₀ k)
+  simpa [tauVec] using this
+
+/-- **The auxiliary function of a nonzero coefficient vector is not zero**: some Taylor
+coefficient at the origin is nonzero.  This is the linear independence of the functions
+`z ^ τ exp ((t · x) · z)`, from `ExpPoly.eq_zero_of_sum_eval_mul_cexp_pi'`. -/
+theorem exists_taylorCoeff_ne_zero (hd₀ : d₀ ≤ n) {x : Fin d₁ → Fin n → ℂ}
+    (hxli : LinearIndependent ℚ x) (T : ℕ) {p : Idx d₀ d₁ T → ℂ} (hp : p ≠ 0) :
+    ∃ σ, taylorCoeff (auxF x T p) 0 σ ≠ 0 := by
+  classical
+  by_contra h
+  push Not at h
+  have hF : ∀ z, auxF x T p z = 0 := by
+    intro z
+    have hs := hasSum_linComb p (fun l => τOf (n := n) l) (fun l => freq x (tOf l)) 0 z
+    rw [zero_add] at hs
+    have h0 : ∀ σ, ∑ l, p l * expMonomialCoeff (τOf (n := n) l) (freq x (tOf l)) 0 σ = 0 :=
+      fun σ => by rw [← taylorCoeff_linComb]; exact h σ
+    simp only [h0, smul_zero] at hs
+    exact hs.unique hasSum_zero
+  set P : (Fin d₁ → Fin (T + 1)) → MvPolynomial (Fin n) ℂ := fun t =>
+    ∑ τ : Fin d₀ → Fin (T + 1),
+      MvPolynomial.monomial (Finsupp.equivFunOnFinite.symm (tauVec fun h => (τ h : ℕ)))
+        (p (τ, t)) with hP
+  have hid : ∀ z : Fin n → ℂ, ∑ t ∈ Finset.univ, MvPolynomial.eval z (P t) *
+      Complex.exp (∑ v, freq x (fun i => (t i : ℕ)) v * z v) = 0 := by
+    intro z
+    rw [← hF z]
+    unfold auxF
+    rw [Fintype.sum_prod_type_right]
+    refine Finset.sum_congr rfl fun t _ => ?_
+    simp only [hP, map_sum, MvPolynomial.eval_monomial, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun τ _ => ?_
+    rw [expMonomial, Finsupp.prod_fintype _ _ fun i => pow_zero _]
+    simp only [Finsupp.coe_equivFunOnFinite_symm, τOf]
+    rw [mul_assoc]
+    rfl
+  have hinj : Set.InjOn (fun t : Fin d₁ → Fin (T + 1) => freq x fun i => (t i : ℕ))
+      ((Finset.univ : Finset (Fin d₁ → Fin (T + 1))) : Set (Fin d₁ → Fin (T + 1))) := by
+    intro t _ t' _ htt
+    have := freq_injective hxli htt
+    funext i
+    exact Fin.ext (congrFun this i)
+  have hP0 := ExpPoly.eq_zero_of_sum_eval_mul_cexp_pi' Finset.univ _ hinj P hid
+  apply hp
+  funext l
+  obtain ⟨τ, t⟩ := l
+  have hc := congrArg (fun q : MvPolynomial (Fin n) ℂ =>
+    q.coeff (Finsupp.equivFunOnFinite.symm (tauVec fun h => (τ h : ℕ)))) (hP0 t (Finset.mem_univ t))
+  simp only [hP, MvPolynomial.coeff_sum, MvPolynomial.coeff_monomial, AddMonoidAlgebra.coeff_zero]
+    at hc
+  rw [Finset.sum_eq_single τ (fun τ' _ hne => ?_) (fun h => absurd (Finset.mem_univ τ) h)] at hc
+  · simpa using hc
+  · rw [ite_eq_right_iff]
+    intro heq
+    exfalso
+    apply hne
+    have h1 := tauVec_injective hd₀ (Finsupp.equivFunOnFinite.symm.injective heq)
+    funext k
+    exact Fin.ext (congrFun h1 k)
 
 end Transcendental.SchneiderLangProof

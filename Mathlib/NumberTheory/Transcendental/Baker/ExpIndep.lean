@@ -242,4 +242,27 @@ theorem eq_zero_of_sum_eval_mul_cexp_pi (T : Finset (ι → ℂ)) (P : (ι → �
   rw [hQ0, eval_zero] at h1
   simpa using h1.symm
 
+/-- Several variables, with frequencies `c a` injective on an arbitrary finite index set. -/
+theorem eq_zero_of_sum_eval_mul_cexp_pi' {α : Type*} (T : Finset α) (c : α → ι → ℂ)
+    (hc : Set.InjOn c T) (P : α → MvPolynomial ι ℂ)
+    (hP : ∀ z : ι → ℂ,
+      ∑ a ∈ T, MvPolynomial.eval z (P a) * Complex.exp (∑ v, c a v * z v) = 0) :
+    ∀ a ∈ T, P a = 0 := by
+  classical
+  set P' : (ι → ℂ) → MvPolynomial ι ℂ :=
+    fun w => ∑ a ∈ T.filter (fun a => c a = w), P a with hP'def
+  have hP' : ∀ a ∈ T, P' (c a) = P a := fun a ha => by
+    simp only [hP'def]
+    rw [Finset.sum_eq_single_of_mem a (by simp [ha])]
+    intro a' ha' hne
+    exact absurd (hc (Finset.mem_filter.1 ha').1 ha (Finset.mem_filter.1 ha').2) hne
+  have hid : ∀ z : ι → ℂ, ∑ w ∈ T.image c,
+      MvPolynomial.eval z (P' w) * Complex.exp (∑ v, w v * z v) = 0 := by
+    intro z
+    rw [Finset.sum_image fun a ha a' ha' h => hc ha ha' h, ← hP z]
+    exact Finset.sum_congr rfl fun a ha => by rw [hP' a ha]
+  intro a ha
+  rw [← hP' a ha]
+  exact eq_zero_of_sum_eval_mul_cexp_pi _ P' hid _ (Finset.mem_image_of_mem c ha)
+
 end ExpPoly
