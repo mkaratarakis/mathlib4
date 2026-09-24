@@ -74,7 +74,7 @@ noncomputable def MultiIndex.series (α : ι → ℕ) (c : F) :
 
 lemma MultiIndex.series_of_ne (α : ι → ℕ) (c : F) {n : ℕ} (h : ∑ i, α i ≠ n) :
     MultiIndex.series (𝕜 := 𝕜) α c n = 0 := by
-  rw [MultiIndex.series, dif_neg]
+  rw [MultiIndex.series, dite_eq_right]
   rwa [MultiIndex.card_slots]
 
 lemma MultiIndex.norm_series_le (α : ι → ℕ) (c : F) (n : ℕ) :
@@ -83,11 +83,11 @@ lemma MultiIndex.norm_series_le (α : ι → ℕ) (c : F) (n : ℕ) :
   split
   · rw [ContinuousMultilinearMap.norm_domDomCongr]
     exact MultiIndex.norm_toCMM_le α c
-  · simpa using norm_nonneg c
+  · simp
 
 lemma MultiIndex.series_diag (α : ι → ℕ) (c : F) (z : ι → 𝕜) :
     MultiIndex.series α c (∑ i, α i) (fun _ => z) = (∏ i, z i ^ α i) • c := by
-  rw [MultiIndex.series, dif_pos (MultiIndex.card_slots α)]
+  rw [MultiIndex.series, dite_eq_left (MultiIndex.card_slots α)]
   rw [ContinuousMultilinearMap.domDomCongr_apply]
   exact MultiIndex.toCMM_diag α c z
 
@@ -163,7 +163,8 @@ lemma MultiIndex.summable_norm_mul_pow {c : (ι → ℕ) → F} {M R r : ℝ} (h
     Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ i, α i) := by
   have hM : 0 ≤ M := le_trans (norm_nonneg (c 0)) (by simpa using hc 0)
   refine Summable.of_nonneg_of_le (fun α => by positivity) (fun α => ?_)
-    ((MultiIndex.summable_pow_sum (ι := ι) (div_nonneg hr0 hR.le) ((div_lt_one hR).2 hrR)).mul_left M)
+    ((MultiIndex.summable_pow_sum (ι := ι) (div_nonneg hr0 hR.le)
+      ((div_lt_one hR).2 hrR)).mul_left M)
   have hRpow : (0 : ℝ) < R ^ (∑ i, α i) := by positivity
   calc ‖c α‖ * r ^ (∑ i, α i) ≤ (M / R ^ (∑ i, α i)) * r ^ (∑ i, α i) := by
         gcongr; exact hc α
@@ -213,9 +214,10 @@ lemma sum_count [DecidableEq ι] {k : ℕ} (g : Fin k → ι) : ∑ i, count g i
   (Finset.card_eq_sum_card_fiberwise (f := g) (s := (Finset.univ : Finset (Fin k)))
     (t := (Finset.univ : Finset ι)) fun x _ => Finset.mem_univ _).symm.trans (by simp)
 
+omit [Fintype ι] in
 lemma count_le [DecidableEq ι] {k : ℕ} (g : Fin k → ι) (i : ι) : count g i ≤ k := by
-  have h := Finset.single_le_sum (f := count g) (fun _ _ => Nat.zero_le _) (Finset.mem_univ i)
-  rwa [sum_count] at h
+  have h := Finset.card_filter_le (Finset.univ : Finset (Fin k)) fun j => g j = i
+  rwa [Finset.card_univ, Fintype.card_fin] at h
 
 lemma prod_eq_prod_pow_count [DecidableEq ι] {k : ℕ} (g : Fin k → ι) (z : ι → 𝕜) :
     ∏ j, z (g j) = ∏ i, z i ^ count g i := by
@@ -415,6 +417,57 @@ theorem hasSum_coeff [CompleteSpace F] {p : FormalMultilinearSeries 𝕜 (ι →
   have hflat := (hinj.hasSum_iff hzero).2 hsummable.hasSum
   rw [heq] at hflat
   simpa [hu, coeff, Function.comp_def] using hflat
+
+/-- **Division of a multi-index power series by a coordinate.**
+
+If every coefficient supported off the `i`-th coordinate vanishes, then the series is `z i`
+times the series with the `i`-th exponent shifted down.  This is the algebraic heart of the
+division step in a Schwarz lemma for Cartesian products. -/
+theorem hasSum_smul_shift {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} {T : F}
+    (hvanish : ∀ α : ι → ℕ, α i = 0 → c α = 0)
+    (h : HasSum (fun β : ι → ℕ => (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) T) :
+    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (z i • T) := by
+  set e : ι → ℕ := Pi.single i 1 with he
+  -- multiplying the shifted series by `z i` restores the exponents
+  have hterm : ∀ β : ι → ℕ,
+      z i • ((∏ j, z j ^ β j) • c (β + e)) = (∏ j, z j ^ (β + e) j) • c (β + e) := by
+    intro β
+    rw [smul_smul]
+    congr 1
+    rw [show ∏ j, z j ^ (β + e) j = ∏ j, (z j ^ β j * z j ^ e j) from
+      Finset.prod_congr rfl fun j _ => by rw [Pi.add_apply, pow_add], Finset.prod_mul_distrib]
+    have : ∏ j, z j ^ e j = z i := by
+      rw [Finset.prod_eq_single i]
+      · simp [he]
+      · intro j _ hj; simp [he, Pi.single_eq_of_ne hj]
+      · simp
+    rw [this, mul_comm]
+  have hshift : HasSum (fun β : ι → ℕ => (∏ j, z j ^ (β + e) j) • c (β + e)) (z i • T) := by
+    simpa [hterm] using h.const_smul (z i)
+  -- reindex: the multi-indices missed by the shift have `α i = 0`, where `c` vanishes
+  have hinj : Function.Injective fun β : ι → ℕ => β + e := add_left_injective e
+  have hzero : ∀ α : ι → ℕ, α ∉ Set.range (fun β : ι → ℕ => β + e) →
+      (∏ j, z j ^ α j) • c α = 0 := by
+    intro α hα
+    have hai : α i = 0 := by
+      by_contra hne
+      refine hα ⟨fun j => α j - e j, ?_⟩
+      funext j
+      simp only [Pi.add_apply]
+      rcases eq_or_ne j i with rfl | hj
+      · simp only [he, Pi.single_eq_same]
+        omega
+      · simp [he, Pi.single_eq_of_ne hj]
+    rw [hvanish α hai, smul_zero]
+  exact (hinj.hasSum_iff hzero).1 hshift
+
+/-- The shifted series is again analytic: dividing by a coordinate preserves analyticity. -/
+theorem analyticAt_tsum_monomial_shift [CompleteSpace F] (c : (ι → ℕ) → F)
+    (i : ι) {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
+    AnalyticAt 𝕜
+      (fun z : ι → 𝕜 => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) 0 :=
+  analyticAt_tsum_monomial _ hr (MultiIndex.summable_shift (by exact_mod_cast hr) i hsum)
 
 end MultiIndex
 
