@@ -5,8 +5,11 @@ Authors: Michail Karatarakis
 -/
 module
 
+public import Mathlib.Algebra.Polynomial.Taylor
+public import Mathlib.Algebra.Polynomial.RingDivision
 public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
 public import Mathlib.NumberTheory.Transcendental.Baker.Polydisc
+public import Mathlib.RingTheory.Coprime.Lemmas
 
 /-!
 # Schwarz's lemma for Cartesian products
@@ -765,5 +768,258 @@ theorem exists_newton_finset {r R : ℝ} (hr : 0 ≤ r) (hrR : r < R) (p : ℕ) 
       rw [hQJ]
       simp only [hQ', ↓reduceIte, hQ₀]
       abel
+
+end MultiIndex
+
+/-!
+### Uniqueness of the main term
+
+After all coordinates are processed, the main term is a polynomial with constant
+coefficients in the tensor Newton basis.  If `f` vanishes to order `m` in each coordinate on
+`E₁ × ⋯ × Eₙ` and the nodes in the `j`-th coordinate are the points of `E j`, each repeated
+`m` times, these coefficients vanish.  In one variable this is root counting: a polynomial of
+degree `< m * card E` with a root of multiplicity `≥ m` at each point of `E` is zero.  The
+several-variable statement is the injectivity of a tensor product of injective maps.
+-/
+
+namespace MultiIndex
+
+open Polynomial
+
+/-- The Newton basis polynomial `∏_{l < k} (X - L l)`. -/
+noncomputable def nodePoly (L : ℕ → ℂ) (k : ℕ) : ℂ[X] := ∏ l ∈ Finset.range k, (X - C (L l))
+
+lemma nodePoly_monic (L : ℕ → ℂ) (k : ℕ) : (nodePoly L k).Monic :=
+  monic_prod_of_monic _ _ fun l _ => monic_X_sub_C (L l)
+
+lemma natDegree_nodePoly (L : ℕ → ℂ) (k : ℕ) : (nodePoly L k).natDegree = k := by
+  rw [nodePoly, natDegree_prod_of_monic _ _ fun l _ => monic_X_sub_C (L l)]
+  simp
+
+lemma eval_nodePoly (L : ℕ → ℂ) (k : ℕ) (w : ℂ) :
+    (nodePoly L k).eval w = ∏ l ∈ Finset.range k, (w - L l) := by
+  simp [nodePoly, eval_prod]
+
+/-- The Newton basis is triangular: a vanishing combination has zero coefficients. -/
+lemma eq_zero_of_sum_C_mul_nodePoly (L : ℕ → ℂ) : ∀ (p : ℕ) (a : ℕ → ℂ),
+    ∑ k ∈ Finset.range p, C (a k) * nodePoly L k = 0 → ∀ k < p, a k = 0 := by
+  intro p
+  induction p with
+  | zero => intro a _ k hk; omega
+  | succ p ih =>
+    intro a h k hk
+    have h1 : (nodePoly L p).coeff p = 1 := by
+      have := (nodePoly_monic L p).coeff_natDegree
+      rwa [natDegree_nodePoly] at this
+    have hlow : ∀ k ∈ Finset.range p, a k * (nodePoly L k).coeff p = 0 := fun k hk => by
+      rw [coeff_eq_zero_of_natDegree_lt (by rw [natDegree_nodePoly]; exact Finset.mem_range.1 hk),
+        mul_zero]
+    have htop : a p = 0 := by
+      have hc := congrArg (fun P => P.coeff p) h
+      simp only [Finset.sum_range_succ, coeff_add, coeff_C_mul, finsetSum_coeff,
+        coeff_zero] at hc
+      rwa [Finset.sum_eq_zero hlow, zero_add, h1, mul_one] at hc
+    have hrest : ∑ k ∈ Finset.range p, C (a k) * nodePoly L k = 0 := by
+      rwa [Finset.sum_range_succ, htop, C_0, zero_mul, add_zero] at h
+    rcases Nat.lt_succ_iff_lt_or_eq.1 hk with hk | rfl
+    · exact ih a hrest k hk
+    · exact htop
+
+/-- **Newton coefficients from Taylor data.**  Let the nodes `L 0, …, L (p - 1)` be the points
+of `E`, each repeated `m` times.  If a combination `∑_{k < p} d k • ∏_{l < k} (X - L l)` has all
+Taylor coefficients of order `< m` zero at every point of `E`, then every `d k` is zero. -/
+theorem newton_eq_zero_of_taylor {W : Type*} [NormedAddCommGroup W] [NormedSpace ℂ W]
+    {L : ℕ → ℂ} {E : Finset ℂ} {m p : ℕ} (hLE : nodePoly L p = ∏ ζ ∈ E, (X - C ζ) ^ m)
+    (d : ℕ → W)
+    (hd : ∀ ζ ∈ E, ∀ t < m,
+      ∑ k ∈ Finset.range p, (taylor ζ (nodePoly L k)).coeff t • d k = 0) :
+    ∀ k < p, d k = 0 := by
+  intro k hk
+  refine SeparatingDual.eq_zero_of_forall_dual_eq_zero (R := ℂ) fun φ => ?_
+  set a : ℕ → ℂ := fun k => φ (d k) with ha
+  set Q : ℂ[X] := ∑ k ∈ Finset.range p, C (a k) * nodePoly L k with hQ
+  have htay : ∀ ζ ∈ E, ∀ t < m, (taylor ζ Q).coeff t = 0 := by
+    intro ζ hζ t ht
+    have hφ := congrArg φ (hd ζ hζ t ht)
+    simp only [map_sum, map_smul, smul_eq_mul, map_zero] at hφ
+    rw [hQ]
+    simp_rw [← smul_eq_C_mul]
+    rw [map_sum, finsetSum_coeff]
+    simp_rw [LinearMap.map_smul, coeff_smul, smul_eq_mul]
+    rw [← hφ]
+    exact Finset.sum_congr rfl fun k _ => mul_comm _ _
+  have hdvd : ∀ ζ ∈ E, (X - C ζ) ^ m ∣ Q := by
+    intro ζ hζ
+    by_cases hQ0 : Q = 0
+    · rw [hQ0]; exact dvd_zero _
+    · rw [← le_rootMultiplicity_iff hQ0, rootMultiplicity_eq_natTrailingDegree, ← taylor_apply]
+      exact le_natTrailingDegree (by rwa [Ne, taylor_eq_zero]) (htay ζ hζ)
+  have hcop : (E : Set ℂ).Pairwise (IsCoprime on fun ζ => (X - C ζ) ^ m) := by
+    intro a _ b _ hab
+    exact ((pairwise_coprime_X_sub_C (s := id) injective_id) hab).pow
+  have hprod : nodePoly L p ∣ Q := by
+    rw [hLE]
+    exact Finset.prod_dvd_of_coprime hcop hdvd
+  have hdeg : Q.natDegree < (nodePoly L p).natDegree := by
+    rw [natDegree_nodePoly]
+    refine lt_of_le_of_lt (natDegree_sum_le_of_forall_le _ _ (n := p - 1) fun k hk => ?_)
+      (by omega)
+    refine (natDegree_C_mul_le _ _).trans ?_
+    rw [natDegree_nodePoly]
+    have := Finset.mem_range.1 hk
+    omega
+  exact eq_zero_of_sum_C_mul_nodePoly L p a (eq_zero_of_dvd_of_natDegree_lt hprod hdeg) k hk
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+lemma update_zero_mem_boxH {J : Finset ι} {i₀ : ι} (hi₀ : i₀ ∉ J) {p : ℕ} {h : ι → ℕ}
+    (hh : h ∈ boxH (insert i₀ J) p) : update h i₀ 0 ∈ boxH J p := by
+  rw [mem_boxH] at hh ⊢
+  intro j
+  refine ⟨fun hj => ?_, fun hj => ?_⟩
+  · rw [update_of_ne (by rintro rfl; exact hi₀ hj)]
+    exact (hh j).1 (Finset.mem_insert_of_mem hj)
+  · rcases eq_or_ne j i₀ with rfl | hj'
+    · simp
+    · rw [update_of_ne hj']
+      exact (hh j).2 (by simp [hj, hj'])
+
+/-- **A tensor product of injective maps is injective.**  If, in each coordinate, a vector
+`d : ℕ → W` supported below `p` is determined by the values `∑_k Mx j k γ • d k`, then a family
+indexed by `boxH J p` is determined by the tensor products of these values. -/
+theorem eq_zero_of_tensor {W : Type*} [AddCommGroup W] [Module ℂ W] {p : ℕ}
+    {Cond : ι → Type*} [∀ j, Nonempty (Cond j)] (Mx : ∀ j, ℕ → Cond j → ℂ)
+    (hinj : ∀ j (d : ℕ → W),
+      (∀ γ : Cond j, ∑ k ∈ Finset.range p, Mx j k γ • d k = 0) → ∀ k < p, d k = 0)
+    (J : Finset ι) : ∀ C : (ι → ℕ) → W,
+      (∀ γ : ∀ j, Cond j, ∑ h ∈ boxH J p, (∏ j ∈ J, Mx j (h j) (γ j)) • C h = 0) →
+      ∀ h ∈ boxH J p, C h = 0 := by
+  induction J using Finset.induction_on with
+  | empty =>
+    intro C hC h hh
+    rw [boxH_empty, Finset.mem_singleton] at hh
+    subst hh
+    simpa [boxH_empty] using hC fun _ => Classical.arbitrary _
+  | insert i₀ J hi₀ ih =>
+    intro C hC h' hh'
+    have hk : ∀ k < p, ∀ γ : ∀ j, Cond j,
+        ∑ h ∈ boxH J p, (∏ j ∈ J, Mx j (h j) (γ j)) • C (update h i₀ k) = 0 := by
+      intro k hkp γ
+      refine hinj i₀ (fun k =>
+        ∑ h ∈ boxH J p, (∏ j ∈ J, Mx j (h j) (γ j)) • C (update h i₀ k)) (fun γ₀ => ?_) k hkp
+      calc ∑ k ∈ Finset.range p, Mx i₀ k γ₀ •
+            ∑ h ∈ boxH J p, (∏ j ∈ J, Mx j (h j) (γ j)) • C (update h i₀ k)
+          = ∑ h ∈ boxH J p, ∑ k ∈ Finset.range p,
+              (∏ j ∈ insert i₀ J, Mx j (update h i₀ k j) (update γ i₀ γ₀ j)) •
+                C (update h i₀ k) := by
+            simp_rw [Finset.smul_sum]
+            rw [Finset.sum_comm]
+            refine Finset.sum_congr rfl fun h _ => Finset.sum_congr rfl fun k _ => ?_
+            rw [smul_smul, Finset.prod_insert hi₀, update_self, update_self]
+            congr 2
+            refine Finset.prod_congr rfl fun j hj => ?_
+            have hj' : j ≠ i₀ := by rintro rfl; exact hi₀ hj
+            rw [update_of_ne hj', update_of_ne hj']
+        _ = 0 := (sum_boxH_insert hi₀ p fun h =>
+              (∏ j ∈ insert i₀ J, Mx j (h j) (update γ i₀ γ₀ j)) • C h).symm.trans (hC _)
+    have hmem := update_zero_mem_boxH hi₀ hh'
+    have hlt : h' i₀ < p := ((mem_boxH.1 hh') i₀).1 (Finset.mem_insert_self _ _)
+    have := ih (fun h => C (update h i₀ (h' i₀))) (hk _ hlt) _ hmem
+    simpa [update_idem] using this
+
+variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
+
+/-- **The Taylor coefficients of the main term.**  At `ξ`, the coefficient of `(z - ξ) ^ κ` of
+`∑_h (∏_j nodeProd L j (h j) z) • C₀ h` is the tensor combination of the one-variable Taylor
+coefficients of the Newton basis polynomials. -/
+theorem taylorCoeff_mainTerm (L : ι → ℕ → ℂ) (p : ℕ) (C₀ : (ι → ℕ) → V) (ξ : ι → ℂ)
+    (κ : ι → ℕ) :
+    taylorCoeff (fun z => ∑ h ∈ boxH Finset.univ p, (∏ j, nodeProd L j (h j) z) • C₀ h) ξ κ =
+      ∑ h ∈ boxH Finset.univ p,
+        (∏ j, (taylor (ξ j) (nodePoly (L j) (h j))).coeff (κ j)) • C₀ h := by
+  set c : (ι → ℕ) → V := fun κ => ∑ h ∈ boxH Finset.univ p,
+    (∏ j, (taylor (ξ j) (nodePoly (L j) (h j))).coeff (κ j)) • C₀ h with hc
+  set box : Finset (ι → ℕ) := Fintype.piFinset fun _ : ι => Finset.range (p + 1) with hbox
+  have hc0 : ∀ κ ∉ box, c κ = 0 := by
+    intro κ hκ
+    obtain ⟨j, hj⟩ : ∃ j, p + 1 ≤ κ j := by
+      by_contra hcon
+      push Not at hcon
+      exact hκ (by simpa [hbox, Fintype.mem_piFinset] using hcon)
+    refine Finset.sum_eq_zero fun h hh => ?_
+    have hhj : h j < p := ((mem_boxH.1 hh) j).1 (Finset.mem_univ j)
+    rw [Finset.prod_eq_zero (Finset.mem_univ j), zero_smul]
+    exact coeff_eq_zero_of_natDegree_lt (by rw [natDegree_taylor, natDegree_nodePoly]; omega)
+  have hsum : Summable fun α : ι → ℕ => ‖c α‖ * ((1 : ℝ≥0) : ℝ) ^ (∑ i, α i) :=
+    summable_of_ne_finset_zero (s := box) fun α hα => by simp [hc0 α hα]
+  refine taylorCoeff_eq_of_hasSum (ρ := 1) one_pos hsum (fun y _ => ?_) κ
+  have hfin : ∀ α ∉ box, (∏ i, y i ^ α i) • c α = 0 := fun α hα => by rw [hc0 α hα, smul_zero]
+  have hN : ∀ h ∈ boxH Finset.univ p, ∀ j, nodeProd L j (h j) (ξ + y) =
+      ∑ t ∈ Finset.range (p + 1), (taylor (ξ j) (nodePoly (L j) (h j))).coeff t * y j ^ t := by
+    intro h hh j
+    have hlt : (taylor (ξ j) (nodePoly (L j) (h j))).natDegree < p + 1 := by
+      rw [natDegree_taylor, natDegree_nodePoly]
+      have := ((mem_boxH.1 hh) j).1 (Finset.mem_univ j)
+      omega
+    rw [← eval_eq_sum_range' hlt, taylor_eval, nodeProd, eval_nodePoly]
+    simp [add_comm]
+  have heq : (∑ h ∈ boxH Finset.univ p, (∏ j, nodeProd L j (h j) (ξ + y)) • C₀ h) =
+      ∑ α ∈ box, (∏ i, y i ^ α i) • c α := by
+    calc ∑ h ∈ boxH Finset.univ p, (∏ j, nodeProd L j (h j) (ξ + y)) • C₀ h
+        = ∑ h ∈ boxH Finset.univ p, (∑ α ∈ box,
+            ∏ j, ((taylor (ξ j) (nodePoly (L j) (h j))).coeff (α j) * y j ^ α j)) • C₀ h := by
+          refine Finset.sum_congr rfl fun h hh => ?_
+          rw [Finset.prod_congr rfl fun j _ => hN h hh j, Finset.prod_univ_sum]
+      _ = ∑ α ∈ box, (∏ i, y i ^ α i) • c α := by
+          simp_rw [Finset.sum_smul]
+          rw [Finset.sum_comm]
+          refine Finset.sum_congr rfl fun α _ => ?_
+          rw [hc, Finset.smul_sum]
+          refine Finset.sum_congr rfl fun h _ => ?_
+          rw [Finset.prod_mul_distrib, smul_smul, mul_comm]
+  rw [heq]
+  exact hasSum_sum_of_ne_finset_zero hfin
+
+/-- A factor `(z i - ξ i) ^ m` kills the Taylor coefficients at `ξ` of order `< m` in the
+`i`-th coordinate. -/
+theorem taylorCoeff_pow_smul_eq_zero {G : (ι → ℂ) → V} {ξ : ι → ℂ} (hG : AnalyticAt ℂ G ξ)
+    (i : ι) (m : ℕ) {κ : ι → ℕ} (hκ : κ i < m) :
+    taylorCoeff (fun z => (z i - ξ i) ^ m • G z) ξ κ = 0 := by
+  obtain ⟨ρ, hρ, hsum, hhs⟩ := exists_hasSum_of_analyticAt hG
+  set d := taylorCoeff G ξ with hd
+  set c : (ι → ℕ) → V := fun α => if m ≤ α i then d (α - Pi.single i m) else 0 with hc
+  have hc_shift : ∀ β : ι → ℕ, c (β + Pi.single i m) = d β := by
+    intro β
+    simp only [hc, Pi.add_apply, Pi.single_eq_same, le_add_iff_nonneg_left, zero_le,
+      ↓reduceIte]
+    congr 1
+    funext j
+    simp
+  have hc_van : ∀ α : ι → ℕ, α i < m → c α = 0 := fun α hα => by
+    simp [hc, not_le.2 hα]
+  have hsum_c : Summable fun α : ι → ℕ => ‖c α‖ * (ρ : ℝ) ^ (∑ i, α i) := by
+    have hinj : Function.Injective fun β : ι → ℕ => β + Pi.single i m := add_left_injective _
+    have hzero : ∀ α ∉ Set.range fun β : ι → ℕ => β + Pi.single i m,
+        ‖c α‖ * (ρ : ℝ) ^ (∑ i, α i) = 0 := by
+      intro α hα
+      have hlt : ¬ m ≤ α i := fun hle => hα ⟨α - Pi.single i m, by
+        funext j
+        rcases eq_or_ne j i with rfl | hj
+        · simp [Nat.sub_add_cancel hle]
+        · simp [Pi.single_eq_of_ne hj]⟩
+      simp [hc, hlt]
+    rw [← hinj.summable_iff hzero]
+    refine (hsum.mul_left ((ρ : ℝ) ^ m)).congr fun β => ?_
+    simp only [Function.comp_apply, hc_shift, Pi.add_apply, Finset.sum_add_distrib,
+      Finset.sum_pi_single', Finset.mem_univ, ↓reduceIte, pow_add]
+    ring
+  have hhs_c : ∀ y : ι → ℂ, ‖y‖ < ρ → HasSum (fun α : ι → ℕ => (∏ j, y j ^ α j) • c α)
+      ((fun z => (z i - ξ i) ^ m • G z) (ξ + y)) := by
+    intro y hy
+    have h1 : HasSum (fun β : ι → ℕ => (∏ j, y j ^ β j) • c (β + Pi.single i m))
+        (G (ξ + y)) := by simpa [hc_shift] using hhs y hy
+    simpa using hasSum_smul_shift_pow i m hc_van h1
+  rw [taylorCoeff_eq_of_hasSum hρ hsum_c hhs_c κ]
+  exact hc_van κ hκ
 
 end MultiIndex
