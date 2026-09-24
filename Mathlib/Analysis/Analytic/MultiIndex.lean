@@ -571,6 +571,46 @@ theorem analyticAt_tsum_monomial_shift_pow [CompleteSpace F] (c : (ι → ℕ) �
       ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) 0 :=
   analyticAt_tsum_monomial _ hr (summable_shift_pow (by exact_mod_cast hr) i p hsum)
 
+omit [DecidableEq ι] in
+/-- A normally convergent multi-index series converges at every point of the polydisc. -/
+lemma summable_monomial_smul [CompleteSpace F] {c : (ι → ℕ) → F} {ρ : ℝ} {z : ι → 𝕜}
+    (hz : ‖z‖ ≤ ρ) (hsum : Summable fun α : ι → ℕ => ‖c α‖ * ρ ^ (∑ j, α j)) :
+    Summable fun α : ι → ℕ => (∏ j, z j ^ α j) • c α := by
+  refine Summable.of_norm (Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun α => ?_) hsum)
+  rw [norm_smul, norm_prod, mul_comm]
+  gcongr
+  calc ∏ j, ‖z j ^ α j‖ = ∏ j, ‖z j‖ ^ α j := by
+        exact Finset.prod_congr rfl fun j _ => norm_pow _ _
+    _ ≤ ∏ j, ρ ^ α j := by
+        gcongr with j
+        exact (norm_le_pi_norm z j).trans hz
+    _ = ρ ^ (∑ j, α j) := by rw [← Finset.prod_pow_eq_pow_sum]
+
+/-- **Division of an analytic function by a power of a coordinate.**
+
+If the multi-index coefficients of `f` all vanish below degree `m` in the `i`-th coordinate,
+then `f = z i ^ m • g` with `g` analytic. -/
+theorem exists_analyticAt_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
+    {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F} {r : ℝ≥0} (hf : HasFPowerSeriesOnBall f p 0 r)
+    (i : ι) (m : ℕ) (hvanish : ∀ α : ι → ℕ, α i < m → coeff p α = 0)
+    {ρ : ℝ≥0} (hρ : 0 < ρ) (hρr : (ρ : ℝ≥0∞) ≤ r)
+    (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
+      Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
+    (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
+    ∃ g : (ι → 𝕜) → F, AnalyticAt 𝕜 g 0 ∧
+      ∀ z : ι → 𝕜, ‖z‖ < (ρ : ℝ) → f z = z i ^ m • g z := by
+  refine ⟨fun z => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)),
+    analyticAt_tsum_monomial_shift_pow _ i m hρ hsum, fun z hz => ?_⟩
+  have hshift : HasSum
+      (fun β : ι → ℕ => (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)))
+      (∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ))) :=
+    (summable_monomial_smul hz.le (summable_shift_pow (by exact_mod_cast hρ) i m hsum)).hasSum
+  have hfull := hasSum_smul_shift_pow (c := coeff p) i m hvanish hshift
+  have hz' : ‖z‖ < (r : ℝ≥0) := by
+    refine lt_of_lt_of_le hz ?_
+    exact_mod_cast (ENNReal.coe_le_coe.1 hρr)
+  exact (hasSum_coeff hf hz' (hconv z hz.le)).unique hfull
+
 end MultiIndex
 
 end
