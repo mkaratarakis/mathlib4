@@ -140,4 +140,106 @@ theorem eq_zero_of_sum_eval_mul_cexp (T : Finset ℂ) (Q : ℂ → ℂ[X])
       (fun h => absurd hc₀ h), hconst, eval_C, mul_zero, Complex.exp_zero, mul_one] at h0
     exact hQc₀ (by rw [hconst, h0, map_zero])
 
+/-- One variable, with frequencies `c a` injective on an arbitrary finite index set. -/
+theorem eq_zero_of_sum_eval_mul_cexp' {α : Type*} (T : Finset α) (c : α → ℂ)
+    (hc : Set.InjOn c T) (Q : α → ℂ[X])
+    (hQ : ∀ ζ : ℂ, ∑ a ∈ T, (Q a).eval ζ * Complex.exp (c a * ζ) = 0) : ∀ a ∈ T, Q a = 0 := by
+  classical
+  set Q' : ℂ → ℂ[X] := fun b => ∑ a ∈ T.filter (fun a => c a = b), Q a with hQ'def
+  have hQ' : ∀ a ∈ T, Q' (c a) = Q a := fun a ha => by
+    simp only [hQ'def]
+    rw [Finset.sum_eq_single_of_mem a (by simp [ha])]
+    intro a' ha' hne
+    exact absurd (hc (Finset.mem_filter.1 ha').1 ha (Finset.mem_filter.1 ha').2) hne
+  have hid : ∀ ζ : ℂ, ∑ b ∈ T.image c, (Q' b).eval ζ * Complex.exp (b * ζ) = 0 := by
+    intro ζ
+    rw [Finset.sum_image fun a ha a' ha' h => hc ha ha' h, ← hQ ζ]
+    exact Finset.sum_congr rfl fun a ha => by rw [hQ' a ha]
+  intro a ha
+  rw [← hQ' a ha]
+  exact eq_zero_of_sum_eval_mul_cexp _ Q' hid _ (Finset.mem_image_of_mem c ha)
+
+variable {ι : Type*} [Fintype ι]
+
+/-- The linear form `z ↦ ∑ v, a v * z v` as a polynomial. -/
+noncomputable def linForm (a : ι → ℂ) : MvPolynomial ι ℂ :=
+  ∑ v, MvPolynomial.C (a v) * MvPolynomial.X v
+
+lemma eval_linForm (a z : ι → ℂ) : MvPolynomial.eval z (linForm a) = ∑ v, a v * z v := by
+  simp [linForm]
+
+lemma linForm_ne_zero {a : ι → ℂ} (ha : a ≠ 0) : linForm a ≠ 0 := by
+  classical
+  intro h
+  obtain ⟨v, hv⟩ : ∃ v, a v ≠ 0 := by
+    by_contra hc
+    push Not at hc
+    exact ha (funext hc)
+  have := congrArg (fun p => MvPolynomial.eval (Pi.single v 1) p) h
+  simp only [eval_linForm, map_zero] at this
+  rw [Finset.sum_eq_single v (fun w _ hw => by simp [Pi.single_eq_of_ne hw])
+    (fun h => absurd (Finset.mem_univ v) h)] at this
+  simp only [Pi.single_eq_same, mul_one] at this
+  exact hv this
+
+omit [Fintype ι] in
+lemma eval_aeval_line (u : ι → ℂ) (p : MvPolynomial ι ℂ) (ζ : ℂ) :
+    (MvPolynomial.aeval (fun v => C (u v) * X) p).eval ζ =
+      MvPolynomial.eval (fun v => u v * ζ) p := by
+  rw [← Polynomial.coe_aeval_eq_eval, MvPolynomial.comp_aeval_apply,
+    MvPolynomial.aeval_eq_eval₂Hom]
+  simp only [Algebra.algebraMap_self, map_mul, aeval_C, aeval_X, RingHom.id_apply]
+  rfl
+
+/-- **Exponential polynomials in several variables.**  If
+`∑_{w ∈ T} P_w (z) e ^ {w · z} = 0` for all `z ∈ ℂⁿ`, then every `P_w` is zero. -/
+theorem eq_zero_of_sum_eval_mul_cexp_pi (T : Finset (ι → ℂ)) (P : (ι → ℂ) → MvPolynomial ι ℂ)
+    (hP : ∀ z : ι → ℂ,
+      ∑ w ∈ T, MvPolynomial.eval z (P w) * Complex.exp (∑ v, w v * z v) = 0) :
+    ∀ w ∈ T, P w = 0 := by
+  classical
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨w₀, hw₀, hPw₀⟩ := hcon
+  -- a line on which the frequencies stay distinct and the polynomials stay nonzero
+  set G : MvPolynomial ι ℂ := (∏ p ∈ T.offDiag, linForm (p.1 - p.2)) *
+    ∏ w ∈ T.filter (fun w => P w ≠ 0), P w with hGdef
+  have hG : G ≠ 0 := by
+    refine mul_ne_zero (Finset.prod_ne_zero_iff.2 fun p hp => linForm_ne_zero ?_)
+      (Finset.prod_ne_zero_iff.2 fun w hw => (Finset.mem_filter.1 hw).2)
+    obtain ⟨-, -, hne⟩ := Finset.mem_offDiag.1 hp
+    exact sub_ne_zero.2 hne
+  obtain ⟨u, hu⟩ : ∃ u : ι → ℂ, MvPolynomial.eval u G ≠ 0 := by
+    by_contra h
+    push Not at h
+    exact hG (MvPolynomial.funext fun u => by simp [h u])
+  rw [hGdef, map_mul, map_prod, map_prod] at hu
+  have hu1 := left_ne_zero_of_mul hu
+  have hu2 := right_ne_zero_of_mul hu
+  set c : (ι → ℂ) → ℂ := fun w => ∑ v, w v * u v with hc
+  have hcinj : Set.InjOn c T := by
+    intro a ha b hb hab
+    by_contra hne
+    have := (Finset.prod_ne_zero_iff.1 hu1) (a, b) (Finset.mem_offDiag.2 ⟨ha, hb, hne⟩)
+    rw [eval_linForm] at this
+    apply this
+    simp only [Pi.sub_apply, sub_mul, Finset.sum_sub_distrib]
+    exact sub_eq_zero.2 hab
+  set Q : (ι → ℂ) → ℂ[X] := fun w => MvPolynomial.aeval (fun v => C (u v) * X) (P w) with hQ
+  have hid : ∀ ζ : ℂ, ∑ w ∈ T, (Q w).eval ζ * Complex.exp (c w * ζ) = 0 := by
+    intro ζ
+    rw [← hP fun v => u v * ζ]
+    refine Finset.sum_congr rfl fun w _ => ?_
+    rw [hQ, eval_aeval_line]
+    congr 2
+    rw [hc, Finset.sum_mul]
+    exact Finset.sum_congr rfl fun v _ => by ring
+  have hQ0 := eq_zero_of_sum_eval_mul_cexp' T c hcinj Q hid w₀ hw₀
+  have hne := (Finset.prod_ne_zero_iff.1 hu2) w₀ (Finset.mem_filter.2 ⟨hw₀, hPw₀⟩)
+  apply hne
+  have h1 : (Q w₀).eval 1 = MvPolynomial.eval (fun v => u v * 1) (P w₀) :=
+    eval_aeval_line u (P w₀) 1
+  rw [hQ0, eval_zero] at h1
+  simpa using h1.symm
+
 end ExpPoly
