@@ -36,6 +36,8 @@ lemma nonneg (h : AlgSize δ α a H) : 0 ≤ H := (house_nonneg _).trans h.2
 
 lemma mono (h : AlgSize δ α a H) (hH : H ≤ H') : AlgSize δ α a H' := ⟨h.1, h.2.trans hH⟩
 
+lemma congr_exp (h : AlgSize δ α a H) (hab : a = b) : AlgSize δ α b H := hab ▸ h
+
 lemma intCast (x : ℤ) : AlgSize δ (x : K) 0 |x| := by
   refine ⟨?_, by simp⟩
   have := isIntegral_algebraMap (R := ℤ) (A := K) (x := x)

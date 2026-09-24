@@ -6138,6 +6138,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.AlgSize
 public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 public import Mathlib.NumberTheory.Transcendental.Baker.AuxiliaryFunction
 public import Mathlib.NumberTheory.Transcendental.Baker.Basic
+public import Mathlib.NumberTheory.Transcendental.Baker.Criterion
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpIndep
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpPoly
 public import Mathlib.NumberTheory.Transcendental.Baker.Interpolation
