@@ -87,4 +87,19 @@ theorem norm_le_of_forall_norm_coord_eq {f : (ι → ℂ) → F} {R : ℝ} (hR :
     simpa using (norm_le_pi_norm z i).trans hz
   simpa [hg] using norm_le_of_forall_mem_frontier_norm_le isBounded_ball hdiff hbd hmem'
 
+/-- If `f = z i ^ m • g` on a polydisc where `f` is bounded by `M`, then `g` is bounded by
+`M / R ^ m` there.  This is the estimate accompanying the division step: dividing by a factor
+of modulus `R` on the distinguished part of the boundary costs exactly `R ^ m`. -/
+theorem norm_le_of_eq_pow_smul {f g : (ι → ℂ) → F} {R M : ℝ} (hR : 0 < R)
+    (hg : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y) (i : ι) (m : ℕ)
+    (heq : ∀ y : ι → ℂ, ‖y‖ ≤ R → f y = y i ^ m • g y)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M) :
+    ∀ z : ι → ℂ, ‖z‖ ≤ R → ‖g z‖ ≤ M / R ^ m := by
+  refine norm_le_of_forall_norm_coord_eq hR hg i fun y hy hyi => ?_
+  have hpow : ‖y i ^ m‖ = R ^ m := by rw [norm_pow, hyi]
+  have h1 : ‖f y‖ = R ^ m * ‖g y‖ := by rw [heq y hy, norm_smul, hpow]
+  rw [le_div_iff₀ (by positivity)]
+  calc ‖g y‖ * R ^ m = ‖f y‖ := by rw [h1]; ring
+    _ ≤ M := hf y hy
+
 end Complex
