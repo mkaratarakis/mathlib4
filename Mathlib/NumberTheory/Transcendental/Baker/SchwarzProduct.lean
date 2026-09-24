@@ -496,3 +496,274 @@ theorem exists_newton {r R : ℝ} (hr : 0 ≤ r) (hrR : r < R) (i : ι) :
           _ = (2 / (R - r)) ^ (p + 1) * M := by ring
 
 end MultiIndex
+
+/-!
+### Newton division in all coordinates
+
+Applying `exists_newton` coordinate by coordinate writes `f` as a sum of a *main term*, a
+combination of products of Newton basis polynomials in the separate coordinates, and one
+*error term* `(∏_{l < p} (z i - L i l)) • Q i` for each coordinate.  Once every coordinate has
+been processed the coefficients of the main term are constants.
+-/
+
+namespace MultiIndex
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+  {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
+
+/-- The Newton basis polynomial `∏_{l < k} (z j - L j l)` in the `j`-th coordinate. -/
+def nodeProd (L : ι → ℕ → ℂ) (j : ι) (k : ℕ) (z : ι → ℂ) : ℂ :=
+  ∏ l ∈ Finset.range k, (z j - L j l)
+
+omit [DecidableEq ι] in
+lemma analyticAt_nodeProd (L : ι → ℕ → ℂ) (j : ι) (k : ℕ) (y : ι → ℂ) :
+    AnalyticAt ℂ (nodeProd L j k) y :=
+  Finset.analyticAt_fun_prod _ fun _ _ =>
+    ((ContinuousLinearMap.proj (R := ℂ) (φ := fun _ : ι => ℂ) j).analyticAt y).sub
+      analyticAt_const
+
+omit [DecidableEq ι] in
+lemma norm_nodeProd_le {L : ι → ℕ → ℂ} {r R : ℝ} (hL : ∀ j k, ‖L j k‖ ≤ r) (j : ι) (k : ℕ)
+    {z : ι → ℂ} (hz : ‖z‖ ≤ R) : ‖nodeProd L j k z‖ ≤ (R + r) ^ k := by
+  rw [nodeProd, norm_prod]
+  calc ∏ l ∈ Finset.range k, ‖z j - L j l‖ ≤ ∏ _l ∈ Finset.range k, (R + r) := by
+        gcongr with l hl
+        exact (norm_sub_le _ _).trans (add_le_add ((norm_le_pi_norm z j).trans hz) (hL j l))
+    _ = (R + r) ^ k := by simp
+
+omit [Fintype ι] [DecidableEq ι] in
+lemma nodeProd_update_of_ne (L : ι → ℕ → ℂ) {i j : ι} [DecidableEq ι] (hji : j ≠ i) (k : ℕ)
+    (z : ι → ℂ) (w : ℂ) : nodeProd L j k (update z i w) = nodeProd L j k z := by
+  simp [nodeProd, update_of_ne hji]
+
+/-- The multi-indices with entries `< p` on `J` and `0` off `J`. -/
+def boxH (J : Finset ι) (p : ℕ) : Finset (ι → ℕ) :=
+  Fintype.piFinset fun j => if j ∈ J then Finset.range p else {0}
+
+lemma mem_boxH {J : Finset ι} {p : ℕ} {h : ι → ℕ} :
+    h ∈ boxH J p ↔ ∀ j, (j ∈ J → h j < p) ∧ (j ∉ J → h j = 0) := by
+  simp only [boxH, Fintype.mem_piFinset]
+  refine forall_congr' fun j => ?_
+  by_cases hj : j ∈ J <;> simp [hj]
+
+lemma boxH_empty (p : ℕ) : boxH (∅ : Finset ι) p = {0} := by
+  have : boxH (∅ : Finset ι) p = Fintype.piFinset fun j : ι => ({(0 : ι → ℕ) j} : Finset ℕ) := by
+    simp [boxH]
+  rw [this, Fintype.piFinset_singleton]
+
+lemma boxH_univ (p : ℕ) : boxH (Finset.univ : Finset ι) p =
+    Fintype.piFinset fun _ : ι => Finset.range p := by
+  simp [boxH]
+
+/-- Summing over `boxH (insert i₀ J)` is summing over `boxH J` and then over the new
+coordinate. -/
+lemma sum_boxH_insert {W : Type*} [AddCommMonoid W] {J : Finset ι} {i₀ : ι} (hi₀ : i₀ ∉ J)
+    (p : ℕ) (g : (ι → ℕ) → W) :
+    ∑ h ∈ boxH (insert i₀ J) p, g h =
+      ∑ h ∈ boxH J p, ∑ k ∈ Finset.range p, g (update h i₀ k) := by
+  rw [← Finset.sum_product']
+  refine Finset.sum_nbij' (fun h => (update h i₀ 0, h i₀)) (fun hk => update hk.1 i₀ hk.2)
+    ?_ ?_ ?_ ?_ ?_
+  · intro h hh
+    rw [mem_boxH] at hh
+    simp only [Finset.mem_product, Finset.mem_range, mem_boxH]
+    refine ⟨fun j => ⟨fun hj => ?_, fun hj => ?_⟩, (hh i₀).1 (Finset.mem_insert_self _ _)⟩
+    · rw [update_of_ne (by rintro rfl; exact hi₀ hj)]
+      exact (hh j).1 (Finset.mem_insert_of_mem hj)
+    · rcases eq_or_ne j i₀ with rfl | hj'
+      · simp
+      · rw [update_of_ne hj']
+        exact (hh j).2 (by simp [hj, hj'])
+  · rintro ⟨h, k⟩ hhk
+    simp only [Finset.mem_product, Finset.mem_range, mem_boxH] at hhk
+    rw [mem_boxH]
+    intro j
+    rcases eq_or_ne j i₀ with rfl | hj'
+    · simp [hhk.2]
+    · rw [update_of_ne hj']
+      simp only [Finset.mem_insert, hj', false_or]
+      exact hhk.1 j
+  · intro h _
+    simp
+  · rintro ⟨h, k⟩ hhk
+    simp only [Finset.mem_product, mem_boxH] at hhk
+    have h0 : h i₀ = 0 := (hhk.1 i₀).2 hi₀
+    simp only [update_idem, update_self, Prod.mk.injEq, and_true]
+    rw [← h0, update_eq_self]
+  · intro h _
+    simp
+
+/-- The sum over `boxH J p` of `∏_{j ∈ J} ρ ^ h j` is `(∑_{k < p} ρ ^ k) ^ card J`. -/
+lemma sum_boxH_prod_pow (ρ : ℝ) (p : ℕ) (J : Finset ι) :
+    ∑ h ∈ boxH J p, ∏ j ∈ J, ρ ^ h j = (∑ k ∈ Finset.range p, ρ ^ k) ^ J.card := by
+  induction J using Finset.induction_on with
+  | empty => simp [boxH_empty]
+  | insert i₀ J hi₀ ih =>
+    rw [sum_boxH_insert hi₀, Finset.card_insert_of_notMem hi₀, pow_succ, ← ih, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun h hh => ?_
+    have h0 : h i₀ = 0 := ((mem_boxH.1 hh) i₀).2 hi₀
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [Finset.prod_insert hi₀, update_self, mul_comm]
+    congr 1
+    refine Finset.prod_congr rfl fun j hj => ?_
+    rw [update_of_ne (by rintro rfl; exact hi₀ hj)]
+
+omit [Fintype ι] [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V] in
+/-- A function depending on no coordinate is constant. -/
+lemma eq_apply_zero_of_forall_indepOf [Finite ι] {g : (ι → ℂ) → V} (hg : ∀ j, IndepOf g j)
+    (z : ι → ℂ) : g z = g 0 := by
+  have := Fintype.ofFinite ι
+  have key : ∀ s : Finset ι, g z = g fun j => if j ∈ s then 0 else z j := by
+    intro s
+    induction s using Finset.induction_on with
+    | empty => simp
+    | insert a s ha ih =>
+      rw [ih]
+      have hupd : (fun j => if j ∈ insert a s then (0 : ℂ) else z j)
+          = update (fun j => if j ∈ s then (0 : ℂ) else z j) a 0 := by
+        funext j
+        rcases eq_or_ne j a with rfl | hja
+        · simp
+        · simp [hja]
+      rw [hupd, hg a]
+  simpa [Pi.zero_def] using key Finset.univ
+
+/-- **Newton division in all coordinates of `J`.**  See the section docstring.  The constant
+`K = 1 + ∑_{k < p} (2 (R + r) / (R - r)) ^ k` bounds the growth of the error terms. -/
+theorem exists_newton_finset {r R : ℝ} (hr : 0 ≤ r) (hrR : r < R) (p : ℕ) (L : ι → ℕ → ℂ)
+    (hL : ∀ j k, ‖L j k‖ ≤ r) {f : (ι → ℂ) → V}
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ f y) {M : ℝ}
+    (hM : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M) (J : Finset ι) :
+    ∃ (A : (ι → ℕ) → (ι → ℂ) → V) (Q : ι → (ι → ℂ) → V),
+      (∀ h (y : ι → ℂ), ‖y‖ ≤ R → AnalyticAt ℂ (A h) y) ∧
+      (∀ i (y : ι → ℂ), ‖y‖ ≤ R → AnalyticAt ℂ (Q i) y) ∧
+      (∀ h, ∀ j ∈ J, IndepOf (A h) j) ∧
+      (∀ h ∈ boxH J p, ∀ y : ι → ℂ, ‖y‖ ≤ R →
+        ‖A h y‖ ≤ (∏ j ∈ J, (2 / (R - r)) ^ h j) * M) ∧
+      (∀ i ∈ J, ∀ y : ι → ℂ, ‖y‖ ≤ R →
+        ‖Q i y‖ ≤ (1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k) ^ J.card *
+          (2 / (R - r)) ^ p * M) ∧
+      ∀ z : ι → ℂ, f z = ∑ h ∈ boxH J p, (∏ j ∈ J, nodeProd L j (h j) z) • A h z +
+        ∑ i ∈ J, nodeProd L i p z • Q i z := by
+  have hR : 0 < R := hr.trans_lt hrR
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM 0 (by simpa using hR.le))
+  have hc : 0 ≤ 2 / (R - r) := div_nonneg (by norm_num) (by linarith)
+  set K := 1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k with hK
+  have hK1 : 1 ≤ K := by
+    have : 0 ≤ ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k :=
+      Finset.sum_nonneg fun k _ => pow_nonneg (mul_nonneg hc (by linarith)) k
+    linarith
+  induction J using Finset.induction_on with
+  | empty =>
+    refine ⟨fun _ => f, fun _ => 0, fun _ => hf, fun _ _ _ => analyticAt_const,
+      fun _ j hj => absurd hj (Finset.notMem_empty j), fun h _ y hy => by simpa using hM y hy,
+      fun i hi => absurd hi (Finset.notMem_empty i), fun z => by simp [boxH_empty]⟩
+  | insert i₀ J hi₀ ih =>
+    obtain ⟨A, Q, hA, hQ, hAind, hAbd, hQbd, hid⟩ := ih
+    have hN := fun h => exists_newton (V := V) hr hrR i₀ p (L i₀) (hL i₀) (hA h)
+    choose a q ha hq hai haj hdec hbd using hN
+    set A' : (ι → ℕ) → (ι → ℂ) → V := fun h' => a (update h' i₀ 0) (h' i₀) with hA'
+    set Q₀ : (ι → ℂ) → V :=
+      fun z => ∑ h ∈ boxH J p, (∏ j ∈ J, nodeProd L j (h j) z) • q h z with hQ₀
+    set Q' : ι → (ι → ℂ) → V := fun i => if i = i₀ then Q₀ else Q i with hQ'
+    refine ⟨A', Q', fun h' y hy => ha _ _ y hy, fun i y hy => ?_, fun h' j hj => ?_,
+      fun h' hh' y hy => ?_, fun i hi y hy => ?_, fun z => ?_⟩
+    · -- analyticity of the new error term
+      by_cases hi : i = i₀
+      · simp only [hQ', hi, ↓reduceIte, hQ₀]
+        exact Finset.analyticAt_fun_sum _ fun h _ =>
+          (Finset.analyticAt_fun_prod _ fun j _ => analyticAt_nodeProd L j _ y).smul
+            (hq h y hy)
+      · simp only [hQ', hi, ↓reduceIte]
+        exact hQ i y hy
+    · -- the new coefficients depend on no coordinate of `insert i₀ J`
+      rcases Finset.mem_insert.1 hj with rfl | hjJ
+      · exact hai _ _
+      · exact (haj _ j (by rintro rfl; exact hi₀ hjJ) (hAind _ j hjJ)).1 _
+    · -- bound on the new coefficients
+      rw [mem_boxH] at hh'
+      set h := update h' i₀ 0 with hh
+      have hhmem : h ∈ boxH J p := by
+        rw [mem_boxH]
+        intro j
+        refine ⟨fun hj => ?_, fun hj => ?_⟩
+        · rw [hh, update_of_ne (by rintro rfl; exact hi₀ hj)]
+          exact (hh' j).1 (Finset.mem_insert_of_mem hj)
+        · rcases eq_or_ne j i₀ with rfl | hj'
+          · simp [hh]
+          · rw [hh, update_of_ne hj']
+            exact (hh' j).2 (by simp [hj, hj'])
+      have hk : h' i₀ < p := (hh' i₀).1 (Finset.mem_insert_self _ _)
+      have := ((hbd h _ (hAbd h hhmem)).1 (h' i₀) hk y hy)
+      refine this.trans (le_of_eq ?_)
+      rw [Finset.prod_insert hi₀, mul_assoc]
+      congr 2
+      refine Finset.prod_congr rfl fun j hj => ?_
+      rw [hh, update_of_ne (by rintro rfl; exact hi₀ hj)]
+    · -- bound on the error terms
+      rw [Finset.card_insert_of_notMem hi₀]
+      by_cases hii : i = i₀
+      · simp only [hQ', hii, ↓reduceIte, hQ₀]
+        have hterm : ∀ h ∈ boxH J p, ‖(∏ j ∈ J, nodeProd L j (h j) y) • q h y‖ ≤
+            (2 / (R - r)) ^ p * M * ∏ j ∈ J, (2 / (R - r) * (R + r)) ^ h j := by
+          intro h hh
+          rw [norm_smul, norm_prod]
+          have hqh := (hbd h _ (hAbd h hh)).2 y hy
+          calc (∏ j ∈ J, ‖nodeProd L j (h j) y‖) * ‖q h y‖
+              ≤ (∏ j ∈ J, (R + r) ^ h j) *
+                  ((2 / (R - r)) ^ p * ((∏ j ∈ J, (2 / (R - r)) ^ h j) * M)) := by
+                gcongr with j hj
+                exact norm_nodeProd_le hL j (h j) hy
+            _ = (2 / (R - r)) ^ p * M * ∏ j ∈ J, (2 / (R - r) * (R + r)) ^ h j := by
+                rw [show ∏ j ∈ J, (2 / (R - r) * (R + r)) ^ h j
+                    = (∏ j ∈ J, (2 / (R - r)) ^ h j) * ∏ j ∈ J, (R + r) ^ h j by
+                  rw [← Finset.prod_mul_distrib]; simp_rw [mul_pow]]
+                ring
+        calc ‖∑ h ∈ boxH J p, (∏ j ∈ J, nodeProd L j (h j) y) • q h y‖
+            ≤ ∑ h ∈ boxH J p, (2 / (R - r)) ^ p * M * ∏ j ∈ J, (2 / (R - r) * (R + r)) ^ h j :=
+              (norm_sum_le _ _).trans (Finset.sum_le_sum hterm)
+          _ = (2 / (R - r)) ^ p * M * (K - 1) ^ J.card := by
+              rw [← Finset.mul_sum, sum_boxH_prod_pow, hK, add_sub_cancel_left]
+          _ ≤ K ^ (J.card + 1) * (2 / (R - r)) ^ p * M := by
+              have hKK : (K - 1) ^ J.card ≤ K ^ (J.card + 1) :=
+                (pow_le_pow_left₀ (by linarith) (by linarith) _).trans
+                  (pow_le_pow_right₀ hK1 (Nat.le_succ _))
+              have : 0 ≤ (2 / (R - r)) ^ p * M := mul_nonneg (pow_nonneg hc p) hM0
+              nlinarith
+      · simp only [hQ', hii, ↓reduceIte]
+        have hiJ : i ∈ J := by simpa [hii] using hi
+        refine (hQbd i hiJ y hy).trans ?_
+        have : 0 ≤ (2 / (R - r)) ^ p * M := mul_nonneg (pow_nonneg hc p) hM0
+        have hKK : K ^ J.card ≤ K ^ (J.card + 1) := pow_le_pow_right₀ hK1 (Nat.le_succ _)
+        nlinarith
+    · -- the identity
+      rw [hid z, sum_boxH_insert hi₀, Finset.sum_insert hi₀]
+      have hmain : ∀ h ∈ boxH J p, (∏ j ∈ J, nodeProd L j (h j) z) • A h z =
+          ∑ k ∈ Finset.range p,
+            (∏ j ∈ insert i₀ J, nodeProd L j (update h i₀ k j) z) • A' (update h i₀ k) z +
+          nodeProd L i₀ p z • (∏ j ∈ J, nodeProd L j (h j) z) • q h z := by
+        intro h hh
+        have h0 : h i₀ = 0 := ((mem_boxH.1 hh) i₀).2 hi₀
+        rw [hdec h z, smul_add, Finset.smul_sum]
+        congr 1
+        · refine Finset.sum_congr rfl fun k _ => ?_
+          have hA'k : A' (update h i₀ k) = a h k := by
+            simp only [hA', update_idem, update_self]
+            rw [← h0, update_eq_self]
+          rw [hA'k, Finset.prod_insert hi₀, update_self, smul_smul,
+            show ∏ x ∈ J, nodeProd L x (update h i₀ k x) z = ∏ j ∈ J, nodeProd L j (h j) z from
+              Finset.prod_congr rfl fun j hj => by
+                rw [update_of_ne (by rintro rfl; exact hi₀ hj)], mul_comm]
+          rfl
+        · rw [smul_comm]
+          rfl
+      rw [Finset.sum_congr rfl hmain, Finset.sum_add_distrib, ← Finset.smul_sum]
+      have hQJ : ∑ i ∈ J, nodeProd L i p z • Q' i z = ∑ i ∈ J, nodeProd L i p z • Q i z :=
+        Finset.sum_congr rfl fun i hi => by
+          simp only [hQ', show i ≠ i₀ by rintro rfl; exact hi₀ hi, ↓reduceIte]
+      rw [hQJ]
+      simp only [hQ', ↓reduceIte, hQ₀]
+      abel
+
+end MultiIndex
