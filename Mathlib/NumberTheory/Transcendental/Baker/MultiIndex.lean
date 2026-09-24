@@ -171,4 +171,38 @@ lemma summable_norm_mul_pow {c : (ι → ℕ) → F} {M R r : ℝ} (hR : 0 < R) 
         gcongr; exact hc α
     _ = M * (r / R) ^ (∑ i, α i) := by rw [div_pow]; field_simp
 
+/-- Expansion of a continuous multilinear map on the diagonal in coordinates: this is the
+first half of the passage from a `FormalMultilinearSeries` on `ι → 𝕜` back to a
+multi-indexed power series, the converse of `analyticAt_tsum_monomial`. -/
+lemma cmm_diag_eq_sum [DecidableEq ι] {k : ℕ}
+    (p : ContinuousMultilinearMap 𝕜 (fun _ : Fin k => (ι → 𝕜)) F) (z : ι → 𝕜) :
+    p (fun _ => z) = ∑ g : Fin k → ι, (∏ j, z (g j)) • p fun j => Pi.single (g j) 1 := by
+  have hz : z = ∑ i, z i • (Pi.single i 1 : ι → 𝕜) := by
+    conv_lhs => rw [← Finset.univ_sum_single z]
+    exact Finset.sum_congr rfl fun i _ => by rw [← Pi.single_smul, smul_eq_mul, mul_one]
+  calc p (fun _ => z)
+      = p (fun _ : Fin k => ∑ i, z i • (Pi.single i 1 : ι → 𝕜)) := by rw [← hz]
+    _ = ∑ g : Fin k → ι, p fun j => z (g j) • (Pi.single (g j) 1 : ι → 𝕜) :=
+        p.map_sum fun _ i => z i • Pi.single i 1
+    _ = ∑ g : Fin k → ι, (∏ j, z (g j)) • p fun j => Pi.single (g j) 1 :=
+        Finset.sum_congr rfl fun g _ => p.map_smul_univ _ _
+
+/-- Dividing a multi-index power series by a coordinate keeps it normally convergent:
+the shifted coefficients `β ↦ c (β + eᵢ)` are summable on the same polydisc.  This is what
+makes the division step of a Schwarz lemma for Cartesian products work. -/
+lemma summable_shift [DecidableEq ι] {c : (ι → ℕ) → F} {r : ℝ} (hr : 0 < r) (i : ι)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ j, α j)) :
+    Summable fun β : ι → ℕ => ‖c (β + (Pi.single i 1 : ι → ℕ))‖ * r ^ (∑ j, β j) := by
+  set e : ι → ℕ := Pi.single i 1 with he
+  have hdeg : ∀ β : ι → ℕ, ∑ j, (β + e) j = (∑ j, β j) + 1 := fun β => by
+    simp only [Pi.add_apply, Finset.sum_add_distrib]
+    congr 1
+    simp [he, Pi.single_apply]
+  have h1 : Summable fun β : ι → ℕ => ‖c (β + e)‖ * r ^ (∑ j, (β + e) j) :=
+    hsum.comp_injective (add_left_injective e)
+  refine (h1.mul_right r⁻¹).congr fun β => ?_
+  rw [hdeg]
+  field_simp
+  ring
+
 end
