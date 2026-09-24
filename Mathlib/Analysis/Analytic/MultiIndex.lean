@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.Analytic.CPolynomial
+public import Mathlib.Analysis.Calculus.DSlope
 public import Mathlib.Analysis.Analytic.Tsum
 
 /-!
@@ -156,8 +157,7 @@ lemma MultiIndex.summable_pow_sum {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) :
     _ = ∏ _i : ι, ∑ k ∈ Finset.range (N + 1), q ^ k := (Finset.prod_univ_sum _ _).symm
     _ ≤ ∏ _i : ι, (1 - q)⁻¹ := by
         gcongr
-        · exact fun i _ => Finset.sum_nonneg fun k _ => by positivity
-        · exact (hgs.sum_le_tsum _ fun n _ => by positivity).trans_eq hgeom.tsum_eq
+        exact (hgs.sum_le_tsum _ fun n _ => by positivity).trans_eq hgeom.tsum_eq
 
 /-- Cauchy-type coefficient bounds give a summable family on any smaller polydisc. -/
 lemma MultiIndex.summable_norm_mul_pow {c : (ι → ℕ) → F} {M R r : ℝ} (hR : 0 < R) (hr0 : 0 ≤ r)
@@ -658,6 +658,48 @@ theorem exists_analyticAt_eq_sub_pow_smul [CompleteSpace F] {f : (ι → 𝕜) �
   have hf0 : HasFPowerSeriesOnBall (fun w : ι → 𝕜 => f (x + w)) p 0 r := by
     simpa [sub_neg_eq_add, add_comm] using hf.comp_sub (-x)
   exact exists_analyticAt_eq_pow_smul hf0 i m hvanish hρ hρr hconv hsum
+
+/-!
+### Slices along a coordinate
+
+Dividing by a linear factor `z i - ζ` is a one-variable operation performed with the other
+coordinates held fixed.  `dslope` supplies the quotient and the identity it satisfies; what
+has to be added in several variables is that the quotient is jointly analytic, which comes
+from `exists_analyticAt_eq_sub_pow_smul`.
+-/
+
+/-- The slice of `f` along the `i`-th coordinate through `z`. -/
+def slice (f : (ι → 𝕜) → F) (i : ι) (z : ι → 𝕜) : 𝕜 → F :=
+  fun w => f (Function.update z i w)
+
+omit [Fintype ι] [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+@[simp] lemma slice_apply_self (f : (ι → 𝕜) → F) (i : ι) (z : ι → 𝕜) :
+    slice f i z (z i) = f z := by simp [slice]
+
+omit [Fintype ι] in
+/-- **The slicewise divided difference.**  `dslope` of the slice divides the difference
+between `f` and its restriction to the hyperplane `z i = ζ`. -/
+theorem sub_smul_dslope_slice (f : (ι → 𝕜) → F) (i : ι) (ζ : 𝕜) (z : ι → 𝕜) :
+    (z i - ζ) • dslope (slice f i z) ζ (z i) = f z - f (Function.update z i ζ) := by
+  simp [slice]
+
+/-- Off the hyperplane the quotient is the honest one, so it is analytic there. -/
+theorem analyticAt_dslope_slice_of_ne {f : (ι → 𝕜) → F} (i : ι) (ζ : 𝕜) {x : ι → 𝕜}
+    (hx : x i ≠ ζ) (hf : AnalyticAt 𝕜 f x)
+    (hres : AnalyticAt 𝕜 (fun z : ι → 𝕜 => f (Function.update z i ζ)) x) :
+    AnalyticAt 𝕜 (fun z : ι → 𝕜 => dslope (slice f i z) ζ (z i)) x := by
+  have hcoord : AnalyticAt 𝕜 (fun z : ι → 𝕜 => z i - ζ) x :=
+    (ContinuousLinearMap.proj (R := 𝕜) (φ := fun _ : ι => 𝕜) i).analyticAt x |>.sub
+      analyticAt_const
+  have hne : (fun z : ι → 𝕜 => z i - ζ) x ≠ 0 := sub_ne_zero.2 hx
+  have hform : ∀ᶠ z in nhds x,
+      dslope (slice f i z) ζ (z i) = (z i - ζ)⁻¹ • (f z - f (Function.update z i ζ)) := by
+    have hopen : {z : ι → 𝕜 | z i ≠ ζ} ∈ nhds x := by
+      refine IsOpen.mem_nhds ?_ hx
+      exact isOpen_ne.preimage (by fun_prop)
+    filter_upwards [hopen] with z hz
+    rw [← sub_smul_dslope_slice f i ζ z, smul_smul, inv_mul_cancel₀ (sub_ne_zero.2 hz), one_smul]
+  exact ((hcoord.inv hne).smul (hf.sub hres)).congr (hform.mono fun z hz => hz.symm)
 
 end MultiIndex
 
