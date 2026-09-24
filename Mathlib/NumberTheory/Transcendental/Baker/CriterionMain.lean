@@ -29,6 +29,82 @@ namespace Transcendental.SchneiderLangProof
 
 variable {n d₀ d₁ : ℕ}
 
+/-- The exponent of the Liouville factor. -/
+noncomputable def phiE (d₀ d₁ n T S₁ δ D : ℕ) (N Hg : ℝ) (M : ℕ) : ℝ :=
+  M * Real.log M + D * (Real.log (((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) : ℝ) +
+    ((d₀ * T + M + d₁ * n * T * S₁ : ℕ) : ℝ) * Real.log δ + N +
+    ((d₀ * T : ℕ) : ℝ) * Real.log ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) +
+    M * Real.log (d₁ * T * Hg + 1) + ((d₁ * n * T * S₁ : ℕ) : ℝ) * Real.log Hg)
+
+lemma natPow_eq_exp (M : ℕ) : (M : ℝ) ^ M = Real.exp (M * Real.log M) := by
+  rcases Nat.eq_zero_or_pos M with rfl | hM
+  · simp
+  · rw [← Real.log_pow, Real.exp_log (by positivity)]
+
+lemma liouvilleFactor_le_exp {d₀ d₁ n T S₁ δ D : ℕ} (hD : 1 ≤ D) (hδ : 1 ≤ δ) {N Hg : ℝ}
+    (hN : 0 ≤ N) (hHg : 1 ≤ Hg) (M : ℕ) :
+    liouvilleFactor d₀ d₁ n T S₁ δ D N Hg M ≤ Real.exp (phiE d₀ d₁ n T S₁ δ D N Hg M) := by
+  unfold liouvilleFactor phiE
+  set c : ℝ := (((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) : ℝ) with hc
+  set A : ℕ := d₀ * T + M + d₁ * n * T * S₁ with hA
+  set Q : ℝ := (δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1 with hQ
+  set W : ℝ := d₁ * T * Hg + 1 with hW
+  set Y : ℝ := (δ : ℝ) ^ A * Real.exp N * Q ^ (d₀ * T) * W ^ M * Hg ^ (d₁ * n * T * S₁)
+    with hY
+  have hδ1 : (1 : ℝ) ≤ δ := by exact_mod_cast hδ
+  have hc1 : 1 ≤ c := by
+    rw [hc]
+    exact_mod_cast Nat.one_le_iff_ne_zero.2 (by positivity)
+  have hQ1 : 1 ≤ Q := by
+    have : (0 : ℝ) ≤ (δ : ℝ) ^ 2 * M + n * S₁ * Hg := by positivity
+    linarith
+  have hW1 : 1 ≤ W := by
+    have : (0 : ℝ) ≤ d₁ * T * Hg := by positivity
+    linarith
+  have hδA : 1 ≤ (δ : ℝ) ^ A := one_le_pow₀ hδ1
+  have hY1 : (δ : ℝ) ^ A ≤ Y := by
+    rw [hY]
+    have h1 : 1 ≤ Real.exp N := Real.one_le_exp hN
+    have h2 : 1 ≤ Q ^ (d₀ * T) := one_le_pow₀ hQ1
+    have h3 : 1 ≤ W ^ M := one_le_pow₀ hW1
+    have h4 : 1 ≤ Hg ^ (d₁ * n * T * S₁) := one_le_pow₀ hHg
+    calc (δ : ℝ) ^ A = (δ : ℝ) ^ A * 1 * 1 * 1 * 1 := by ring
+      _ ≤ _ := by gcongr
+  have hX : (δ : ℝ) ^ A ≤ c * Y := hY1.trans (le_mul_of_one_le_left (by linarith) hc1)
+  have hX0 : 0 < c * Y := lt_of_lt_of_le (by positivity) hX
+  have hlogX : Real.log (c * Y) = Real.log c + (A : ℝ) * Real.log δ + N +
+      ((d₀ * T : ℕ) : ℝ) * Real.log Q + M * Real.log W +
+        ((d₁ * n * T * S₁ : ℕ) : ℝ) * Real.log Hg := by
+    have hδ0 : (δ : ℝ) ≠ 0 := by positivity
+    rw [hY, Real.log_mul (by positivity) (by positivity), Real.log_mul (by positivity)
+      (by positivity), Real.log_mul (by positivity) (by positivity),
+      Real.log_mul (by positivity) (by positivity), Real.log_mul (by positivity)
+      (by positivity), Real.log_pow, Real.log_exp, Real.log_pow, Real.log_pow, Real.log_pow]
+    push_cast
+    ring
+  calc (M : ℝ) ^ M * (δ : ℝ) ^ A * (c * Y) ^ (D - 1)
+      ≤ (M : ℝ) ^ M * (c * Y) * (c * Y) ^ (D - 1) := by gcongr
+    _ = (M : ℝ) ^ M * (c * Y) ^ D := by
+        rw [mul_assoc, ← pow_succ']
+        congr 2
+        omega
+    _ = Real.exp (M * Real.log M) * Real.exp (D * Real.log (c * Y)) := by
+        have h2 : (c * Y) ^ D = Real.exp (D * Real.log (c * Y)) := by
+          rw [← Real.log_pow, Real.exp_log (pow_pos hX0 D)]
+        rw [natPow_eq_exp, h2]
+    _ = _ := by
+        rw [← Real.exp_add, hlogX]
+
+lemma growth_eq {d₀ d₁ T : ℕ} {N Ax ρ : ℝ} (hρ : 0 ≤ ρ) :
+    growth d₀ d₁ T N Ax ρ = Real.exp (Real.log (((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) : ℝ) + N +
+      ((d₀ * T : ℕ) : ℝ) * Real.log (1 + ρ) + T * Ax * ρ) := by
+  unfold growth
+  have hc : (0 : ℝ) < (((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) : ℝ) := by positivity
+  rw [Real.exp_add, Real.exp_add, Real.exp_add, Real.exp_log hc, ← Real.log_pow,
+    Real.exp_log (by positivity)]
+  push_cast
+  ring
+
 /-- **The choice of parameters** (step 6 of §4.6 of [waldschmidt2000]).  For fixed data there
 are parameters satisfying all the inequalities used in `core`. -/
 theorem exists_parameters (hn1 : 1 ≤ n) (hd : n < d₀ + d₁) {D δ : ℕ} (hD : 1 ≤ D)
