@@ -6,7 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
-public import Mathlib.NumberTheory.Transcendental.Baker.Criterion
+public import Mathlib.NumberTheory.Transcendental.Baker.CriterionMain
 public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.LinearAlgebra.Basis.Basic
 public import Mathlib.LinearAlgebra.Dimension.Constructions
