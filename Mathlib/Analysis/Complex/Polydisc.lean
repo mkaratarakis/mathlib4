@@ -182,4 +182,23 @@ theorem norm_le_mul_pow_of_eq_prod_smul {f g : (ι → ℂ) → F} {S : Finset �
     _ = M * (2 * r / (R - r)) ^ (m * S.card) := by
         rw [div_pow]; field_simp
 
+/-- **Schwarz's lemma for a zero on a coordinate hyperplane.**
+
+If `f` vanishes to order `p` on `z i = 0` -- that is, `f = z i ^ p • g` with `g` analytic --
+and `‖f‖ ≤ M` on the polydisc of polyradius `R`, then on the smaller polydisc of polyradius
+`r` it is smaller by the factor `(r / R) ^ p`. -/
+theorem norm_le_mul_pow_of_eq_pow_smul {f g : (ι → ℂ) → F} {r R M : ℝ} (hr : 0 ≤ r)
+    (hrR : r ≤ R) (hR : 0 < R) (i : ι) (p : ℕ)
+    (hg : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y)
+    (heq : ∀ y : ι → ℂ, ‖y‖ ≤ R → f y = y i ^ p • g y)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M) :
+    ∀ z : ι → ℂ, ‖z‖ ≤ r → ‖f z‖ ≤ M * (r / R) ^ p := by
+  intro z hz
+  have hzR : ‖z‖ ≤ R := hz.trans hrR
+  have hgz := norm_le_of_eq_pow_smul hR hg i p heq hf z hzR
+  have hzi : ‖z i‖ ≤ r := (norm_le_pi_norm z i).trans hz
+  calc ‖f z‖ = ‖z i‖ ^ p * ‖g z‖ := by rw [heq z hzR, norm_smul, norm_pow]
+    _ ≤ r ^ p * (M / R ^ p) := by gcongr
+    _ = M * (r / R) ^ p := by rw [div_pow]; field_simp
+
 end Complex
