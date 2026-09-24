@@ -54,8 +54,15 @@ dependency order:
   of variables.  The analytic content is available: `MultiIndex.hasSum_split_coord` is the
   degree-one case, `MultiIndex.hasSum_smul_shift` divides by a coordinate, and
   `MultiIndex.hasSum_coeff` with `analyticAt_tsum_monomial` moves between a function and its
-  multi-index series.  What is left is the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants of
-  step 3.6) and the bookkeeping of the induction.
+  multi-index series.  Division by a linear factor is `sub_smul_dslope_slice` together with
+  `MultiIndex.exists_slice_eq_pow_smul`, which turns the coefficient condition into an
+  ordinary one-variable zero of order `m` and so lets one division be followed by the next.
+  What is left is parts (a) and (b) -- for which the vanishing of `f` must be converted back
+  into vanishing of the coefficients, via `HasFPowerSeriesOnBall.unique` against the zero
+  series, phrased in terms of the formal multilinear series `p` rather than the multi-index
+  coefficients, since `coeff p α = 0` is immediate from `p = 0` whereas the reverse direction
+  carries a multinomial factor -- and the estimates (`Aₚ ≤ 3ᵖ` of step 2.4, the constants of
+  step 3.6).
 * **§4.3, Proposition 4.7** — the Schwarz lemma for Cartesian products, from Lemma 4.8.  The
   maximum modulus principle is available in the needed generality:
   `Complex.norm_le_of_forall_mem_frontier_norm_le` is stated for an arbitrary complex normed
