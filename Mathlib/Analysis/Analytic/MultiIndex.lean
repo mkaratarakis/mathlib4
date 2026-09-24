@@ -362,6 +362,66 @@ lemma summable_norm_coeff_mul_pow (p : FormalMultilinearSeries 𝕜 (ι → 𝕜
   have hs := (hinj.summable_iff hzero).2 (summable_prod_norm_coeffAt p hρ h)
   simpa [coeff, Function.comp_def] using hs
 
+/-- **An analytic function on `ι → 𝕜` is the sum of its multi-index power series.**
+
+This is the converse to `analyticAt_tsum_monomial`, and completes the identification of
+analytic functions on a finite product of copies of `𝕜` with normally convergent
+multi-index power series. -/
+theorem hasSum_coeff [CompleteSpace F] {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F}
+    {f : (ι → 𝕜) → F} {r : ℝ≥0}
+    (hf : HasFPowerSeriesOnBall f p 0 r) {z : ι → 𝕜} (hz : ‖z‖ < r)
+    (h : Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k) :
+    HasSum (fun α : ι → ℕ => (∏ i, z i ^ α i) • coeff p α) (f z) := by
+  classical
+  set u : ℕ × (ι → ℕ) → F := fun kα => (∏ i, z i ^ kα.2 i) • coeffAt p kα.1 kα.2 with hu
+  -- the doubly indexed family is dominated by the coefficient norms
+  have hnorm : ∀ kα : ℕ × (ι → ℕ), ‖u kα‖ ≤ ‖coeffAt p kα.1 kα.2‖ * ‖z‖ ^ kα.1 := by
+    rintro ⟨k, α⟩
+    rcases eq_or_ne (∑ i, α i) k with hk | hk
+    · subst hk
+      rw [hu]
+      simp only [norm_smul, norm_prod, norm_pow]
+      rw [mul_comm]
+      gcongr
+      calc ∏ i, ‖z i‖ ^ α i ≤ ∏ i, ‖z‖ ^ α i := by
+            gcongr with i
+            exact norm_le_pi_norm z i
+        _ = ‖z‖ ^ (∑ i, α i) := by rw [← Finset.prod_pow_eq_pow_sum]
+    · simp [hu, coeffAt_eq_zero p hk]
+  have hsummable : Summable u :=
+    Summable.of_norm (Summable.of_nonneg_of_le (fun _ => norm_nonneg _) hnorm
+      (summable_prod_norm_coeffAt p (norm_nonneg z) h))
+  -- in each degree the family sums to the corresponding term of the power series
+  have hfib : ∀ k, HasSum (fun α : ι → ℕ => u (k, α)) (p k fun _ => z) := by
+    intro k
+    have hsupp : ∀ α ∉ Fintype.piFinset fun _ : ι => Finset.range (k + 1), u (k, α) = 0 :=
+      fun α hα => by simp [hu, coeffAt_eq_zero_of_notMem p k hα]
+    have hs : HasSum (fun α : ι → ℕ => u (k, α))
+        (∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1), u (k, α)) :=
+      hasSum_sum_of_ne_finset_zero hsupp
+    have hkey : ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1), u (k, α)
+        = p k fun _ => z := by
+      simp only [hu, coeffAt]
+      exact ((p k).apply_diag_eq_sum_multiIndex z).symm
+    rwa [hkey] at hs
+  -- so the doubly indexed sum is `f z`
+  have hball : z ∈ Metric.eball (0 : ι → 𝕜) r := by
+    rw [mem_eball_zero_iff, enorm_eq_nnnorm, ENNReal.coe_lt_coe]
+    exact_mod_cast hz
+  have hfz : HasSum (fun k => p k fun _ => z) (f z) := by simpa using hf.hasSum hball
+  have heq : (∑' kα, u kα) = f z := (hsummable.hasSum.prod_fiberwise hfib).unique hfz
+  -- flatten along the degree
+  have hinj : Function.Injective fun α : ι → ℕ => ((∑ i, α i), α) :=
+    fun a b hab => by simpa using congrArg Prod.snd hab
+  have hzero : ∀ kα : ℕ × (ι → ℕ), kα ∉ Set.range (fun α : ι → ℕ => ((∑ i, α i), α)) →
+      u kα = 0 := by
+    rintro ⟨k, α⟩ hk
+    have hne : ∑ i, α i ≠ k := fun hh => hk ⟨α, by simp [hh]⟩
+    simp [hu, coeffAt_eq_zero p hne]
+  have hflat := (hinj.hasSum_iff hzero).2 hsummable.hasSum
+  rw [heq] at hflat
+  simpa [hu, coeff, Function.comp_def] using hflat
+
 end MultiIndex
 
 end
