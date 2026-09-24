@@ -1023,3 +1023,144 @@ theorem taylorCoeff_pow_smul_eq_zero {G : (ι → ℂ) → V} {ξ : ι → ℂ} 
   exact hc_van κ hκ
 
 end MultiIndex
+
+/-!
+### Schwarz's lemma for Cartesian products
+-/
+
+namespace MultiIndex
+
+open Polynomial
+
+/-- Nodes listing the points of `E`, each `m` times, in the disc of radius `r`. -/
+theorem exists_nodes (E : Finset ℂ) (m : ℕ) {r : ℝ} (hr : 0 ≤ r) (hE : ∀ ζ ∈ E, ‖ζ‖ ≤ r) :
+    ∃ L : ℕ → ℂ, (∀ k, ‖L k‖ ≤ r) ∧ nodePoly L (m * E.card) = ∏ ζ ∈ E, (X - C ζ) ^ m := by
+  classical
+  induction E using Finset.induction_on with
+  | empty => exact ⟨fun _ => 0, fun _ => by simpa using hr, by simp [nodePoly]⟩
+  | insert a E ha ih =>
+    obtain ⟨L', hL'r, hL'E⟩ := ih fun ζ hζ => hE ζ (Finset.mem_insert_of_mem hζ)
+    refine ⟨fun k => if k < m then a else L' (k - m), fun k => ?_, ?_⟩
+    · by_cases hk : k < m
+      · simp only [hk, ↓reduceIte]
+        exact hE a (Finset.mem_insert_self a E)
+      · simp only [hk, ↓reduceIte]
+        exact hL'r _
+    · rw [Finset.card_insert_of_notMem ha, Finset.prod_insert ha, ← hL'E, mul_add, mul_one,
+        add_comm, nodePoly, Finset.prod_range_add]
+      congr 1
+      · rw [Finset.prod_congr rfl fun x hx =>
+          show X - C (if x < m then a else L' (x - m)) = X - C a by
+            simp [Finset.mem_range.1 hx], Finset.prod_const, Finset.card_range]
+      · refine Finset.prod_congr rfl fun k _ => ?_
+        simp
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+  {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
+
+/-- **Schwarz's lemma for Cartesian products** (Proposition 4.7 of [waldschmidt2000]).
+
+Let `f` be analytic on the closed polydisc of polyradius `R` in `ℂⁿ`, with `‖f‖ ≤ M` there, and
+let `E₁, …, Eₙ` be sets of `S` points in the disc of radius `r < R`.  If every Taylor
+coefficient of `f` of order `< m` in each coordinate vanishes at every point of
+`E₁ × ⋯ × Eₙ`, then on the polydisc of polyradius `r`
+`‖f‖ ≤ n (4r / (R - r)) ^ (mS) K ^ n M`, where `K = 1 + ∑_{k < mS} (2 (R + r) / (R - r)) ^ k`.
+For `R ≥ 5r` this is at most `n (5 · 3ⁿ r / R) ^ (mS) M`: see
+`norm_le_of_taylorCoeff_eq_zero_of_five_mul_le`. -/
+theorem norm_le_of_taylorCoeff_eq_zero [Nonempty ι] {f : (ι → ℂ) → V} {E : ι → Finset ℂ}
+    {S m : ℕ} (hE : ∀ i, (E i).card = S) {r R M : ℝ} (hr : 0 ≤ r) (hrR : r < R)
+    (hEr : ∀ i, ∀ ζ ∈ E i, ‖ζ‖ ≤ r)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ f y)
+    (hM : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M)
+    (hvan : ∀ ξ : ι → ℂ, (∀ i, ξ i ∈ E i) → ∀ κ : ι → ℕ, (∀ i, κ i < m) →
+      taylorCoeff f ξ κ = 0)
+    {z : ι → ℂ} (hz : ‖z‖ ≤ r) :
+    ‖f z‖ ≤ Fintype.card ι * (2 * r * (2 / (R - r))) ^ (m * S) *
+      (1 + ∑ k ∈ Finset.range (m * S), (2 / (R - r) * (R + r)) ^ k) ^ Fintype.card ι * M := by
+  set p := m * S with hp
+  have hR : 0 < R := hr.trans_lt hrR
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM 0 (by simpa using hR.le))
+  have hc : 0 ≤ 2 / (R - r) := div_nonneg (by norm_num) (by linarith)
+  choose L hLr hLE using fun i => exists_nodes (E i) m hr (hEr i)
+  simp only [hE] at hLE
+  obtain ⟨A, Q, hA, hQ, hAind, -, hQbd, hid⟩ :=
+    exists_newton_finset hr hrR p L (fun j k => hLr j k) hf hM Finset.univ
+  set C₀ : (ι → ℕ) → V := fun h => A h 0 with hC₀
+  have hAC : ∀ h z, A h z = C₀ h := fun h z =>
+    eq_apply_zero_of_forall_indepOf (fun j => hAind h j (Finset.mem_univ j)) z
+  set T : (ι → ℂ) → V :=
+    fun z => ∑ h ∈ boxH Finset.univ p, (∏ j, nodeProd L j (h j) z) • C₀ h with hT
+  set Er : (ι → ℂ) → V := fun z => ∑ i, nodeProd L i p z • Q i z with hEr'
+  have hfTE : ∀ z, f z = T z + Er z := fun z => by
+    rw [hid z]
+    simp [hT, hEr', hAC]
+  -- the main term vanishes
+  have hC0 : ∀ h ∈ boxH Finset.univ p, C₀ h = 0 := by
+    rcases Nat.eq_zero_or_pos p with hp0 | hp0
+    · intro h hh
+      obtain ⟨j⟩ := ‹Nonempty ι›
+      have := ((mem_boxH.1 hh) j).1 (Finset.mem_univ j)
+      omega
+    · have hm0 : 0 < m := Nat.pos_of_ne_zero fun h => by simp [hp, h] at hp0
+      have hS0 : 0 < S := Nat.pos_of_ne_zero fun h => by simp [hp, h] at hp0
+      have hne : ∀ j, Nonempty {x : ℂ × ℕ // x.1 ∈ E j ∧ x.2 < m} := fun j => by
+        obtain ⟨ζ, hζ⟩ := Finset.card_pos.1 (by rw [hE j]; exact hS0)
+        exact ⟨⟨(ζ, 0), hζ, hm0⟩⟩
+      refine eq_zero_of_tensor (Cond := fun j => {x : ℂ × ℕ // x.1 ∈ E j ∧ x.2 < m})
+        (fun j k γ => (taylor γ.1.1 (nodePoly (L j) k)).coeff γ.1.2)
+        (fun j d hd => newton_eq_zero_of_taylor (hLE j) d fun ζ hζ t ht => hd ⟨(ζ, t), hζ, ht⟩)
+        Finset.univ C₀ (fun γ => ?_)
+      set ξ : ι → ℂ := fun j => (γ j).1.1 with hξdef
+      set κ : ι → ℕ := fun j => (γ j).1.2 with hκdef
+      have hξ : ∀ i, ξ i ∈ E i := fun i => (γ i).2.1
+      have hκ : ∀ i, κ i < m := fun i => (γ i).2.2
+      have hξR : ‖ξ‖ ≤ R :=
+        (pi_norm_le_iff_of_nonneg hR.le).2 fun i => (hEr i _ (hξ i)).trans hrR.le
+      have hEran : ∀ i ∈ (Finset.univ : Finset ι),
+          AnalyticAt ℂ (fun z => nodeProd L i p z • Q i z) ξ :=
+        fun i _ => (analyticAt_nodeProd L i p ξ).smul (hQ i ξ hξR)
+      have hEr0 : taylorCoeff Er ξ κ = 0 := by
+        rw [hEr', taylorCoeff_finset_sum _ hEran]
+        refine Finset.sum_eq_zero fun i _ => ?_
+        have hfac : (fun z => nodeProd L i p z • Q i z) = fun z =>
+            (z i - ξ i) ^ m • ((∏ ζ ∈ (E i).erase (ξ i), (z i - ζ) ^ m) • Q i z) := by
+          funext z
+          have hprod : nodeProd L i p z = ∏ ζ ∈ E i, (z i - ζ) ^ m := by
+            rw [nodeProd, ← eval_nodePoly, hLE i]
+            simp [eval_prod]
+          rw [hprod, ← Finset.mul_prod_erase _ _ (hξ i), mul_smul]
+        rw [hfac]
+        have hcoord : AnalyticAt ℂ (fun z : ι → ℂ => z i) ξ :=
+          (ContinuousLinearMap.proj (R := ℂ) (φ := fun _ : ι => ℂ) i).analyticAt ξ
+        exact taylorCoeff_pow_smul_eq_zero ((Finset.analyticAt_fun_prod _ fun ζ _ =>
+          (hcoord.sub analyticAt_const).pow m).smul (hQ i ξ hξR)) i m (hκ i)
+      have hTeq : T = f - Er := by
+        funext z
+        simp [hfTE z]
+      have hT0 : taylorCoeff T ξ κ = 0 := by
+        rw [hTeq, taylorCoeff_sub (hf ξ hξR) (Finset.analyticAt_fun_sum _ hEran),
+          hvan ξ hξ κ hκ, hEr0, sub_zero]
+      exact (taylorCoeff_mainTerm L p C₀ ξ κ).symm.trans hT0
+  -- only the error terms remain
+  have hTz : T z = 0 := Finset.sum_eq_zero fun h hh => by rw [hC0 h hh, smul_zero]
+  rw [hfTE z, hTz, zero_add]
+  have hzR : ‖z‖ ≤ R := hz.trans hrR.le
+  set K := 1 + ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k with hK
+  have hK0 : 0 ≤ K := by
+    have : 0 ≤ ∑ k ∈ Finset.range p, (2 / (R - r) * (R + r)) ^ k :=
+      Finset.sum_nonneg fun k _ => pow_nonneg (mul_nonneg hc (by linarith)) k
+    linarith
+  have hbd : ∀ i, ‖nodeProd L i p z • Q i z‖ ≤
+      (r + r) ^ p * (K ^ Fintype.card ι * (2 / (R - r)) ^ p * M) := fun i => by
+    rw [norm_smul]
+    have hQi := hQbd i (Finset.mem_univ i) z hzR
+    rw [Finset.card_univ] at hQi
+    exact mul_le_mul (norm_nodeProd_le hLr i p hz) hQi (norm_nonneg _) (by positivity)
+  calc ‖Er z‖ ≤ ∑ _i : ι, (r + r) ^ p * (K ^ Fintype.card ι * (2 / (R - r)) ^ p * M) :=
+        (norm_sum_le _ _).trans (Finset.sum_le_sum fun i _ => hbd i)
+    _ = Fintype.card ι * (2 * r * (2 / (R - r))) ^ p * K ^ Fintype.card ι * M := by
+        rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
+          show 2 * r * (2 / (R - r)) = (r + r) * (2 / (R - r)) by ring, mul_pow]
+        ring
+
+end MultiIndex
