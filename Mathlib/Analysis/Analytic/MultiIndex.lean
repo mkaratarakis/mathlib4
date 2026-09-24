@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.Analytic.CPolynomial
+public import Mathlib.Analysis.Analytic.Uniqueness
 public import Mathlib.Analysis.Calculus.DSlope
 public import Mathlib.Algebra.MvPolynomial.Coeff
 public import Mathlib.Algebra.MvPolynomial.Funext
@@ -795,4 +796,26 @@ theorem eq_zero_of_forall_sum_monomial_eq_zero {J : Type*} [Fintype J]
 
 end MultiIndex
 
-end
+/-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
+point has all multi-index coefficients zero there.
+
+The diagonal values of the power series vanish by `HasFPowerSeriesAt.apply_eq_zero`;
+`ContinuousMultilinearMap.apply_diag_eq_sum_multiIndex` expands them as a polynomial in the
+coordinates, and `eq_zero_of_forall_sum_monomial_eq_zero` reads off the coefficients. -/
+theorem coeffAt_eq_zero_of_eventuallyEq_zero {J : Type*} [Fintype J] [DecidableEq J]
+    {K : Type*} [RCLike K] {G : Type*} [NormedAddCommGroup G] [NormedSpace K G]
+    {f : (J → K) → G} {p : FormalMultilinearSeries K (J → K) G} {x : J → K}
+    (hf : HasFPowerSeriesAt f p x) (h0 : f =ᶠ[nhds x] 0) (n : ℕ) (α : J → ℕ) :
+    MultiIndex.coeffAt p n α = 0 := by
+  classical
+  have hz : HasFPowerSeriesAt 0 p x := hf.congr h0
+  have hdiag : ∀ y : J → K, (p n fun _ => y) = 0 :=
+    HasFPowerSeriesAt.apply_eq_zero hz n
+  by_cases hmem : α ∈ Fintype.piFinset fun _ : J => Finset.range (n + 1)
+  · refine MultiIndex.eq_zero_of_forall_sum_monomial_eq_zero
+      (K := K) (c := fun β => MultiIndex.coeffAt p n β)
+      (s := Fintype.piFinset fun _ : J => Finset.range (n + 1)) (fun y => ?_) α hmem
+    have hexp := (p n).apply_diag_eq_sum_multiIndex y
+    rw [hdiag y] at hexp
+    simpa [MultiIndex.coeffAt] using hexp.symm
+  · exact MultiIndex.coeffAt_eq_zero_of_notMem p n hmem
