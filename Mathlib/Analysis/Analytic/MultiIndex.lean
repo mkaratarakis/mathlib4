@@ -811,6 +811,27 @@ lemma toCMM_apply_single (α : ι → ℕ) (c : F) (h : MultiIndex.Slots α → 
   rw [Finset.prod_congr rfl fun t _ => hpt t, Finset.prod_boole]
   by_cases hall : ∀ t : MultiIndex.Slots α, h t = t.1 <;> simp [hall]
 
+/-- The one-term series of a multi-index, evaluated at a tuple of basis vectors: it returns
+`c` exactly for the single tuple matching that multi-index's enumeration of its slots.  This
+is why no multinomial factor appears when the coefficients are read back off. -/
+lemma series_apply_single (α : ι → ℕ) (c : F) {k : ℕ}
+    (hk : Fintype.card (MultiIndex.Slots α) = k) (g : Fin k → ι) :
+    MultiIndex.series (𝕜 := 𝕜) α c k (fun j => (Pi.single (g j) 1 : ι → 𝕜))
+      = if ∀ t : MultiIndex.Slots α, g (Fintype.equivFinOfCardEq hk t) = t.1 then c else 0 := by
+  rw [MultiIndex.series, dite_eq_left hk, ContinuousMultilinearMap.domDomCongr_apply]
+  exact MultiIndex.toCMM_apply_single α c _
+
+omit [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
+/-- There are exactly `α i` slots carrying the coordinate `i`. -/
+lemma card_filter_slots_fst (α : ι → ℕ) (i : ι) :
+    (Finset.univ.filter fun t : MultiIndex.Slots α => t.1 = i).card = α i := by
+  classical
+  have h1 : Fintype.card {t : MultiIndex.Slots α // t.1 = i} = α i := by
+    rw [Fintype.card_congr (Equiv.sigmaSubtype (β := fun j => Fin (α j)) i)]
+    simp
+  rw [← h1]
+  exact (Fintype.card_subtype _).symm
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
