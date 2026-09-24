@@ -6143,6 +6143,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
 public import Mathlib.NumberTheory.Transcendental.Baker.Polydisc
 public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.NumberTheory.Transcendental.Baker.SchneiderLang
+public import Mathlib.NumberTheory.Transcendental.Baker.SchwarzProduct
 public import Mathlib.NumberTheory.Transcendental.Baker.Setup
 public import Mathlib.NumberTheory.Transcendental.Baker.ThueSiegel
 public import Mathlib.NumberTheory.Transcendental.Lindemann.AnalyticalPart
