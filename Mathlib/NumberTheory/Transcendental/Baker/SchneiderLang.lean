@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.NumberTheory.Transcendental.Baker.Criterion
 public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.LinearAlgebra.Basis.Basic
 public import Mathlib.LinearAlgebra.Dimension.Constructions
@@ -108,8 +109,8 @@ theorem schneiderLang (hd₀ : d₀ ≤ n) (hn : n < d₀ + d₁)
     (hxli : LinearIndependent ℚ x)
     (y : Fin n → Fin n → ℂ) (hyli : LinearIndependent ℂ y) :
     (∃ (h : Fin d₀) (j : Fin n), Transcendental ℚ (y j (Fin.castLE hd₀ h))) ∨
-      ∃ (i : Fin d₁) (j : Fin n), Transcendental ℚ (exp (∑ v, x i v * y j v)) := by
-  sorry
+      ∃ (i : Fin d₁) (j : Fin n), Transcendental ℚ (exp (∑ v, x i v * y j v)) :=
+  SchneiderLangProof.main hd₀ hn x hx hxli y hyli
 
 /-- **Corollary 4.3** of [waldschmidt2000]: the case `d₀ = 0` of `schneiderLang`.
 
