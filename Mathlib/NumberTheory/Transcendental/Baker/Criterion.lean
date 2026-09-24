@@ -359,3 +359,109 @@ theorem algSize_thetaK {δ : ℕ} {Hg : ℝ} (hδ : 1 ≤ δ) (hHg : 1 ≤ Hg)
 end Arithmetic
 
 end Transcendental.SchneiderLangProof
+
+namespace Transcendental.SchneiderLangProof
+
+variable {n d₀ d₁ : ℕ}
+
+/-- **Liouville's inequality for the Taylor coefficients at `s · y`.**  A nonzero Taylor
+coefficient `c` of order `σ`, with `M = |σ|`, satisfies `1 ≤ M ^ M δ ^ A ‖c‖ H ^ (d - 1)` with
+`A` and `H` as in `algSize_thetaK` and `d = [K : ℚ]`. -/
+theorem one_le_taylorCoeff {K : Type*} [Field K] [NumberField K] (ι₀ : K →+* ℂ)
+    {x : Fin d₁ → Fin n → ℂ} {y : Fin n → Fin n → ℂ}
+    {X : Fin d₁ → Fin n → K} {Yg : Fin n → Fin d₀ → K} {Eg : Fin d₁ → Fin n → K}
+    (hX : ∀ i v, ι₀ (X i v) = x i v)
+    (hY : ∀ j (v : Fin n) (h : (v : ℕ) < d₀), ι₀ (Yg j ⟨v, h⟩) = y j v)
+    (hE : ∀ i j, ι₀ (Eg i j) = Complex.exp (∑ v, x i v * y j v))
+    {δ : ℕ} {Hg : ℝ} (hδ : 1 ≤ δ) (hHg : 1 ≤ Hg)
+    (hXs : ∀ i v, AlgSize δ (X i v) 1 Hg) (hYs : ∀ j h, AlgSize δ (Yg j h) 1 Hg)
+    (hEs : ∀ i j, AlgSize δ (Eg i j) 1 Hg) (T S₁ : ℕ) (p : Idx d₀ d₁ T → ℤ) {N : ℝ}
+    (hp : ∀ l, |(p l : ℝ)| ≤ Real.exp N) (s : Fin n → ℕ) (hs : ∀ j, s j ≤ S₁)
+    (σ : Fin n → ℕ)
+    (hne : taylorCoeff (auxF x T fun l => (p l : ℂ)) (point y s) σ ≠ 0) :
+    1 ≤ ((∑ v, σ v : ℕ) : ℝ) ^ (∑ v, σ v) * (δ : ℝ) ^ (d₀ * T + ∑ v, σ v + d₁ * n * T * S₁) *
+      ‖taylorCoeff (auxF x T fun l => (p l : ℂ)) (point y s) σ‖ *
+      (Fintype.card (Idx d₀ d₁ T) * ((δ : ℝ) ^ (d₀ * T + ∑ v, σ v + d₁ * n * T * S₁) *
+        Real.exp N * ((δ : ℝ) ^ 2 * (∑ v, σ v : ℕ) + n * S₁ * Hg + 1) ^ (d₀ * T) *
+        (d₁ * T * Hg + 1) ^ (∑ v, σ v) * Hg ^ (d₁ * n * T * S₁))) ^
+          (Module.finrank ℚ K - 1) := by
+  set θ := thetaK X Yg Eg T p s σ with hθ
+  have hmap := map_thetaK ι₀ hX hY hE T p s σ
+  have hfac0 : (∏ v, ((σ v).factorial : ℂ)) ≠ 0 :=
+    Finset.prod_ne_zero_iff.2 fun v _ => by exact_mod_cast (Nat.factorial_pos _).ne'
+  have hθ0 : θ ≠ 0 := by
+    intro h0
+    rw [← hθ, h0, map_zero] at hmap
+    exact hne ((mul_eq_zero.1 hmap.symm).resolve_left hfac0)
+  have h := (algSize_thetaK hδ hHg hXs hYs hEs T S₁ p hp s hs σ).one_le hθ0 (by omega) ι₀
+  rw [← hθ, hmap, norm_mul, norm_prod] at h
+  have hfact : ∏ v, ‖((σ v).factorial : ℂ)‖ ≤ ((∑ v, σ v : ℕ) : ℝ) ^ (∑ v, σ v) := by
+    simp only [Complex.norm_natCast]
+    have h1 : ∏ v, (σ v).factorial ≤ (∑ v, σ v).factorial :=
+      Nat.le_of_dvd (Nat.factorial_pos _) (Nat.prod_factorial_dvd_factorial_sum _ _)
+    have h2 := (∑ v, σ v).factorial_le_pow
+    exact_mod_cast h1.trans h2
+  refine h.trans ?_
+  have hH0 : 0 ≤ (Fintype.card (Idx d₀ d₁ T) * ((δ : ℝ) ^ (d₀ * T + ∑ v, σ v + d₁ * n * T * S₁) *
+        Real.exp N * ((δ : ℝ) ^ 2 * (∑ v, σ v : ℕ) + n * S₁ * Hg + 1) ^ (d₀ * T) *
+        (d₁ * T * Hg + 1) ^ (∑ v, σ v) * Hg ^ (d₁ * n * T * S₁))) := by positivity
+  calc (δ : ℝ) ^ (d₀ * T + ∑ v, σ v + d₁ * n * T * S₁) *
+        ((∏ v, ‖((σ v).factorial : ℂ)‖) *
+          ‖taylorCoeff (auxF x T fun l => (p l : ℂ)) (point y s) σ‖) * _
+      ≤ (δ : ℝ) ^ (d₀ * T + ∑ v, σ v + d₁ * n * T * S₁) *
+        (((∑ v, σ v : ℕ) : ℝ) ^ (∑ v, σ v) *
+          ‖taylorCoeff (auxF x T fun l => (p l : ℂ)) (point y s) σ‖) * _ := by gcongr
+    _ = _ := by ring
+
+/-!
+### Growth bounds
+-/
+
+
+lemma norm_point_le (y : Fin n → Fin n → ℂ) {S₁ : ℕ} {s : Fin n → ℕ} (hs : ∀ j, s j ≤ S₁) :
+    ‖point y s‖ ≤ S₁ * ∑ j, ∑ v, ‖y j v‖ := by
+  refine (pi_norm_le_iff_of_nonneg (by positivity)).2 fun v => ?_
+  refine (norm_sum_le _ _).trans ?_
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum fun j _ => ?_
+  rw [norm_mul, Complex.norm_natCast]
+  exact mul_le_mul (by exact_mod_cast hs j)
+    (Finset.single_le_sum (fun w _ => norm_nonneg (y j w)) (Finset.mem_univ v))
+    (norm_nonneg _) (by positivity)
+
+lemma sum_norm_freq_le (x : Fin d₁ → Fin n → ℂ) {T : ℕ} {t : Fin d₁ → ℕ}
+    (ht : ∀ i, t i ≤ T) : ∑ v, ‖freq x t v‖ ≤ T * ∑ i, ∑ v, ‖x i v‖ := by
+  calc ∑ v, ‖freq x t v‖ ≤ ∑ v, ∑ i, (T : ℝ) * ‖x i v‖ := by
+        refine Finset.sum_le_sum fun v _ => (norm_sum_le _ _).trans
+          (Finset.sum_le_sum fun i _ => ?_)
+        rw [norm_mul, Complex.norm_natCast]
+        exact mul_le_mul_of_nonneg_right (by exact_mod_cast ht i) (norm_nonneg _)
+    _ = T * ∑ i, ∑ v, ‖x i v‖ := by
+        rw [Finset.sum_comm, Finset.mul_sum]
+        simp_rw [Finset.mul_sum]
+
+/-- The growth of the auxiliary function. -/
+lemma norm_auxF_le (x : Fin d₁ → Fin n → ℂ) (T : ℕ) {p : Idx d₀ d₁ T → ℂ} {N : ℝ}
+    (hp : ∀ l, ‖p l‖ ≤ Real.exp N) (z : Fin n → ℂ) :
+    ‖auxF x T p z‖ ≤ Fintype.card (Idx d₀ d₁ T) * (Real.exp N * (1 + ‖z‖) ^ (d₀ * T) *
+      Real.exp (T * (∑ i, ∑ v, ‖x i v‖) * ‖z‖)) := by
+  unfold auxF
+  refine (norm_sum_le _ _).trans ?_
+  rw [← nsmul_eq_mul, ← Finset.card_univ, ← Finset.sum_const]
+  refine Finset.sum_le_sum fun l _ => ?_
+  rw [norm_mul]
+  have hτ := sum_tauVec_le (n := n) fun h => Nat.lt_succ_iff.1 (l.1 h).2
+  have hw := sum_norm_freq_le x (T := T) (t := tOf l) fun i => Nat.lt_succ_iff.1 (l.2 i).2
+  calc ‖p l‖ * ‖expMonomial (τOf (n := n) l) (freq x (tOf l)) z‖
+      ≤ Real.exp N * ((1 + ‖z‖) ^ (∑ v, τOf (n := n) l v) *
+          Real.exp ((∑ v, ‖freq x (tOf l) v‖) * ‖z‖)) :=
+        mul_le_mul (hp l) (norm_expMonomial_le _ _ z) (norm_nonneg _) (Real.exp_pos _).le
+    _ ≤ Real.exp N * ((1 + ‖z‖) ^ (d₀ * T) *
+          Real.exp (T * (∑ i, ∑ v, ‖x i v‖) * ‖z‖)) := by
+        gcongr
+        · linarith [norm_nonneg z]
+        · exact hτ
+    _ = Real.exp N * (1 + ‖z‖) ^ (d₀ * T) * Real.exp (T * (∑ i, ∑ v, ‖x i v‖) * ‖z‖) := by
+        ring
+
+end Transcendental.SchneiderLangProof
