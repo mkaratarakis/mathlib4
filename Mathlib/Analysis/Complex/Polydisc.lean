@@ -140,4 +140,46 @@ lemma norm_prod_sub_pow_le {S : Finset ℂ} {r : ℝ}
   gcongr with ζ hζ
   exact hfac ζ hζ
 
+/-- Dividing by a polynomial in one coordinate whose roots lie in the disc of radius `r`
+costs a factor `(R - r) ^ p` on the polydisc of polyradius `R`. -/
+theorem norm_le_of_eq_prod_smul {f g : (ι → ℂ) → F} {S : Finset ℂ} {r R M : ℝ}
+    (hr : 0 ≤ r) (hrR : r < R) (hS : ∀ ζ ∈ S, ‖ζ‖ ≤ r) (m : ℕ) (i : ι)
+    (hg : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y)
+    (heq : ∀ y : ι → ℂ, ‖y‖ ≤ R → f y = (∏ ζ ∈ S, (y i - ζ) ^ m) • g y)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M) :
+    ∀ z : ι → ℂ, ‖z‖ ≤ R → ‖g z‖ ≤ M / (R - r) ^ (m * S.card) := by
+  have hRr : 0 < R - r := by linarith
+  refine norm_le_of_forall_norm_coord_eq (lt_of_le_of_lt hr hrR) hg i fun y hy hyi => ?_
+  have hlb : (R - r) ^ (m * S.card) ≤ ‖∏ ζ ∈ S, (y i - ζ) ^ m‖ :=
+    norm_prod_sub_pow_ge hrR.le hS m hyi
+  rw [le_div_iff₀ (by positivity)]
+  calc ‖g y‖ * (R - r) ^ (m * S.card)
+      ≤ ‖g y‖ * ‖∏ ζ ∈ S, (y i - ζ) ^ m‖ := by gcongr
+    _ = ‖f y‖ := by rw [heq y hy, norm_smul]; ring
+    _ ≤ M := hf y hy
+
+/-- **Schwarz's lemma with prescribed zeros, in one coordinate.**
+
+If `f` is `∏ ζ ∈ S, (z i - ζ) ^ m` times an analytic function on the polydisc of polyradius
+`R`, and `‖f‖ ≤ M` there, then on the smaller polydisc of polyradius `r` containing the
+roots, `f` is smaller by the factor `(2r / (R - r)) ^ p`.  This is the one-coordinate case of
+a Schwarz lemma for Cartesian products. -/
+theorem norm_le_mul_pow_of_eq_prod_smul {f g : (ι → ℂ) → F} {S : Finset ℂ} {r R M : ℝ}
+    (hr : 0 ≤ r) (hrR : r < R) (hS : ∀ ζ ∈ S, ‖ζ‖ ≤ r) (m : ℕ) (i : ι)
+    (hg : ∀ y : ι → ℂ, ‖y‖ ≤ R → AnalyticAt ℂ g y)
+    (heq : ∀ y : ι → ℂ, ‖y‖ ≤ R → f y = (∏ ζ ∈ S, (y i - ζ) ^ m) • g y)
+    (hf : ∀ y : ι → ℂ, ‖y‖ ≤ R → ‖f y‖ ≤ M) :
+    ∀ z : ι → ℂ, ‖z‖ ≤ r → ‖f z‖ ≤ M * (2 * r / (R - r)) ^ (m * S.card) := by
+  have hRr : 0 < R - r := by linarith
+  intro z hz
+  have hzR : ‖z‖ ≤ R := hz.trans hrR.le
+  have hgz := norm_le_of_eq_prod_smul hr hrR hS m i hg heq hf z hzR
+  have hzi : ‖z i‖ ≤ r := (norm_le_pi_norm z i).trans hz
+  calc ‖f z‖ = ‖∏ ζ ∈ S, (z i - ζ) ^ m‖ * ‖g z‖ := by rw [heq z hzR, norm_smul]
+    _ ≤ (2 * r) ^ (m * S.card) * (M / (R - r) ^ (m * S.card)) := by
+        gcongr
+        · exact norm_prod_sub_pow_le hS m hzi
+    _ = M * (2 * r / (R - r)) ^ (m * S.card) := by
+        rw [div_pow]; field_simp
+
 end Complex
