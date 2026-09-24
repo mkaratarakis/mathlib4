@@ -578,3 +578,320 @@ theorem exists_taylorCoeff_ne_zero (hd₀ : d₀ ≤ n) {x : Fin d₁ → Fin n 
     exact Fin.ext (congrFun h1 k)
 
 end Transcendental.SchneiderLangProof
+
+namespace Transcendental.SchneiderLangProof
+
+variable {n d₀ d₁ : ℕ}
+
+
+theorem exists_hasFPowerSeriesOnBall_expMonomial (τ : Fin n → ℕ) (w : Fin n → ℂ) {ρ : NNReal}
+    (hρ : 0 < ρ) : ∃ P : FormalMultilinearSeries ℂ (Fin n → ℂ) ℂ,
+      HasFPowerSeriesOnBall (expMonomial τ w) P 0 ρ := by
+  obtain ⟨P, hP, -⟩ := exists_hasFPowerSeriesOnBall_linComb (Λ := Unit) (fun _ => 1)
+    (fun _ => τ) (fun _ => w) 0 hρ
+  exact ⟨P, by simpa using hP⟩
+
+/-- The Liouville factor: a nonzero Taylor coefficient `c` of order of total degree `M` at a
+point `s · y` satisfies `1 ≤ liouvilleFactor … M * ‖c‖`. -/
+noncomputable def liouvilleFactor (d₀ d₁ n T S₁ δ D : ℕ) (N Hg : ℝ) (M : ℕ) : ℝ :=
+  (M : ℝ) ^ M * (δ : ℝ) ^ (d₀ * T + M + d₁ * n * T * S₁) *
+    (((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) * ((δ : ℝ) ^ (d₀ * T + M + d₁ * n * T * S₁) *
+      Real.exp N * ((δ : ℝ) ^ 2 * M + n * S₁ * Hg + 1) ^ (d₀ * T) *
+      (d₁ * T * Hg + 1) ^ M * Hg ^ (d₁ * n * T * S₁))) ^ (D - 1)
+
+/-- A bound for the auxiliary function on the polydisc of polyradius `ρ`. -/
+noncomputable def growth (d₀ d₁ T : ℕ) (N Ax ρ : ℝ) : ℝ :=
+  ((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) * (Real.exp N * (1 + ρ) ^ (d₀ * T) * Real.exp (T * Ax * ρ))
+
+lemma card_idx (T : ℕ) : Fintype.card (Idx d₀ d₁ T) = (T + 1) ^ d₀ * (T + 1) ^ d₁ := by
+  simp [Idx, Fintype.card_prod]
+
+end Transcendental.SchneiderLangProof
+
+namespace Transcendental.SchneiderLangProof
+
+variable {n d₀ d₁ : ℕ}
+
+/-- **The transcendence argument** (steps 3 to 6 of §4.6 of [waldschmidt2000]), with the choice
+of parameters left as hypotheses.
+
+The auxiliary function of Proposition 4.10 is small on the polydisc of radius `r`; by
+Liouville's inequality its Taylor coefficients of order `< S₀` in each coordinate vanish at
+the points `s · y`, `s ∈ [0, S₁)ⁿ` (`hvan`).  Let `M₀ ≥ S₀` be the first total order at which
+some Taylor coefficient at some `s · y` is nonzero.  Schwarz's lemma for Cartesian products,
+applied to `F ∘ Y` with vanishing of order `M₀ / n` in each coordinate on `[0, S₁)ⁿ`, makes that
+coefficient too small for Liouville's inequality (`hbig`). -/
+theorem core (hn1 : 1 ≤ n) (hd₀ : d₀ ≤ n)
+    {x : Fin d₁ → Fin n → ℂ} (hxli : LinearIndependent ℚ x) {y : Fin n → Fin n → ℂ}
+    (Yl : (Fin n → ℂ) ≃L[ℂ] (Fin n → ℂ)) (hYl : ∀ z, Yl z = fun v => ∑ j, z j * y j v)
+    {K : Type*} [Field K] [NumberField K] (ι₀ : K →+* ℂ)
+    {X : Fin d₁ → Fin n → K} {Yg : Fin n → Fin d₀ → K} {Eg : Fin d₁ → Fin n → K}
+    (hX : ∀ i v, ι₀ (X i v) = x i v)
+    (hY : ∀ j (v : Fin n) (h : (v : ℕ) < d₀), ι₀ (Yg j ⟨v, h⟩) = y j v)
+    (hE : ∀ i j, ι₀ (Eg i j) = Complex.exp (∑ v, x i v * y j v))
+    {δ : ℕ} {Hg : ℝ} (hδ : 1 ≤ δ) (hHg : 1 ≤ Hg)
+    (hXs : ∀ i v, AlgSize δ (X i v) 1 Hg) (hYs : ∀ j h, AlgSize δ (Yg j h) 1 Hg)
+    (hEs : ∀ i j, AlgSize δ (Eg i j) 1 Hg)
+    (T S₁ S₀ : ℕ) (hS₁ : 1 ≤ S₁) {U N r : ℝ} {R : NNReal} (hN : 0 < N) (hr0 : 0 < r)
+    (hr : S₁ * (∑ j, ∑ v, ‖y j v‖) + 2 ≤ r)
+    (hW : 12 * (n : ℝ) ^ 2 ≤ N + U + U) (hRr : Real.exp 1 ≤ R / r)
+    (hRr' : R / r ≤ Real.exp ((N + U + U) / 6))
+    (hL : (2 * (N + U + U)) ^ (n + 1) ≤
+      ((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) * N * Real.log (R / r) ^ n)
+    (hMU : ((T + 1) ^ d₀ * (T + 1) ^ d₁ : ℕ) * ((1 + (R : ℝ)) ^ (d₀ * T) *
+      Real.exp (T * (∑ i, ∑ v, ‖x i v‖) * R)) ≤ Real.exp U)
+    (hvan : ∀ M : ℕ, M ≤ n * S₀ →
+      liouvilleFactor d₀ d₁ n T S₁ δ (Module.finrank ℚ K) N Hg M * Real.exp (-U) < 1)
+    (Ep : ℕ → ℝ) (hEp : ∀ M, 1 ≤ Ep M)
+    (hbig : ∀ M : ℕ, S₀ ≤ M → liouvilleFactor d₀ d₁ n T S₁ δ (Module.finrank ℚ K) N Hg M *
+      (n * (1 / Ep M) ^ (M / n * S₁) * growth d₀ d₁ T N (∑ i, ∑ v, ‖x i v‖)
+        ((∑ j, ∑ v, ‖y j v‖) *
+          (5 * 3 ^ n * Ep M * (S₁ + 2 * ‖(Yl.symm : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ))‖)))) < 1) :
+    False := by
+  classical
+  set Ax := ∑ i, ∑ v, ‖x i v‖ with hAx
+  set Ay := ∑ j, ∑ v, ‖y j v‖ with hAy
+  set D := Module.finrank ℚ K with hD
+  set B := ‖(Yl.symm : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ))‖ with hB
+  have hcard : Fintype.card (Idx d₀ d₁ T) = (T + 1) ^ d₀ * (T + 1) ^ d₁ := card_idx T
+  have hAx0 : 0 ≤ Ax := by positivity
+  have hAy0 : 0 ≤ Ay := by positivity
+  have hR0 : (0 : ℝ) < R := by
+    have h1 : (0 : ℝ) < R / r := (Real.exp_pos 1).trans_le hRr
+    have := mul_pos h1 hr0
+    rwa [div_mul_cancel₀ _ hr0.ne'] at this
+  have hRpos : (0 : NNReal) < R := by exact_mod_cast hR0
+  -- step 3: the auxiliary function
+  choose P hP using fun l : Idx d₀ d₁ T =>
+    exists_hasFPowerSeriesOnBall_expMonomial (τOf (n := n) l) (freq x (tOf l)) hRpos
+  have hMφ : ∀ (l : Idx d₀ d₁ T) (z : Fin n → ℂ), ‖z‖ < R →
+      ‖expMonomial (τOf (n := n) l) (freq x (tOf l)) z‖ ≤
+        (1 + (R : ℝ)) ^ (d₀ * T) * Real.exp (T * Ax * R) := by
+    intro l z hz
+    have hτ := sum_tauVec_le (n := n) fun h => Nat.lt_succ_iff.1 (l.1 h).2
+    have hw := sum_norm_freq_le x (T := T) (t := tOf l) fun i => Nat.lt_succ_iff.1 (l.2 i).2
+    have hR1 : (1 : ℝ) ≤ 1 + R := by linarith [R.2]
+    calc ‖expMonomial (τOf (n := n) l) (freq x (tOf l)) z‖
+        ≤ (1 + ‖z‖) ^ (∑ v, τOf (n := n) l v) *
+            Real.exp ((∑ v, ‖freq x (tOf l) v‖) * ‖z‖) := norm_expMonomial_le _ _ z
+      _ ≤ (1 + (R : ℝ)) ^ (∑ v, τOf (n := n) l v) * Real.exp (T * Ax * R) :=
+          mul_le_mul (pow_le_pow_left₀ (by positivity) (by linarith [hz.le]) _)
+            (Real.exp_le_exp.2 (mul_le_mul hw hz.le (norm_nonneg _) (by positivity)))
+            (by positivity) (by positivity)
+      _ ≤ (1 + (R : ℝ)) ^ (d₀ * T) * Real.exp (T * Ax * R) :=
+          mul_le_mul_of_nonneg_right (pow_le_pow_right₀ hR1 hτ) (by positivity)
+  obtain ⟨p, hp0, hpN, hpF⟩ := ThueSiegel.exists_auxiliary_function (ι := Fin n)
+    (by rw [Fintype.card_fin]; omega) hP hMφ hN hr0
+    (by simpa [Finset.sum_const, Finset.card_univ, hcard, nsmul_eq_mul] using hMU)
+    (by simpa using hW) hRr hRr' (by simpa [hcard] using hL)
+  set F : (Fin n → ℂ) → ℂ := auxF x T fun l => (p l : ℂ) with hF
+  have hFbound : ∀ z, ‖z‖ ≤ r → ‖F z‖ ≤ Real.exp (-U) := fun z hz => hpF z hz
+  have hpC : ∀ l, ‖(p l : ℂ)‖ ≤ Real.exp N := fun l => by
+    rw [Complex.norm_intCast]
+    exact hpN l
+  -- expansions, Liouville and Cauchy
+  have hexp : ∀ (ξ : Fin n → ℂ) (ρ : NNReal), 0 < ρ →
+      ∃ Q : FormalMultilinearSeries ℂ (Fin n → ℂ) ℂ,
+        HasFPowerSeriesOnBall (fun h => F (ξ + h)) Q 0 ρ ∧
+          ∀ σ, coeff Q σ = taylorCoeff F ξ σ := by
+    intro ξ ρ hρ
+    obtain ⟨Q, hQ, hQc⟩ := exists_hasFPowerSeriesOnBall_linComb (fun l => (p l : ℂ))
+      (fun l => τOf (n := n) l) (fun l => freq x (tOf l)) ξ hρ
+    exact ⟨Q, hQ, fun σ => by rw [hQc, hF]; exact (taylorCoeff_linComb _ _ _ ξ σ).symm⟩
+  have hliou : ∀ s : Fin n → ℕ, (∀ j, s j ≤ S₁) → ∀ σ, taylorCoeff F (point y s) σ ≠ 0 →
+      1 ≤ liouvilleFactor d₀ d₁ n T S₁ δ D N Hg (∑ v, σ v) *
+        ‖taylorCoeff F (point y s) σ‖ := by
+    intro s hs σ hne
+    have h := one_le_taylorCoeff ι₀ hX hY hE hδ hHg hXs hYs hEs T S₁ p hpN s hs σ hne
+    rw [hcard] at h
+    refine h.trans (le_of_eq ?_)
+    unfold liouvilleFactor
+    push_cast
+    ring
+  have hcauchy : ∀ (ξ : Fin n → ℂ) (Mb : ℝ), (∀ h : Fin n → ℂ, ‖h‖ < 2 → ‖F (ξ + h)‖ ≤ Mb) →
+      ∀ σ, ‖taylorCoeff F ξ σ‖ ≤ Mb := by
+    intro ξ Mb hMb σ
+    obtain ⟨Q, hQ, hQc⟩ := hexp ξ 2 (by norm_num)
+    have := norm_coeff_mul_pow_le hQ (M := Mb) (fun h hh => hMb h (by exact_mod_cast hh)) σ
+      zero_le_one (by norm_num)
+    rwa [hQc, one_pow, mul_one] at this
+  have hLF0 : ∀ M, 0 ≤ liouvilleFactor d₀ d₁ n T S₁ δ D N Hg M := fun M => by
+    unfold liouvilleFactor
+    have : (0 : ℝ) ≤ Hg := by linarith
+    positivity
+  -- step 4: vanishing to order `S₀` in each coordinate
+  have hvan4 : ∀ s : Fin n → ℕ, (∀ j, s j < S₁) → ∀ σ : Fin n → ℕ, (∀ v, σ v < S₀) →
+      taylorCoeff F (point y s) σ = 0 := by
+    intro s hs σ hσ
+    by_contra hne
+    have hs' : ∀ j, s j ≤ S₁ := fun j => (hs j).le
+    have h1 := hliou s hs' σ hne
+    have hup : ‖taylorCoeff F (point y s) σ‖ ≤ Real.exp (-U) := hcauchy _ _ (fun h hh =>
+      hFbound _ (calc ‖point y s + h‖ ≤ ‖point y s‖ + ‖h‖ := norm_add_le _ _
+        _ ≤ S₁ * Ay + 2 := add_le_add (norm_point_le y hs') hh.le
+        _ ≤ r := hr)) σ
+    have hM : ∑ v, σ v ≤ n * S₀ := by
+      calc ∑ v, σ v ≤ ∑ _v : Fin n, S₀ := Finset.sum_le_sum fun v _ => (hσ v).le
+        _ = n * S₀ := by simp
+    have h2 := hvan _ hM
+    nlinarith [mul_le_mul_of_nonneg_left hup (hLF0 (∑ v, σ v))]
+  -- step 5: the first nonvanishing order
+  have hp0C : (fun l => (p l : ℂ)) ≠ 0 := by
+    intro h
+    apply hp0
+    funext l
+    have := congrFun h l
+    simp only [Pi.zero_apply, Int.cast_eq_zero] at this
+    simpa using this
+  obtain ⟨σ₀, hσ₀⟩ := exists_taylorCoeff_ne_zero hd₀ hxli T hp0C
+  have hpoint0 : point y (fun _ => 0) = 0 := by
+    funext v
+    simp [point]
+  have hex : ∃ M, ∃ s : Fin n → ℕ, (∀ j, s j < S₁) ∧ ∃ σ : Fin n → ℕ, ∑ v, σ v = M ∧
+      taylorCoeff F (point y s) σ ≠ 0 :=
+    ⟨_, fun _ => 0, fun _ => hS₁, σ₀, rfl, by rw [hpoint0]; exact hσ₀⟩
+  set M₀ := Nat.find hex with hM₀def
+  obtain ⟨s₀, hs₀, σ₁, hσ₁M, hσ₁⟩ := Nat.find_spec hex
+  have hmin : ∀ s : Fin n → ℕ, (∀ j, s j < S₁) → ∀ σ : Fin n → ℕ, ∑ v, σ v < M₀ →
+      taylorCoeff F (point y s) σ = 0 := by
+    intro s hs σ hσ
+    by_contra hne
+    exact Nat.find_min hex hσ ⟨s, hs, σ, rfl, hne⟩
+  have hM₀S₀ : S₀ ≤ M₀ := by
+    by_contra hlt
+    push Not at hlt
+    apply hσ₁
+    refine hvan4 s₀ hs₀ σ₁ fun v => ?_
+    have := Finset.single_le_sum (fun w _ => Nat.zero_le (σ₁ w)) (Finset.mem_univ v)
+    rw [hσ₁M] at this
+    omega
+  -- step 6: the change of variables and Schwarz's lemma for Cartesian products
+  have hYnorm : ∀ z : Fin n → ℂ, ‖Yl z‖ ≤ Ay * ‖z‖ := by
+    intro z
+    rw [hYl]
+    refine (pi_norm_le_iff_of_nonneg (by positivity)).2 fun v => ?_
+    refine (norm_sum_le _ _).trans ?_
+    calc ∑ j, ‖z j * y j v‖ ≤ ∑ j, ‖z‖ * ∑ w, ‖y j w‖ := Finset.sum_le_sum fun j _ => by
+          rw [norm_mul]
+          exact mul_le_mul (norm_le_pi_norm z j)
+            (Finset.single_le_sum (fun w _ => norm_nonneg (y j w)) (Finset.mem_univ v))
+            (norm_nonneg _) (norm_nonneg _)
+      _ = Ay * ‖z‖ := by rw [← Finset.mul_sum, mul_comm]
+  have hYsymm : ∀ w : Fin n → ℂ, ‖Yl.symm w‖ ≤ B * ‖w‖ := fun w =>
+    (Yl.symm : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ)).le_opNorm w
+  have hYs' : ∀ s : Fin n → ℕ, Yl (fun j => (s j : ℂ)) = point y s := fun s => by
+    rw [hYl]
+    rfl
+  set f : (Fin n → ℂ) → ℂ := fun z => F (Yl z) with hfdef
+  set m := M₀ / n with hm
+  have hFan : ∀ z, AnalyticAt ℂ F z := fun z => by
+    rw [hF]
+    unfold auxF
+    exact Finset.analyticAt_fun_sum _ fun l _ => analyticAt_const.mul (analyticAt_expMonomial _ _ z)
+  have hfan : ∀ z, AnalyticAt ℂ f z := fun z =>
+    (hFan (Yl z)).comp ((Yl : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ)).analyticAt z)
+  have hvanf : ∀ s : Fin n → ℕ, (∀ j, s j < S₁) → ∀ κ : Fin n → ℕ, (∀ v, κ v < m) →
+      taylorCoeff f (fun j => (s j : ℂ)) κ = 0 := by
+    intro s hs κ hκ
+    obtain ⟨Q, hQ, hQc⟩ := hexp (point y s) 1 one_pos
+    set zs : Fin n → ℂ := fun j => (s j : ℂ) with hzs
+    have hQ0 : HasFPowerSeriesOnBall (fun h => F (point y s + h)) Q
+        ((Yl : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ)) 0) 1 := by simpa using hQ
+    have hQY := hQ0.compContinuousLinearMap
+    have hfun : ((fun h => F (point y s + h)) ∘ (Yl : (Fin n → ℂ) →L[ℂ] (Fin n → ℂ))) =
+        fun h => f (zs + h) := by
+      funext h
+      simp only [Function.comp_apply, hfdef, map_add, ContinuousLinearEquiv.coe_coe, hzs, hYs']
+    rw [hfun] at hQY
+    have hQat := hQY.comp_sub zs
+    simp only [add_sub_cancel, zero_add] at hQat
+    rw [taylorCoeff_eq hQat.hasFPowerSeriesAt]
+    have hsum : ∑ v, κ v < M₀ := by
+      have h1 : ∑ v, (κ v + 1) ≤ n * m := by
+        calc ∑ v, (κ v + 1) ≤ ∑ _v : Fin n, m := Finset.sum_le_sum fun v _ => hκ v
+          _ = n * m := by simp
+      have h2 : n * m ≤ M₀ := by
+        rw [hm, mul_comm]
+        exact Nat.div_mul_le_self M₀ n
+      have h3 : ∑ v, (κ v + 1) = ∑ v, κ v + n := by
+        rw [Finset.sum_add_distrib]
+        simp
+      omega
+    exact coeff_compContinuousLinearMap_eq_zero Q _ (k := ∑ v, κ v)
+      (fun α hα => by rw [hQc]; exact hmin s hs α (hα ▸ hsum)) κ rfl
+  set r' : ℝ := S₁ + 2 * B with hr'
+  set R' : ℝ := 5 * 3 ^ n * Ep M₀ * r' with hR'
+  set E₀ : Finset ℂ := (Finset.range S₁).image (fun k : ℕ => (k : ℂ)) with hE₀
+  have hE₀card : E₀.card = S₁ := by
+    rw [hE₀, Finset.card_image_of_injective _ Nat.cast_injective, Finset.card_range]
+  have hB0 : 0 ≤ B := norm_nonneg _
+  have hS₁R : (1 : ℝ) ≤ S₁ := by exact_mod_cast hS₁
+  have hr'1 : 1 ≤ r' := by rw [hr']; linarith
+  have hEp1 := hEp M₀
+  have h3n : (1 : ℝ) ≤ 3 ^ n := one_le_pow₀ (by norm_num)
+  have hR'0 : 0 < R' := by
+    rw [hR']
+    have : (0 : ℝ) < Ep M₀ := by linarith
+    positivity
+  have h5 : 5 * r' ≤ R' := by
+    rw [hR']
+    have h1 : (1 : ℝ) ≤ 3 ^ n * Ep M₀ := one_le_mul_of_one_le_of_one_le h3n hEp1
+    nlinarith
+  have hEr : ∀ i : Fin n, ∀ ζ ∈ E₀, ‖ζ‖ ≤ r' := by
+    intro i ζ hζ
+    rw [hE₀, Finset.mem_image] at hζ
+    obtain ⟨k, hk, rfl⟩ := hζ
+    rw [Complex.norm_natCast]
+    have : (k : ℝ) ≤ S₁ := by exact_mod_cast (Finset.mem_range.1 hk).le
+    linarith
+  have hMf : ∀ z : Fin n → ℂ, ‖z‖ ≤ R' → ‖f z‖ ≤ growth d₀ d₁ T N Ax (Ay * R') := by
+    intro z hz
+    have h1 := norm_auxF_le x T hpC (Yl z)
+    rw [hcard] at h1
+    refine h1.trans ?_
+    have hYz : ‖Yl z‖ ≤ Ay * R' := (hYnorm z).trans (mul_le_mul_of_nonneg_left hz hAy0)
+    unfold growth
+    gcongr
+  have hvan' : ∀ ξ : Fin n → ℂ, (∀ i, ξ i ∈ E₀) → ∀ κ : Fin n → ℕ, (∀ i, κ i < m) →
+      taylorCoeff f ξ κ = 0 := by
+    intro ξ hξ κ hκ
+    choose s hs hsξ using fun i => Finset.mem_image.1 (hξ i)
+    have hξeq : ξ = fun j => (s j : ℂ) := funext fun j => (hsξ j).symm
+    rw [hξeq]
+    exact hvanf s (fun j => Finset.mem_range.1 (hs j)) κ hκ
+  have : Nonempty (Fin n) := ⟨⟨0, hn1⟩⟩
+  have hsmall : ∀ z : Fin n → ℂ, ‖z‖ ≤ r' →
+      ‖f z‖ ≤ n * (1 / Ep M₀) ^ (m * S₁) * growth d₀ d₁ T N Ax (Ay * R') := by
+    intro z hz
+    have h := MultiIndex.norm_le_of_taylorCoeff_eq_zero_of_five_mul_le (E := fun _ => E₀)
+      (S := S₁) (m := m) (fun _ => hE₀card) (by linarith) hR'0 h5 hEr (fun y _ => hfan y) hMf
+      hvan' hz
+    have hratio : 5 * 3 ^ Fintype.card (Fin n) * r' / R' = 1 / Ep M₀ := by
+      rw [Fintype.card_fin, hR']
+      have : (0 : ℝ) < Ep M₀ := by linarith
+      field_simp
+    rwa [hratio, Fintype.card_fin] at h
+  -- the first nonvanishing coefficient is too small
+  have hs₀' : ∀ j, s₀ j ≤ S₁ := fun j => (hs₀ j).le
+  have hlow := hliou s₀ hs₀' σ₁ hσ₁
+  rw [hσ₁M] at hlow
+  have hup : ‖taylorCoeff F (point y s₀) σ₁‖ ≤
+      n * (1 / Ep M₀) ^ (m * S₁) * growth d₀ d₁ T N Ax (Ay * R') := by
+    refine hcauchy _ _ (fun h hh => ?_) σ₁
+    have hw : point y s₀ + h = Yl ((fun j => (s₀ j : ℂ)) + Yl.symm h) := by
+      rw [map_add, hYs', ContinuousLinearEquiv.apply_symm_apply]
+    rw [hw]
+    refine hsmall _ ?_
+    have hzs : ‖(fun j => (s₀ j : ℂ))‖ ≤ S₁ :=
+      (pi_norm_le_iff_of_nonneg (by positivity)).2 fun j => by
+        rw [Complex.norm_natCast]
+        exact_mod_cast hs₀' j
+    calc ‖(fun j => (s₀ j : ℂ)) + Yl.symm h‖
+        ≤ ‖(fun j => (s₀ j : ℂ))‖ + ‖Yl.symm h‖ := norm_add_le _ _
+      _ ≤ S₁ + B * 2 := add_le_add hzs
+          ((hYsymm h).trans (mul_le_mul_of_nonneg_left hh.le hB0))
+      _ = r' := by rw [hr']; ring
+  have hfinal := hbig M₀ hM₀S₀
+  nlinarith [mul_le_mul_of_nonneg_left hup (hLF0 M₀)]
+
+end Transcendental.SchneiderLangProof
