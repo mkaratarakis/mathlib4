@@ -262,26 +262,34 @@ lemma norm_pi_single_le (i : ι) : ‖(Pi.single i 1 : ι → 𝕜)‖ ≤ 1 := 
   · simp
   · simp [Pi.single_eq_of_ne h]
 
-/-- The multi-index coefficients of a formal multilinear series on `ι → 𝕜`: the coefficient of
-`z ^ α` is the sum of the values of the `|α|`-th term on the tuples of basis vectors whose
-coordinate counts are `α`. -/
-noncomputable def coeff (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (α : ι → ℕ) : F :=
-  ∑ g ∈ Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α,
-    p (∑ i, α i) fun j => Pi.single (g j) 1
+/-- The degree-`k` multi-index coefficients of a formal multilinear series on `ι → 𝕜`: the
+coefficient of `z ^ α` is the sum of the values of the `k`-th term on the tuples of basis
+vectors whose coordinate counts are `α`.  It vanishes unless `α` has degree `k`. -/
+noncomputable def coeffAt (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (k : ℕ) (α : ι → ℕ) : F :=
+  ∑ g ∈ Finset.univ.filter fun g : Fin k → ι => count g = α, p k fun j => Pi.single (g j) 1
+
+lemma coeffAt_eq_zero (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) {k : ℕ} {α : ι → ℕ}
+    (h : ∑ i, α i ≠ k) : coeffAt p k α = 0 := by
+  rw [coeffAt, Finset.filter_eq_empty_iff.2, Finset.sum_empty]
+  intro g _ hg
+  exact h (hg ▸ sum_count g)
 
 /-- Each coefficient is bounded by the size of its fibre times the norm of the term. -/
-lemma norm_coeff_le (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (α : ι → ℕ) :
-    ‖coeff p α‖ ≤
-      ((Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α).card : ℝ) *
-        ‖p (∑ i, α i)‖ := by
+lemma norm_coeffAt_le (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (k : ℕ) (α : ι → ℕ) :
+    ‖coeffAt p k α‖ ≤
+      ((Finset.univ.filter fun g : Fin k → ι => count g = α).card : ℝ) * ‖p k‖ := by
   refine (norm_sum_le _ _).trans ?_
-  have hb : ∀ g ∈ Finset.univ.filter fun g : Fin (∑ i, α i) → ι => count g = α,
-      ‖p (∑ i, α i) fun j => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ ‖p (∑ i, α i)‖ := by
+  have hb : ∀ g ∈ Finset.univ.filter fun g : Fin k → ι => count g = α,
+      ‖p k fun j => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ ‖p k‖ := by
     intro g _
-    have hm : ‖fun j : Fin (∑ i, α i) => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ 1 :=
+    have hm : ‖fun j : Fin k => (Pi.single (g j) 1 : ι → 𝕜)‖ ≤ 1 :=
       (pi_norm_le_iff_of_nonneg zero_le_one).2 fun j => norm_pi_single_le _
     simpa using ContinuousMultilinearMap.le_opNorm_mul_pow_card_of_le _ hm
   simpa [nsmul_eq_mul] using Finset.sum_le_card_nsmul _ _ _ hb
+
+/-- The multi-index coefficients, at the degree of the multi-index. -/
+noncomputable def coeff (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (α : ι → ℕ) : F :=
+  coeffAt p (∑ i, α i) α
 
 /-- The fibres of `count` in degree `k` partition the `(card ι) ^ k` tuples. -/
 lemma sum_card_fiber (k : ℕ) :
@@ -296,6 +304,63 @@ lemma sum_card_fiber (k : ℕ) :
   have h := Finset.card_eq_sum_card_fiberwise hmaps
   rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fin] at h
   exact h.symm
+
+lemma coeffAt_eq_zero_of_notMem (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (k : ℕ) {α : ι → ℕ}
+    (h : α ∉ Fintype.piFinset fun _ : ι => Finset.range (k + 1)) : coeffAt p k α = 0 := by
+  rw [coeffAt, Finset.filter_eq_empty_iff.2, Finset.sum_empty]
+  intro g _ hg
+  refine h ?_
+  simp only [Fintype.mem_piFinset, Finset.mem_range]
+  intro i
+  rw [← hg]
+  exact Nat.lt_succ_of_le (count_le g i)
+
+/-- In each degree, the coefficients total at most `(card ι) ^ k * ‖p k‖`. -/
+lemma tsum_norm_coeffAt_le (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) (k : ℕ) {ρ : ℝ}
+    (hρ : 0 ≤ ρ) :
+    ∑' α : ι → ℕ, ‖coeffAt p k α‖ * ρ ^ k ≤ (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ρ ^ k := by
+  have hsupp : ∀ α ∉ Fintype.piFinset fun _ : ι => Finset.range (k + 1),
+      ‖coeffAt p k α‖ * ρ ^ k = 0 := fun α hα => by
+    rw [coeffAt_eq_zero_of_notMem p k hα, norm_zero, zero_mul]
+  rw [tsum_eq_sum hsupp]
+  calc ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1), ‖coeffAt p k α‖ * ρ ^ k
+      ≤ ∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1),
+          (((Finset.univ.filter fun g : Fin k → ι => count g = α).card : ℝ) * ‖p k‖) * ρ ^ k := by
+        refine Finset.sum_le_sum fun α _ => ?_
+        exact mul_le_mul_of_nonneg_right (norm_coeffAt_le p k α) (by positivity)
+    _ = ((∑ α ∈ Fintype.piFinset fun _ : ι => Finset.range (k + 1),
+          ((Finset.univ.filter fun g : Fin k → ι => count g = α).card : ℝ))) * ‖p k‖ * ρ ^ k := by
+        rw [← Finset.sum_mul, ← Finset.sum_mul]
+    _ = (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ρ ^ k := by
+        rw [← Nat.cast_sum, sum_card_fiber]
+        push_cast
+        ring
+
+lemma summable_prod_norm_coeffAt (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) {ρ : ℝ} (hρ : 0 ≤ ρ)
+    (h : Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ρ ^ k) :
+    Summable fun kα : ℕ × (ι → ℕ) => ‖coeffAt p kα.1 kα.2‖ * ρ ^ kα.1 := by
+  rw [summable_prod_of_nonneg fun kα => by positivity]
+  refine ⟨fun k => summable_of_ne_finset_zero (s := Fintype.piFinset fun _ : ι =>
+    Finset.range (k + 1)) fun α hα => ?_, ?_⟩
+  · rw [coeffAt_eq_zero_of_notMem p k hα, norm_zero, zero_mul]
+  · exact Summable.of_nonneg_of_le (fun k => tsum_nonneg fun α => by positivity)
+      (fun k => tsum_norm_coeffAt_le p k hρ) h
+
+/-- **The coefficients of an analytic function on `ι → 𝕜` are normally summable.**  This is the
+converse to `analyticAt_tsum_monomial`: it turns a `FormalMultilinearSeries` into a
+multi-index power series, on any polydisc where `∑ (card ι) ^ k ‖p k‖ ρ ^ k` converges. -/
+lemma summable_norm_coeff_mul_pow (p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F) {ρ : ℝ} (hρ : 0 ≤ ρ)
+    (h : Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ρ ^ k) :
+    Summable fun α : ι → ℕ => ‖coeff p α‖ * ρ ^ (∑ i, α i) := by
+  have hinj : Function.Injective fun α : ι → ℕ => ((∑ i, α i), α) :=
+    fun a b hab => by simpa using congrArg Prod.snd hab
+  have hzero : ∀ kα : ℕ × (ι → ℕ), kα ∉ Set.range (fun α : ι → ℕ => ((∑ i, α i), α)) →
+      ‖coeffAt p kα.1 kα.2‖ * ρ ^ kα.1 = 0 := by
+    rintro ⟨k, α⟩ hk
+    have hne : ∑ i, α i ≠ k := fun hh => hk ⟨α, by simp [hh]⟩
+    rw [coeffAt_eq_zero p hne, norm_zero, zero_mul]
+  have hs := (hinj.summable_iff hzero).2 (summable_prod_norm_coeffAt p hρ h)
+  simpa [coeff, Function.comp_def] using hs
 
 end MultiIndex
 
