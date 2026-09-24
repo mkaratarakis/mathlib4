@@ -183,8 +183,6 @@ theorem exists_int_vec_abs_le_of_pow_lt {ι κ : Type*} [Fintype ι] [Fintype κ
       rw [hsub, abs_le, ← hcU]
       constructor <;> linarith
 
-end ThueSiegel
-
 /-- **Thue-Siegel's lemma for complex forms** (Lemma 4.12 of [waldschmidt2000]).
 
 The same box principle applied to the real and imaginary parts separately: `2 * card κ` real
@@ -249,3 +247,5 @@ theorem exists_int_vec_norm_le_of_pow_le {ι κ : Type*} [Fintype ι] [Fintype �
         Complex.norm_le_sqrt_two_mul_max _
     _ ≤ Real.sqrt 2 * (Real.exp U * X / l) := by gcongr
     _ ≤ Real.exp (-V) := hfin
+
+end ThueSiegel
