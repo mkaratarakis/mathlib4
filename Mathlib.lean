@@ -6138,6 +6138,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.AlgSize
 public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 public import Mathlib.NumberTheory.Transcendental.Baker.AuxiliaryFunction
 public import Mathlib.NumberTheory.Transcendental.Baker.Basic
+public import Mathlib.NumberTheory.Transcendental.Baker.CoordinateDivision
 public import Mathlib.NumberTheory.Transcendental.Baker.Criterion
 public import Mathlib.NumberTheory.Transcendental.Baker.CriterionMain
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpIndep
@@ -6150,6 +6151,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.NumberTheory.Transcendental.Baker.SchneiderLang
 public import Mathlib.NumberTheory.Transcendental.Baker.SchwarzProduct
 public import Mathlib.NumberTheory.Transcendental.Baker.Setup
+public import Mathlib.NumberTheory.Transcendental.Baker.TaylorCoeff
 public import Mathlib.NumberTheory.Transcendental.Baker.ThueSiegel
 public import Mathlib.NumberTheory.Transcendental.Lindemann.AnalyticalPart
 public import Mathlib.NumberTheory.Transcendental.Liouville.Basic

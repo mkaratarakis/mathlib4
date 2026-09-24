@@ -7,31 +7,35 @@ module
 
 public import Mathlib.Analysis.Analytic.CPolynomial
 public import Mathlib.Analysis.Analytic.Uniqueness
-public import Mathlib.Analysis.Calculus.DSlope
 public import Mathlib.Algebra.MvPolynomial.Coeff
 public import Mathlib.Algebra.MvPolynomial.Funext
 public import Mathlib.Analysis.LocallyConvex.SeparatingDual
 public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.Positivity.Finset
 public import Mathlib.NumberTheory.Transcendental.Baker.AnalyticTsum
 
 /-!
-# Power series in several variables are analytic
+# Multi-index power series
 
 A power series in several variables `∑ α, z ^ α • c α`, indexed by multi-indices
-`α : ι → ℕ`, is a sum of monomials.  Each monomial is a continuous multilinear map
-restricted to the diagonal, hence has an explicit one-term formal multilinear series of
-norm at most `‖c α‖`; `analyticAt_tsum` then assembles them.
-
-This is the bridge that lets one produce an `AnalyticAt` on a product `ι → 𝕜` from
-coefficient bounds alone, which is how the Cauchy integral on a polydisc is shown to be
-analytic.  Mathlib had the two ends — that multivariable polynomials are analytic, and
-`FormalMultilinearSeries` — but not the passage from a multi-indexed series to either.
+`α : ι → ℕ`, compared with Mathlib's `FormalMultilinearSeries` on `ι → 𝕜`.  Each monomial is a
+continuous multilinear map restricted to the diagonal, with an explicit one-term formal
+multilinear series of norm at most `‖c α‖`; summing them shows that a normally convergent
+multi-index series has a power series on its polydisc.  Conversely, the degree-`k` term of a
+formal series is a polynomial in the coordinates, and its coefficients `MultiIndex.coeff p α`
+expand an analytic function wherever its homogeneous terms converge normally.  A polynomial
+function determines its coefficients, which gives the identity theorem in coefficient form.
 
 ## Main statements
 
 * `MultiIndex.series`: the one-term formal multilinear series of the monomial `z ^ α • c`.
-* `MultiIndex.hasFPowerSeriesOnBall_series`: it is indeed its power series, on any ball.
-* `analyticAt_tsum_monomial`: a normally convergent multi-index power series is analytic.
+* `hasFPowerSeriesOnBall_tsum_monomial`, `MultiIndex.analyticAt_tsum_monomial`: a normally
+  convergent multi-index power series has a power series on its polydisc, and is analytic.
+* `MultiIndex.coeff`, `MultiIndex.hasSum_coeff`: the multi-index coefficients of a formal
+  series, and the expansion of an analytic function in them.
+* `MultiIndex.coeffAt_tsum_series`: the coefficients of a multi-index series are the given ones.
+* `coeffAt_eq_zero_of_eventuallyEq_zero`, `eq_zero_of_tsum_monomial_eq_zero`: the identity
+  theorem in coefficient form.
 -/
 
 @[expose] public section
@@ -425,49 +429,6 @@ theorem hasSum_coeff [CompleteSpace F] {p : FormalMultilinearSeries 𝕜 (ι →
   rw [heq] at hflat
   simpa [hu, coeff, Function.comp_def] using hflat
 
-/-- **Division of a multi-index power series by a coordinate.**
-
-If every coefficient supported off the `i`-th coordinate vanishes, then the series is `z i`
-times the series with the `i`-th exponent shifted down.  This is the algebraic heart of the
-division step in a Schwarz lemma for Cartesian products. -/
-theorem hasSum_smul_shift {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} {T : F}
-    (hvanish : ∀ α : ι → ℕ, α i = 0 → c α = 0)
-    (h : HasSum (fun β : ι → ℕ => (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) T) :
-    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (z i • T) := by
-  set e : ι → ℕ := Pi.single i 1 with he
-  -- multiplying the shifted series by `z i` restores the exponents
-  have hterm : ∀ β : ι → ℕ,
-      z i • ((∏ j, z j ^ β j) • c (β + e)) = (∏ j, z j ^ (β + e) j) • c (β + e) := by
-    intro β
-    rw [smul_smul]
-    congr 1
-    rw [show ∏ j, z j ^ (β + e) j = ∏ j, (z j ^ β j * z j ^ e j) from
-      Finset.prod_congr rfl fun j _ => by rw [Pi.add_apply, pow_add], Finset.prod_mul_distrib]
-    have : ∏ j, z j ^ e j = z i := by
-      rw [Finset.prod_eq_single i]
-      · simp [he]
-      · intro j _ hj; simp [he, Pi.single_eq_of_ne hj]
-      · simp
-    rw [this, mul_comm]
-  have hshift : HasSum (fun β : ι → ℕ => (∏ j, z j ^ (β + e) j) • c (β + e)) (z i • T) := by
-    simpa [hterm] using h.const_smul (z i)
-  -- reindex: the multi-indices missed by the shift have `α i = 0`, where `c` vanishes
-  have hinj : Function.Injective fun β : ι → ℕ => β + e := add_left_injective e
-  have hzero : ∀ α : ι → ℕ, α ∉ Set.range (fun β : ι → ℕ => β + e) →
-      (∏ j, z j ^ α j) • c α = 0 := by
-    intro α hα
-    have hai : α i = 0 := by
-      by_contra hne
-      refine hα ⟨fun j => α j - e j, ?_⟩
-      funext j
-      simp only [Pi.add_apply]
-      rcases eq_or_ne j i with rfl | hj
-      · simp only [he, Pi.single_eq_same]
-        omega
-      · simp [he, Pi.single_eq_of_ne hj]
-    rw [hvanish α hai, smul_zero]
-  exact (hinj.hasSum_iff hzero).1 hshift
-
 omit [DecidableEq ι] in
 /-- A normally convergent multi-index power series is analytic at the origin. -/
 theorem analyticAt_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {r : ℝ≥0} (hr : 0 < r)
@@ -483,269 +444,6 @@ theorem analyticOnNhd_tsum_monomial [CompleteSpace F] (c : (ι → ℕ) → F) {
     AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 => ∑' α : ι → ℕ, (∏ i, z i ^ α i) • c α)
       (Metric.eball (0 : ι → 𝕜) r) :=
   (hasFPowerSeriesOnBall_tsum_monomial c hr hsum).analyticOnNhd
-
-/-- The shifted series is again analytic: dividing by a coordinate preserves analyticity. -/
-theorem analyticAt_tsum_monomial_shift [CompleteSpace F] (c : (ι → ℕ) → F)
-    (i : ι) {r : ℝ≥0} (hr : 0 < r)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
-    AnalyticAt 𝕜
-      (fun z : ι → 𝕜 => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) 0 :=
-  analyticAt_tsum_monomial _ hr (MultiIndex.summable_shift (by exact_mod_cast hr) i hsum)
-
-/-- **Splitting a multi-index power series along a coordinate.**
-
-Every series decomposes as the part not involving `z i` plus `z i` times the shifted series.
-This is the `p = 1` case of the division lemma behind a Schwarz lemma for Cartesian
-products: `f = f₀ + z i * f₁` with `f₀` of degree `0` in `z i`. -/
-theorem hasSum_split_coord {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} {S T : F}
-    (h₀ : HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • (if α i = 0 then c α else 0)) S)
-    (h₁ : HasSum (fun β : ι → ℕ =>
-      (∏ j, z j ^ β j) • c (β + (Pi.single i 1 : ι → ℕ))) T) :
-    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (S + z i • T) := by
-  classical
-  set d : (ι → ℕ) → F := fun α => if α i = 0 then 0 else c α with hd
-  -- `d` is the part of `c` genuinely involving the `i`-th coordinate
-  have hdvanish : ∀ α : ι → ℕ, α i = 0 → d α = 0 := fun α hα => by simp [hd, hα]
-  have hdshift : ∀ β : ι → ℕ, d (β + (Pi.single i 1 : ι → ℕ)) = c (β + Pi.single i 1) := by
-    intro β
-    simp [hd]
-  have h₁' : HasSum (fun β : ι → ℕ =>
-      (∏ j, z j ^ β j) • d (β + (Pi.single i 1 : ι → ℕ))) T := by
-    simpa [hdshift] using h₁
-  have hsplit := h₀.add (hasSum_smul_shift i hdvanish h₁')
-  refine hsplit.congr_fun fun α => ?_
-  rw [← smul_add]
-  congr 1
-  by_cases hα : α i = 0 <;> simp [hd, hα]
-
-/-- The part of a series not involving the `i`-th coordinate really does not: its value is
-unchanged by moving `z i`. -/
-theorem tsum_ite_coord_eq_update [CompleteSpace F] {c : (ι → ℕ) → F} (i : ι) (z : ι → 𝕜)
-    (w : 𝕜) :
-    (∑' α : ι → ℕ, (∏ j, z j ^ α j) • (if α i = 0 then c α else 0))
-      = ∑' α : ι → ℕ, (∏ j, Function.update z i w j ^ α j) • (if α i = 0 then c α else 0) := by
-  refine tsum_congr fun α => ?_
-  by_cases hα : α i = 0
-  · congr 1
-    refine Finset.prod_congr rfl fun j _ => ?_
-    rcases eq_or_ne j i with rfl | hj
-    · rw [hα]; simp
-    · rw [Function.update_of_ne hj]
-  · simp [hα]
-
-/-- **Division by a power of a coordinate.**
-
-If every coefficient with `α i < p` vanishes, the series is `z i ^ p` times the series with
-the `i`-th exponent shifted down by `p`.  This is `hasSum_smul_shift` iterated, and is the
-induction on the degree in the division lemma behind a Schwarz lemma for Cartesian
-products. -/
-theorem hasSum_smul_shift_pow {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} :
-    ∀ (p : ℕ) {T : F}, (∀ α : ι → ℕ, α i < p → c α = 0) →
-      HasSum (fun β : ι → ℕ => (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) T →
-      HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (z i ^ p • T) := by
-  intro p
-  induction p generalizing c with
-  | zero => intro T _ h; simpa using h
-  | succ p ih =>
-    intro T hvanish h
-    -- peel off one factor, then apply the inductive hypothesis to the shifted coefficients
-    have hstep : ∀ β : ι → ℕ,
-        c (β + (Pi.single i p : ι → ℕ) + (Pi.single i 1 : ι → ℕ))
-          = c (β + (Pi.single i (p + 1) : ι → ℕ)) := by
-      intro β
-      rw [add_assoc, ← Pi.single_add]
-    have hshift : HasSum (fun β : ι → ℕ =>
-        (∏ j, z j ^ β j) • (fun α => c (α + (Pi.single i 1 : ι → ℕ)))
-          (β + (Pi.single i p : ι → ℕ))) T := by
-      simpa [hstep] using h
-    have hvanish' : ∀ β : ι → ℕ, β i < p → c (β + (Pi.single i 1 : ι → ℕ)) = 0 := by
-      intro β hβ
-      refine hvanish _ ?_
-      simp only [Pi.add_apply, Pi.single_eq_same]
-      omega
-    have hinner := ih (c := fun α => c (α + (Pi.single i 1 : ι → ℕ))) hvanish' hshift
-    have houter := hasSum_smul_shift i (c := c) (fun α hα => hvanish α (by omega)) hinner
-    rwa [smul_smul, ← pow_succ'] at houter
-
-/-- Shifting a multi-index down by `p` in one coordinate keeps a series normally
-convergent. -/
-lemma summable_shift_pow {c : (ι → ℕ) → F} {r : ℝ} (hr : 0 < r) (i : ι) :
-    ∀ (p : ℕ), (Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ j, α j)) →
-      Summable fun β : ι → ℕ => ‖c (β + (Pi.single i p : ι → ℕ))‖ * r ^ (∑ j, β j) := by
-  intro p
-  induction p generalizing c with
-  | zero => intro hsum; simpa using hsum
-  | succ p ih =>
-    intro hsum
-    have hstep : ∀ β : ι → ℕ,
-        c (β + (Pi.single i p : ι → ℕ) + (Pi.single i 1 : ι → ℕ))
-          = c (β + (Pi.single i (p + 1) : ι → ℕ)) := by
-      intro β
-      rw [add_assoc, ← Pi.single_add]
-    have h1 := ih (c := fun α => c (α + (Pi.single i 1 : ι → ℕ))) (summable_shift hr i hsum)
-    simpa [hstep] using h1
-
-/-- The quotient of a normally convergent series by a power of a coordinate is again
-analytic. -/
-theorem analyticAt_tsum_monomial_shift_pow [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι) (p : ℕ)
-    {r : ℝ≥0} (hr : 0 < r)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
-    AnalyticAt 𝕜 (fun z : ι → 𝕜 =>
-      ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) 0 :=
-  analyticAt_tsum_monomial _ hr (summable_shift_pow (by exact_mod_cast hr) i p hsum)
-
-omit [DecidableEq ι] in
-/-- A normally convergent multi-index series converges at every point of the polydisc. -/
-lemma summable_monomial_smul [CompleteSpace F] {c : (ι → ℕ) → F} {ρ : ℝ} {z : ι → 𝕜}
-    (hz : ‖z‖ ≤ ρ) (hsum : Summable fun α : ι → ℕ => ‖c α‖ * ρ ^ (∑ j, α j)) :
-    Summable fun α : ι → ℕ => (∏ j, z j ^ α j) • c α := by
-  refine Summable.of_norm (Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun α => ?_) hsum)
-  rw [norm_smul, norm_prod, mul_comm]
-  gcongr
-  calc ∏ j, ‖z j ^ α j‖ = ∏ j, ‖z j‖ ^ α j := by
-        exact Finset.prod_congr rfl fun j _ => norm_pow _ _
-    _ ≤ ∏ j, ρ ^ α j := by
-        gcongr with j
-        exact (norm_le_pi_norm z j).trans hz
-    _ = ρ ^ (∑ j, α j) := by rw [← Finset.prod_pow_eq_pow_sum]
-
-/-- The quotient of a normally convergent series by a power of a coordinate is analytic on
-the whole polydisc of convergence. -/
-theorem analyticOnNhd_tsum_monomial_shift_pow [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι)
-    (p : ℕ) {r : ℝ≥0} (hr : 0 < r)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
-    AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 =>
-        ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ)))
-      (Metric.eball (0 : ι → 𝕜) r) :=
-  analyticOnNhd_tsum_monomial _ hr (summable_shift_pow (by exact_mod_cast hr) i p hsum)
-
-/-- **Division of an analytic function by a power of a coordinate.**
-
-If the multi-index coefficients of `f` all vanish below degree `m` in the `i`-th coordinate,
-then `f = z i ^ m • g` with `g` analytic. -/
-theorem exists_analyticAt_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
-    {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F} {r : ℝ≥0} (hf : HasFPowerSeriesOnBall f p 0 r)
-    (i : ι) (m : ℕ) (hvanish : ∀ α : ι → ℕ, α i < m → coeff p α = 0)
-    {ρ : ℝ≥0} (hρ : 0 < ρ) (hρr : (ρ : ℝ≥0∞) ≤ r)
-    (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
-      Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
-    (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
-    ∃ g : (ι → 𝕜) → F, AnalyticOnNhd 𝕜 g (Metric.eball (0 : ι → 𝕜) ρ) ∧
-      ∀ z : ι → 𝕜, ‖z‖ < (ρ : ℝ) → f z = z i ^ m • g z := by
-  refine ⟨fun z => ∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)),
-    analyticOnNhd_tsum_monomial_shift_pow _ i m hρ hsum, fun z hz => ?_⟩
-  have hshift : HasSum
-      (fun β : ι → ℕ => (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ)))
-      (∑' β : ι → ℕ, (∏ j, z j ^ β j) • coeff p (β + (Pi.single i m : ι → ℕ))) :=
-    (summable_monomial_smul hz.le (summable_shift_pow (by exact_mod_cast hρ) i m hsum)).hasSum
-  have hfull := hasSum_smul_shift_pow (c := coeff p) i m hvanish hshift
-  have hz' : ‖z‖ < (r : ℝ≥0) := by
-    refine lt_of_lt_of_le hz ?_
-    exact_mod_cast (ENNReal.coe_le_coe.1 hρr)
-  exact (hasSum_coeff hf hz' (hconv z hz.le)).unique hfull
-
-/-- **Division by a power of a coordinate, at a general centre.**
-
-The same as `exists_analyticAt_eq_pow_smul` for a function analytic at `x`: if the
-coefficients of the expansion at `x` vanish below degree `m` in the `i`-th coordinate, then
-`f` is `(z i - x i) ^ m` times an analytic function.  Iterating this over the roots of a monic
-polynomial `P` divides by `P (z i)`. -/
-theorem exists_analyticAt_eq_sub_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
-    {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F} {x : ι → 𝕜} {r : ℝ≥0}
-    (hf : HasFPowerSeriesOnBall f p x r) (i : ι) (m : ℕ)
-    (hvanish : ∀ α : ι → ℕ, α i < m → coeff p α = 0)
-    {ρ : ℝ≥0} (hρ : 0 < ρ) (hρr : (ρ : ℝ≥0∞) ≤ r)
-    (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
-      Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
-    (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
-    ∃ g : (ι → 𝕜) → F, AnalyticOnNhd 𝕜 g (Metric.eball (0 : ι → 𝕜) ρ) ∧
-      ∀ z : ι → 𝕜, ‖z‖ < (ρ : ℝ) → f (x + z) = z i ^ m • g z := by
-  have hf0 : HasFPowerSeriesOnBall (fun w : ι → 𝕜 => f (x + w)) p 0 r := by
-    simpa [sub_neg_eq_add, add_comm] using hf.comp_sub (-x)
-  exact exists_analyticAt_eq_pow_smul hf0 i m hvanish hρ hρr hconv hsum
-
-/-!
-### Slices along a coordinate
-
-Dividing by a linear factor `z i - ζ` is a one-variable operation performed with the other
-coordinates held fixed.  `dslope` supplies the quotient and the identity it satisfies; what
-has to be added in several variables is that the quotient is jointly analytic, which comes
-from `exists_analyticAt_eq_sub_pow_smul`.
--/
-
-/-- The slice of `f` along the `i`-th coordinate through `z`. -/
-def slice (f : (ι → 𝕜) → F) (i : ι) (z : ι → 𝕜) : 𝕜 → F :=
-  fun w => f (Function.update z i w)
-
-omit [Fintype ι] [NontriviallyNormedField 𝕜] [NormedAddCommGroup F] [NormedSpace 𝕜 F] in
-@[simp] lemma slice_apply_self (f : (ι → 𝕜) → F) (i : ι) (z : ι → 𝕜) :
-    slice f i z (z i) = f z := by simp [slice]
-
-omit [Fintype ι] in
-/-- **The slicewise divided difference.**  `dslope` of the slice divides the difference
-between `f` and its restriction to the hyperplane `z i = ζ`. -/
-theorem sub_smul_dslope_slice (f : (ι → 𝕜) → F) (i : ι) (ζ : 𝕜) (z : ι → 𝕜) :
-    (z i - ζ) • dslope (slice f i z) ζ (z i) = f z - f (Function.update z i ζ) := by
-  simp [slice]
-
-/-- Off the hyperplane the quotient is the honest one, so it is analytic there. -/
-theorem analyticAt_dslope_slice_of_ne {f : (ι → 𝕜) → F} (i : ι) (ζ : 𝕜) {x : ι → 𝕜}
-    (hx : x i ≠ ζ) (hf : AnalyticAt 𝕜 f x)
-    (hres : AnalyticAt 𝕜 (fun z : ι → 𝕜 => f (Function.update z i ζ)) x) :
-    AnalyticAt 𝕜 (fun z : ι → 𝕜 => dslope (slice f i z) ζ (z i)) x := by
-  have hcoord : AnalyticAt 𝕜 (fun z : ι → 𝕜 => z i - ζ) x :=
-    (ContinuousLinearMap.proj (R := 𝕜) (φ := fun _ : ι => 𝕜) i).analyticAt x |>.sub
-      analyticAt_const
-  have hne : (fun z : ι → 𝕜 => z i - ζ) x ≠ 0 := sub_ne_zero.2 hx
-  have hform : ∀ᶠ z in nhds x,
-      dslope (slice f i z) ζ (z i) = (z i - ζ)⁻¹ • (f z - f (Function.update z i ζ)) := by
-    have hopen : {z : ι → 𝕜 | z i ≠ ζ} ∈ nhds x := by
-      refine IsOpen.mem_nhds ?_ hx
-      exact isOpen_ne.preimage (by fun_prop)
-    filter_upwards [hopen] with z hz
-    rw [← sub_smul_dslope_slice f i ζ z, smul_smul, inv_mul_cancel₀ (sub_ne_zero.2 hz), one_smul]
-  exact ((hcoord.inv hne).smul (hf.sub hres)).congr (hform.mono fun z hz => hz.symm)
-
-/-- If the multi-index coefficients vanish below degree `m` in the `i`-th coordinate, then the
-slice of `f` through the centre along that coordinate has a zero of order at least `m`.
-
-This is the bridge to one-variable reasoning: it is what lets a division by one linear factor
-be followed by a division by the next, since a nonzero factor at the second root cannot absorb
-the vanishing. -/
-theorem exists_slice_eq_pow_smul [CompleteSpace F] {f : (ι → 𝕜) → F}
-    {p : FormalMultilinearSeries 𝕜 (ι → 𝕜) F} {x : ι → 𝕜} {r : ℝ≥0}
-    (hf : HasFPowerSeriesOnBall f p x r) (i : ι) (m : ℕ)
-    (hvanish : ∀ α : ι → ℕ, α i < m → coeff p α = 0)
-    {ρ : ℝ≥0} (hρ : 0 < ρ) (hρr : (ρ : ℝ≥0∞) ≤ r)
-    (hconv : ∀ z : ι → 𝕜, ‖z‖ ≤ (ρ : ℝ) →
-      Summable fun k => (Fintype.card ι : ℝ) ^ k * ‖p k‖ * ‖z‖ ^ k)
-    (hsum : Summable fun α : ι → ℕ => ‖coeff p α‖ * (ρ : ℝ) ^ (∑ j, α j)) :
-    ∃ g : 𝕜 → F, AnalyticAt 𝕜 g 0 ∧
-      ∀ w : 𝕜, ‖w - x i‖ < (ρ : ℝ) →
-        f (Function.update x i w) = (w - x i) ^ m • g (w - x i) := by
-  obtain ⟨G, hG, hGeq⟩ := exists_analyticAt_eq_sub_pow_smul hf i m hvanish hρ hρr hconv hsum
-  -- the line through `x` in the `i`-th direction
-  set L : 𝕜 →L[𝕜] (ι → 𝕜) :=
-    (ContinuousLinearMap.id 𝕜 𝕜).smulRight (Pi.single i 1 : ι → 𝕜) with hL
-  have hLapp : ∀ u : 𝕜, L u = u • (Pi.single i 1 : ι → 𝕜) := fun u => rfl
-  have hLnorm : ∀ u : 𝕜, ‖L u‖ = ‖u‖ := by
-    intro u
-    rw [hLapp, norm_smul, Pi.norm_single, norm_one, mul_one]
-  have h0 : (0 : ι → 𝕜) ∈ Metric.eball (0 : ι → 𝕜) ρ :=
-    Metric.mem_eball_self (by exact_mod_cast hρ)
-  have hL0 : L (0 : 𝕜) = (0 : ι → 𝕜) := by simp [hLapp]
-  have hcomp : AnalyticAt 𝕜 (fun u : 𝕜 => G (L u)) 0 :=
-    (hG (L 0) (by rw [hL0]; exact h0)).comp (L.analyticAt 0)
-  refine ⟨fun u => G (L u), hcomp, fun w hw => ?_⟩
-  · have hxz : x + L (w - x i) = Function.update x i w := by
-      funext j
-      rcases eq_or_ne j i with rfl | hj
-      · simp [hLapp]
-      · simp [hLapp, Pi.single_eq_of_ne hj, Function.update_of_ne hj]
-    have hcoord : (L (w - x i)) i = w - x i := by simp [hLapp]
-    have := hGeq (L (w - x i)) (by rw [hLnorm]; exact hw)
-    rw [hxz, hcoord] at this
-    exact this
 
 /-!
 ### Uniqueness of multi-index coefficients
@@ -929,52 +627,6 @@ lemma coeffAt_tsum_series (c : (ι → ℕ) → F) {k : ℕ} {β : ι → ℕ}
       (MultiIndex.canonicalTuple hβ) (fun _ => c β)]
   rw [ite_eq_left]
   simp [MultiIndex.count_canonicalTuple hβ]
-
-/-- **Splitting a multi-index power series along a power of a coordinate.**
-
-`f = f₀ + z i ^ p * f₁`, where `f₀` collects the multi-indices of degree `< p` in the `i`-th
-coordinate -- Waldschmidt's "polynomial in `z i` of degree `< p`" -- and `f₁` is the series
-with that exponent shifted down by `p`.  This is Lemma 4.8 (c) of [waldschmidt2000] for a
-single coordinate and a single monic factor `z i ^ p`. -/
-theorem hasSum_split_coord_pow {c : (ι → ℕ) → F} (i : ι) (p : ℕ) {z : ι → 𝕜} {S T : F}
-    (h₀ : HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • (if α i < p then c α else 0)) S)
-    (h₁ : HasSum (fun β : ι → ℕ =>
-      (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) T) :
-    HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (S + z i ^ p • T) := by
-  classical
-  set d : (ι → ℕ) → F := fun α => if α i < p then 0 else c α with hd
-  have hdvanish : ∀ α : ι → ℕ, α i < p → d α = 0 := fun α hα => by simp [hd, hα]
-  have hdshift : ∀ β : ι → ℕ, d (β + (Pi.single i p : ι → ℕ)) = c (β + Pi.single i p) := by
-    intro β
-    simp [hd]
-  have h₁' : HasSum (fun β : ι → ℕ =>
-      (∏ j, z j ^ β j) • d (β + (Pi.single i p : ι → ℕ))) T := by
-    simpa [hdshift] using h₁
-  have hsplit := h₀.add (hasSum_smul_shift_pow i p hdvanish h₁')
-  refine hsplit.congr_fun fun α => ?_
-  rw [← smul_add]
-  congr 1
-  by_cases hα : α i < p <;> simp [hd, hα]
-
-omit [DecidableEq ι] in
-/-- Truncating the coefficients in one coordinate keeps a series normally convergent. -/
-lemma summable_truncate {c : (ι → ℕ) → F} {r : ℝ} (hr : 0 ≤ r) (i : ι) (p : ℕ)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ j, α j)) :
-    Summable fun α : ι → ℕ => ‖if α i < p then c α else 0‖ * r ^ (∑ j, α j) := by
-  classical
-  refine Summable.of_nonneg_of_le (fun α => by positivity) (fun α => ?_) hsum
-  gcongr
-  by_cases hα : α i < p <;> simp [hα]
-
-omit [DecidableEq ι] in
-/-- The truncated part of the decomposition is analytic on the same polydisc. -/
-theorem analyticOnNhd_tsum_monomial_truncate [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι)
-    (p : ℕ) {r : ℝ≥0} (hr : 0 < r)
-    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
-    AnalyticOnNhd 𝕜 (fun z : ι → 𝕜 =>
-        ∑' α : ι → ℕ, (∏ j, z j ^ α j) • (if α i < p then c α else 0))
-      (Metric.eball (0 : ι → 𝕜) r) :=
-  analyticOnNhd_tsum_monomial _ hr (MultiIndex.summable_truncate (by positivity) i p hsum)
 
 end MultiIndex
 

@@ -6,8 +6,9 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Analysis.Normed.Ring.InfiniteSum
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 public import Mathlib.Analysis.SpecialFunctions.Exponential
-public import Mathlib.NumberTheory.Transcendental.Baker.SchwarzProduct
+public import Mathlib.NumberTheory.Transcendental.Baker.TaylorCoeff
 
 /-!
 # Exponential polynomials

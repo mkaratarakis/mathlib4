@@ -10,6 +10,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.AlgSize
 public import Mathlib.NumberTheory.Transcendental.Baker.AuxiliaryFunction
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpIndep
 public import Mathlib.NumberTheory.Transcendental.Baker.ExpPoly
+public import Mathlib.NumberTheory.Transcendental.Baker.SchwarzProduct
 
 /-!
 # The criterion of Schneider–Lang: the transcendence argument
