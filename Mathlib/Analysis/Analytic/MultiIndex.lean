@@ -880,6 +880,56 @@ lemma eq_canonicalTuple_of_matching {β : ι → ℕ} {k : ℕ}
   have := hmatch ((Fintype.equivFinOfCardEq hk).symm j)
   simpa [MultiIndex.canonicalTuple] using this
 
+/-- **Reading the coefficients back off a multi-index series.**
+
+The degree-`k` part of `fun n => ∑' α, series α (c α) n` has `β`-th multi-index coefficient
+exactly `c β`.  Both the sum over multi-indices and the sum over the fibre of `count` collapse
+to a single term, so no multinomial factor intervenes. -/
+lemma coeffAt_tsum_series (c : (ι → ℕ) → F) {k : ℕ} {β : ι → ℕ}
+    (hβ : Fintype.card (MultiIndex.Slots β) = k) :
+    MultiIndex.coeffAt (𝕜 := 𝕜) (fun n => ∑' α, MultiIndex.series α (c α) n) k β = c β := by
+  classical
+  set box : Finset (ι → ℕ) := Fintype.piFinset fun _ : ι => Finset.range (k + 1) with hbox
+  have hmem : ∀ α : ι → ℕ, ∑ j, α j = k → α ∈ box := by
+    intro α hdeg
+    simp only [hbox, Fintype.mem_piFinset, Finset.mem_range]
+    intro i
+    have : α i ≤ ∑ j, α j := Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ i)
+    omega
+  have hsupp : ∀ α ∉ box, MultiIndex.series (𝕜 := 𝕜) α (c α) k = 0 := fun α hα =>
+    MultiIndex.series_of_ne α (c α) fun hdeg => hα (hmem α hdeg)
+  have hq : (fun n => ∑' α, MultiIndex.series (𝕜 := 𝕜) α (c α) n) k
+      = ∑ α ∈ box, MultiIndex.series α (c α) k := tsum_eq_sum hsupp
+  have hβdeg : ∑ j, β j = k := by rw [← MultiIndex.card_slots β, hβ]
+  -- evaluate at the tuple of basis vectors attached to `g`
+  have hval : ∀ g : Fin k → ι, MultiIndex.count g = β →
+      (∑ α ∈ box, MultiIndex.series (𝕜 := 𝕜) α (c α) k) (fun j => (Pi.single (g j) 1 : ι → 𝕜))
+        = if g = MultiIndex.canonicalTuple hβ then c β else 0 := by
+    intro g hg
+    rw [sum_apply, Finset.sum_eq_single β]
+    · rw [MultiIndex.series_apply_single β (c β) hβ g]
+      by_cases hgc : g = MultiIndex.canonicalTuple hβ
+      · rw [ite_eq_left (fun t => by rw [hgc]; exact MultiIndex.canonicalTuple_matching hβ t),
+          ite_eq_left hgc]
+      · rw [ite_eq_right fun hm => hgc (MultiIndex.eq_canonicalTuple_of_matching hβ hm),
+          ite_eq_right hgc]
+    · intro α hα hne
+      by_cases hcard : Fintype.card (MultiIndex.Slots α) = k
+      · rw [MultiIndex.series_apply_single α (c α) hcard g]
+        refine ite_eq_right fun hm => hne ?_
+        rw [← hg, MultiIndex.count_eq_of_matching hcard hm]
+      · rw [MultiIndex.series, dite_eq_right hcard]
+        simp
+    · intro hn
+      exact absurd (hmem β hβdeg) hn
+  -- exactly one tuple in the fibre contributes
+  simp only [MultiIndex.coeffAt, hq]
+  rw [Finset.sum_congr rfl fun g hg => hval g (by simpa using (Finset.mem_filter.1 hg).2),
+    Finset.sum_ite_eq' (Finset.univ.filter fun g : Fin k → ι => MultiIndex.count g = β)
+      (MultiIndex.canonicalTuple hβ) (fun _ => c β)]
+  rw [ite_eq_left]
+  simp [MultiIndex.count_canonicalTuple hβ]
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
