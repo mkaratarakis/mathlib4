@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Data.Int.Interval
+public import Mathlib.Analysis.Complex.Norm
 public import Mathlib.NumberTheory.SiegelsLemma
 
 /-!
@@ -183,3 +184,68 @@ theorem exists_int_vec_abs_le_of_pow_lt {ι κ : Type*} [Fintype ι] [Fintype κ
       constructor <;> linarith
 
 end ThueSiegel
+
+/-- **Thue-Siegel's lemma for complex forms** (Lemma 4.12 of [waldschmidt2000]).
+
+The same box principle applied to the real and imaginary parts separately: `2 * card κ` real
+forms in place of `card κ` complex ones.  The factor `√2` is the cost of recombining a complex
+number from bounds on its real and imaginary parts. -/
+theorem exists_int_vec_norm_le_of_pow_le {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (u : ι → κ → ℂ) {U V : ℝ} (hU : ∀ j, ∑ i, ‖u i j‖ ≤ Real.exp U)
+    {X : ℕ} (hX : 0 < X) (hι : 0 < Fintype.card ι)
+    (hcard : (Real.sqrt 2 * X * Real.exp (U + V) + 1) ^ (2 * Fintype.card κ)
+      ≤ ((X : ℝ) + 1) ^ Fintype.card ι) :
+    ∃ ξ : ι → ℤ, ξ ≠ 0 ∧ (∀ i, |ξ i| ≤ (X : ℤ)) ∧
+      ∀ j, ‖∑ i, u i j * (ξ i : ℂ)‖ ≤ Real.exp (-V) := by
+  classical
+  set t : ℝ := Real.sqrt 2 * X * Real.exp (U + V) with ht
+  have hXR : (0 : ℝ) < (X : ℝ) := by exact_mod_cast hX
+  have ht0 : 0 < t := by
+    rw [ht]; positivity
+  set l : ℕ := ⌈t⌉₊ with hl
+  have hlt : t ≤ (l : ℝ) := Nat.le_ceil t
+  have hlt1 : (l : ℝ) < t + 1 := Nat.ceil_lt_add_one ht0.le
+  have hl0 : 0 < l := Nat.ceil_pos.2 ht0
+  -- the `2 * card κ` real forms
+  set v : ι → κ × Bool → ℝ := fun i p => if p.2 then (u i p.1).im else (u i p.1).re with hv
+  have hUv : ∀ p : κ × Bool, ∑ i, |v i p| ≤ Real.exp U := by
+    rintro ⟨j, b⟩
+    refine le_trans (Finset.sum_le_sum fun i _ => ?_) (hU j)
+    cases b
+    · simpa [hv] using Complex.abs_re_le_norm (u i j)
+    · simpa [hv] using Complex.abs_im_le_norm (u i j)
+  have hcard' : (l : ℝ) ^ Fintype.card (κ × Bool) < ((X : ℝ) + 1) ^ Fintype.card ι := by
+    rw [Fintype.card_prod, Fintype.card_bool]
+    rcases Nat.eq_zero_or_pos (Fintype.card κ) with h0 | hpos
+    · rw [h0, Nat.zero_mul, pow_zero]
+      calc (1 : ℝ) < (X : ℝ) + 1 := by linarith
+        _ = ((X : ℝ) + 1) ^ 1 := (pow_one _).symm
+        _ ≤ ((X : ℝ) + 1) ^ Fintype.card ι := by
+            refine pow_le_pow_right₀ (by linarith) hι
+    · refine lt_of_lt_of_le ?_ hcard
+      have h2 : 0 < Fintype.card κ * 2 := by positivity
+      exact pow_lt_pow_left₀ hlt1 (by positivity) (by omega) |>.trans_eq
+        (by rw [mul_comm])
+  obtain ⟨ξ, hξ0, hξX, hξv⟩ :=
+    ThueSiegel.exists_int_vec_abs_le_of_pow_lt v (Real.exp_pos U).le hUv hX hl0 hcard'
+  refine ⟨ξ, hξ0, hξX, fun j => ?_⟩
+  have hre : (∑ i, u i j * (ξ i : ℂ)).re = ∑ i, v i (j, false) * (ξ i : ℝ) := by
+    simp [hv, Complex.re_sum, Complex.mul_re]
+  have him : (∑ i, u i j * (ξ i : ℂ)).im = ∑ i, v i (j, true) * (ξ i : ℝ) := by
+    simp [hv, Complex.im_sum, Complex.mul_im]
+  have hmax : max |(∑ i, u i j * (ξ i : ℂ)).re| |(∑ i, u i j * (ξ i : ℂ)).im|
+      ≤ Real.exp U * X / l := by
+    rw [hre, him]
+    exact max_le (hξv (j, false)) (hξv (j, true))
+  have hlR : (0 : ℝ) < (l : ℝ) := by exact_mod_cast hl0
+  have key : Real.exp (-V) * t = Real.sqrt 2 * (Real.exp U * (X : ℝ)) := by
+    rw [ht, Real.exp_add, Real.exp_neg]
+    have : Real.exp V ≠ 0 := (Real.exp_pos V).ne'
+    field_simp
+  have hfin : Real.sqrt 2 * (Real.exp U * X / l) ≤ Real.exp (-V) := by
+    rw [mul_div_assoc', div_le_iff₀ hlR, ← key]
+    exact mul_le_mul_of_nonneg_left hlt (Real.exp_pos _).le
+  calc ‖∑ i, u i j * (ξ i : ℂ)‖ ≤ Real.sqrt 2 * max _ _ :=
+        Complex.norm_le_sqrt_two_mul_max _
+    _ ≤ Real.sqrt 2 * (Real.exp U * X / l) := by gcongr
+    _ ≤ Real.exp (-V) := hfin
