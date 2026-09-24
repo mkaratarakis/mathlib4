@@ -260,7 +260,8 @@ theorem exists_int_vec_abs_le_of_pow_lt (v : Fin ν → Fin μ → ℝ) {U : ℝ
       exact abs_eq_zero.1 ((Finset.sum_eq_zero_iff_of_nonneg hnn).1 h1 i (Finset.mem_univ i))
     refine ⟨fun i => if i = ⟨0, hν⟩ then 1 else 0, fun h => ?_, fun i => ?_, fun j => ?_⟩
     · simpa using congrFun h ⟨0, hν⟩
-    · by_cases h : i = ⟨0, hν⟩ <;> simp [h] <;> omega
+    · have hX' : (1 : ℤ) ≤ (X : ℤ) := by exact_mod_cast hX
+      by_cases h : i = ⟨0, hν⟩ <;> simp [h, hX']
     · simp [hv0, ← hU00]
   · -- The `l` boxes have length `c`.
     set c : ℝ := (X : ℝ) * U / l with hcdef
