@@ -510,6 +510,67 @@ theorem tsum_ite_coord_eq_update [CompleteSpace F] {c : (ι → ℕ) → F} (i :
     · rw [Function.update_of_ne hj]
   · simp [hα]
 
+/-- **Division by a power of a coordinate.**
+
+If every coefficient with `α i < p` vanishes, the series is `z i ^ p` times the series with
+the `i`-th exponent shifted down by `p`.  This is `hasSum_smul_shift` iterated, and is the
+induction on the degree in the division lemma behind a Schwarz lemma for Cartesian
+products. -/
+theorem hasSum_smul_shift_pow {c : (ι → ℕ) → F} (i : ι) {z : ι → 𝕜} :
+    ∀ (p : ℕ) {T : F}, (∀ α : ι → ℕ, α i < p → c α = 0) →
+      HasSum (fun β : ι → ℕ => (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) T →
+      HasSum (fun α : ι → ℕ => (∏ j, z j ^ α j) • c α) (z i ^ p • T) := by
+  intro p
+  induction p generalizing c with
+  | zero => intro T _ h; simpa using h
+  | succ p ih =>
+    intro T hvanish h
+    -- peel off one factor, then apply the inductive hypothesis to the shifted coefficients
+    have hstep : ∀ β : ι → ℕ,
+        c (β + (Pi.single i p : ι → ℕ) + (Pi.single i 1 : ι → ℕ))
+          = c (β + (Pi.single i (p + 1) : ι → ℕ)) := by
+      intro β
+      rw [add_assoc, ← Pi.single_add]
+    have hshift : HasSum (fun β : ι → ℕ =>
+        (∏ j, z j ^ β j) • (fun α => c (α + (Pi.single i 1 : ι → ℕ)))
+          (β + (Pi.single i p : ι → ℕ))) T := by
+      simpa [hstep] using h
+    have hvanish' : ∀ β : ι → ℕ, β i < p → c (β + (Pi.single i 1 : ι → ℕ)) = 0 := by
+      intro β hβ
+      refine hvanish _ ?_
+      simp only [Pi.add_apply, Pi.single_eq_same]
+      omega
+    have hinner := ih (c := fun α => c (α + (Pi.single i 1 : ι → ℕ))) hvanish' hshift
+    have houter := hasSum_smul_shift i (c := c) (fun α hα => hvanish α (by omega)) hinner
+    rwa [smul_smul, ← pow_succ'] at houter
+
+/-- Shifting a multi-index down by `p` in one coordinate keeps a series normally
+convergent. -/
+lemma summable_shift_pow {c : (ι → ℕ) → F} {r : ℝ} (hr : 0 < r) (i : ι) :
+    ∀ (p : ℕ), (Summable fun α : ι → ℕ => ‖c α‖ * r ^ (∑ j, α j)) →
+      Summable fun β : ι → ℕ => ‖c (β + (Pi.single i p : ι → ℕ))‖ * r ^ (∑ j, β j) := by
+  intro p
+  induction p generalizing c with
+  | zero => intro hsum; simpa using hsum
+  | succ p ih =>
+    intro hsum
+    have hstep : ∀ β : ι → ℕ,
+        c (β + (Pi.single i p : ι → ℕ) + (Pi.single i 1 : ι → ℕ))
+          = c (β + (Pi.single i (p + 1) : ι → ℕ)) := by
+      intro β
+      rw [add_assoc, ← Pi.single_add]
+    have h1 := ih (c := fun α => c (α + (Pi.single i 1 : ι → ℕ))) (summable_shift hr i hsum)
+    simpa [hstep] using h1
+
+/-- The quotient of a normally convergent series by a power of a coordinate is again
+analytic. -/
+theorem analyticAt_tsum_monomial_shift_pow [CompleteSpace F] (c : (ι → ℕ) → F) (i : ι) (p : ℕ)
+    {r : ℝ≥0} (hr : 0 < r)
+    (hsum : Summable fun α : ι → ℕ => ‖c α‖ * (r : ℝ) ^ (∑ j, α j)) :
+    AnalyticAt 𝕜 (fun z : ι → 𝕜 =>
+      ∑' β : ι → ℕ, (∏ j, z j ^ β j) • c (β + (Pi.single i p : ι → ℕ))) 0 :=
+  analyticAt_tsum_monomial _ hr (summable_shift_pow (by exact_mod_cast hr) i p hsum)
+
 end MultiIndex
 
 end
