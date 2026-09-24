@@ -794,6 +794,23 @@ theorem eq_zero_of_forall_sum_monomial_eq_zero {J : Type*} [Fintype J]
     exact fun hb => hne (heinj hb)
   · intro hn; exact absurd hα hn
 
+/-- The monomial map evaluated at a tuple of basis vectors: it returns `c` exactly when the
+tuple matches the slot pattern, and `0` otherwise. -/
+lemma toCMM_apply_single (α : ι → ℕ) (c : F) (h : MultiIndex.Slots α → ι) :
+    MultiIndex.toCMM (𝕜 := 𝕜) α c (fun t => (Pi.single (h t) 1 : ι → 𝕜))
+      = if ∀ t : MultiIndex.Slots α, h t = t.1 then c else 0 := by
+  classical
+  rw [MultiIndex.toCMM_apply]
+  have hpt : ∀ t : MultiIndex.Slots α,
+      (Pi.single (h t) (1 : 𝕜) : ι → 𝕜) t.1 = if h t = t.1 then 1 else 0 := by
+    intro t
+    simp only [Pi.single_apply]
+    by_cases hc : h t = t.1
+    · rw [ite_eq_left hc.symm, ite_eq_left hc]
+    · rw [ite_eq_right fun h' => hc h'.symm, ite_eq_right hc]
+  rw [Finset.prod_congr rfl fun t _ => hpt t, Finset.prod_boole]
+  by_cases hall : ∀ t : MultiIndex.Slots α, h t = t.1 <;> simp [hall]
+
 end MultiIndex
 
 /-- **Lemma 4.8 (a) of [waldschmidt2000], in coefficient form.**  A function vanishing near a
