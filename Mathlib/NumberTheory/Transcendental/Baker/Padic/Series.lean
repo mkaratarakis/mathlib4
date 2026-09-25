@@ -100,7 +100,8 @@ theorem tendsto_norm_of_decay {c : ℕ → K} {r M : ℝ} (hr : 1 < r)
     (hM : ∀ k, ‖c k‖ * r ^ k ≤ M) : Tendsto (fun k => ‖c k‖) atTop (𝓝 0) := by
   have hr0 : 0 < r := by linarith
   have hlim : Tendsto (fun k : ℕ => M * r⁻¹ ^ k) atTop (𝓝 (M * 0)) :=
-    (tendsto_pow_atTop_nhds_zero_of_lt_one (inv_nonneg.mpr hr0.le) (inv_lt_one_of_one_lt₀ hr)).const_mul M
+    (tendsto_pow_atTop_nhds_zero_of_lt_one (inv_nonneg.mpr hr0.le)
+      (inv_lt_one_of_one_lt₀ hr)).const_mul M
   rw [mul_zero] at hlim
   refine squeeze_zero (fun k => norm_nonneg _) (fun k => ?_) hlim
   rw [inv_pow]

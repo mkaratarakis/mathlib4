@@ -30,6 +30,8 @@ The estimate is `‖1 / n!‖ * p ^ (-n / (p - 1)) ≤ 1`, which is Legendre's b
 * `PadicComplex.exp_add`: `exp (x + y) = exp x * exp y` on that disc.
 * `PadicComplex.norm_exp_sub_one`: `‖exp x - 1‖ = ‖x‖` on that disc, so `exp` is injective there
   (`PadicComplex.exp_injOn`) and takes values of norm one.
+* `PadicComplex.exp_nsmul`, `PadicComplex.exp_sum`: `exp (n • x) = exp x ^ n` and
+  `exp (∑ x i) = ∏ exp (x i)` on that disc.
 -/
 
 @[expose] public section
@@ -192,5 +194,46 @@ theorem exp_injOn : Set.InjOn (exp : ℂ_[p] → ℂ_[p])
   rw [hexp, sub_self, norm_zero] at this
   rw [← sub_eq_zero, sub_eq_add_neg]
   exact norm_eq_zero.mp this.symm
+
+/-- The disc of radius `p ^ (-1 / (p - 1))` is closed under addition. -/
+theorem norm_add_lt_expRadius {x y : ℂ_[p]} (hx : ‖x‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹))
+    (hy : ‖y‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹)) : ‖x + y‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹) :=
+  (IsUltrametricDist.norm_add_le_max x y).trans_lt (max_lt hx hy)
+
+/-- The disc of radius `p ^ (-1 / (p - 1))` is closed under multiplication by naturals. -/
+theorem norm_nsmul_lt_expRadius {x : ℂ_[p]} (hx : ‖x‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹)) (n : ℕ) :
+    ‖n • x‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹) := by
+  rw [nsmul_eq_mul, norm_mul]
+  exact (mul_le_of_le_one_left (norm_nonneg _) (IsUltrametricDist.norm_natCast_le_one _ n)).trans_lt
+    hx
+
+/-- `exp (n • x) = exp x ^ n` on the disc of radius `p ^ (-1 / (p - 1))`. -/
+theorem exp_nsmul {x : ℂ_[p]} (hx : ‖x‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹)) (n : ℕ) :
+    exp (n • x) = exp x ^ n := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [succ_nsmul, exp_add (norm_nsmul_lt_expRadius hx n) hx, ih, pow_succ]
+
+/-- `exp (∑ x i) = ∏ exp (x i)` on the disc of radius `p ^ (-1 / (p - 1))`. -/
+theorem exp_sum {ι : Type*} (s : Finset ι) {x : ι → ℂ_[p]}
+    (hx : ∀ i ∈ s, ‖x i‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹)) :
+    exp (∑ i ∈ s, x i) = ∏ i ∈ s, exp (x i) := by
+  classical
+  have hρ : 0 < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹) := by
+    have : (0 : ℝ) < p := by exact_mod_cast hp.out.pos
+    positivity
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih =>
+    have hs : ∀ i ∈ s, ‖x i‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹) := fun i hi =>
+      hx i (Finset.mem_insert_of_mem hi)
+    have hsum : ‖∑ i ∈ s, x i‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹) := by
+      rcases s.eq_empty_or_nonempty with rfl | hne
+      · simpa using hρ
+      obtain ⟨j, hj, hjmax⟩ := IsUltrametricDist.exists_norm_finsetSum_le_of_nonempty hne x
+      exact hjmax.trans_lt (hs j hj)
+    rw [Finset.sum_insert ha, Finset.prod_insert ha,
+      exp_add (hx a (Finset.mem_insert_self a s)) hsum, ih hs]
 
 end PadicComplex
