@@ -20,7 +20,8 @@ Liouville's inequality at `p` makes them zero. At the end `f_0` has so many zero
 coefficients are tiny, and Baker's Hermite interpolation (`PadicBaker.exists_hermite`) turns this
 into a nonzero algebraic integer `P t` of `p`-adic norm smaller than Liouville allows.
 
-The choice of the parameters is `PadicBaker.core`'s hypotheses `hcount`, `hext` and `hfin`.
+The choice of the parameters is `PadicBaker.core`'s hypotheses `hcount`, `hext` and `hfin`; they
+are met in `PadicBaker.exists_parameters`.
 -/
 
 @[expose] public section
