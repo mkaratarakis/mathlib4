@@ -14,8 +14,9 @@ public import Mathlib.NumberTheory.Padics.PadicVal.Basic
 # The `p`-adic exponential on its disc of convergence
 
 Mathlib's `NormedSpace.exp` is defined by its series in any complete normed algebra, and its
-basic properties (`NormedSpace.exp_add_of_mem_ball`, `NormedSpace.hasFPowerSeriesOnBall_exp_of_radius_pos`,
-…) hold inside the ball of convergence of `NormedSpace.expSeries`. Over `ℂ_[p]` that ball is not
+basic properties (`NormedSpace.exp_add_of_mem_ball`,
+`NormedSpace.hasFPowerSeriesOnBall_exp_of_radius_pos`, …) hold inside the ball of convergence of
+`NormedSpace.expSeries`. Over `ℂ_[p]` that ball is not
 all of `ℂ_[p]`; this file shows that it contains the disc of radius `p ^ (-1 / (p - 1))`.
 
 The estimate is `‖1 / n!‖ * p ^ (-n / (p - 1)) ≤ 1`, which is Legendre's bound
