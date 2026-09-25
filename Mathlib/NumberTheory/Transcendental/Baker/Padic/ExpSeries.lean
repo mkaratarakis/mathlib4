@@ -31,27 +31,27 @@ open Nat
 
 namespace PadicBaker
 
-section Formal
+section Poly
 
-variable {K : Type*} [NontriviallyNormedField K]
+variable {R : Type*} [CommRing R]
 
 /-- The polynomial `(Q ↦ Q' + c Q)^[m] P`. -/
-noncomputable def derivAdd (c : K) (m : ℕ) (P : Polynomial K) : Polynomial K :=
+noncomputable def derivAdd (c : R) (m : ℕ) (P : Polynomial R) : Polynomial R :=
   (fun Q => Polynomial.derivative Q + Polynomial.C c * Q)^[m] P
 
-theorem derivAdd_succ (c : K) (m : ℕ) (P : Polynomial K) :
+theorem derivAdd_succ (c : R) (m : ℕ) (P : Polynomial R) :
     derivAdd c (m + 1) P = Polynomial.derivative (derivAdd c m P) +
       Polynomial.C c * derivAdd c m P := by
   simp only [derivAdd, Function.iterate_succ_apply']
 
-theorem derivAdd_smul (c a : K) (m : ℕ) (P : Polynomial K) :
+theorem derivAdd_smul (c a : R) (m : ℕ) (P : Polynomial R) :
     derivAdd c m (a • P) = a • derivAdd c m P := by
   induction m with
   | zero => rfl
   | succ m ih =>
     rw [derivAdd_succ, derivAdd_succ, ih, Polynomial.derivative_smul, smul_add, mul_smul_comm]
 
-theorem natDegree_derivAdd_le (c : K) (m : ℕ) (P : Polynomial K) :
+theorem natDegree_derivAdd_le (c : R) (m : ℕ) (P : Polynomial R) :
     (derivAdd c m P).natDegree ≤ P.natDegree := by
   induction m with
   | zero => rfl
@@ -61,7 +61,19 @@ theorem natDegree_derivAdd_le (c : K) (m : ℕ) (P : Polynomial K) :
     · exact (Polynomial.natDegree_derivative_le _).trans ((Nat.sub_le _ _).trans ih)
     · exact (Polynomial.natDegree_C_mul_le _ _).trans ih
 
-variable [CharZero K]
+theorem map_derivAdd {S : Type*} [CommRing S] (f : R →+* S) (c : R) (m : ℕ) (P : Polynomial R) :
+    (derivAdd c m P).map f = derivAdd (f c) m (P.map f) := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [derivAdd_succ, derivAdd_succ, Polynomial.map_add, Polynomial.map_mul, Polynomial.map_C,
+      ← Polynomial.derivative_map, ih]
+
+end Poly
+
+section Formal
+
+variable {K : Type*} [NontriviallyNormedField K] [CharZero K]
 
 /-- The formal power series of `exp (ψ z)`. -/
 noncomputable def expSer (ψ : K) : PowerSeries K := PowerSeries.rescale ψ (PowerSeries.exp K)

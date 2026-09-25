@@ -260,6 +260,18 @@ theorem seqEval_iterate_seqDeriv_aux_eq_zero (hrel : ℓ none = β₀ + ∑ r, �
       simp [Finset.sum_add_distrib]
     omega
 
+/-- `exp (ψ_e l) = ∏_o exp (ℓ_o) ^ (e_o l)`. -/
+theorem exp_psi_mul_natCast (hsmall : ∀ o, ‖ℓ o‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹))
+    (e : Option (Fin k) → ℕ) (l : ℕ) :
+    NormedSpace.exp (psi ℓ e * l) = ∏ o, NormedSpace.exp (ℓ o) ^ (e o * l) := by
+  have hsplit : psi ℓ e * l = ∑ o, (e o * l) • ℓ o := by
+    simp only [psi, Finset.sum_mul, nsmul_eq_mul]
+    refine Finset.sum_congr rfl fun o _ => ?_
+    push_cast; ring
+  rw [hsplit, PadicComplex.exp_sum _ fun o _ => PadicComplex.norm_nsmul_lt_expRadius
+    (hsmall o) _]
+  exact Finset.prod_congr rfl fun o _ => PadicComplex.exp_nsmul (hsmall o) _
+
 /-- **The value of `f_m` at an integer.** -/
 theorem seqEval_aux_natCast (hsmall : ∀ o, ‖ℓ o‖ < (p : ℝ) ^ (-((p : ℝ) - 1)⁻¹)) (L : ℕ)
     (P : Fin (L + 1) × (Option (Fin k) → Fin (L + 1)) → ℂ_[p]) (m : Option (Fin k) → ℕ)
@@ -296,17 +308,7 @@ theorem seqEval_aux_natCast (hsmall : ∀ o, ‖ℓ o‖ < (p : ℝ) ^ (-((p : �
   simp only [Finset.sum_apply, Finset.sum_mul] at hall ⊢
   rw [hall.tsum_eq, Finset.mul_sum]
   refine Finset.sum_congr rfl fun x _ => ?_
-  -- `exp (ψ_e l) = ∏_o exp (ℓ_o) ^ (e_o l)`
-  have hexp : NormedSpace.exp (psi ℓ (fun o => x.2 o) * l) =
-      ∏ o, NormedSpace.exp (ℓ o) ^ ((x.2 o : ℕ) * l) := by
-    have hsplit : psi ℓ (fun o => x.2 o) * l = ∑ o, ((x.2 o : ℕ) * l) • ℓ o := by
-      simp only [psi, Finset.sum_mul, nsmul_eq_mul]
-      refine Finset.sum_congr rfl fun o _ => ?_
-      push_cast; ring
-    rw [hsplit, PadicComplex.exp_sum _ fun o _ => PadicComplex.norm_nsmul_lt_expRadius
-      (hsmall o) _]
-    exact Finset.prod_congr rfl fun o _ => PadicComplex.exp_nsmul (hsmall o) _
-  rw [hexp, Qpoly, eval_smul, smul_eq_mul]
+  rw [exp_psi_mul_natCast hsmall, Qpoly, eval_smul, smul_eq_mul]
   simp only [mul_pow, Finset.prod_mul_distrib]
   ring
 
