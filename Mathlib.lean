@@ -6148,6 +6148,7 @@ public import Mathlib.NumberTheory.Transcendental.Baker.Liouville
 public import Mathlib.NumberTheory.Transcendental.Baker.MultiIndex
 public import Mathlib.NumberTheory.Transcendental.Baker.Padic.Exp
 public import Mathlib.NumberTheory.Transcendental.Baker.Padic.Liouville
+public import Mathlib.NumberTheory.Transcendental.Baker.Padic.Series
 public import Mathlib.NumberTheory.Transcendental.Baker.Polydisc
 public import Mathlib.NumberTheory.Transcendental.Baker.Reduction
 public import Mathlib.NumberTheory.Transcendental.Baker.SchneiderLang
