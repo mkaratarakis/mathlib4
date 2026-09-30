@@ -7,6 +7,9 @@ module
 
 public import Mathlib.Algebra.Order.BigOperators.Ring.Lagrange
 public import Mathlib.NumberTheory.KTFibonacci.Identities
+import Mathlib.Tactic.LinearCombination
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
 
 /-!
 # A cross-family bound for `(k, t)`-Fibonacci and `(k, t)`-Lucas numbers
@@ -33,7 +36,9 @@ by the weighted sums of squares of `F` and of `L`, which telescope
   `KTFib.sq_fib_sub_eq_iff`: for `k ≠ 0`, `0 < t` and `n ≥ 1`, equality holds if and only if
   `n = 1`.
 * `KTFib.sq_jacobsthal_sub_le`, `KTFib.sq_jacobsthal_sub_eq_iff`: the case `(k, t) = (1, 2)` of
-  the Jacobsthal and Jacobsthal–Lucas numbers, over `ℤ`.
+  the Jacobsthal and Jacobsthal–Lucas numbers, over `ℤ`. The case `(k, t) = (1, 1)` of the
+  Fibonacci numbers `Nat.fib` is `Nat.sq_fib_two_mul_add_one_sub_one_le` in
+  `Mathlib.NumberTheory.KTFibonacci.KFibonacci`.
 
 At `t = 1` the first two results are Theorem 1.5 and Corollary 4.1 of Batte and Kaggwa (see
 `Mathlib.NumberTheory.KTFibonacci.KFibonacci`).
@@ -89,23 +94,34 @@ private lemma sq_sum_eq_sum_mul_sum_iff (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1 
     positivity
   linarith
 
+/-- The closed forms behind the division-free cross-family bound: multiplied by `k ^ 2`, the
+two sides of the weighted Cauchy–Schwarz bound are `(F (2 * n + 1) - t ^ n) ^ 2` and
+`F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`. -/
+private lemma sq_fib_sub_eq_and_mul_eq (hF0 : F 0 = 0) (hF1 : F 1 = 1)
+    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
+    (F (2 * n + 1) - t ^ n) ^ 2 = k ^ 2 * (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ∧
+      F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) =
+        k ^ 2 * ((∑ i ∈ Icc 1 n, t ^ (n - i) * F i ^ 2) *
+          ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ 2) := by
+  have e1 := mul_sum_Icc_pow_mul_two_mul hF n
+  have e2 := mul_sum_Icc_pow_mul_sq hF n
+  have e3 := mul_sum_Icc_pow_mul_sq hL n
+  simp only [hF0, hF1, hL0, hL1] at e1 e2 e3
+  constructor
+  · linear_combination
+      (-(F (2 * n + 1) - t ^ n + k * ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i))) * e1
+  · linear_combination (-(F n * F (n + 1))) * e3 - (k * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ 2) * e2
+
 /-- The cross-family bound in division-free form: for `0 ≤ t` and any `k`,
 `(F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`. -/
 theorem sq_fib_sub_le (ht : 0 ≤ t) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) := by
-  have h := mul_le_mul_of_nonneg_left (sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n)
-    (sq_nonneg k)
-  have e1 := mul_sum_Icc_pow_mul_two_mul hF n
-  have e2 := mul_sum_Icc_pow_mul_sq hF n
-  have e3 := mul_sum_Icc_pow_mul_sq hL n
-  rw [hF1, mul_one] at e1
-  rw [hF0, mul_zero, zero_mul, sub_zero] at e2
-  rw [hL0, hL1] at e3
-  rw [← e1, ← e2, show L n * L (n + 1) - 2 * k * t ^ n = L n * L (n + 1) - t ^ n * 2 * k by ring,
-    ← e3]
-  linarith
+  obtain ⟨h1, h2⟩ := sq_fib_sub_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
+  rw [h1, h2]
+  exact mul_le_mul_of_nonneg_left (sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n) (sq_nonneg k)
 
 /-- Equality in `KTFib.sq_fib_sub_le`: for `k ≠ 0`, `0 < t` and `n ≥ 1`,
 `(F (2 * n + 1) - t ^ n) ^ 2 = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)` if and only
@@ -115,14 +131,8 @@ theorem sq_fib_sub_eq_iff (hk : k ≠ 0) (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 1 ≤ n) :
     (F (2 * n + 1) - t ^ n) ^ 2 = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) ↔
       n = 1 := by
-  have e1 := mul_sum_Icc_pow_mul_two_mul hF n
-  have e2 := mul_sum_Icc_pow_mul_sq hF n
-  have e3 := mul_sum_Icc_pow_mul_sq hL n
-  rw [hF1, mul_one] at e1
-  rw [hF0, mul_zero, zero_mul, sub_zero] at e2
-  rw [hL0, hL1] at e3
-  rw [← e1, ← e2, show L n * L (n + 1) - 2 * k * t ^ n = L n * L (n + 1) - t ^ n * 2 * k by ring,
-    ← e3, mul_pow, mul_mul_mul_comm, ← sq, mul_right_inj' (pow_ne_zero 2 hk)]
+  obtain ⟨h1, h2⟩ := sq_fib_sub_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
+  rw [h1, h2, mul_right_inj' (pow_ne_zero 2 hk)]
   exact sq_sum_eq_sum_mul_sum_iff ht hF0 hF1 hF hL0 hL1 hL hn
 
 end LinearOrder
@@ -140,7 +150,7 @@ theorem sq_sum_pow_mul_fib_two_mul_le (hk : k ≠ 0) (ht : 0 ≤ t) (hF0 : F 0 =
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
       F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) := by
-  rw [← sum_pow_mul_sq_fib hk hF0 hF, ← sum_pow_mul_sq_lucas hk hL0 hL1 hL]
+  rw [← sum_pow_mul_fib_sq hk hF0 hF, ← sum_pow_mul_lucas_sq hk hL0 hL1 hL]
   exact sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n
 
 /-- Equality in `KTFib.sq_sum_pow_mul_fib_two_mul_le`: for `k ≠ 0`, `0 < t` and `n ≥ 1`,
@@ -152,7 +162,7 @@ theorem sq_sum_pow_mul_fib_two_mul_eq_iff (hk : k ≠ 0) (ht : 0 < t) (hF0 : F 0
     (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 1 ≤ n) :
     (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 =
         F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) ↔ n = 1 := by
-  rw [← sum_pow_mul_sq_fib hk hF0 hF, ← sum_pow_mul_sq_lucas hk hL0 hL1 hL]
+  rw [← sum_pow_mul_fib_sq hk hF0 hF, ← sum_pow_mul_lucas_sq hk hL0 hL1 hL]
   exact sq_sum_eq_sum_mul_sum_iff ht hF0 hF1 hF hL0 hL1 hL hn
 
 end Field

@@ -23,7 +23,8 @@ three-term example illustrating their observation: `a = (10, 10, 1)` and `b = (1
 `3 ^ 2 / 4 * (10 * 10 - 1 * 1) ^ 2 = 22052.25`.
 
 The bound with `n ^ 2 / 4` does hold when `a i` and `b i` are powers of one family, see
-`Real.ozeki_rpow`, and when `a` and `b` monovary, see `Finset.gram_le_of_monovaryOn`.
+`Real.ozeki_rpow`, and when `a` and `b` monovary, see
+`Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_monovaryOn`.
 
 ## References
 
@@ -38,12 +39,12 @@ public section
 
 namespace Counterexample
 
-/-- Ozeki's inequality with the constant `n ^ 2 / 4` fails for arbitrary families: there are
+/-- **Ozeki**'s inequality with the constant `n ^ 2 / 4` fails for arbitrary families: there are
 `a b : Fin 3 → ℝ` with `1 ≤ a i ≤ 10` and `1 ≤ b i ≤ 10` such that
 `(∑ a i ^ 2) * (∑ b i ^ 2) - (∑ a i * b i) ^ 2 > 3 ^ 2 / 4 * (10 * 10 - 1 * 1) ^ 2`.
 This illustrates the observation of Izumino–Seo and Izumino–Mori–Seo that the sharp constant for
 arbitrary families is `n ^ 2 / 3`. -/
-theorem not_forall_gram_le_card_sq_div_four :
+theorem not_forall_sum_sq_mul_sum_sq_sub_sq_le :
     ¬ ∀ (a b : Fin 3 → ℝ) (m₁ M₁ m₂ M₂ : ℝ), 0 < m₁ → 0 < m₂ →
       (∀ i, a i ∈ Set.Icc m₁ M₁) → (∀ i, b i ∈ Set.Icc m₂ M₂) →
       (∑ i, a i ^ 2) * (∑ i, b i ^ 2) - (∑ i, a i * b i) ^ 2 ≤

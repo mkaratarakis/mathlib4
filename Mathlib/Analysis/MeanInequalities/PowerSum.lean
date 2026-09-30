@@ -13,21 +13,28 @@ public import Mathlib.Analysis.MeanInequalitiesPow
 
 For weights `w i` and nonnegative reals `x i`, `i ∈ s`, write `S γ = ∑ i ∈ s, w i * x i ^ γ` for
 the weighted power sum of exponent `γ` and `W = ∑ i ∈ s, w i` for the total weight. This file
-compares these quantities for different exponents.
+compares these quantities for different exponents. Following
+`Real.inner_le_weight_mul_Lp`, we call `W ^ (1 - α / β) * S β ^ (α / β)` a `weight_mul_Lp` term.
 
 ## Main results
 
 * `Real.sum_rpow_le_rpow_sum`, `Real.rpow_sum_le_sum_rpow`: `∑ y i ^ γ ≤ (∑ y i) ^ γ` for
   `γ ≥ 1`, and the reverse inequality for `0 ≤ γ ≤ 1`, for nonnegative `y i`.
+* `Real.sum_mul_rpow_le_rpow_sum_mul`, `Real.rpow_sum_mul_le_sum_mul_rpow`: the weighted versions
+  `∑ w i * y i ^ γ ≤ (∑ w i * y i) ^ γ` for `γ ≥ 1`, and the reverse for `γ ≤ 1`, when every
+  `y i` is at most `∑ w i * y i` (for instance when `1 ≤ w i`).
 * `Real.sum_mul_rpow_le_of_one_lt`, `Real.le_sum_mul_rpow_of_lt_one`: Hölder's inequality
   `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` for `α = u / p + v / q` and conjugate exponents `p`, `q`
   with `p > 1`, and its reverse for `0 < p < 1`.
-* `Real.rpow_mean_le_of_le`, `Real.le_rpow_mean_of_le`: the power mean inequality
-  `W ^ (1 - α / β) * S β ^ (α / β) ≤ S α` for `0 < β ≤ α`, and its reverse for `0 < α ≤ β`.
-* `Real.sum_le_rpow_mean_of_one_le`, `Real.rpow_mean_le_sum_of_one_le`: comparison of
-  `S β` with `W ^ (1 - α / β) * S β ^ (α / β)` when `1 ≤ x i`.
-* `Real.sum_rpow_le_rpow_of_le`, `Real.sum_rpow_rpow_le_of_le`, `Real.rpow_le_sum_rpow_of_le`:
-  monotonicity of the weighted `ℓ^γ` norms `S γ ^ (1 / γ)` when `1 ≤ w i`.
+* `Real.weight_mul_Lp_le_sum_mul_rpow`, `Real.sum_mul_rpow_le_weight_mul_Lp`: the power mean
+  inequality `W ^ (1 - α / β) * S β ^ (α / β) ≤ S α` for `0 < β ≤ α`, and its reverse for
+  `0 < α ≤ β`.
+* `Real.sum_mul_rpow_le_weight_mul_Lp_of_sum_le`, `Real.weight_mul_Lp_le_sum_mul_rpow_of_sum_le`:
+  comparison of `S β` with `W ^ (1 - α / β) * S β ^ (α / β)` when `W ≤ S β` (for instance when
+  `1 ≤ x i`).
+* `Real.sum_mul_rpow_le_rpow_sum_mul_rpow`, `Real.rpow_sum_mul_rpow_le_sum_mul_rpow`:
+  monotonicity of the weighted `ℓ^γ` norms `S γ ^ (1 / γ)`: `S α ≤ S β ^ (α / β)` for
+  `0 < β ≤ α`, and `S β ^ (α / β) ≤ S α` for `α ≤ β`, when every `x i ^ β` is at most `S β`.
 
 Dujella, Jakšetić and Pečarić chain these inequalities in the unweighted case `w = 1` (their
 Theorems 6 and 7).
@@ -41,6 +48,18 @@ Theorems 6 and 7).
 public section
 
 open Finset
+
+namespace Finset
+
+variable {ι R : Type*} [NonUnitalNonAssocSemiring R] [PartialOrder R] [IsOrderedAddMonoid R]
+
+/-- If the weights `w i ≥ 0` have total weight zero, then every weighted sum
+`∑ i ∈ s, w i * f i` vanishes. -/
+theorem sum_mul_eq_zero_of_sum_eq_zero {s : Finset ι} {w : ι → R} (hw : ∀ i ∈ s, 0 ≤ w i)
+    (hW : ∑ i ∈ s, w i = 0) (f : ι → R) : ∑ i ∈ s, w i * f i = 0 :=
+  sum_eq_zero fun i hi ↦ by rw [(sum_eq_zero_iff_of_nonneg hw).1 hW i hi, zero_mul]
+
+end Finset
 
 namespace Real
 
@@ -76,33 +95,43 @@ theorem rpow_sum_le_sum_rpow {γ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) (hs 
     grw [← ih hy']
     exact rpow_add_le_add_rpow (hy a (mem_cons_self a s)) (sum_nonneg hy') hγ0 hγ1
 
-/-- For `γ ≥ 1`, `w i ≥ 1` and `y i ≥ 0`,
-`∑ i ∈ s, w i * y i ^ γ ≤ (∑ i ∈ s, w i * y i) ^ γ`. -/
-theorem sum_mul_rpow_le_rpow_sum_mul {γ : ℝ} (hγ : 1 ≤ γ) {y : ι → ℝ}
-    (hw : ∀ i ∈ s, 1 ≤ w i) (hy : ∀ i ∈ s, 0 ≤ y i) :
+/-- For `γ ≥ 1`, `w i ≥ 0` and `y i ≥ 0` such that every `y i` is at most
+`∑ j ∈ s, w j * y j`, `∑ i ∈ s, w i * y i ^ γ ≤ (∑ i ∈ s, w i * y i) ^ γ`. The hypothesis on
+`y i` holds for instance if `1 ≤ w i`. -/
+theorem sum_mul_rpow_le_rpow_sum_mul {γ : ℝ} (hγ : 1 ≤ γ) {y : ι → ℝ} (hw : ∀ i ∈ s, 0 ≤ w i)
+    (hy0 : ∀ i ∈ s, 0 ≤ y i) (hy : ∀ i ∈ s, y i ≤ ∑ j ∈ s, w j * y j) :
     ∑ i ∈ s, w i * y i ^ γ ≤ (∑ i ∈ s, w i * y i) ^ γ := by
-  have hw0 : ∀ i ∈ s, 0 ≤ w i := fun i hi ↦ zero_le_one.trans (hw i hi)
-  calc ∑ i ∈ s, w i * y i ^ γ ≤ ∑ i ∈ s, (w i * y i) ^ γ := by
-        refine sum_le_sum fun i hi ↦ ?_
-        rw [mul_rpow (hw0 i hi) (hy i hi)]
-        gcongr
-        · exact rpow_nonneg (hy i hi) _
-        · simpa using rpow_le_rpow_of_exponent_le (hw i hi) hγ
-    _ ≤ _ := sum_rpow_le_rpow_sum s hγ fun i hi ↦ mul_nonneg (hw0 i hi) (hy i hi)
+  have hS : 0 ≤ ∑ i ∈ s, w i * y i := sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (hy0 i hi)
+  have hγ' : 1 + (γ - 1) ≠ 0 := by linarith
+  -- `y i ^ γ = y i * y i ^ (γ - 1) ≤ y i * S ^ (γ - 1)`, where `S = ∑ j ∈ s, w j * y j`
+  calc ∑ i ∈ s, w i * y i ^ γ = ∑ i ∈ s, w i * y i * y i ^ (γ - 1) :=
+        sum_congr rfl fun i hi ↦ by rw [mul_assoc, ← rpow_one_add' (hy0 i hi) hγ', add_sub_cancel]
+    _ ≤ ∑ i ∈ s, w i * y i * (∑ j ∈ s, w j * y j) ^ (γ - 1) := sum_le_sum fun i hi ↦
+        mul_le_mul_of_nonneg_left (rpow_le_rpow (hy0 i hi) (hy i hi) (by linarith))
+          (mul_nonneg (hw i hi) (hy0 i hi))
+    _ = _ := by rw [← sum_mul, ← rpow_one_add' hS hγ', add_sub_cancel]
 
-/-- For `0 ≤ γ ≤ 1`, `w i ≥ 1`, `y i ≥ 0` and nonempty `s`,
-`(∑ i ∈ s, w i * y i) ^ γ ≤ ∑ i ∈ s, w i * y i ^ γ`. -/
-theorem rpow_sum_mul_le_sum_mul_rpow {γ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1)
-    (hs : s.Nonempty) {y : ι → ℝ} (hw : ∀ i ∈ s, 1 ≤ w i) (hy : ∀ i ∈ s, 0 ≤ y i) :
+/-- For `γ ≤ 1`, `w i ≥ 0` and `y i ≥ 0` such that every `y i` is at most
+`∑ j ∈ s, w j * y j` and this sum is positive,
+`(∑ i ∈ s, w i * y i) ^ γ ≤ ∑ i ∈ s, w i * y i ^ γ`. The hypothesis on `y i` holds for instance
+if `1 ≤ w i`. -/
+theorem rpow_sum_mul_le_sum_mul_rpow {γ : ℝ} (hγ : γ ≤ 1) {y : ι → ℝ}
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hy0 : ∀ i ∈ s, 0 ≤ y i) (hy : ∀ i ∈ s, y i ≤ ∑ j ∈ s, w j * y j)
+    (hS : 0 < ∑ i ∈ s, w i * y i) :
     (∑ i ∈ s, w i * y i) ^ γ ≤ ∑ i ∈ s, w i * y i ^ γ := by
-  have hw0 : ∀ i ∈ s, 0 ≤ w i := fun i hi ↦ zero_le_one.trans (hw i hi)
-  calc _ ≤ ∑ i ∈ s, (w i * y i) ^ γ :=
-        rpow_sum_le_sum_rpow s hγ0 hγ1 hs fun i hi ↦ mul_nonneg (hw0 i hi) (hy i hi)
-    _ ≤ _ := sum_le_sum fun i hi ↦ by
-        rw [mul_rpow (hw0 i hi) (hy i hi)]
-        gcongr
-        · exact rpow_nonneg (hy i hi) _
-        · simpa using rpow_le_rpow_of_exponent_le (hw i hi) hγ1
+  -- `S ^ (γ - 1) * y i ≤ y i ^ (γ - 1) * y i = y i ^ γ`, where `S = ∑ j ∈ s, w j * y j`
+  calc (∑ i ∈ s, w i * y i) ^ γ = ∑ i ∈ s, w i * y i * (∑ j ∈ s, w j * y j) ^ (γ - 1) := by
+        rw [← sum_mul, rpow_sub_one hS.ne', mul_div_cancel₀ _ hS.ne']
+    _ ≤ ∑ i ∈ s, w i * y i ^ γ := sum_le_sum fun i hi ↦ by
+        obtain hyi | hyi := (hy0 i hi).eq_or_lt
+        · rw [← hyi, mul_zero, zero_mul]
+          exact mul_nonneg (hw i hi) (rpow_nonneg le_rfl _)
+        rw [mul_assoc]
+        refine mul_le_mul_of_nonneg_left ?_ (hw i hi)
+        calc y i * (∑ j ∈ s, w j * y j) ^ (γ - 1) ≤ y i * y i ^ (γ - 1) :=
+              mul_le_mul_of_nonneg_left (rpow_le_rpow_of_nonpos hyi (hy i hi) (by linarith))
+                hyi.le
+          _ = y i ^ γ := by rw [rpow_sub_one hyi.ne', mul_div_cancel₀ _ hyi.ne']
 
 /-! ### Hölder and reverse Hölder for power sums -/
 
@@ -160,23 +189,20 @@ theorem le_sum_mul_rpow_of_lt_one {p q u v α : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (fun i hi ↦ rpow_nonneg (hf u i hi).le _) (fun i hi ↦ rpow_pos_of_pos (hf v i hi) _)
   rwa [sum_congr rfl fun i hi ↦ rpow_mul_rpow_eq hpq hα (hwt i hi).le (hxt i hi),
     sum_rpow_one_div_rpow t hp0.ne' fun i hi ↦ (hf u i hi).le,
-    sum_rpow_one_div_rpow t (neg_of_inv_add_inv_eq_one hp0 hp1 hpq).ne
+    sum_rpow_one_div_rpow t (neg_of_lt_one_of_inv_add_inv_eq_one hp0 hp1 hpq).ne
       fun i hi ↦ (hf v i hi).le] at H
 
 /-! ### Power means -/
 
-/-- If the weights `w i ≥ 0` have total weight zero, every weighted sum vanishes. -/
-private lemma sum_mul_eq_zero_of_sum_eq_zero (hw : ∀ i ∈ s, 0 ≤ w i) (hW : ∑ i ∈ s, w i = 0)
-    (f : ι → ℝ) : ∑ i ∈ s, w i * f i = 0 :=
-  sum_eq_zero fun i hi ↦ by rw [(sum_eq_zero_iff_of_nonneg hw).1 hW i hi, zero_mul]
-
 /-- **Power mean inequality**, concave case: for `0 < α ≤ β`, `w i ≥ 0` and `x i ≥ 0`,
 `S α ≤ W ^ (1 - α / β) * S β ^ (α / β)`, where `S γ = ∑ i ∈ s, w i * x i ^ γ` and
 `W = ∑ i ∈ s, w i`. -/
-theorem le_rpow_mean_of_le {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ β) (hw : ∀ i ∈ s, 0 ≤ w i)
-    (hx : ∀ i ∈ s, 0 ≤ x i) :
+theorem sum_mul_rpow_le_weight_mul_Lp {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ β)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 0 ≤ x i) :
     ∑ i ∈ s, w i * x i ^ α ≤
       (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) := by
+  -- `Real.inner_le_weight_mul_Lp_of_nonneg` asks for nonnegativity everywhere, not only on `s`,
+  -- so we apply it on `s.attach`, where the hypotheses `hw` and `hx` are available.
   have H := inner_le_weight_mul_Lp_of_nonneg s.attach ((one_le_div hα).2 hαβ)
     (fun i : s ↦ w i) (fun i : s ↦ x i ^ α) (fun i ↦ hw i i.2)
     (fun i ↦ rpow_nonneg (hx i i.2) _)
@@ -187,21 +213,21 @@ theorem le_rpow_mean_of_le {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ β) (hw 
 /-- **Power mean inequality**, convex case: for `0 < β ≤ α`, `w i ≥ 0` and `x i ≥ 0`,
 `W ^ (1 - α / β) * S β ^ (α / β) ≤ S α`, where `S γ = ∑ i ∈ s, w i * x i ^ γ` and
 `W = ∑ i ∈ s, w i`. -/
-theorem rpow_mean_le_of_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α) (hw : ∀ i ∈ s, 0 ≤ w i)
-    (hx : ∀ i ∈ s, 0 ≤ x i) :
+theorem weight_mul_Lp_le_sum_mul_rpow {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 0 ≤ x i) :
     (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤
       ∑ i ∈ s, w i * x i ^ α := by
   have hα : 0 < α := hβ.trans_le hβα
   have hS (γ : ℝ) : 0 ≤ ∑ i ∈ s, w i * x i ^ γ :=
     sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (rpow_nonneg (hx i hi) _)
   obtain hW | hW := (sum_nonneg hw).eq_or_lt
-  · rw [sum_mul_eq_zero_of_sum_eq_zero s hw hW.symm, zero_rpow (by positivity), mul_zero]
+  · rw [sum_mul_eq_zero_of_sum_eq_zero hw hW.symm, zero_rpow (by positivity), mul_zero]
     exact hS α
   calc (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β)
       ≤ (∑ i ∈ s, w i) ^ (1 - α / β) *
           ((∑ i ∈ s, w i) ^ (1 - β / α) * (∑ i ∈ s, w i * x i ^ α) ^ (β / α)) ^ (α / β) := by
         exact mul_le_mul_of_nonneg_left
-          (rpow_le_rpow (hS β) (le_rpow_mean_of_le s hβ hβα hw hx) (by positivity))
+          (rpow_le_rpow (hS β) (sum_mul_rpow_le_weight_mul_Lp s hβ hβα hw hx) (by positivity))
           (rpow_nonneg hW.le _)
     _ = (∑ i ∈ s, w i) ^ (1 - α / β + (1 - β / α) * (α / β)) *
           (∑ i ∈ s, w i * x i ^ α) ^ (β / α * (α / β)) := by
@@ -211,19 +237,18 @@ theorem rpow_mean_le_of_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α) (hw 
         rw [show 1 - α / β + (1 - β / α) * (α / β) = 0 by field_simp; ring,
           show β / α * (α / β) = 1 by field_simp, rpow_zero, rpow_one, one_mul]
 
-/-! ### Comparisons using `1 ≤ x i` -/
+/-! ### Comparisons using `W ≤ S β` -/
 
-/-- If `w i ≥ 0`, `1 ≤ x i` and `0 < β ≤ α`, then `S β ≤ W ^ (1 - α / β) * S β ^ (α / β)`,
-where `S β = ∑ i ∈ s, w i * x i ^ β` and `W = ∑ i ∈ s, w i`. -/
-theorem sum_le_rpow_mean_of_one_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α)
-    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 1 ≤ x i) :
+/-- If `w i ≥ 0`, `0 < β ≤ α` and `W ≤ S β`, then `S β ≤ W ^ (1 - α / β) * S β ^ (α / β)`,
+where `S β = ∑ i ∈ s, w i * x i ^ β` and `W = ∑ i ∈ s, w i`. The hypothesis `W ≤ S β` holds for
+instance if `1 ≤ x i`. -/
+theorem sum_mul_rpow_le_weight_mul_Lp_of_sum_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hWS : ∑ i ∈ s, w i ≤ ∑ i ∈ s, w i * x i ^ β) :
     ∑ i ∈ s, w i * x i ^ β ≤
       (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) := by
   obtain hW | hW := (sum_nonneg hw).eq_or_lt
-  · rw [sum_mul_eq_zero_of_sum_eq_zero s hw hW.symm]
+  · rw [sum_mul_eq_zero_of_sum_eq_zero hw hW.symm]
     positivity
-  have hWS : ∑ i ∈ s, w i ≤ ∑ i ∈ s, w i * x i ^ β :=
-    sum_le_sum fun i hi ↦ le_mul_of_one_le_right (hw i hi) (one_le_rpow (hx i hi) hβ.le)
   have hS : 0 < ∑ i ∈ s, w i * x i ^ β := hW.trans_le hWS
   have hc : 0 ≤ α / β - 1 := by rw [sub_nonneg]; exact (one_le_div hβ).2 hβα
   rw [show 1 - α / β = -(α / β - 1) by ring, rpow_neg hW.le, ← div_eq_inv_mul,
@@ -232,17 +257,16 @@ theorem sum_le_rpow_mean_of_one_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ 
       ≤ (∑ i ∈ s, w i * x i ^ β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β - 1) := by gcongr
     _ = _ := by rw [rpow_sub_one hS.ne']; field_simp
 
-/-- If `w i ≥ 0`, `1 ≤ x i` and `0 < α ≤ β`, then `W ^ (1 - α / β) * S β ^ (α / β) ≤ S β`,
-where `S β = ∑ i ∈ s, w i * x i ^ β` and `W = ∑ i ∈ s, w i`. -/
-theorem rpow_mean_le_sum_of_one_le {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ β)
-    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 1 ≤ x i) :
+/-- If `w i ≥ 0`, `0 < α ≤ β` and `W ≤ S β`, then `W ^ (1 - α / β) * S β ^ (α / β) ≤ S β`,
+where `S β = ∑ i ∈ s, w i * x i ^ β` and `W = ∑ i ∈ s, w i`. The hypothesis `W ≤ S β` holds for
+instance if `1 ≤ x i`. -/
+theorem weight_mul_Lp_le_sum_mul_rpow_of_sum_le {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ β)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hWS : ∑ i ∈ s, w i ≤ ∑ i ∈ s, w i * x i ^ β) :
     (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤
       ∑ i ∈ s, w i * x i ^ β := by
   have hβ : 0 < β := hα.trans_le hαβ
   obtain hW | hW := (sum_nonneg hw).eq_or_lt
-  · rw [sum_mul_eq_zero_of_sum_eq_zero s hw hW.symm, zero_rpow (by positivity), mul_zero]
-  have hWS : ∑ i ∈ s, w i ≤ ∑ i ∈ s, w i * x i ^ β :=
-    sum_le_sum fun i hi ↦ le_mul_of_one_le_right (hw i hi) (one_le_rpow (hx i hi) hβ.le)
+  · rw [sum_mul_eq_zero_of_sum_eq_zero hw hW.symm, zero_rpow (by positivity), mul_zero]
   have hS : 0 < ∑ i ∈ s, w i * x i ^ β := hW.trans_le hWS
   have hc : α / β - 1 ≤ 0 := by rw [sub_nonpos]; exact (div_le_one hβ).2 hαβ
   rw [show 1 - α / β = -(α / β - 1) by ring, rpow_neg hW.le, ← div_eq_inv_mul,
@@ -253,40 +277,30 @@ theorem rpow_mean_le_sum_of_one_le {α β : ℝ} (hα : 0 < α) (hαβ : α ≤ 
     _ ≤ (∑ i ∈ s, w i * x i ^ β) * (∑ i ∈ s, w i) ^ (α / β - 1) := by
         exact mul_le_mul_of_nonneg_left (rpow_le_rpow_of_nonpos hW hWS hc) hS.le
 
-/-! ### Monotonicity of weighted `ℓ^γ` norms, using `1 ≤ w i` -/
+/-! ### Monotonicity of weighted `ℓ^γ` norms -/
 
-/-- If `1 ≤ w i`, `0 ≤ x i` and `0 < β ≤ α`, then `S α ≤ S β ^ (α / β)`, where
-`S γ = ∑ i ∈ s, w i * x i ^ γ`. -/
-theorem sum_rpow_le_rpow_of_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α) (hw : ∀ i ∈ s, 1 ≤ w i)
-    (hx : ∀ i ∈ s, 0 ≤ x i) :
+/-- If `w i ≥ 0`, `x i ≥ 0`, `0 < β ≤ α` and every `x i ^ β` is at most `S β`, then
+`S α ≤ S β ^ (α / β)`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. The hypothesis on `x i ^ β` holds for
+instance if `1 ≤ w i`. -/
+theorem sum_mul_rpow_le_rpow_sum_mul_rpow {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx0 : ∀ i ∈ s, 0 ≤ x i)
+    (hx : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β) :
     ∑ i ∈ s, w i * x i ^ α ≤ (∑ i ∈ s, w i * x i ^ β) ^ (α / β) := by
   calc ∑ i ∈ s, w i * x i ^ α = ∑ i ∈ s, w i * (x i ^ β) ^ (α / β) :=
-        sum_congr rfl fun i hi ↦ by rw [rpow_rpow_div α (hx i hi) hβ.ne']
-    _ ≤ _ := sum_mul_rpow_le_rpow_sum_mul s ((one_le_div hβ).2 hβα) hw fun i hi ↦
-        rpow_nonneg (hx i hi) _
+        sum_congr rfl fun i hi ↦ by rw [rpow_rpow_div α (hx0 i hi) hβ.ne']
+    _ ≤ _ := sum_mul_rpow_le_rpow_sum_mul s ((one_le_div hβ).2 hβα) hw
+        (fun i hi ↦ rpow_nonneg (hx0 i hi) _) hx
 
-/-- If `1 ≤ w i`, `0 ≤ x i` and `0 < β ≤ α`, then `S α ^ (β / α) ≤ S β`, where
-`S γ = ∑ i ∈ s, w i * x i ^ γ`. -/
-theorem sum_rpow_rpow_le_of_le {α β : ℝ} (hβ : 0 < β) (hβα : β ≤ α) (hw : ∀ i ∈ s, 1 ≤ w i)
-    (hx : ∀ i ∈ s, 0 ≤ x i) :
-    (∑ i ∈ s, w i * x i ^ α) ^ (β / α) ≤ ∑ i ∈ s, w i * x i ^ β := by
-  have hα : 0 < α := hβ.trans_le hβα
-  have hS (γ : ℝ) : 0 ≤ ∑ i ∈ s, w i * x i ^ γ :=
-    sum_nonneg fun i hi ↦ mul_nonneg (zero_le_one.trans (hw i hi)) (rpow_nonneg (hx i hi) _)
-  calc (∑ i ∈ s, w i * x i ^ α) ^ (β / α)
-      ≤ ((∑ i ∈ s, w i * x i ^ β) ^ (α / β)) ^ (β / α) := by
-        exact rpow_le_rpow (hS α) (sum_rpow_le_rpow_of_le s hβ hβα hw hx) (by positivity)
-    _ = ∑ i ∈ s, w i * x i ^ β := by
-        rw [← rpow_mul (hS β), show α / β * (β / α) = 1 by field_simp, rpow_one]
-
-/-- If `1 ≤ w i`, `0 ≤ x i`, `s` is nonempty and `0 ≤ α ≤ β` with `0 < β`, then
-`S β ^ (α / β) ≤ S α`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. -/
-theorem rpow_le_sum_rpow_of_le {α β : ℝ} (hs : s.Nonempty) (hα : 0 ≤ α) (hαβ : α ≤ β)
-    (hβ : 0 < β) (hw : ∀ i ∈ s, 1 ≤ w i) (hx : ∀ i ∈ s, 0 ≤ x i) :
+/-- If `w i ≥ 0`, `x i ≥ 0`, `α ≤ β` with `0 < β`, every `x i ^ β` is at most `S β` and
+`0 < S β`, then `S β ^ (α / β) ≤ S α`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. The hypothesis on
+`x i ^ β` holds for instance if `1 ≤ w i`. -/
+theorem rpow_sum_mul_rpow_le_sum_mul_rpow {α β : ℝ} (hαβ : α ≤ β) (hβ : 0 < β)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx0 : ∀ i ∈ s, 0 ≤ x i)
+    (hx : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β) (hS : 0 < ∑ i ∈ s, w i * x i ^ β) :
     (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤ ∑ i ∈ s, w i * x i ^ α := by
   calc _ ≤ ∑ i ∈ s, w i * (x i ^ β) ^ (α / β) :=
-        rpow_sum_mul_le_sum_mul_rpow s (by positivity) ((div_le_one hβ).2 hαβ) hs hw
-          fun i hi ↦ rpow_nonneg (hx i hi) _
-    _ = _ := sum_congr rfl fun i hi ↦ by rw [rpow_rpow_div α (hx i hi) hβ.ne']
+        rpow_sum_mul_le_sum_mul_rpow s ((div_le_one hβ).2 hαβ) hw
+          (fun i hi ↦ rpow_nonneg (hx0 i hi) _) hx hS
+    _ = _ := sum_congr rfl fun i hi ↦ by rw [rpow_rpow_div α (hx0 i hi) hβ.ne']
 
 end Real
