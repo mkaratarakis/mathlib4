@@ -969,6 +969,7 @@ public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.List
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Lagrange
 public import Mathlib.Algebra.Order.BigOperators.Ring.List
 public import Mathlib.Algebra.Order.BigOperators.Ring.Multiset
 public import Mathlib.Algebra.Order.CauSeq.Basic
@@ -2161,6 +2162,9 @@ public import Mathlib.Analysis.Matrix.Order
 public import Mathlib.Analysis.Matrix.PosDef
 public import Mathlib.Analysis.Matrix.Spectrum
 public import Mathlib.Analysis.MeanInequalities
+public import Mathlib.Analysis.MeanInequalities.Converse
+public import Mathlib.Analysis.MeanInequalities.PowerSum
+public import Mathlib.Analysis.MeanInequalities.Reverse
 public import Mathlib.Analysis.MeanInequalitiesPow
 public import Mathlib.Analysis.MellinInversion
 public import Mathlib.Analysis.MellinTransform
@@ -5941,6 +5945,10 @@ public import Mathlib.NumberTheory.Height.Northcott
 public import Mathlib.NumberTheory.Height.NumberField
 public import Mathlib.NumberTheory.Height.Projectivization
 public import Mathlib.NumberTheory.JacobiSum.Basic
+public import Mathlib.NumberTheory.KTFibonacci.CrossFamily
+public import Mathlib.NumberTheory.KTFibonacci.Holder
+public import Mathlib.NumberTheory.KTFibonacci.Identities
+public import Mathlib.NumberTheory.KTFibonacci.KFibonacci
 public import Mathlib.NumberTheory.KummerDedekind
 public import Mathlib.NumberTheory.LSeries.AbstractFuncEq
 public import Mathlib.NumberTheory.LSeries.Basic

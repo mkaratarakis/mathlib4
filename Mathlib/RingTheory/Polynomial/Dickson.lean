@@ -30,6 +30,10 @@ When `a=0` they are just the family of monomials `X ^ n`.
 
 ## Main statements
 
+* `Polynomial.eval_dickson_eq`: a sequence satisfying the recurrence and initial values of
+  `dickson k a` is its sequence of values at `x`; in particular (`Polynomial.eval_dickson_one_eq`,
+  `Polynomial.eval_dickson_two_eq_add_one`) the Lucas sequences `V(x, a)` and `U(x, a)` are values
+  of the Dickson polynomials of the first and second kind.
 * `Polynomial.dickson_one_one_mul`, the `(m * n)`-th Dickson polynomial of the first kind for
   parameter `1 : R` is the composition of the `m`-th and `n`-th Dickson polynomials of the first
   kind for `1 : R`.
@@ -105,6 +109,33 @@ theorem dickson_two_zero : ∀ n : ℕ, dickson 2 (0 : R) n = X ^ n
   | n + 2 => by
     simp only [dickson_add_two, C_0, zero_mul, sub_zero]
     rw [dickson_two_zero (n + 1), pow_add X (n + 1) 1, mul_comm, pow_one]
+
+/-- A sequence `G` with `G 0 = 3 - k`, `G 1 = x` and `G (n + 2) = x * G (n + 1) - a * G n` is the
+sequence of values at `x` of the Dickson polynomials of the `k`-th kind with parameter `a`. -/
+theorem eval_dickson_eq {x : R} {G : ℕ → R} (h0 : G 0 = 3 - k) (h1 : G 1 = x)
+    (h : ∀ n, G (n + 2) = x * G (n + 1) - a * G n) (n : ℕ) : (dickson k a n).eval x = G n := by
+  induction n using Nat.twoStepInduction with
+  | zero => simp [h0]
+  | one => simp [h1]
+  | more n ih1 ih2 => simp [ih1, ih2, h]
+
+/-- A sequence `L` with `L 0 = 2`, `L 1 = x` and `L (n + 2) = x * L (n + 1) - a * L n` is the
+sequence of values at `x` of the Dickson polynomials of the first kind with parameter `a`.
+For `x = k` and `a = -t` this is the `(k, t)`-Lucas sequence, i.e. the Lucas sequence
+`V(k, -t)` (see `Mathlib/NumberTheory/KTFibonacci/Identities.lean`). -/
+theorem eval_dickson_one_eq {x : R} {L : ℕ → R} (h0 : L 0 = 2) (h1 : L 1 = x)
+    (h : ∀ n, L (n + 2) = x * L (n + 1) - a * L n) (n : ℕ) : (dickson 1 a n).eval x = L n :=
+  eval_dickson_eq (by norm_num [h0]) h1 h n
+
+/-- A sequence `F` with `F 0 = 0`, `F 1 = 1` and `F (n + 2) = x * F (n + 1) - a * F n` is, shifted
+by one, the sequence of values at `x` of the Dickson polynomials of the second kind with parameter
+`a`. For `x = k` and `a = -t` this is the `(k, t)`-Fibonacci sequence, i.e. the Lucas sequence
+`U(k, -t)` (see `Mathlib/NumberTheory/KTFibonacci/Identities.lean`). -/
+theorem eval_dickson_two_eq_add_one {x : R} {F : ℕ → R} (h0 : F 0 = 0) (h1 : F 1 = 1)
+    (h : ∀ n, F (n + 2) = x * F (n + 1) - a * F n) (n : ℕ) :
+    (dickson 2 a n).eval x = F (n + 1) :=
+  eval_dickson_eq (G := fun n ↦ F (n + 1)) (by norm_num [h1]) (by simp [h, h0, h1])
+    (fun n ↦ h (n + 1)) n
 
 section Dickson
 

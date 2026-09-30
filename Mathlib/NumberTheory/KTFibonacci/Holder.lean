@@ -5,389 +5,418 @@ Authors: Michail Karatarakis
 -/
 module
 
-public import Mathlib.Analysis.ConverseHolder
+public import Mathlib.Analysis.MeanInequalities.Converse
+public import Mathlib.Analysis.MeanInequalities.PowerSum
 public import Mathlib.NumberTheory.KTFibonacci.Identities
 
 /-!
-# Hölder-type inequalities for `(k, t)`-Fibonacci and `(k, t)`-Lucas numbers
+# Hölder-type inequalities for `(k, t)`-Lucas numbers
 
-Let `k, t` be real, and let `F`, `L` be the `(k, t)`-Fibonacci and `(k, t)`-Lucas sequences:
-`F 0 = 0`, `F 1 = 1`, `L 0 = 2`, `L 1 = k`, both satisfying `X (n + 2) = k * X (n + 1) + t * X n`.
-This file proves the `(k, t)` versions of the results of
+Let `k, t` be real numbers and let `L` be the `(k, t)`-Lucas sequence: `L 0 = 2`, `L 1 = k` and
+`L (n + 2) = k * L (n + 1) + t * L n`. This file proves `(k, t)` versions of the Hölder-type
+inequalities that Batte and Kaggwa prove for the `k`-Lucas numbers (the case `t = 1`).
 
-> H. Batte and P. Kaggwa, *`k`-Fibonacci and `k`-Lucas numbers with the Hölder inequality*,
-> arXiv:2609.33573,
+Sums run over `i ∈ Finset.Icc 1 n`. For weights `w i` we write `S γ = ∑ i, w i * L i ^ γ`
+(real powers `γ`) and `W = ∑ i, w i`. Two families of weights are used.
 
-which treats `t = 1`.  The power sums are weighted by `t ^ (n - i)`: this is exactly the weight
-for which the sums of squares and of consecutive products telescope, and it disappears at
-`t = 1`.  With `W = ∑ i ∈ [1, n], t ^ (n - i)` and
-`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`,
-`P = (L (n + 1) ^ 2 - t ^ n * k ^ 2 + t ^ n * (k ^ 2 + 4 * t) * ((-1) ^ n - 1) / 2) / k`:
+* `w i = t ^ (n - i)`, for `t ≥ 1` (or `t ≥ 0` in the converse inequalities). For these weights
+  the sum of squares telescopes: `S 2 = D` with `D = (L n * L (n + 1) - 2 * k * t ^ n) / k`
+  (`KTFib.sum_pow_mul_rpow_two_lucas`). At `t = 1` all weights are `1`.
+* `w i = t⁻¹ ^ (i - 1)`, for `0 < t ≤ 1`. These are the weights `t ^ (n - i)` divided by their
+  smallest value `t ^ (n - 1)`, so `1 ≤ w i` and `S 2 = D / t ^ (n - 1)`
+  (`KTFib.sum_inv_pow_mul_rpow_two_lucas`).
 
-* `KTFib.sum_sq_lucas`, `KTFib.sum_sq_fib`, `KTFib.sum_lucas_mul_succ` (Theorem 1.1 of
-  Batte–Kaggwa at `t = 1`): `∑ t ^ (n - i) * L i ^ 2 = D`,
-  `∑ t ^ (n - i) * F i ^ 2 = F n * F (n + 1) / k`, `∑ t ^ (n - i) * L i * L (i + 1) = P`.
-* `KTFib.holder_sandwich_*` (Theorem 1.2): the four Hölder sandwiches for
-  `∑ t ^ (n - i) * L i ^ α`, for `k ≥ 1` and `t ≥ 1`.
-* `KTFib.converse_holder_lucas_*` (Theorem 1.3): the converse Hölder refinements, `t > 0`.
-* `KTFib.cauchy_conversion_lucas` (Theorem 1.4): the converse Cauchy refinements for
-  `x i = L i * L (i + 1)`, `t > 0`.
-* `KTFib.sq_sum_fib_two_mul_le`, `KTFib.sq_sum_fib_two_mul_eq_iff` (Theorem 1.5): the
-  cross-family bound `(∑ t ^ (n - i) * F (2 * i)) ^ 2 ≤ F n * F (n + 1) / k * D`, with equality
-  exactly for `n = 1`; and its closed form `KTFib.sq_fib_sub_le`.
-* `KTFib.sum_fib`, `KTFib.sum_lucas`, `KTFib.sum_fib_odd`, ... (Theorem 4.1).
+The statements write out `D` (and the other closed forms) in full.
+
+## Main results
+
+* `KTFib.holder_sandwich_of_one_lt_of_two_le`, `KTFib.holder_sandwich_of_one_lt_of_lt_two`,
+  `KTFib.holder_sandwich_of_lt_one_of_two_le`, `KTFib.holder_sandwich_of_lt_one_of_lt_two`
+  (Batte–Kaggwa, Theorem 1.2, for `t = 1`): for `w i = t ^ (n - i)` with `t ≥ 1`, chains of
+  inequalities comparing `S α`, `α = u / p + v / q`, with the Hölder bound
+  `S u ^ (1 / p) * S v ^ (1 / q)` and with `D`, `D ^ (α / 2)` and `W ^ (1 - α / 2) * D ^ (α / 2)`,
+  according to whether `p > 1` or `0 < p < 1`, and `α ≥ 2` or `α < 2`.
+* `KTFib.holder_sandwich_inv_of_one_lt_of_two_le`, ...: the same four chains for
+  `w i = t⁻¹ ^ (i - 1)` with `0 < t ≤ 1`, with `D` replaced by `D / t ^ (n - 1)`.
+* `KTFib.converse_holder_lucas_of_one_lt`, `KTFib.converse_holder_lucas_of_lt_one`
+  (Theorem 1.3): for `w i = t ^ (n - i)`, `u / p + v / q = 2` and `L i ^ ((u - v) / p) ∈ [m, M]`
+  with `0 < m < M`, the linear and the multiplicative converse Hölder inequalities between
+  `S u`, `S v` and `D`. `KTFib.lucas_rpow_bounds` shows that the values of `L i ^ ((u - v) / p)`
+  at `i = 1` and `i = n` are admissible bounds `m`, `M`.
+* `KTFib.converse_cauchy_lucas` (Theorem 1.4): the converse Cauchy–Schwarz inequalities for
+  the power sums of `x i = L i * L (i + 1)` with weights `t ^ (n - i)`.
+
+The corresponding statements for arbitrary weighted power sums are in
+`Mathlib.Analysis.MeanInequalities.PowerSum` and `Mathlib.Analysis.MeanInequalities.Converse`;
+Dujella, Jakšetić and Pečarić apply them to the Fibonacci numbers.
+
+## References
+
+* [H. Batte and P. Kaggwa, *`k`-Fibonacci and `k`-Lucas numbers with the Hölder
+  inequality*][batte_kaggwa_2026]
+* [A. Dujella, J. Jakšetić and J. Pečarić, *Fibonacci numbers and Hölder inequality*]
+  [dujella_jaksetic_pecaric]
 -/
 
-@[expose] public section
+public section
 
 open Finset
 
 namespace KTFib
 
-variable {k t : ℝ} {F L : ℕ → ℝ}
+variable {k t : ℝ} {L : ℕ → ℝ}
 
-/-! ### Closed forms (Theorem 1.1, Theorem 4.1) -/
+/-! ### The weighted sums of squares -/
 
-section ClosedForms
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * L i ^ 2 = (L n * L (n + 1) - 2 * k * t ^ n) / k`. -/
-theorem sum_sq_lucas (hk : k ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ 2 = (L n * L (n + 1) - 2 * k * t ^ n) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_sq hL, hL0, hL1]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * F i ^ 2 = F n * F (n + 1) / k`. -/
-theorem sum_sq_fib (hk : k ≠ 0) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, t ^ (n - i) * F i ^ 2 = F n * F (n + 1) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_sq hF, hF0, hF1]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * (L i * L (i + 1))` in closed form. -/
-theorem sum_lucas_mul_succ (hk : k ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) =
-      (L (n + 1) ^ 2 - t ^ n * k ^ 2 + t ^ n * (k ^ 2 + 4 * t) * ((-1) ^ n - 1) / 2) / k := by
-  have h2 : L 2 = k * L 1 + t * L 0 := hL 0
-  have h := two_mul_mul_sum_mul_succ hL n
-  rw [h2, hL0, hL1] at h
-  rw [eq_div_iff hk]
-  linear_combination h / 2
-
-/-- `∑ i ∈ [1, n], F i = (F (n + 1) + t * F n - 1) / (k + t - 1)`. -/
-theorem sum_fib (hkt : k + t ≠ 1) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, F i = (F (n + 1) + t * F n - 1) / (k + t - 1) := by
-  rw [eq_div_iff (sub_ne_zero.2 hkt), mul_comm, mul_sum hF, hF0, hF1]
-  ring
-
-/-- `∑ i ∈ [1, n], L i = (L (n + 1) + t * L n - k - 2 * t) / (k + t - 1)`. -/
-theorem sum_lucas (hkt : k + t ≠ 1) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, L i = (L (n + 1) + t * L n - k - 2 * t) / (k + t - 1) := by
-  rw [eq_div_iff (sub_ne_zero.2 hkt), mul_comm, mul_sum hL, hL0, hL1]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * F (2 * i - 1) = F (2 * n) / k`. -/
-theorem sum_fib_odd (hk : k ≠ 0) (hF0 : F 0 = 0) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n)
-    (n : ℕ) : ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i - 1) = F (2 * n) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_odd hF, hF0]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k`. -/
-theorem sum_fib_even (hk : k ≠ 0) (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n)
-    (n : ℕ) : ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_even hF, hF1]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * L (2 * i - 1) = (L (2 * n) - 2 * t ^ n) / k`. -/
-theorem sum_lucas_odd (hk : k ≠ 0) (hL0 : L 0 = 2) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-    (n : ℕ) : ∑ i ∈ Icc 1 n, t ^ (n - i) * L (2 * i - 1) = (L (2 * n) - 2 * t ^ n) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_odd hL, hL0]
-  ring
-
-/-- `∑ i ∈ [1, n], t ^ (n - i) * L (2 * i) = (L (2 * n + 1) - k * t ^ n) / k`. -/
-theorem sum_lucas_even (hk : k ≠ 0) (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-    (n : ℕ) : ∑ i ∈ Icc 1 n, t ^ (n - i) * L (2 * i) = (L (2 * n + 1) - k * t ^ n) / k := by
-  rw [eq_div_iff hk, mul_comm, mul_sum_even hL, hL1]
-  ring
-
-private lemma sum_rpow_two_lucas (hk : k ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+/-- For `k ≠ 0`,
+`∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ (2 : ℝ) = (L n * L (n + 1) - 2 * k * t ^ n) / k`. -/
+theorem sum_pow_mul_rpow_two_lucas (hk : k ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ (2 : ℝ) = (L n * L (n + 1) - 2 * k * t ^ n) / k := by
   simp_rw [Real.rpow_two]
-  exact sum_sq_lucas hk hL0 hL1 hL n
+  exact sum_pow_mul_sq_lucas hk hL0 hL1 hL n
 
-private lemma sandwich_hw (ht : 1 ≤ t) {n : ℕ} : ∀ i ∈ Icc 1 n, 1 ≤ t ^ (n - i) :=
-  fun _ _ ↦ one_le_pow₀ ht
+/-- For `k ≠ 0` and `t ≠ 0`, `∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ (2 : ℝ) =
+(L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))`. -/
+theorem sum_inv_pow_mul_rpow_two_lucas (hk : k ≠ 0) (ht : t ≠ 0) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
+    ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ (2 : ℝ) =
+      (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) := by
+  rw [← div_div, ← sum_pow_mul_rpow_two_lucas hk hL0 hL1 hL, sum_div]
+  refine sum_congr rfl fun i hi ↦ ?_
+  obtain ⟨h1, h2⟩ := mem_Icc.1 hi
+  rw [show n - 1 = n - i + (i - 1) by omega, pow_add, inv_pow]
+  field_simp
 
-private lemma sandwich_hx (hk : 1 ≤ k) (ht : 1 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+/-- `1 ≤ L i` for `i ∈ Icc 1 n`, if `1 ≤ k` and `0 ≤ t`. -/
+private lemma one_le_lucas_of_mem_Icc (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} : ∀ i ∈ Icc 1 n, 1 ≤ L i :=
-  fun _ hi ↦ one_le_lucas hk (by linarith) hL0 hL1 hL (mem_Icc.1 hi).1
+  fun _ hi ↦ one_le_lucas hk ht hL0 hL1 hL (mem_Icc.1 hi).1
 
-end ClosedForms
+/-! ### Hölder sandwiches for `t ≥ 1` (Theorem 1.2) -/
 
-/-! ### Hölder sandwiches (Theorem 1.2) -/
-
-section Sandwich
-
-variable (hk : 1 ≤ k) (ht : 1 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-  (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-include hk ht hL0 hL1 hL
-
-/-- **Hölder sandwich, `p > 1`, `α ≥ 2`.** -/
-theorem holder_sandwich_of_one_lt_of_two_le {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp : 1 < p) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (h2α : 2 ≤ α)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
+/-- **Hölder sandwich, `p > 1`, `α ≥ 2`** (Batte–Kaggwa, Theorem 1.2(i), for `t = 1`). Let
+`1 ≤ k`, `1 ≤ t`, let `p`, `q` be conjugate exponents and `α = u / p + v / q ≥ 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ`, `W = ∑ i ∈ Icc 1 n, t ^ (n - i)` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`. Then `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)`,
+`W ^ (1 - α / 2) * D ^ (α / 2) ≤ S α`, `D ≤ W ^ (1 - α / 2) * D ^ (α / 2)` and
+`S α ^ (2 / α) ≤ D`. -/
+theorem holder_sandwich_of_one_lt_of_two_le (hk : 1 ≤ k) (ht : 1 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} {p q u v α : ℝ}
+    (hpq : p.HolderConjugate q) (hα : u / p + v / q = α) (h2α : 2 ≤ α) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤
         (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ∧
-      (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) * D ^ (α / 2) ≤
+      (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ≤
         ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ∧
-      D ≤ (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) * D ^ (α / 2) ∧
-      (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) ≤ D := by
-  obtain ⟨h1, h2, h3, h4⟩ := Real.powerSum_chain_of_one_lt_of_le (Icc 1 n) (β := 2) hp hpq hα
-    two_pos h2α (nonempty_Icc.2 hn) (sandwich_hw ht) (sandwich_hx hk ht hL0 hL1 hL)
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h2 h3 h4
-  exact ⟨h1, h2, h3, h4⟩
+      (L n * L (n + 1) - 2 * k * t ^ n) / k ≤
+        (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ∧
+      (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) ≤
+        (L n * L (n + 1) - 2 * k * t ^ n) / k := by
+  have hx := one_le_lucas_of_mem_Icc hk (zero_le_one.trans ht) hL0 hL1 hL (n := n)
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t ^ (n - i) := fun _ _ ↦ one_le_pow₀ ht
+  have hw0 : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun i hi ↦ zero_le_one.trans (hw i hi)
+  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ zero_le_one.trans (hx i hi)
+  rw [← sum_pow_mul_rpow_two_lucas (by positivity) hL0 hL1 hL]
+  exact ⟨Real.sum_mul_rpow_le_of_one_lt _ hpq hα hw0 fun i hi ↦ one_pos.trans_le (hx i hi),
+    Real.rpow_mean_le_of_le _ two_pos h2α hw0 hx0,
+    Real.sum_le_rpow_mean_of_one_le _ two_pos h2α hw0 hx,
+    Real.sum_rpow_rpow_le_of_le _ two_pos h2α hw hx0⟩
 
-/-- **Hölder sandwich, `p > 1`, `0 ≤ α < 2`.** -/
-theorem holder_sandwich_of_one_lt_of_lt_two {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp : 1 < p) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 ≤ α) (hα2 : α < 2)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
+/-- **Hölder sandwich, `p > 1`, `0 ≤ α < 2`** (Batte–Kaggwa, Theorem 1.2(ii), for `t = 1`). Let
+`0 < k`, `1 ≤ t`, `1 ≤ n`, let `p`, `q` be conjugate exponents and `0 ≤ α = u / p + v / q < 2`.
+Write `S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`. Then `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` and
+`D ^ (α / 2) ≤ S α`. -/
+theorem holder_sandwich_of_one_lt_of_lt_two (hk : 0 < k) (ht : 1 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 1 ≤ n)
+    {p q u v α : ℝ} (hpq : p.HolderConjugate q) (hα : u / p + v / q = α) (hα0 : 0 ≤ α)
+    (hα2 : α < 2) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤
         (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ∧
-      D ^ (α / 2) ≤ ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α := by
-  obtain ⟨h1, h2⟩ := Real.powerSum_chain_of_one_lt_of_lt (Icc 1 n) (β := 2) hp hpq hα hα0 hα2
-    (nonempty_Icc.2 hn) (sandwich_hw ht)
-    (fun i hi ↦ one_pos.trans_le (sandwich_hx hk ht hL0 hL1 hL i hi))
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h2
-  exact ⟨h1, h2⟩
+      ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ≤
+        ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α := by
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk (by positivity) hL0 hL1 hL i
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t ^ (n - i) := fun _ _ ↦ one_le_pow₀ ht
+  rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
+  exact ⟨Real.sum_mul_rpow_le_of_one_lt _ hpq hα (fun i hi ↦ zero_le_one.trans (hw i hi)) hx,
+    Real.rpow_le_sum_rpow_of_le _ (nonempty_Icc.2 hn) hα0 hα2.le two_pos hw
+      fun i hi ↦ (hx i hi).le⟩
 
-/-- **Hölder sandwich, `0 < p < 1`, `α ≥ 2`.** -/
-theorem holder_sandwich_of_lt_one_of_two_le {n : ℕ} {p q u v α D : ℝ}
-    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (h2α : 2 ≤ α)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
-    (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
-          (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ≤
-        ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ∧
-      ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤ D ^ (α / 2) := by
-  obtain ⟨h1, h2⟩ := Real.powerSum_chain_of_lt_one_of_le (Icc 1 n) (β := 2) hp0 hp1 hpq hα
-    two_pos h2α (sandwich_hw ht)
-    (fun i hi ↦ one_pos.trans_le (sandwich_hx hk ht hL0 hL1 hL i hi))
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h2
-  exact ⟨h1, h2⟩
-
-/-- **Hölder sandwich, `0 < p < 1`, `0 < α < 2`.** -/
-theorem holder_sandwich_of_lt_one_of_lt_two {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 < α)
-    (hα2 : α < 2) (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
+/-- **Hölder sandwich, `0 < p < 1`, `α ≥ 2`** (Batte–Kaggwa, Theorem 1.2(iii), for `t = 1`). Let
+`0 < k`, `1 ≤ t`, `0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and `α = u / p + v / q ≥ 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ` and `D = (L n * L (n + 1) - 2 * k * t ^ n) / k`.
+Then `S u ^ (1 / p) * S v ^ (1 / q) ≤ S α` and `S α ≤ D ^ (α / 2)`. -/
+theorem holder_sandwich_of_lt_one_of_two_le (hk : 0 < k) (ht : 1 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} {p q u v α : ℝ}
+    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (h2α : 2 ≤ α) :
     (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ≤
         ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ∧
       ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤
-        (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) * D ^ (α / 2) ∧
-      (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) * D ^ (α / 2) ≤ D ∧
-      D ≤ (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) := by
-  obtain ⟨h1, h2, h3, h4⟩ := Real.powerSum_chain_of_lt_one_of_lt (Icc 1 n) (β := 2) hp0 hp1 hpq
-    hα hα0 hα2 (nonempty_Icc.2 hn) (sandwich_hw ht) (sandwich_hx hk ht hL0 hL1 hL)
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h2 h3 h4
-  exact ⟨h1, h2, h3, h4⟩
+        ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) := by
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk (by positivity) hL0 hL1 hL i
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t ^ (n - i) := fun _ _ ↦ one_le_pow₀ ht
+  rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
+  exact ⟨Real.le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα
+      (fun i hi ↦ zero_le_one.trans (hw i hi)) hx,
+    Real.sum_rpow_le_rpow_of_le _ two_pos h2α hw fun i hi ↦ (hx i hi).le⟩
 
-end Sandwich
+/-- **Hölder sandwich, `0 < p < 1`, `0 < α < 2`** (Batte–Kaggwa, Theorem 1.2(iv), for `t = 1`).
+Let `1 ≤ k`, `1 ≤ t`, `0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and `0 < α = u / p + v / q < 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ`, `W = ∑ i ∈ Icc 1 n, t ^ (n - i)` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`. Then `S u ^ (1 / p) * S v ^ (1 / q) ≤ S α`,
+`S α ≤ W ^ (1 - α / 2) * D ^ (α / 2)`, `W ^ (1 - α / 2) * D ^ (α / 2) ≤ D` and
+`D ≤ S α ^ (2 / α)`. -/
+theorem holder_sandwich_of_lt_one_of_lt_two (hk : 1 ≤ k) (ht : 1 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} {p q u v α : ℝ}
+    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 < α)
+    (hα2 : α < 2) :
+    (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
+          (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ≤
+        ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ∧
+      ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤
+        (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ∧
+      (∑ i ∈ Icc 1 n, t ^ (n - i)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ≤
+        (L n * L (n + 1) - 2 * k * t ^ n) / k ∧
+      (L n * L (n + 1) - 2 * k * t ^ n) / k ≤
+        (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) := by
+  have hx := one_le_lucas_of_mem_Icc hk (zero_le_one.trans ht) hL0 hL1 hL (n := n)
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t ^ (n - i) := fun _ _ ↦ one_le_pow₀ ht
+  have hw0 : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun i hi ↦ zero_le_one.trans (hw i hi)
+  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ zero_le_one.trans (hx i hi)
+  rw [← sum_pow_mul_rpow_two_lucas (by positivity) hL0 hL1 hL]
+  exact ⟨Real.le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα hw0
+      fun i hi ↦ one_pos.trans_le (hx i hi),
+    Real.le_rpow_mean_of_le _ hα0 hα2.le hw0 hx0,
+    Real.rpow_mean_le_sum_of_one_le _ hα0 hα2.le hw0 hx,
+    Real.sum_rpow_le_rpow_of_le _ hα0 hα2.le hw hx0⟩
 
 /-! ### Hölder sandwiches for `0 < t ≤ 1`
 
-For `t < 1` the weights `t ^ (n - i)` are smaller than `1`, and the norm comparisons of the
-chains fail.  Dividing them by their smallest value `t ^ (n - 1)` gives the weights
+For `t < 1` the weights `t ^ (n - i)` are smaller than `1`, and the norm comparisons in the
+chains above fail. Dividing the weights by their smallest value `t ^ (n - 1)` gives the weights
 `t⁻¹ ^ (i - 1) ≥ 1`, and the same chains hold with `D` replaced by `D / t ^ (n - 1)`. -/
 
-section SandwichSmall
-
-private lemma sum_rpow_two_lucas_inv (hk : k ≠ 0) (ht : t ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
-    ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ (2 : ℝ) =
-      (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) := by
-  have key : ∀ i ∈ Icc 1 n,
-      t⁻¹ ^ (i - 1) * L i ^ (2 : ℝ) = t ^ (n - i) * L i ^ (2 : ℝ) / t ^ (n - 1) := by
-    intro i hi
-    obtain ⟨h1, h2⟩ := mem_Icc.1 hi
-    have hsplit : t ^ (n - 1) = t ^ (n - i) * t ^ (i - 1) := by
-      rw [← pow_add]; congr 1; omega
-    rw [hsplit, inv_pow]
-    field_simp
-  rw [sum_congr rfl key, ← sum_div, sum_rpow_two_lucas hk hL0 hL1 hL, div_div]
-
-private lemma sandwich_hw_inv (ht0 : 0 < t) (ht1 : t ≤ 1) {n : ℕ} :
-    ∀ i ∈ Icc 1 n, 1 ≤ t⁻¹ ^ (i - 1) :=
-  fun _ _ ↦ one_le_pow₀ ((one_le_inv₀ ht0).2 ht1)
-
-variable (hk : 1 ≤ k) (ht0 : 0 < t) (ht1 : t ≤ 1) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-  (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-include hk ht0 ht1 hL0 hL1 hL
-
-omit ht1 in
-private lemma sandwich_hx' {n : ℕ} : ∀ i ∈ Icc 1 n, 1 ≤ L i :=
-  fun _ hi ↦ one_le_lucas hk ht0 hL0 hL1 hL (mem_Icc.1 hi).1
-
-/-- **Hölder sandwich, `0 < t ≤ 1`, `p > 1`, `α ≥ 2`**, with weights `t⁻¹ ^ (i - 1)`. -/
-theorem holder_sandwich_of_one_lt_of_two_le_of_le_one {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp : 1 < p) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (h2α : 2 ≤ α)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) :
+/-- **Hölder sandwich for `0 < t ≤ 1`, `p > 1`, `α ≥ 2`.** Let `1 ≤ k`, `0 < t ≤ 1`, let `p`,
+`q` be conjugate exponents and `α = u / p + v / q ≥ 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ γ`, `W = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))`. Then
+`S α ≤ S u ^ (1 / p) * S v ^ (1 / q)`, `W ^ (1 - α / 2) * D ^ (α / 2) ≤ S α`,
+`D ≤ W ^ (1 - α / 2) * D ^ (α / 2)` and `S α ^ (2 / α) ≤ D`. -/
+theorem holder_sandwich_inv_of_one_lt_of_two_le (hk : 1 ≤ k) (ht0 : 0 < t) (ht1 : t ≤ 1)
+    (hL0 : L 0 = 2) (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ}
+    {p q u v α : ℝ} (hpq : p.HolderConjugate q) (hα : u / p + v / q = α) (h2α : 2 ≤ α) :
     ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ≤
         (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ v) ^ (1 / q) ∧
-      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) * D ^ (α / 2) ≤
+      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) ≤
         ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ∧
-      D ≤ (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) * D ^ (α / 2) ∧
-      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α) ^ (2 / α) ≤ D := by
-  obtain ⟨h1, h2, h3, h4⟩ := Real.powerSum_chain_of_one_lt_of_le (Icc 1 n) (β := 2) hp hpq hα
-    two_pos h2α (nonempty_Icc.2 hn) (sandwich_hw_inv ht0 ht1)
-    (sandwich_hx' hk ht0 hL0 hL1 hL)
-  rw [sum_rpow_two_lucas_inv (by linarith) ht0.ne' hL0 hL1 hL, ← hD] at h2 h3 h4
-  exact ⟨h1, h2, h3, h4⟩
+      (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) ≤
+        (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) ∧
+      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α) ^ (2 / α) ≤
+        (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) := by
+  have hx := one_le_lucas_of_mem_Icc hk ht0.le hL0 hL1 hL (n := n)
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t⁻¹ ^ (i - 1) := fun _ _ ↦ one_le_pow₀ ((one_le_inv₀ ht0).2 ht1)
+  have hw0 : ∀ i ∈ Icc 1 n, 0 ≤ t⁻¹ ^ (i - 1) := fun i hi ↦ zero_le_one.trans (hw i hi)
+  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ zero_le_one.trans (hx i hi)
+  rw [← sum_inv_pow_mul_rpow_two_lucas (by positivity) ht0.ne' hL0 hL1 hL]
+  exact ⟨Real.sum_mul_rpow_le_of_one_lt _ hpq hα hw0 fun i hi ↦ one_pos.trans_le (hx i hi),
+    Real.rpow_mean_le_of_le _ two_pos h2α hw0 hx0,
+    Real.sum_le_rpow_mean_of_one_le _ two_pos h2α hw0 hx,
+    Real.sum_rpow_rpow_le_of_le _ two_pos h2α hw hx0⟩
 
-/-- **Hölder sandwich, `0 < t ≤ 1`, `p > 1`, `0 ≤ α < 2`**, with weights `t⁻¹ ^ (i - 1)`. -/
-theorem holder_sandwich_of_one_lt_of_lt_two_of_le_one {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp : 1 < p) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 ≤ α) (hα2 : α < 2)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) :
+/-- **Hölder sandwich for `0 < t ≤ 1`, `p > 1`, `0 ≤ α < 2`.** Let `0 < k`, `0 < t ≤ 1`,
+`1 ≤ n`, let `p`, `q` be conjugate exponents and `0 ≤ α = u / p + v / q < 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ γ` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))`. Then
+`S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` and `D ^ (α / 2) ≤ S α`. -/
+theorem holder_sandwich_inv_of_one_lt_of_lt_two (hk : 0 < k) (ht0 : 0 < t) (ht1 : t ≤ 1)
+    (hL0 : L 0 = 2) (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ}
+    (hn : 1 ≤ n) {p q u v α : ℝ} (hpq : p.HolderConjugate q) (hα : u / p + v / q = α)
+    (hα0 : 0 ≤ α) (hα2 : α < 2) :
     ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ≤
         (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ v) ^ (1 / q) ∧
-      D ^ (α / 2) ≤ ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α := by
-  obtain ⟨h1, h2⟩ := Real.powerSum_chain_of_one_lt_of_lt (Icc 1 n) (β := 2) hp hpq hα hα0 hα2
-    (nonempty_Icc.2 hn) (sandwich_hw_inv ht0 ht1)
-    (fun i hi ↦ one_pos.trans_le (sandwich_hx' hk ht0 hL0 hL1 hL i hi))
-  rw [sum_rpow_two_lucas_inv (by linarith) ht0.ne' hL0 hL1 hL, ← hD] at h2
-  exact ⟨h1, h2⟩
+      ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) ≤
+        ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α := by
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht0.le hL0 hL1 hL i
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t⁻¹ ^ (i - 1) := fun _ _ ↦ one_le_pow₀ ((one_le_inv₀ ht0).2 ht1)
+  rw [← sum_inv_pow_mul_rpow_two_lucas hk.ne' ht0.ne' hL0 hL1 hL]
+  exact ⟨Real.sum_mul_rpow_le_of_one_lt _ hpq hα (fun i hi ↦ zero_le_one.trans (hw i hi)) hx,
+    Real.rpow_le_sum_rpow_of_le _ (nonempty_Icc.2 hn) hα0 hα2.le two_pos hw
+      fun i hi ↦ (hx i hi).le⟩
 
-/-- **Hölder sandwich, `0 < t ≤ 1`, `0 < p < 1`, `α ≥ 2`**, with weights `t⁻¹ ^ (i - 1)`. -/
-theorem holder_sandwich_of_lt_one_of_two_le_of_le_one {n : ℕ} {p q u v α D : ℝ}
-    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (h2α : 2 ≤ α)
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) :
-    (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ u) ^ (1 / p) *
-          (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ v) ^ (1 / q) ≤
-        ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ∧
-      ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ≤ D ^ (α / 2) := by
-  obtain ⟨h1, h2⟩ := Real.powerSum_chain_of_lt_one_of_le (Icc 1 n) (β := 2) hp0 hp1 hpq hα
-    two_pos h2α (sandwich_hw_inv ht0 ht1)
-    (fun i hi ↦ one_pos.trans_le (sandwich_hx' hk ht0 hL0 hL1 hL i hi))
-  rw [sum_rpow_two_lucas_inv (by linarith) ht0.ne' hL0 hL1 hL, ← hD] at h2
-  exact ⟨h1, h2⟩
-
-/-- **Hölder sandwich, `0 < t ≤ 1`, `0 < p < 1`, `0 < α < 2`**, with weights
-`t⁻¹ ^ (i - 1)`. -/
-theorem holder_sandwich_of_lt_one_of_lt_two_of_le_one {n : ℕ} (hn : 1 ≤ n) {p q u v α D : ℝ}
-    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 < α)
-    (hα2 : α < 2) (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) :
+/-- **Hölder sandwich for `0 < t ≤ 1`, `0 < p < 1`, `α ≥ 2`.** Let `0 < k`, `0 < t ≤ 1`,
+`0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and `α = u / p + v / q ≥ 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ γ` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))`. Then
+`S u ^ (1 / p) * S v ^ (1 / q) ≤ S α` and `S α ≤ D ^ (α / 2)`. -/
+theorem holder_sandwich_inv_of_lt_one_of_two_le (hk : 0 < k) (ht0 : 0 < t) (ht1 : t ≤ 1)
+    (hL0 : L 0 = 2) (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ}
+    {p q u v α : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α)
+    (h2α : 2 ≤ α) :
     (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ v) ^ (1 / q) ≤
         ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ∧
       ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ≤
-        (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) * D ^ (α / 2) ∧
-      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) * D ^ (α / 2) ≤ D ∧
-      D ≤ (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α) ^ (2 / α) := by
-  obtain ⟨h1, h2, h3, h4⟩ := Real.powerSum_chain_of_lt_one_of_lt (Icc 1 n) (β := 2) hp0 hp1 hpq
-    hα hα0 hα2 (nonempty_Icc.2 hn) (sandwich_hw_inv ht0 ht1) (sandwich_hx' hk ht0 hL0 hL1 hL)
-  rw [sum_rpow_two_lucas_inv (by linarith) ht0.ne' hL0 hL1 hL, ← hD] at h2 h3 h4
-  exact ⟨h1, h2, h3, h4⟩
+        ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) := by
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht0.le hL0 hL1 hL i
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t⁻¹ ^ (i - 1) := fun _ _ ↦ one_le_pow₀ ((one_le_inv₀ ht0).2 ht1)
+  rw [← sum_inv_pow_mul_rpow_two_lucas hk.ne' ht0.ne' hL0 hL1 hL]
+  exact ⟨Real.le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα
+      (fun i hi ↦ zero_le_one.trans (hw i hi)) hx,
+    Real.sum_rpow_le_rpow_of_le _ two_pos h2α hw fun i hi ↦ (hx i hi).le⟩
 
-end SandwichSmall
+/-- **Hölder sandwich for `0 < t ≤ 1`, `0 < p < 1`, `0 < α < 2`.** Let `1 ≤ k`, `0 < t ≤ 1`,
+`0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and `0 < α = u / p + v / q < 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ γ`, `W = ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))`. Then
+`S u ^ (1 / p) * S v ^ (1 / q) ≤ S α`, `S α ≤ W ^ (1 - α / 2) * D ^ (α / 2)`,
+`W ^ (1 - α / 2) * D ^ (α / 2) ≤ D` and `D ≤ S α ^ (2 / α)`. -/
+theorem holder_sandwich_inv_of_lt_one_of_lt_two (hk : 1 ≤ k) (ht0 : 0 < t) (ht1 : t ≤ 1)
+    (hL0 : L 0 = 2) (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ}
+    {p q u v α : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α)
+    (hα0 : 0 < α) (hα2 : α < 2) :
+    (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ u) ^ (1 / p) *
+          (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ v) ^ (1 / q) ≤
+        ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ∧
+      ∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α ≤
+        (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) ∧
+      (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1)) ^ (1 - α / 2) *
+          ((L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1))) ^ (α / 2) ≤
+        (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) ∧
+      (L n * L (n + 1) - 2 * k * t ^ n) / (k * t ^ (n - 1)) ≤
+        (∑ i ∈ Icc 1 n, t⁻¹ ^ (i - 1) * L i ^ α) ^ (2 / α) := by
+  have hx := one_le_lucas_of_mem_Icc hk ht0.le hL0 hL1 hL (n := n)
+  have hw : ∀ i ∈ Icc 1 n, 1 ≤ t⁻¹ ^ (i - 1) := fun _ _ ↦ one_le_pow₀ ((one_le_inv₀ ht0).2 ht1)
+  have hw0 : ∀ i ∈ Icc 1 n, 0 ≤ t⁻¹ ^ (i - 1) := fun i hi ↦ zero_le_one.trans (hw i hi)
+  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ zero_le_one.trans (hx i hi)
+  rw [← sum_inv_pow_mul_rpow_two_lucas (by positivity) ht0.ne' hL0 hL1 hL]
+  exact ⟨Real.le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα hw0
+      fun i hi ↦ one_pos.trans_le (hx i hi),
+    Real.le_rpow_mean_of_le _ hα0 hα2.le hw0 hx0,
+    Real.rpow_mean_le_sum_of_one_le _ hα0 hα2.le hw0 hx,
+    Real.sum_rpow_le_rpow_of_le _ hα0 hα2.le hw hx0⟩
 
-/-! ### Converse Hölder refinements (Theorem 1.3) -/
+/-! ### Converse Hölder inequalities (Theorem 1.3) -/
 
-section ConverseHolder
-
-variable (hk : 1 ≤ k) (ht : 0 < t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-  (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-include hk ht hL0 hL1 hL
-
-private lemma converse_bounds {n : ℕ} (hn : 2 ≤ n) {e m M : ℝ} (he : e ≠ 0)
-    (hm : m = min (L 1 ^ e) (L n ^ e)) (hM : M = max (L 1 ^ e) (L n ^ e)) :
-    0 < m ∧ m < M ∧ ∀ i ∈ Icc 1 n, m ≤ L i ^ e ∧ L i ^ e ≤ M := by
-  have hpos : ∀ i, 0 < L i := lucas_pos (by linarith) ht hL0 hL1 hL
-  have h1n : L 1 < L n := lucas_strictMono hk ht hL0 hL1 hL le_rfl (by omega)
-  subst hm hM
-  refine ⟨lt_min (Real.rpow_pos_of_pos (hpos 1) e) (Real.rpow_pos_of_pos (hpos n) e),
-    min_lt_max.2 ?_, fun i hi ↦ ?_⟩
-  · rcases he.lt_or_gt with he | he
-    · exact (Real.rpow_lt_rpow_of_neg (hpos 1) h1n he).ne'
-    · exact (Real.rpow_lt_rpow (hpos 1).le h1n he).ne
-  · obtain ⟨h1i, hin⟩ := mem_Icc.1 hi
-    have hl : L 1 ≤ L i := lucas_mono hk ht hL0 hL1 hL le_rfl h1i
-    have hr : L i ≤ L n := lucas_mono hk ht hL0 hL1 hL h1i hin
-    rcases le_total 0 e with he | he
-    · exact ⟨(min_le_left _ _).trans (Real.rpow_le_rpow (hpos 1).le hl he),
-        (Real.rpow_le_rpow (hpos i).le hr he).trans (le_max_right _ _)⟩
-    · exact ⟨(min_le_right _ _).trans (Real.rpow_le_rpow_of_nonpos (hpos i) hr he),
-        (Real.rpow_le_rpow_of_nonpos (hpos 1) hl he).trans (le_max_left _ _)⟩
-
-/-- **Converse Hölder refinement, `p > 1`.**  For `n ≥ 2`, `u ≠ v` and `u / p + v / q = 2`,
-with `m, M` the smaller and larger of `L 1 ^ ((u - v) / p)` and `L n ^ ((u - v) / p)`. -/
-theorem converse_holder_lucas_of_one_lt {n : ℕ} (hn : 2 ≤ n) {p q u v m M D : ℝ}
-    (hp : 1 < p) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = 2) (huv : u ≠ v)
-    (hm : m = min (L 1 ^ ((u - v) / p)) (L n ^ ((u - v) / p)))
-    (hM : M = max (L 1 ^ ((u - v) / p)) (L n ^ ((u - v) / p)))
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
-    0 < m ∧ m < M ∧
-      (M - m) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u +
+/-- **Converse Hölder inequalities for `(k, t)`-Lucas numbers, `p > 1`** (Batte–Kaggwa,
+Theorem 1.3, for `t = 1`). Let `0 < k`, `0 ≤ t`, let `p`, `q` be conjugate exponents with
+`u / p + v / q = 2`, and let `0 < m < M` with `L i ^ ((u - v) / p) ∈ [m, M]` for
+`i ∈ Icc 1 n`. Write `S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`. Then
+`(M - m) * S u + (m * M ^ p - M * m ^ p) * S v ≤ (M ^ p - m ^ p) * D` and
+`S u ^ (1 / p) * S v ^ (1 / q) ≤
+(M ^ p - m ^ p) * (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) * D`.
+See `KTFib.lucas_rpow_bounds` for admissible `m` and `M`. -/
+theorem converse_holder_lucas_of_one_lt (hk : 0 < k) (ht : 0 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} {p q u v m M : ℝ}
+    (hpq : p.HolderConjugate q) (hα : u / p + v / q = 2) (hm : 0 < m) (hmM : m < M)
+    (hr : ∀ i ∈ Icc 1 n, L i ^ ((u - v) / p) ∈ Set.Icc m M) :
+    (M - m) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u +
           (m * M ^ p - M * m ^ p) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v ≤
-        (M ^ p - m ^ p) * D ∧
+        (M ^ p - m ^ p) * ((L n * L (n + 1) - 2 * k * t ^ n) / k) ∧
       (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ≤
         (M ^ p - m ^ p) * (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) *
-          D := by
-  have he : (u - v) / p ≠ 0 := div_ne_zero (sub_ne_zero.2 huv) (zero_lt_one.trans hp).ne'
-  obtain ⟨hm0, hmM, hr⟩ := converse_bounds hk ht hL0 hL1 hL hn he hm hM
-  have hw : ∀ i ∈ Icc 1 n, (0 : ℝ) ≤ t ^ (n - i) := fun i _ ↦ by positivity
-  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos (by linarith) ht hL0 hL1 hL i
-  have h1 := Real.converse_holder_linear_of_one_lt (Icc 1 n) hp hpq hα hw hx hm0 hr
-  have h2 := Real.converse_holder_of_one_lt (Icc 1 n) hp hpq hα hw hx hm0 hmM hr
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h1 h2
-  exact ⟨hm0, hmM, h1, h2⟩
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) := by
+  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht hL0 hL1 hL i
+  rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
+  exact ⟨Real.converse_holder_linear_of_one_lt _ hpq hα hw hx hm.le hr,
+    Real.converse_holder_of_one_lt _ hpq hα hw hx hm hmM hr⟩
 
-/-- **Converse Hölder refinement, `0 < p < 1`**: both inequalities of
-`KTFib.converse_holder_lucas_of_one_lt` reverse. -/
-theorem converse_holder_lucas_of_lt_one {n : ℕ} (hn : 2 ≤ n) {p q u v m M D : ℝ}
-    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = 2) (huv : u ≠ v)
-    (hm : m = min (L 1 ^ ((u - v) / p)) (L n ^ ((u - v) / p)))
-    (hM : M = max (L 1 ^ ((u - v) / p)) (L n ^ ((u - v) / p)))
-    (hD : D = (L n * L (n + 1) - 2 * k * t ^ n) / k) :
-    0 < m ∧ m < M ∧
-      (M ^ p - m ^ p) * D ≤
+/-- **Converse Hölder inequalities for `(k, t)`-Lucas numbers, `0 < p < 1`** (Batte–Kaggwa,
+Theorem 1.3, for `t = 1`). Let `0 < k`, `0 ≤ t`, `0 < p < 1`, `p⁻¹ + q⁻¹ = 1`,
+`u / p + v / q = 2`, and let `0 < m < M` with `L i ^ ((u - v) / p) ∈ [m, M]` for
+`i ∈ Icc 1 n`. Write `S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ` and
+`D = (L n * L (n + 1) - 2 * k * t ^ n) / k`. Then
+`(M ^ p - m ^ p) * D ≤ (M - m) * S u + (m * M ^ p - M * m ^ p) * S v` and
+`(M ^ p - m ^ p) * (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) * D ≤
+S u ^ (1 / p) * S v ^ (1 / q)`. See `KTFib.lucas_rpow_bounds` for admissible `m` and `M`. -/
+theorem converse_holder_lucas_of_lt_one (hk : 0 < k) (ht : 0 ≤ t) (hL0 : L 0 = 2)
+    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} {p q u v m M : ℝ}
+    (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = 2) (hm : 0 < m)
+    (hmM : m < M) (hr : ∀ i ∈ Icc 1 n, L i ^ ((u - v) / p) ∈ Set.Icc m M) :
+    (M ^ p - m ^ p) * ((L n * L (n + 1) - 2 * k * t ^ n) / k) ≤
         (M - m) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u +
           (m * M ^ p - M * m ^ p) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v ∧
       (M ^ p - m ^ p) * (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) *
-          D ≤
+          ((L n * L (n + 1) - 2 * k * t ^ n) / k) ≤
         (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ u) ^ (1 / p) *
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) := by
-  have he : (u - v) / p ≠ 0 := div_ne_zero (sub_ne_zero.2 huv) hp0.ne'
-  obtain ⟨hm0, hmM, hr⟩ := converse_bounds hk ht hL0 hL1 hL hn he hm hM
-  have hw : ∀ i ∈ Icc 1 n, (0 : ℝ) < t ^ (n - i) := fun i _ ↦ by positivity
-  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos (by linarith) ht hL0 hL1 hL i
-  have h1 := Real.converse_holder_linear_of_lt_one (Icc 1 n) hp0 hp1 hpq hα
-    (fun i hi ↦ (hw i hi).le) hx hm0 hr
-  have h2 := Real.converse_holder_of_lt_one (Icc 1 n) hp0 hp1 hpq hα
-    (nonempty_Icc.2 (by omega)) hw hx hm0 hmM hr
-  rw [sum_rpow_two_lucas (by linarith) hL0 hL1 hL, ← hD] at h1 h2
-  exact ⟨hm0, hmM, h1, h2⟩
+  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
+  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht hL0 hL1 hL i
+  rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
+  exact ⟨Real.converse_holder_linear_of_lt_one _ hp0 hp1 hpq hα hw hx hm.le hr,
+    Real.converse_holder_of_lt_one _ hp0 hp1 hpq hα hw hx hm hmM hr⟩
 
-end ConverseHolder
+/-- For `1 ≤ k`, `0 < t`, `2 ≤ n` and `e ≠ 0`, the smaller and the larger of `L 1 ^ e` and
+`L n ^ e`, `m = min (L 1 ^ e) (L n ^ e)` and `M = max (L 1 ^ e) (L n ^ e)`, satisfy `0 < m < M`,
+and `L i ^ e ∈ [m, M]` for every `i ∈ Icc 1 n`. -/
+theorem lucas_rpow_bounds (hk : 1 ≤ k) (ht : 0 < t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 2 ≤ n) {e : ℝ} (he : e ≠ 0) :
+    0 < min (L 1 ^ e) (L n ^ e) ∧ min (L 1 ^ e) (L n ^ e) < max (L 1 ^ e) (L n ^ e) ∧
+      ∀ i ∈ Icc 1 n, L i ^ e ∈ Set.Icc (min (L 1 ^ e) (L n ^ e)) (max (L 1 ^ e) (L n ^ e)) := by
+  have hpos := lucas_pos (zero_lt_one.trans_le hk) ht.le hL0 hL1 hL
+  have hmono := lucas_monotoneOn hk ht.le hL0 hL1 hL
+  have h1n : L 1 < L n := lucas_strictMonoOn hk ht hL0 hL1 hL Set.self_mem_Ici
+    (show 1 ≤ n by omega) (by omega)
+  refine ⟨lt_min (Real.rpow_pos_of_pos (hpos 1) e) (Real.rpow_pos_of_pos (hpos n) e),
+    min_lt_max.2 fun h ↦ h1n.ne ((Real.rpow_left_inj (hpos 1).le (hpos n).le he).1 h),
+    fun i hi ↦ Real.rpow_mem_Icc_min_max e (hpos 1) ⟨?_, ?_⟩⟩
+  · exact hmono Set.self_mem_Ici (mem_Icc.1 hi).1 (mem_Icc.1 hi).1
+  · exact hmono (mem_Icc.1 hi).1 (show 1 ≤ n by omega) (mem_Icc.1 hi).2
 
-/-! ### Converse Cauchy refinements (Theorem 1.4) -/
+/-! ### Converse Cauchy–Schwarz inequalities (Theorem 1.4) -/
 
-section CauchyConversion
+/-- If `0 ≤ m₁ ≤ a ≤ M₁` and `0 < m₂ ≤ b ≤ M₂`, then `m₁ / M₂ * b ≤ a ≤ M₁ / m₂ * b`. -/
+private lemma div_mul_le_and_le_div_mul {a b m₁ M₁ m₂ M₂ : ℝ} (hm₁ : 0 ≤ m₁) (hm₂ : 0 < m₂)
+    (ha : a ∈ Set.Icc m₁ M₁) (hb : b ∈ Set.Icc m₂ M₂) : m₁ / M₂ * b ≤ a ∧ a ≤ M₁ / m₂ * b := by
+  have hM₂ : 0 < M₂ := hm₂.trans_le (hb.1.trans hb.2)
+  have hM₁ : 0 ≤ M₁ := hm₁.trans (ha.1.trans ha.2)
+  constructor
+  · calc m₁ / M₂ * b ≤ m₁ / M₂ * M₂ := by gcongr; exact hb.2
+      _ = m₁ := div_mul_cancel₀ _ hM₂.ne'
+      _ ≤ a := ha.1
+  · calc a ≤ M₁ := ha.2
+      _ = M₁ / m₂ * m₂ := (div_mul_cancel₀ _ hm₂.ne').symm
+      _ ≤ M₁ / m₂ * b := by gcongr; exact hb.1
 
-variable (hk : 1 ≤ k) (ht : 0 < t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-  (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-include hk ht hL0 hL1 hL
+/-- The Pólya–Szegő constant for the ratio bounds `m₁ / M₂` and `M₁ / m₂`. -/
+private lemma sqrt_add_sqrt_sq_div_four {m₁ M₁ m₂ M₂ : ℝ} (hm₁ : 0 < m₁) (hM₁ : 0 < M₁)
+    (hm₂ : 0 < m₂) (hM₂ : 0 < M₂) :
+    (√(M₁ * M₂ / (m₁ * m₂)) + √(m₁ * m₂ / (M₁ * M₂))) ^ 2 / 4 =
+      (m₁ / M₂ + M₁ / m₂) ^ 2 / (4 * (m₁ / M₂) * (M₁ / m₂)) := by
+  have h1 : √(M₁ * M₂ / (m₁ * m₂)) * √(m₁ * m₂ / (M₁ * M₂)) = 1 := by
+    rw [← Real.sqrt_mul (by positivity),
+      show M₁ * M₂ / (m₁ * m₂) * (m₁ * m₂ / (M₁ * M₂)) = 1 by field_simp, Real.sqrt_one]
+  rw [add_sq, Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity), mul_assoc, h1]
+  field_simp
+  ring
 
-/-- **Converse Cauchy refinements for `x i = L i * L (i + 1)`.**  For `u + v = 2`, with
-`m₁, M₁` (resp. `m₂, M₂`) the smaller and larger of `x 1 ^ (u / 2)`, `x n ^ (u / 2)` (resp.
-`x 1 ^ (v / 2)`, `x n ^ (v / 2)`), and `P` the closed form of `∑ t ^ (n - i) * x i`. -/
-theorem cauchy_conversion_lucas {n : ℕ} (hn : 1 ≤ n) {u v m₁ M₁ m₂ M₂ P : ℝ} (huv : u + v = 2)
+/-- **Converse Cauchy–Schwarz inequalities for `x i = L i * L (i + 1)`** (Batte–Kaggwa,
+Theorem 1.4, for `t = 1`). Let `1 ≤ k`, `0 ≤ t`, `1 ≤ n` and `u + v = 2`. Write
+`S γ = ∑ i ∈ Icc 1 n, t ^ (n - i) * x i ^ γ` and `W = ∑ i ∈ Icc 1 n, t ^ (n - i)`. The
+hypotheses `hm₁`, ..., `hP` name the quantities involved: `m₁`, `M₁` are the smaller and the
+larger of `x 1 ^ (u / 2)` and `x n ^ (u / 2)`, `m₂`, `M₂` those of `x 1 ^ (v / 2)` and
+`x n ^ (v / 2)`, and `P = S 1` in closed form. Then
+* `1 ≤ S u * S v / P ^ 2 ≤ (√(M₁ * M₂ / (m₁ * m₂)) + √(m₁ * m₂ / (M₁ * M₂))) ^ 2 / 4`;
+* `S u / P - P / S v ≤ (√(M₁ / m₂) - √(m₁ / M₂)) ^ 2`;
+* `S u * S v - P ^ 2 ≤ W ^ 2 / 4 * (M₁ * M₂ - m₁ * m₂) ^ 2`;
+* `S v + m₂ * M₂ / (M₁ * m₁) * S u ≤ (M₂ / m₁ + m₂ / M₁) * P`. -/
+theorem converse_cauchy_lucas (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 1 ≤ n)
+    {u v m₁ M₁ m₂ M₂ P : ℝ} (huv : u + v = 2)
     (hm₁ : m₁ = min ((L 1 * L 2) ^ (u / 2)) ((L n * L (n + 1)) ^ (u / 2)))
     (hM₁ : M₁ = max ((L 1 * L 2) ^ (u / 2)) ((L n * L (n + 1)) ^ (u / 2)))
     (hm₂ : m₂ = min ((L 1 * L 2) ^ (v / 2)) ((L n * L (n + 1)) ^ (v / 2)))
@@ -407,126 +436,57 @@ theorem cauchy_conversion_lucas {n : ℕ} (hn : 1 ≤ n) {u v m₁ M₁ m₂ M�
     ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ v +
         m₂ * M₂ / (M₁ * m₁) * ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ u ≤
       (M₂ / m₁ + m₂ / M₁) * P := by
-  have hk0 : 0 < k := by linarith
-  have hpos := lucas_pos hk0 ht hL0 hL1 hL
-  have hα : u / 2 + v / 2 = 1 := by linarith
-  have hw : ∀ i ∈ Icc 1 n, (0 : ℝ) < t ^ (n - i) := fun i _ ↦ by positivity
-  have hx : ∀ i ∈ Icc 1 n,
-      L 1 * L 2 ≤ L i * L (i + 1) ∧ L i * L (i + 1) ≤ L n * L (n + 1) := fun i hi ↦
-    ⟨lucas_mul_mono hk ht hL0 hL1 hL le_rfl (mem_Icc.1 hi).1,
-      lucas_mul_mono hk ht hL0 hL1 hL (mem_Icc.1 hi).1 (mem_Icc.1 hi).2⟩
-  have h := Real.cauchy_conversion (Icc 1 n) (x := fun i ↦ L i * L (i + 1)) hα
-    (nonempty_Icc.2 hn) hw (mul_pos (hpos 1) (hpos 2)) hx hm₁ hM₁ hm₂ hM₂
-  have hS : ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ (1 : ℝ) = P := by
-    simp_rw [Real.rpow_one]
-    rw [hP]
-    exact sum_lucas_mul_succ hk0.ne' hL0 hL1 hL n
-  beta_reduce at h
-  rw [hS] at h
-  exact h
-
-end CauchyConversion
-
-/-- Weighted Lagrange identity. -/
-private lemma weighted_lagrange {ι : Type*} (s : Finset ι) (w a b : ι → ℝ) :
-    2 * ((∑ i ∈ s, w i * a i ^ 2) * (∑ i ∈ s, w i * b i ^ 2) -
-        (∑ i ∈ s, w i * (a i * b i)) ^ 2) =
-      ∑ i ∈ s, ∑ j ∈ s, w i * w j * (a i * b j - a j * b i) ^ 2 := by
-  have h1 := sum_mul_sum s s (fun i ↦ w i * a i ^ 2) (fun i ↦ w i * b i ^ 2)
-  have h2 : (∑ i ∈ s, w i * a i ^ 2) * (∑ i ∈ s, w i * b i ^ 2) =
-      ∑ i ∈ s, ∑ j ∈ s, w j * a j ^ 2 * (w i * b i ^ 2) := by
-    rw [sum_comm, sum_mul_sum]
-  have h3 : (∑ i ∈ s, w i * (a i * b i)) ^ 2 =
-      ∑ i ∈ s, ∑ j ∈ s, w i * (a i * b i) * (w j * (a j * b j)) := by
-    rw [sq, sum_mul_sum]
-  rw [mul_sub, two_mul, h3]
-  nth_rewrite 1 [h1]
-  rw [h2, Finset.mul_sum, ← sum_add_distrib, ← sum_sub_distrib]
-  refine sum_congr rfl fun i _ ↦ ?_
-  rw [Finset.mul_sum, ← sum_add_distrib, ← sum_sub_distrib]
-  exact sum_congr rfl fun j _ ↦ by ring
-
-/-! ### The cross-family bound (Theorem 1.5) -/
-
-section CrossFamily
-
-variable (hk : 0 < k) (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-  (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-  (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n)
-include hk ht hF0 hF1 hF hL0 hL1 hL
-
-omit ht in
-private lemma cross_eq (n : ℕ) :
-    ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = ∑ i ∈ Icc 1 n, t ^ (n - i) * (F i * L i) ∧
-      F n * F (n + 1) / k = ∑ i ∈ Icc 1 n, t ^ (n - i) * F i ^ 2 ∧
-      (L n * L (n + 1) - 2 * k * t ^ n) / k = ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ 2 :=
-  ⟨sum_congr rfl fun i _ ↦ by rw [fib_mul_lucas hF0 hF1 hF hL0 hL1 hL i],
-    (sum_sq_fib hk.ne' hF0 hF1 hF n).symm, (sum_sq_lucas hk.ne' hL0 hL1 hL n).symm⟩
-
-/-- **Cross-family Cauchy–Schwarz bound.** -/
-theorem sq_sum_fib_two_mul_le (n : ℕ) :
-    (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
-      F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) := by
-  obtain ⟨e1, e2, e3⟩ := cross_eq hk hF0 hF1 hF hL0 hL1 hL n
-  rw [e1, e2, e3]
-  have h := weighted_lagrange (Icc 1 n) (fun i ↦ t ^ (n - i)) F L
-  beta_reduce at h
-  have hnn : 0 ≤ ∑ i ∈ Icc 1 n, ∑ j ∈ Icc 1 n,
-      t ^ (n - i) * t ^ (n - j) * (F i * L j - F j * L i) ^ 2 :=
-    sum_nonneg fun i _ ↦ sum_nonneg fun j _ ↦ by positivity
-  linarith
-
-/-- **Equality case of the cross-family bound**: for `n ≥ 1`, equality holds exactly when
-`n = 1`. -/
-theorem sq_sum_fib_two_mul_eq_iff {n : ℕ} (hn : 1 ≤ n) :
-    (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 =
-        F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) ↔ n = 1 := by
-  have hF2 : F 2 = k * F 1 + t * F 0 := hF 0
-  have hL2 : L 2 = k * L 1 + t * L 0 := hL 0
-  rw [hF0, hF1] at hF2
-  rw [hL0, hL1] at hL2
-  constructor
-  · intro heq
-    by_contra h1
-    have hn2 : 2 ≤ n := by omega
-    obtain ⟨e1, e2, e3⟩ := cross_eq hk hF0 hF1 hF hL0 hL1 hL n
-    rw [e1, e2, e3] at heq
-    have h := weighted_lagrange (Icc 1 n) (fun i ↦ t ^ (n - i)) F L
-    beta_reduce at h
-    have hpos : 0 < ∑ i ∈ Icc 1 n, ∑ j ∈ Icc 1 n,
-        t ^ (n - i) * t ^ (n - j) * (F i * L j - F j * L i) ^ 2 := by
-      refine sum_pos' (fun i _ ↦ sum_nonneg fun j _ ↦ by positivity)
-        ⟨1, mem_Icc.2 ⟨le_rfl, hn⟩, ?_⟩
-      refine sum_pos' (fun j _ ↦ by positivity) ⟨2, mem_Icc.2 ⟨by norm_num, hn2⟩, ?_⟩
-      have : F 1 * L 2 - F 2 * L 1 = 2 * t := by rw [hF1, hF2, hL2, hL1]; ring
-      rw [this]
-      positivity
-    linarith
-  · rintro rfl
-    simp only [Icc_self, sum_singleton, Nat.sub_self, pow_zero, one_mul, mul_one, pow_one]
-    rw [show 1 + 1 = 2 from rfl, hF1, hF2, hL2, hL1]
-    field_simp
-    ring
-
-/-- **The cross-family bound in closed form**:
-`(F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`. -/
-theorem sq_fib_sub_le (n : ℕ) :
-    (F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) := by
-  have h := sq_sum_fib_two_mul_le hk ht hF0 hF1 hF hL0 hL1 hL n
-  rw [sum_fib_even hk.ne' hF1 hF n] at h
-  calc (F (2 * n + 1) - t ^ n) ^ 2 = k ^ 2 * ((F (2 * n + 1) - t ^ n) / k) ^ 2 := by
-        field_simp
-    _ ≤ k ^ 2 * (F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k)) := by gcongr
-    _ = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) := by
-        field_simp
-
-/-- Equality in `KTFib.sq_fib_sub_le` holds, for `n ≥ 1`, exactly when `n = 1`. -/
-theorem sq_fib_sub_eq_iff {n : ℕ} (hn : 1 ≤ n) :
-    (F (2 * n + 1) - t ^ n) ^ 2 = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) ↔
-      n = 1 := by
-  rw [← sq_sum_fib_two_mul_eq_iff hk ht hF0 hF1 hF hL0 hL1 hL hn, sum_fib_even hk.ne' hF1 hF n,
-    div_pow, div_mul_div_comm, ← sq, div_left_inj' (by positivity)]
-
-end CrossFamily
+  have hk0 : 0 < k := zero_lt_one.trans_le hk
+  have hx0 : ∀ i, 0 < L i * L (i + 1) := fun i ↦
+    mul_pos (lucas_pos hk0 ht hL0 hL1 hL i) (lucas_pos hk0 ht hL0 hL1 hL (i + 1))
+  have hmono := lucas_mul_lucas_succ_monotoneOn hk ht hL0 hL1 hL
+  have hx : ∀ i ∈ Icc 1 n, L i * L (i + 1) ∈ Set.Icc (L 1 * L 2) (L n * L (n + 1)) :=
+    fun i hi ↦ ⟨hmono Set.self_mem_Ici (mem_Icc.1 hi).1 (mem_Icc.1 hi).1,
+      hmono (mem_Icc.1 hi).1 (hn.trans le_rfl) (mem_Icc.1 hi).2⟩
+  have ha : ∀ i ∈ Icc 1 n, (L i * L (i + 1)) ^ (u / 2) ∈ Set.Icc m₁ M₁ := fun i hi ↦ by
+    rw [hm₁, hM₁]; exact Real.rpow_mem_Icc_min_max _ (hx0 1) (hx i hi)
+  have hb : ∀ i ∈ Icc 1 n, (L i * L (i + 1)) ^ (v / 2) ∈ Set.Icc m₂ M₂ := fun i hi ↦ by
+    rw [hm₂, hM₂]; exact Real.rpow_mem_Icc_min_max _ (hx0 1) (hx i hi)
+  have hnI : n ∈ Icc 1 n := mem_Icc.2 ⟨hn, le_rfl⟩
+  have hmin (e : ℝ) : 0 < min ((L 1 * L 2) ^ e) ((L n * L (n + 1)) ^ e) :=
+    lt_min (Real.rpow_pos_of_pos (hx0 1) e) (Real.rpow_pos_of_pos (hx0 n) e)
+  have hm₁0 : 0 < m₁ := hm₁ ▸ hmin _
+  have hm₂0 : 0 < m₂ := hm₂ ▸ hmin _
+  have hM₁0 : 0 < M₁ := hm₁0.trans_le ((ha n hnI).1.trans (ha n hnI).2)
+  have hM₂0 : 0 < M₂ := hm₂0.trans_le ((hb n hnI).1.trans (hb n hnI).2)
+  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
+  -- a weighted sum of positive terms is positive, thanks to the term `i = n` of weight `1`
+  have hsum_pos (f : ℕ → ℝ) (hf : ∀ i, 0 < f i) : 0 < ∑ i ∈ Icc 1 n, t ^ (n - i) * f i :=
+    sum_pos' (fun i hi ↦ mul_nonneg (hw i hi) (hf i).le)
+      ⟨n, hnI, by rw [Nat.sub_self, pow_zero, one_mul]; exact hf n⟩
+  have hsq (e : ℝ) : ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ e =
+      ∑ i ∈ Icc 1 n, t ^ (n - i) * ((L i * L (i + 1)) ^ (e / 2)) ^ 2 :=
+    sum_congr rfl fun i _ ↦ by
+      rw [← Real.rpow_mul_natCast (hx0 i).le]; norm_num
+  have hP' : P = ∑ i ∈ Icc 1 n, t ^ (n - i) * ((L i * L (i + 1)) ^ (u / 2) *
+      (L i * L (i + 1)) ^ (v / 2)) := by
+    rw [hP, ← sum_pow_mul_lucas_mul_succ hk0.ne' hL0 hL1 hL]
+    refine sum_congr rfl fun i _ ↦ ?_
+    rw [← Real.rpow_add (hx0 i), ← add_div, huv, div_self two_ne_zero, Real.rpow_one]
+  have hB := hsum_pos _ fun i ↦ pow_pos (Real.rpow_pos_of_pos (hx0 i) (v / 2)) 2
+  have hC := hsum_pos _ fun i ↦ mul_pos (Real.rpow_pos_of_pos (hx0 i) (u / 2))
+    (Real.rpow_pos_of_pos (hx0 i) (v / 2))
+  have hr := fun i hi ↦ div_mul_le_and_le_div_mul hm₁0.le hm₂0 (ha i hi) (hb i hi)
+  have hr' := fun i hi ↦ div_mul_le_and_le_div_mul hm₂0.le hm₁0 (hb i hi) (ha i hi)
+  have hoz := Real.ozeki_rpow (Icc 1 n) (y := fun i ↦ L i * L (i + 1)) (σ := u / 2) (τ := v / 2)
+    hw (hx0 1) hx
+  rw [← hm₁, ← hM₁, ← hm₂, ← hM₂] at hoz
+  rw [hsq u, hsq v, hP']
+  refine ⟨⟨(one_le_div (pow_pos hC 2)).2 <| sum_sq_le_sum_mul_sum_of_sq_le_mul _
+      (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _))
+      (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _)) fun i _ ↦ le_of_eq (by ring), ?_⟩,
+    Real.shisha_mond _ hw (by positivity) (by positivity) (fun i hi ↦ (hr i hi).1)
+      (fun i hi ↦ (hr i hi).2) hC hB, hoz, ?_⟩
+  · rw [div_le_iff₀ (pow_pos hC 2), sqrt_add_sqrt_sq_div_four hm₁0 hM₁0 hm₂0 hM₂0]
+    exact polya_szego hw (by positivity) (by positivity) (fun i hi ↦ (hr i hi).1)
+      fun i hi ↦ (hr i hi).2
+  · have h := diaz_metcalf hw (fun i hi ↦ (hr' i hi).1) fun i hi ↦ (hr' i hi).2
+    rw [div_mul_div_comm, add_comm (m₂ / M₁)] at h
+    simpa only [mul_comm ((L _ * L (_ + 1)) ^ (v / 2))] using h
 
 end KTFib
