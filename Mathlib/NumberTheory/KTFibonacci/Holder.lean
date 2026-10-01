@@ -36,7 +36,8 @@ of `S 2` has weight `1` and `L` is increasing (`KTFib.lucas_sq_le_sum_pow_mul_lu
   `D ^ (α / 2)` and `W ^ (1 - α / 2) * D ^ (α / 2)`, according to whether `p > 1` or
   `0 < p < 1`, and `α ≥ 2` or `α < 2`. All four assume `0 ≤ t`; the cases `p > 1, α ≥ 2` and
   `0 < p < 1, 0 < α < 2` assume `1 ≤ k`, the other two assume `0 < k` and `1 ≤ k ∨ 1 ≤ t`
-  (and the case `p > 1, α < 2` also `1 ≤ n`).
+  (and the case `p > 1, α < 2` also `1 ≤ n`). The hypothesis `1 ≤ k ∨ 1 ≤ t` cannot be dropped,
+  see `Counterexamples/KTFibHolder.lean`.
 * `KTFib.converse_holder_lucas_of_one_lt_of_mem_Icc`,
   `KTFib.converse_holder_lucas_of_lt_one_of_mem_Icc` (Theorem 1.3): for `0 < k`, `0 ≤ t`,
   `u / p + v / q = 2` and bounds `L i ^ ((u - v) / p) ∈ [m, M]` with `0 < m < M`, the linear and
@@ -56,7 +57,9 @@ of `S 2` has weight `1` and `L` is increasing (`KTFib.lucas_sq_le_sum_pow_mul_lu
 
 The corresponding statements for arbitrary weighted power sums are in
 `Mathlib.Analysis.MeanInequalities.PowerSum` and `Mathlib.Analysis.MeanInequalities.Converse`;
-Dujella, Jakšetić and Pečarić apply them to the Fibonacci numbers.
+Dujella, Jakšetić and Pečarić apply them to the Fibonacci numbers. The four chains above are the
+chains `Real.holder_chain_of_one_lt_of_le`, ..., `Real.holder_chain_of_lt_one_of_lt` for
+`x i = L i` and `β = 2`.
 
 ## References
 
@@ -96,13 +99,6 @@ private lemma rpow_two_le_sum_pow_mul_rpow_two (ht : 0 ≤ t) (hkt : 1 ≤ k ∨
       _ ≤ _ := single_le_sum (f := fun j ↦ t ^ (n - j) * L j ^ 2)
           (fun j _ ↦ mul_nonneg (pow_nonneg ht _) (sq_nonneg _)) hi
 
-/-- `W ≤ S 2`, if `1 ≤ k` and `0 ≤ t`. -/
-private lemma sum_pow_le_sum_pow_mul_rpow_two (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2)
-    (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} :
-    ∑ i ∈ Icc 1 n, t ^ (n - i) ≤ ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ (2 : ℝ) :=
-  sum_le_sum fun _ hi ↦ le_mul_of_one_le_right (pow_nonneg ht _)
-    (Real.one_le_rpow (one_le_lucas hk ht hL0 hL1 hL (mem_Icc.1 hi).1) zero_le_two)
-
 /-! ### Hölder-type chains (Theorem 1.2) -/
 
 /-- **Hölder-type chain, `p > 1`, `α ≥ 2`** (Batte–Kaggwa, Theorem 1.2(i), for `t = 1`). Let
@@ -126,23 +122,9 @@ theorem holder_lucas_of_one_lt_of_two_le (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 
       (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) ≤
         (L n * L (n + 1) - 2 * k * t ^ n) / k := by
   have hk0 : 0 < k := zero_lt_one.trans_le hk
-  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
-  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk0 ht hL0 hL1 hL i
-  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ (hx i hi).le
-  have hS (γ : ℝ) : 0 ≤ ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ :=
-    sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (Real.rpow_nonneg (hx0 i hi) _)
   rw [← sum_pow_mul_rpow_two_lucas hk0.ne' hL0 hL1 hL]
-  refine ⟨Real.sum_mul_rpow_le_Lp_mul_Lq_of_one_lt _ hpq hα hw hx,
-    Real.weight_mul_Lp_le_sum_mul_rpow _ two_pos h2α hw hx0, ?_, ?_⟩
-  · obtain hW | hW := (sum_nonneg hw).eq_or_lt
-    · -- all weights vanish
-      rw [sum_mul_eq_zero_of_sum_eq_zero hw hW.symm, ← hW]
-      positivity
-    exact Real.le_rpow_one_sub_mul_rpow_of_le hW (sum_pow_le_sum_pow_mul_rpow_two hk ht hL0 hL1 hL)
-      ((one_le_div two_pos).2 h2α)
-  -- `S α ≤ S 2 ^ (α / 2)`, raised to the power `2 / α`
-  rw [← inv_div, Real.rpow_inv_le_iff_of_pos (hS α) (hS 2) (by positivity)]
-  exact Real.sum_mul_rpow_le_rpow_sum_mul_rpow _ two_pos h2α hw hx0
+  exact Real.holder_chain_of_one_lt_of_le _ hpq hα two_pos h2α (fun _ _ ↦ pow_nonneg ht _)
+    (fun i hi ↦ one_le_lucas hk ht hL0 hL1 hL (mem_Icc.1 hi).1)
     (rpow_two_le_sum_pow_mul_rpow_two ht (.inl hk) hL0 hL1 hL)
 
 /-- **Hölder-type chain, `p > 1`, `α < 2`** (Batte–Kaggwa, Theorem 1.2(ii), for `t = 1`). Let
@@ -159,14 +141,12 @@ theorem holder_lucas_of_one_lt_of_lt_two (hk : 0 < k) (ht : 0 ≤ t) (hkt : 1 �
           (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ v) ^ (1 / q) ∧
       ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) ≤
         ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α := by
-  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
   have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht hL0 hL1 hL i
   have hS2 := rpow_two_le_sum_pow_mul_rpow_two ht hkt hL0 hL1 hL (n := n)
   have hnI : n ∈ Icc 1 n := mem_Icc.2 ⟨hn, le_rfl⟩
   rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
-  exact ⟨Real.sum_mul_rpow_le_Lp_mul_Lq_of_one_lt _ hpq hα hw hx,
-    Real.rpow_sum_mul_rpow_le_sum_mul_rpow _ hα2.le two_pos hw (fun i hi ↦ (hx i hi).le) hS2
-      ((Real.rpow_pos_of_pos (hx n hnI) 2).trans_le (hS2 n hnI))⟩
+  exact Real.holder_chain_of_one_lt_of_lt _ hpq hα two_pos hα2 (fun _ _ ↦ pow_nonneg ht _) hx
+    hS2 ((Real.rpow_pos_of_pos (hx n hnI) 2).trans_le (hS2 n hnI))
 
 /-- **Hölder-type chain, `0 < p < 1`, `α ≥ 2`** (Batte–Kaggwa, Theorem 1.2(iii), for `t = 1`). Let
 `0 < k`, `0 ≤ t` with `1 ≤ k` or `1 ≤ t`, let `0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and
@@ -182,12 +162,10 @@ theorem holder_lucas_of_lt_one_of_two_le (hk : 0 < k) (ht : 0 ≤ t) (hkt : 1 �
         ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ∧
       ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α ≤
         ((L n * L (n + 1) - 2 * k * t ^ n) / k) ^ (α / 2) := by
-  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
-  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk ht hL0 hL1 hL i
   rw [← sum_pow_mul_rpow_two_lucas hk.ne' hL0 hL1 hL]
-  exact ⟨Real.Lp_mul_Lq_le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα hw hx,
-    Real.sum_mul_rpow_le_rpow_sum_mul_rpow _ two_pos h2α hw (fun i hi ↦ (hx i hi).le)
-      (rpow_two_le_sum_pow_mul_rpow_two ht hkt hL0 hL1 hL)⟩
+  exact Real.holder_chain_of_lt_one_of_le _ hp0 hp1 hpq hα two_pos h2α
+    (fun _ _ ↦ pow_nonneg ht _) (fun i _ ↦ lucas_pos hk ht hL0 hL1 hL i)
+    (rpow_two_le_sum_pow_mul_rpow_two ht hkt hL0 hL1 hL)
 
 /-- **Hölder-type chain, `0 < p < 1`, `0 < α < 2`** (Batte–Kaggwa, Theorem 1.2(iv), for `t = 1`).
 Let `1 ≤ k`, `0 ≤ t`, `0 < p < 1`, `p⁻¹ + q⁻¹ = 1` and `0 < α = u / p + v / q < 2`. Write
@@ -211,23 +189,10 @@ theorem holder_lucas_of_lt_one_of_lt_two (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 
       (L n * L (n + 1) - 2 * k * t ^ n) / k ≤
         (∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ α) ^ (2 / α) := by
   have hk0 : 0 < k := zero_lt_one.trans_le hk
-  have hw : ∀ i ∈ Icc 1 n, 0 ≤ t ^ (n - i) := fun _ _ ↦ pow_nonneg ht _
-  have hx : ∀ i ∈ Icc 1 n, 0 < L i := fun i _ ↦ lucas_pos hk0 ht hL0 hL1 hL i
-  have hx0 : ∀ i ∈ Icc 1 n, 0 ≤ L i := fun i hi ↦ (hx i hi).le
-  have hS (γ : ℝ) : 0 ≤ ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ γ :=
-    sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (Real.rpow_nonneg (hx0 i hi) _)
   rw [← sum_pow_mul_rpow_two_lucas hk0.ne' hL0 hL1 hL]
-  refine ⟨Real.Lp_mul_Lq_le_sum_mul_rpow_of_lt_one _ hp0 hp1 hpq hα hw hx,
-    Real.sum_mul_rpow_le_weight_mul_Lp _ hα0 hα2.le hw hx0,
-    Real.rpow_one_sub_mul_rpow_le_of_le (sum_nonneg hw)
-      (sum_pow_le_sum_pow_mul_rpow_two hk ht hL0 hL1 hL) ((div_le_one two_pos).2 hα2.le), ?_⟩
-  -- `S 2 ^ (α / 2) ≤ S α`, raised to the power `2 / α`
-  obtain hS2 | hS2 := (hS 2).eq_or_lt
-  · rw [← hS2]
-    exact Real.rpow_nonneg (hS α) _
-  rw [← inv_div, Real.le_rpow_inv_iff_of_pos (hS 2) (hS α) (by positivity)]
-  exact Real.rpow_sum_mul_rpow_le_sum_mul_rpow _ hα2.le two_pos hw hx0
-    (rpow_two_le_sum_pow_mul_rpow_two ht (.inl hk) hL0 hL1 hL) hS2
+  exact Real.holder_chain_of_lt_one_of_lt _ hp0 hp1 hpq hα hα0 hα2 (fun _ _ ↦ pow_nonneg ht _)
+    (fun i hi ↦ one_le_lucas hk ht hL0 hL1 hL (mem_Icc.1 hi).1)
+    (rpow_two_le_sum_pow_mul_rpow_two ht (.inl hk) hL0 hL1 hL)
 
 /-! ### Converse Hölder inequalities (Theorem 1.3) -/
 

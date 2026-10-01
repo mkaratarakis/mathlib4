@@ -5950,6 +5950,7 @@ public import Mathlib.NumberTheory.KTFibonacci.CrossFamily
 public import Mathlib.NumberTheory.KTFibonacci.Holder
 public import Mathlib.NumberTheory.KTFibonacci.Identities
 public import Mathlib.NumberTheory.KTFibonacci.KFibonacci
+public import Mathlib.NumberTheory.KTFibonacci.Rescaling
 public import Mathlib.NumberTheory.KummerDedekind
 public import Mathlib.NumberTheory.LSeries.AbstractFuncEq
 public import Mathlib.NumberTheory.LSeries.Basic

@@ -53,6 +53,9 @@ when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
   For **Ozeki**'s inequality `S u * S v - S ((u + v) / 2) ^ 2 ≤ W ^ 2 / 4 * (M₁ M₂ - m₁ m₂) ^ 2`
   the bounds are the values at the endpoints of an interval `[lo, hi]` with `0 < lo` containing
   every `y i`.
+* `Real.ozeki_rpow_eq`: the constant `W ^ 2 / 4` in `Real.ozeki_rpow` cannot be improved; equality
+  holds for `u = 2`, `v = -2` when the `y i` take only the values `lo` and `hi`, each with total
+  weight `W / 2`.
 
 Dujella, Jakšetić and Pečarić apply these inequalities in the unweighted case `w = 1` (their
 Theorems 8 and 9). The Diaz–Metcalf and Cassels inequalities for ratio bounds and the
@@ -509,6 +512,46 @@ theorem ozeki_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hlo : 0 < lo) (hy : ∀ i ∈ 
   rw [sum_mul_rpow_eq_sum_mul_sq s hy' u, sum_mul_rpow_eq_sum_mul_sq s hy' v,
     sum_mul_rpow_add_div_two s hy']
   linarith [four_mul_ozeki_rpow s (σ := u / 2) (τ := v / 2) hw hlo hy]
+
+/-- **Ozeki's inequality for powers of one family is sharp**: in `Real.ozeki_rpow` take `u = 2`,
+`v = -2` (so `y ^ (u / 2) = y` and `y ^ (v / 2) = y⁻¹`), `0 < lo < hi`, and let every `y i` be `lo`
+or `hi`, the indices with `y i = lo` having total weight `W / 2`, where `W = ∑ i ∈ s, w i` (so the
+indices with `y i = hi` have total weight `W / 2` too). Then both sides of `Real.ozeki_rpow` are
+equal, to `W ^ 2 * (hi ^ 2 - lo ^ 2) ^ 2 / (4 * lo ^ 2 * hi ^ 2)`. -/
+theorem ozeki_rpow_eq (hu : u = 2) (hv : v = -2) (hlo : 0 < lo) (hlohi : lo < hi)
+    (hy : ∀ i ∈ s, y i = lo ∨ y i = hi) (hW : ∑ i ∈ s with y i = lo, w i = (∑ i ∈ s, w i) / 2) :
+    (∑ i ∈ s, w i * y i ^ u) * (∑ i ∈ s, w i * y i ^ v) -
+        (∑ i ∈ s, w i * y i ^ ((u + v) / 2)) ^ 2 =
+      (∑ i ∈ s, w i) ^ 2 / 4 *
+        (max (lo ^ (u / 2)) (hi ^ (u / 2)) * max (lo ^ (v / 2)) (hi ^ (v / 2)) -
+          min (lo ^ (u / 2)) (hi ^ (u / 2)) * min (lo ^ (v / 2)) (hi ^ (v / 2))) ^ 2 ∧
+    (∑ i ∈ s, w i) ^ 2 / 4 *
+        (max (lo ^ (u / 2)) (hi ^ (u / 2)) * max (lo ^ (v / 2)) (hi ^ (v / 2)) -
+          min (lo ^ (u / 2)) (hi ^ (u / 2)) * min (lo ^ (v / 2)) (hi ^ (v / 2))) ^ 2 =
+      (∑ i ∈ s, w i) ^ 2 * (hi ^ 2 - lo ^ 2) ^ 2 / (4 * lo ^ 2 * hi ^ 2) := by
+  classical
+  subst hu hv
+  have hhi : 0 < hi := hlo.trans hlohi
+  -- split every sum into the indices with `y i = lo` and those with `y i = hi`
+  have hsplit (γ : ℝ) : ∑ i ∈ s, w i * y i ^ γ =
+      lo ^ γ * ∑ i ∈ s with y i = lo, w i + hi ^ γ * ∑ i ∈ s with ¬y i = lo, w i := by
+    rw [← sum_filter_add_sum_filter_not s (y · = lo), mul_sum, mul_sum]
+    congr 1
+    · exact sum_congr rfl fun i hi ↦ by rw [(mem_filter.1 hi).2, mul_comm]
+    · refine sum_congr rfl fun i hi ↦ ?_
+      obtain ⟨his, hne⟩ := mem_filter.1 hi
+      rw [(hy i his).resolve_left hne, mul_comm]
+  have hB : ∑ i ∈ s with ¬y i = lo, w i = (∑ i ∈ s, w i) / 2 := by
+    linarith [sum_filter_add_sum_filter_not s (y · = lo) w]
+  have hinv : hi⁻¹ ≤ lo⁻¹ := (inv_le_inv₀ hhi hlo).2 hlohi.le
+  rw [hsplit, hsplit, hsplit, hB, hW, show (2 + -2 : ℝ) / 2 = 0 by norm_num,
+    show (2 : ℝ) / 2 = 1 by norm_num, show (-2 : ℝ) / 2 = -1 by norm_num]
+  simp only [rpow_zero, rpow_one, rpow_two, rpow_neg hlo.le, rpow_neg hhi.le]
+  rw [max_eq_right hlohi.le, min_eq_left hlohi.le, max_eq_left hinv, min_eq_right hinv]
+  constructor
+  · field_simp
+    ring
+  · field_simp
 
 /-- **Diaz–Metcalf inequality for powers of one family**: if `w i ≥ 0`, `y i > 0`,
 `y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 < m₁`, `0 ≤ m₂`, then

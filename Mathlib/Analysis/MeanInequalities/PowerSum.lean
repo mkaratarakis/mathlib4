@@ -41,8 +41,11 @@ compares these quantities for different exponents. Following
   for `0 < β ≤ α`, and `S β ^ (α / β) ≤ S α` for `α ≤ β` with `0 < β` and `0 < S β`, when every
   `x i ^ β` is at most `S β`.
 
-Dujella, Jakšetić and Pečarić chain these inequalities in the unweighted case `w = 1` (their
-Theorems 6 and 7).
+* `Real.holder_chain_of_one_lt_of_le`, `Real.holder_chain_of_one_lt_of_lt`,
+  `Real.holder_chain_of_lt_one_of_le`, `Real.holder_chain_of_lt_one_of_lt`: the chains obtained by
+  combining these inequalities, for `p > 1` or `0 < p < 1` and `α ≥ β` or `α < β`, when every
+  `x i ^ β` is at most `S β`. Dujella, Jakšetić and Pečarić prove them in the unweighted case
+  `w = 1` (their Theorems 6 and 7), where this hypothesis holds automatically.
 
 ## References
 
@@ -283,5 +286,100 @@ theorem rpow_sum_mul_rpow_le_sum_mul_rpow {α β : ℝ} (hαβ : α ≤ β) (hβ
         rpow_sum_mul_le_sum_mul_rpow s ((div_le_one hβ).2 hαβ) hw
           (fun i hi ↦ rpow_nonneg (hx0 i hi) _) hx hS
     _ = _ := sum_congr rfl fun i hi ↦ by rw [rpow_rpow_div α (hx0 i hi) hβ.ne']
+
+/-! ### Hölder chains -/
+
+/-- **Hölder chain, `p > 1`, `α ≥ β`** (Dujella–Jakšetić–Pečarić, Theorem 6, for `w = 1`). Let
+`p`, `q` be conjugate exponents, `α = u / p + v / q`, `0 < β ≤ α`, `w i ≥ 0` and `1 ≤ x i`, and
+suppose that every `x i ^ β` is at most `S β`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. Write
+`W = ∑ i ∈ s, w i`. Then `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)`,
+`W ^ (1 - α / β) * S β ^ (α / β) ≤ S α`, `S β ≤ W ^ (1 - α / β) * S β ^ (α / β)` and
+`S α ^ (β / α) ≤ S β`. -/
+theorem holder_chain_of_one_lt_of_le {p q u v α β : ℝ} (hpq : p.HolderConjugate q)
+    (hα : u / p + v / q = α) (hβ : 0 < β) (hβα : β ≤ α) (hw : ∀ i ∈ s, 0 ≤ w i)
+    (hx : ∀ i ∈ s, 1 ≤ x i) (hxS : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β) :
+    ∑ i ∈ s, w i * x i ^ α ≤
+        (∑ i ∈ s, w i * x i ^ u) ^ (1 / p) * (∑ i ∈ s, w i * x i ^ v) ^ (1 / q) ∧
+      (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤
+        ∑ i ∈ s, w i * x i ^ α ∧
+      ∑ i ∈ s, w i * x i ^ β ≤
+        (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ∧
+      (∑ i ∈ s, w i * x i ^ α) ^ (β / α) ≤ ∑ i ∈ s, w i * x i ^ β := by
+  have hx0 : ∀ i ∈ s, 0 < x i := fun i hi ↦ zero_lt_one.trans_le (hx i hi)
+  have hS (γ : ℝ) : 0 ≤ ∑ i ∈ s, w i * x i ^ γ :=
+    sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (rpow_nonneg (hx0 i hi).le _)
+  refine ⟨sum_mul_rpow_le_Lp_mul_Lq_of_one_lt s hpq hα hw hx0,
+    weight_mul_Lp_le_sum_mul_rpow s hβ hβα hw fun i hi ↦ (hx0 i hi).le, ?_, ?_⟩
+  · obtain hW | hW := (sum_nonneg hw).eq_or_lt
+    · -- all weights vanish
+      rw [sum_mul_eq_zero_of_sum_eq_zero hw hW.symm, ← hW]
+      positivity
+    exact le_rpow_one_sub_mul_rpow_of_le hW (sum_le_sum fun i hi ↦
+      le_mul_of_one_le_right (hw i hi) (one_le_rpow (hx i hi) hβ.le)) ((one_le_div hβ).2 hβα)
+  -- `S α ≤ S β ^ (α / β)`, raised to the power `β / α`
+  rw [← inv_div, rpow_inv_le_iff_of_pos (hS α) (hS β) (div_pos (hβ.trans_le hβα) hβ)]
+  exact sum_mul_rpow_le_rpow_sum_mul_rpow s hβ hβα hw (fun i hi ↦ (hx0 i hi).le) hxS
+
+/-- **Hölder chain, `p > 1`, `α < β`** (Dujella–Jakšetić–Pečarić, Theorem 6, for `w = 1`). Let
+`p`, `q` be conjugate exponents, `α = u / p + v / q < β` with `0 < β`, `w i ≥ 0` and `0 < x i`,
+and suppose that `0 < S β` and that every `x i ^ β` is at most `S β`, where
+`S γ = ∑ i ∈ s, w i * x i ^ γ`. Then `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` and
+`S β ^ (α / β) ≤ S α`. -/
+theorem holder_chain_of_one_lt_of_lt {p q u v α β : ℝ} (hpq : p.HolderConjugate q)
+    (hα : u / p + v / q = α) (hβ : 0 < β) (hαβ : α < β) (hw : ∀ i ∈ s, 0 ≤ w i)
+    (hx : ∀ i ∈ s, 0 < x i) (hxS : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β)
+    (hS : 0 < ∑ i ∈ s, w i * x i ^ β) :
+    ∑ i ∈ s, w i * x i ^ α ≤
+        (∑ i ∈ s, w i * x i ^ u) ^ (1 / p) * (∑ i ∈ s, w i * x i ^ v) ^ (1 / q) ∧
+      (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤ ∑ i ∈ s, w i * x i ^ α :=
+  ⟨sum_mul_rpow_le_Lp_mul_Lq_of_one_lt s hpq hα hw hx,
+    rpow_sum_mul_rpow_le_sum_mul_rpow s hαβ.le hβ hw (fun i hi ↦ (hx i hi).le) hxS hS⟩
+
+/-- **Hölder chain, `0 < p < 1`, `α ≥ β`** (Dujella–Jakšetić–Pečarić, Theorem 7, for `w = 1`).
+Let `0 < p < 1`, `p⁻¹ + q⁻¹ = 1`, `α = u / p + v / q`, `0 < β ≤ α`, `w i ≥ 0` and `0 < x i`, and
+suppose that every `x i ^ β` is at most `S β`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. Then
+`S u ^ (1 / p) * S v ^ (1 / q) ≤ S α` and `S α ≤ S β ^ (α / β)`. -/
+theorem holder_chain_of_lt_one_of_le {p q u v α β : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hβ : 0 < β) (hβα : β ≤ α)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 0 < x i)
+    (hxS : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β) :
+    (∑ i ∈ s, w i * x i ^ u) ^ (1 / p) * (∑ i ∈ s, w i * x i ^ v) ^ (1 / q) ≤
+        ∑ i ∈ s, w i * x i ^ α ∧
+      ∑ i ∈ s, w i * x i ^ α ≤ (∑ i ∈ s, w i * x i ^ β) ^ (α / β) :=
+  ⟨Lp_mul_Lq_le_sum_mul_rpow_of_lt_one s hp0 hp1 hpq hα hw hx,
+    sum_mul_rpow_le_rpow_sum_mul_rpow s hβ hβα hw (fun i hi ↦ (hx i hi).le) hxS⟩
+
+/-- **Hölder chain, `0 < p < 1`, `α < β`** (Dujella–Jakšetić–Pečarić, Theorem 7, for `w = 1`).
+Let `0 < p < 1`, `p⁻¹ + q⁻¹ = 1`, `0 < α = u / p + v / q < β`, `w i ≥ 0` and `1 ≤ x i`, and
+suppose that every `x i ^ β` is at most `S β`, where `S γ = ∑ i ∈ s, w i * x i ^ γ`. Write
+`W = ∑ i ∈ s, w i`. Then `S u ^ (1 / p) * S v ^ (1 / q) ≤ S α`,
+`S α ≤ W ^ (1 - α / β) * S β ^ (α / β)`, `W ^ (1 - α / β) * S β ^ (α / β) ≤ S β` and
+`S β ≤ S α ^ (β / α)`. -/
+theorem holder_chain_of_lt_one_of_lt {p q u v α β : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hpq : p⁻¹ + q⁻¹ = 1) (hα : u / p + v / q = α) (hα0 : 0 < α) (hαβ : α < β)
+    (hw : ∀ i ∈ s, 0 ≤ w i) (hx : ∀ i ∈ s, 1 ≤ x i)
+    (hxS : ∀ i ∈ s, x i ^ β ≤ ∑ j ∈ s, w j * x j ^ β) :
+    (∑ i ∈ s, w i * x i ^ u) ^ (1 / p) * (∑ i ∈ s, w i * x i ^ v) ^ (1 / q) ≤
+        ∑ i ∈ s, w i * x i ^ α ∧
+      ∑ i ∈ s, w i * x i ^ α ≤
+        (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ∧
+      (∑ i ∈ s, w i) ^ (1 - α / β) * (∑ i ∈ s, w i * x i ^ β) ^ (α / β) ≤
+        ∑ i ∈ s, w i * x i ^ β ∧
+      ∑ i ∈ s, w i * x i ^ β ≤ (∑ i ∈ s, w i * x i ^ α) ^ (β / α) := by
+  have hβ : 0 < β := hα0.trans hαβ
+  have hx0 : ∀ i ∈ s, 0 < x i := fun i hi ↦ zero_lt_one.trans_le (hx i hi)
+  have hS (γ : ℝ) : 0 ≤ ∑ i ∈ s, w i * x i ^ γ :=
+    sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (rpow_nonneg (hx0 i hi).le _)
+  refine ⟨Lp_mul_Lq_le_sum_mul_rpow_of_lt_one s hp0 hp1 hpq hα hw hx0,
+    sum_mul_rpow_le_weight_mul_Lp s hα0 hαβ.le hw fun i hi ↦ (hx0 i hi).le,
+    rpow_one_sub_mul_rpow_le_of_le (sum_nonneg hw) (sum_le_sum fun i hi ↦
+      le_mul_of_one_le_right (hw i hi) (one_le_rpow (hx i hi) hβ.le))
+      ((div_le_one hβ).2 hαβ.le), ?_⟩
+  -- `S β ^ (α / β) ≤ S α`, raised to the power `β / α`
+  obtain hSβ | hSβ := (hS β).eq_or_lt
+  · rw [← hSβ]
+    exact rpow_nonneg (hS α) _
+  rw [← inv_div, le_rpow_inv_iff_of_pos (hS β) (hS α) (by positivity)]
+  exact rpow_sum_mul_rpow_le_sum_mul_rpow s hαβ.le hβ hw (fun i hi ↦ (hx0 i hi).le) hxS hSβ
 
 end Real

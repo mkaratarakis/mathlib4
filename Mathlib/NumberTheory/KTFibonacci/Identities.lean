@@ -39,11 +39,13 @@ layers.
 * Over a commutative ring, for **every** solution `G` of the recurrence: weighted sums with
   weight `t ^ (n - i)` over `i ∈ Finset.Icc 1 n`, Cassini's identity, and the linear sums. The
   statements are division-free, and the right-hand sides involve `G` only at the top indices and
-  through the boundary values `G 0`, `G 1` and `G 2 = k * G 1 + t * G 0`.
+  through the boundary values `G 0`, `G 1` and `G 2 = k * G 1 + t * G 0`. Up to a constant factor,
+  `t ^ (n - i)` is the only weight for which the sums telescope term by term.
 * Over a commutative ring, the product formula `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`
   with its consequences `F i * L i = F (2 * i)`, `L m ^ 2 = L (2 * m) + 2 * (-t) ^ m` and
-  `L i * L (i + 1) = L (2 * i + 1) + k * (-t) ^ i`.
-* Over a field: the closed forms of the sums for `F` and `L`, dividing by `k` or by `k + t - 1`.
+  `L i * L (i + 1) = L (2 * i + 1) + k * (-t) ^ i`, and the unweighted sum of the `L i ^ 2`.
+* Over a field: the closed forms of the sums for `F` and `L`, dividing by `k`, by `k + t - 1` or,
+  for the unweighted sum of the `L i ^ 2`, by `k ^ 2 - (t - 1) ^ 2`.
 * Over a linearly ordered commutative ring: positivity of `F` and `L` for `0 < k` and `0 ≤ t`,
   and, for `1 ≤ k` and `0 ≤ t`, monotonicity of `L` and of `i ↦ L i * L (i + 1)` on `Set.Ici 1`
   (strict for `0 < t`) and the bound `L i ^ 2 ≤ ∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2` for
@@ -57,6 +59,10 @@ numbers.
 
 * `KTFib.mul_sum_Icc_pow_mul_sq`:
   `k * ∑ i ∈ Icc 1 n, t ^ (n - i) * G i ^ 2 = G n * G (n + 1) - t ^ n * G 0 * G 1`.
+* `KTFib.forall_sum_Icc_mul_sub_mul_eq_iff`: `∑ i ∈ Icc 1 n, c i * (P i - t * P (i - 1))` equals
+  `a * P n + b * P 0` for every sequence `P` if and only if `c i = a * t ^ (n - i)` and
+  `b = -(a * t ^ n)`; `KTFib.mul_sum_Icc_one_three_mul_sq`: other weights can still give an identity
+  of the same shape, through linear relations between the products `G i * G (i + 1)`.
 * `KTFib.mul_add_two_sub_succ_sq` (Cassini's identity):
   `G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2)`.
 * `KTFib.mul_lucas`: `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`.
@@ -67,6 +73,11 @@ numbers.
   the unweighted sums `KTFib.sum_fib` and `KTFib.sum_lucas` assume `k + t ≠ 1`, and the sums of
   `F (2 * i)`, `L (2 * i - 1)` and `L i * L (i + 1)` hold for every `k` (the last one needs
   `2 ≠ 0`).
+* `KTFib.sum_lucas_sq`: for `k ^ 2 ≠ (t - 1) ^ 2`, the unweighted sum
+  `∑ i ∈ Icc 1 n, L i ^ 2 = (L (2 * n + 2) - t ^ 2 * L (2 * n) - L 2 + 2 * t ^ 2) /
+  (k ^ 2 - (t - 1) ^ 2) + 2 * ∑ i ∈ Icc 1 n, (-t) ^ i`, from `KTFib.lucas_sq` and the recurrence
+  `KTFib.two_mul_add_two` of the even-indexed terms; `KTFib.sq_sub_sq_mul_sum_Icc_lucas_sq` is the
+  division-free form.
 * `KTFib.lucas_strictMonoOn`, `KTFib.lucas_monotoneOn`,
   `KTFib.lucas_mul_lucas_succ_monotoneOn`: for `1 ≤ k` and `0 ≤ t`, monotonicity from index `1`
   on (strict for `0 < t`), and `KTFib.lucas_mem_Icc`, `KTFib.lucas_mul_lucas_succ_mem_Icc`: for
@@ -161,6 +172,91 @@ theorem mul_sum_Icc_pow_mul_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n)
     rw [sum_Icc_succ_top_pow_sub_mul t _ (by omega)]
     linear_combination t * ih - G (n + 1) * hG n
 
+/-- **The telescoping weights**: for weights `c i` and constants `a`, `b`,
+`∑ i ∈ Icc 1 n, c i * (P i - t * P (i - 1)) = a * P n + b * P 0` holds for **every** sequence `P`
+if and only if `c i = a * t ^ (n - i)` for `1 ≤ i ≤ n` and `b = -(a * t ^ n)`. With
+`P i = G i * G (i + 1)` for a solution `G` of the recurrence, `k * G i ^ 2 = P i - t * P (i - 1)`,
+so up to a constant factor `t ^ (n - i)` is the only weight for which the sum in
+`KTFib.mul_sum_Icc_pow_mul_sq` telescopes term by term. -/
+theorem forall_sum_Icc_mul_sub_mul_eq_iff {c : ℕ → R} {a b : R} {n : ℕ} :
+    (∀ P : ℕ → R, ∑ i ∈ Icc 1 n, c i * (P i - t * P (i - 1)) = a * P n + b * P 0) ↔
+      (∀ i ∈ Icc 1 n, c i = a * t ^ (n - i)) ∧ b = -(a * t ^ n) := by
+  constructor
+  · intro h
+    -- test against the indicator sequences of single indices `j`
+    have key (j : ℕ) := h fun m ↦ if m = j then 1 else 0
+    have hsum (j : ℕ) : ∑ i ∈ Icc 1 n, c i * ((if i = j then (1 : R) else 0) -
+        t * if i - 1 = j then 1 else 0) =
+        (if j ∈ Icc 1 n then c j else 0) - t * if j + 1 ∈ Icc 1 n then c (j + 1) else 0 := by
+      rw [sum_congr rfl fun i hi ↦ show c i * ((if i = j then (1 : R) else 0) -
+          t * if i - 1 = j then 1 else 0) = (if i = j then c i else 0) -
+          t * (if i = j + 1 then c i else 0) by
+        have := (mem_Icc.1 hi).1
+        split_ifs <;> first | ring1 | (exfalso; omega)]
+      rw [sum_sub_distrib, ← mul_sum, sum_ite_eq', sum_ite_eq']
+    simp only [hsum, mem_Icc] at key
+    have hstep : ∀ j, 1 ≤ j → j < n → c j = t * c (j + 1) := fun j hj hjn ↦ by
+      have := key j
+      rw [ite_eq_left ⟨hj, hjn.le⟩, ite_eq_left ⟨by omega, hjn⟩, ite_eq_right (by omega),
+        ite_eq_right (by omega)] at this
+      linear_combination this
+    obtain rfl | hn := Nat.eq_zero_or_pos n
+    · have := key 0
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl] at this
+      exact ⟨fun i hi ↦ absurd (mem_Icc.1 hi) (by omega), by linear_combination -this⟩
+    have hcn : c n = a := by
+      have := key n
+      rw [ite_eq_left ⟨hn, le_rfl⟩, ite_eq_right (by omega), ite_eq_left rfl,
+        ite_eq_right (by omega)] at this
+      linear_combination this
+    have hc : ∀ m, m < n → c (n - m) = a * t ^ m := by
+      intro m
+      induction m with
+      | zero => simp [hcn]
+      | succ m ih =>
+        intro hm
+        rw [hstep (n - (m + 1)) (by omega) (by omega), show n - (m + 1) + 1 = n - m by omega,
+          ih (by omega)]
+        ring
+    refine ⟨fun i hi ↦ ?_, ?_⟩
+    · have hi' := mem_Icc.1 hi
+      have := hc (n - i) (by omega)
+      rwa [show n - (n - i) = i by omega] at this
+    · have h0 := key 0
+      rw [ite_eq_right (by omega), ite_eq_left ⟨le_rfl, hn⟩, ite_eq_right (by omega),
+        ite_eq_left rfl] at h0
+      have h1 := hc (n - 1) (by omega)
+      rw [show n - (n - 1) = 1 by omega] at h1
+      obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_lt hn
+      simp only [zero_add, Nat.add_sub_cancel] at h1
+      linear_combination -h0 - t * h1
+  · rintro ⟨hc, rfl⟩ P
+    have key (m : ℕ) :
+        ∑ i ∈ Icc 1 m, t ^ (m - i) * (P i - t * P (i - 1)) = P m - t ^ m * P 0 := by
+      induction m with
+      | zero => simp
+      | succ m ih =>
+        rw [sum_Icc_succ_top_pow_sub_mul t _ (by omega), ih, Nat.add_sub_cancel]
+        ring
+    rw [sum_congr rfl fun i hi ↦ by rw [hc i hi, mul_assoc], ← mul_sum, key]
+    ring
+
+/-- Weights other than `t ^ (n - i)` can still give an identity of the shape of
+`KTFib.mul_sum_Icc_pow_mul_sq`, through linear relations between the products `G i * G (i + 1)`:
+for `n = 3` and the weights `c 1 = -(t * (2 * k ^ 2 + t))`, `c 2 = -k ^ 2`, `c 3 = 1`, every
+solution `G` of `G (n + 2) = k * G (n + 1) + t * G n` satisfies
+`k * ∑ i ∈ Icc 1 3, c i * G i ^ 2 = 2 * k ^ 2 * t ^ 2 * (G 0 * G 1)`. These weights are
+proportional to `t ^ (3 - i)` only if `t = -k ^ 2`. -/
+theorem mul_sum_Icc_one_three_mul_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n)
+    {c : ℕ → R} (hc1 : c 1 = -(t * (2 * k ^ 2 + t))) (hc2 : c 2 = -k ^ 2) (hc3 : c 3 = 1) :
+    k * ∑ i ∈ Icc 1 3, c i * G i ^ 2 = 2 * k ^ 2 * t ^ 2 * (G 0 * G 1) := by
+  have h0 := hG 0
+  have h1 := hG 1
+  simp only [zero_add] at h0 h1
+  rw [show Icc 1 3 = {1, 2, 3} by rfl, sum_insert (by decide), sum_pair (by decide), hc1, hc2,
+    hc3, h1, h0]
+  ring
+
 /-- **Cassini's identity** for a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n`:
 `G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2)`. -/
 theorem mul_add_two_sub_succ_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n) (i : ℕ) :
@@ -250,6 +346,28 @@ theorem lucas_mul_lucas_succ (hL0 : L 0 = 2) (hL1 : L 1 = k)
     L i * L (i + 1) = L (2 * i + 1) + k * (-t) ^ i := by
   linear_combination (norm := ring_nf) mul_lucas hL hL0 hL1 hL i 1 + (-t) ^ i * hL1
 
+
+/-- The even-indexed terms of a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n` solve the
+`(k ^ 2 + 2 * t, -t ^ 2)`-recurrence:
+`G (2 * (n + 2)) = (k ^ 2 + 2 * t) * G (2 * (n + 1)) + -t ^ 2 * G (2 * n)`. -/
+theorem two_mul_add_two (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n) (n : ℕ) :
+    G (2 * (n + 2)) = (k ^ 2 + 2 * t) * G (2 * (n + 1)) + -t ^ 2 * G (2 * n) := by
+  linear_combination (norm := ring_nf) hG (2 * n + 2) + k * hG (2 * n + 1) - t * hG (2 * n)
+
+/-- The unweighted sum of squares of the `(k, t)`-Lucas numbers, in division-free form:
+`(k ^ 2 - (t - 1) ^ 2) * ∑ i ∈ Icc 1 n, L i ^ 2 =
+L (2 * n + 2) - t ^ 2 * L (2 * n) - L 2 + 2 * t ^ 2 +
+2 * (k ^ 2 - (t - 1) ^ 2) * ∑ i ∈ Icc 1 n, (-t) ^ i`. -/
+theorem sq_sub_sq_mul_sum_Icc_lucas_sq (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
+    (k ^ 2 - (t - 1) ^ 2) * ∑ i ∈ Icc 1 n, L i ^ 2 =
+      L (2 * n + 2) - t ^ 2 * L (2 * n) - L 2 + 2 * t ^ 2 +
+        2 * (k ^ 2 - (t - 1) ^ 2) * ∑ i ∈ Icc 1 n, (-t) ^ i := by
+  have h := add_sub_one_mul_sum_Icc (G := fun i ↦ L (2 * i)) (two_mul_add_two hL) n
+  simp only [mul_add, mul_one, mul_zero] at h
+  rw [sum_congr rfl fun i _ ↦ lucas_sq hL0 hL1 hL i, sum_add_distrib, ← mul_sum]
+  linear_combination h + t ^ 2 * hL0
+
 end CommRing
 
 /-! ### Closed forms over a field -/
@@ -306,6 +424,18 @@ theorem sum_lucas (hkt : k + t ≠ 1) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, L i = (L (n + 1) + t * L n - k - 2 * t) / (k + t - 1) := by
   rw [eq_div_iff (sub_ne_zero.2 hkt), mul_comm, add_sub_one_mul_sum_Icc hL, hL0, hL1]
+  ring
+
+/-- For `k ^ 2 ≠ (t - 1) ^ 2`, the unweighted sum of squares of the `(k, t)`-Lucas numbers:
+`∑ i ∈ Icc 1 n, L i ^ 2 = (L (2 * n + 2) - t ^ 2 * L (2 * n) - L 2 + 2 * t ^ 2) /
+(k ^ 2 - (t - 1) ^ 2) + 2 * ∑ i ∈ Icc 1 n, (-t) ^ i`. -/
+theorem sum_lucas_sq (hkt : k ^ 2 ≠ (t - 1) ^ 2) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
+    ∑ i ∈ Icc 1 n, L i ^ 2 =
+      (L (2 * n + 2) - t ^ 2 * L (2 * n) - L 2 + 2 * t ^ 2) / (k ^ 2 - (t - 1) ^ 2) +
+        2 * ∑ i ∈ Icc 1 n, (-t) ^ i := by
+  have hkt' : k ^ 2 - (t - 1) ^ 2 ≠ 0 := sub_ne_zero.2 hkt
+  rw [div_add' _ _ _ hkt', eq_div_iff hkt', mul_comm, sq_sub_sq_mul_sum_Icc_lucas_sq hL0 hL1 hL]
   ring
 
 /-- For `k ≠ 0`: `∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i - 1) = F (2 * n) / k`. -/
