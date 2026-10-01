@@ -80,7 +80,7 @@ private lemma sq_sum_eq_sum_mul_sum_iff (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1 
         (∑ i ∈ Icc 1 n, t ^ (n - i) * F i ^ 2) * ∑ i ∈ Icc 1 n, t ^ (n - i) * L i ^ 2 ↔
       n = 1 := by
   simp_rw [← fib_mul_lucas hF0 hF hL0 hL1 hL]
-  refine ⟨fun heq ↦ ?_, by rintro rfl; simp; ring⟩
+  refine ⟨fun heq ↦ ?_, by rintro rfl; simp [mul_pow]⟩
   by_contra h1
   have h := two_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq (Icc 1 n) (fun i ↦ t ^ (n - i)) F L
   have h12 : F 1 * L 2 - F 2 * L 1 = 2 * t := by
@@ -151,8 +151,8 @@ theorem sq_sum_pow_mul_fib_two_mul_le (ht : 0 ≤ t) (hF0 : F 0 = 0)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
       F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) := by
-  obtain rfl | hk := eq_or_ne k 0
-  · simp [fib_two_mul_eq_zero hF0 hF]
+  obtain hk | hk := eq_or_ne k 0
+  · simp [fib_two_mul_eq_zero hk hF0 hF, hk]
   rw [← sum_pow_mul_fib_sq hk hF0 hF, ← sum_pow_mul_lucas_sq hk hL0 hL1 hL]
   exact sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n
 

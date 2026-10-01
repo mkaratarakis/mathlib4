@@ -23,21 +23,22 @@ compares these quantities for different exponents. Following
   `∑ w i * y i ^ γ ≤ (∑ w i * y i) ^ γ` for `γ ≥ 1`, and the reverse inequality for `γ ≤ 1` when
   moreover `0 < ∑ w i * y i`, for `w i ≥ 0` and `y i ≥ 0` such that every `y i` is at most
   `∑ w i * y i` (for instance when `1 ≤ w i`).
-* `Real.sum_rpow_le_rpow_sum`, `Real.rpow_sum_le_sum_rpow`: the unweighted case
+* `Real.sum_rpow_le_rpow_sum`, `Real.rpow_sum_le_sum_rpow`: the unweighted case: for `y i ≥ 0`,
   `∑ y i ^ γ ≤ (∑ y i) ^ γ` for `γ ≥ 1`, and the reverse for `γ ≤ 1` when `0 < ∑ y i`.
 * `Real.sum_mul_rpow_le_Lp_mul_Lq_of_one_lt`, `Real.Lp_mul_Lq_le_sum_mul_rpow_of_lt_one`:
-  Hölder's inequality `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` for `α = u / p + v / q` and conjugate
-  exponents `p`, `q` with `p > 1`, and its reverse for `0 < p < 1`.
-* `Real.weight_mul_Lp_le_sum_mul_rpow`, `Real.sum_mul_rpow_le_weight_mul_Lp`: the power mean
-  inequality `W ^ (1 - α / β) * S β ^ (α / β) ≤ S α` for `0 < β ≤ α`, and its reverse for
-  `0 < α ≤ β`.
+  for `w i ≥ 0` and `0 < x i`, Hölder's inequality `S α ≤ S u ^ (1 / p) * S v ^ (1 / q)` for
+  `α = u / p + v / q` and conjugate exponents `p`, `q` with `p > 1`, and its reverse for
+  `0 < p < 1`.
+* `Real.weight_mul_Lp_le_sum_mul_rpow`, `Real.sum_mul_rpow_le_weight_mul_Lp`: for `w i ≥ 0`, the
+  power mean inequality `W ^ (1 - α / β) * S β ^ (α / β) ≤ S α` for `0 < β ≤ α`, and its reverse
+  for `0 < α ≤ β`.
 * `Real.le_rpow_one_sub_mul_rpow_of_le`, `Real.rpow_one_sub_mul_rpow_le_of_le`: for reals
   `0 < W ≤ S`, `S ≤ W ^ (1 - r) * S ^ r` if `1 ≤ r`, and `W ^ (1 - r) * S ^ r ≤ S` if `r ≤ 1`
   (where `0 ≤ W` suffices). With `r = α / β` they compare `S β` with the `weight_mul_Lp` term when
-  `W ≤ S β`, for instance when `1 ≤ x i`.
+  `W ≤ S β`, for instance when `0 ≤ β`, `0 ≤ w i` and `1 ≤ x i`.
 * `Real.sum_mul_rpow_le_rpow_sum_mul_rpow`, `Real.rpow_sum_mul_rpow_le_sum_mul_rpow`:
-  monotonicity of the weighted `ℓ^γ` norms `S γ ^ (1 / γ)`: `S α ≤ S β ^ (α / β)` for
-  `0 < β ≤ α`, and `S β ^ (α / β) ≤ S α` for `α ≤ β` with `0 < β` and `0 < S β`, when every
+  monotonicity of the weighted `ℓ^γ` norms `S γ ^ (1 / γ)` for `w i ≥ 0`: `S α ≤ S β ^ (α / β)`
+  for `0 < β ≤ α`, and `S β ^ (α / β) ≤ S α` for `α ≤ β` with `0 < β` and `0 < S β`, when every
   `x i ^ β` is at most `S β`.
 
 Dujella, Jakšetić and Pečarić chain these inequalities in the unweighted case `w = 1` (their
@@ -235,7 +236,7 @@ theorem weight_mul_Lp_le_sum_mul_rpow {α β : ℝ} (hβ : 0 < β) (hβα : β �
 
 /-- If `0 < W ≤ S` and `1 ≤ r`, then `S ≤ W ^ (1 - r) * S ^ r`. For `W = ∑ i ∈ s, w i`,
 `S = ∑ i ∈ s, w i * x i ^ β` and `r = α / β` this compares `S` with the `weight_mul_Lp` term; the
-hypothesis `W ≤ S` then holds for instance if `1 ≤ x i`. -/
+hypothesis `W ≤ S` then holds for instance if `0 ≤ β`, `0 ≤ w i` and `1 ≤ x i`. -/
 theorem le_rpow_one_sub_mul_rpow_of_le {W S r : ℝ} (hW : 0 < W) (hWS : W ≤ S) (hr : 1 ≤ r) :
     S ≤ W ^ (1 - r) * S ^ r := by
   have hS : 0 < S := hW.trans_le hWS
@@ -246,7 +247,7 @@ theorem le_rpow_one_sub_mul_rpow_of_le {W S r : ℝ} (hW : 0 < W) (hWS : W ≤ S
 
 /-- If `0 ≤ W ≤ S` and `r ≤ 1`, then `W ^ (1 - r) * S ^ r ≤ S`. For `W = ∑ i ∈ s, w i`,
 `S = ∑ i ∈ s, w i * x i ^ β` and `r = α / β` this compares the `weight_mul_Lp` term with `S`; the
-hypothesis `W ≤ S` then holds for instance if `1 ≤ x i`. -/
+hypothesis `W ≤ S` then holds for instance if `0 ≤ β`, `0 ≤ w i` and `1 ≤ x i`. -/
 theorem rpow_one_sub_mul_rpow_le_of_le {W S r : ℝ} (hW : 0 ≤ W) (hWS : W ≤ S) (hr : r ≤ 1) :
     W ^ (1 - r) * S ^ r ≤ S := by
   obtain rfl | hr := hr.eq_or_lt

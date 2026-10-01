@@ -6,6 +6,7 @@ Authors: Michail Karatarakis
 module
 
 public import Mathlib.Algebra.Order.BigOperators.Ring.Lagrange
+public import Mathlib.Analysis.Convex.ConverseJensen
 public import Mathlib.Analysis.Convex.SpecificFunctions.Pow
 public import Mathlib.Analysis.MeanInequalities.PowerSum
 public import Mathlib.Analysis.Real.Sqrt
@@ -22,12 +23,10 @@ when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
 
 ## Main results
 
-* `ConvexOn.lah_ribaric`, `ConcaveOn.lah_ribaric`: the **Lah–Ribarič inequality**: if `f` is
-  convex on `[m, M]`, `c i ≥ 0` and `r i ∈ [m, M]`, then
-  `(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ c ≤ (f M - f m) * ∑ c r`, and the
-  reverse inequality holds if `f` is concave on `[m, M]`.
-* `Real.converse_holder_linear_of_one_le`, `Real.converse_holder_linear_of_le_one`: the case
-  `f r = r ^ p`: for `c i ≥ 0` and `r i ∈ [m, M]` with `0 ≤ m`,
+* `Real.converse_holder_linear_of_one_le`, `Real.converse_holder_linear_of_le_one`: the
+  Lah–Ribarič inequality (`ConvexOn.lah_ribaric`, `ConcaveOn.lah_ribaric` in
+  `Mathlib.Analysis.Convex.ConverseJensen`) for the function `r ↦ r ^ p`: for `c i ≥ 0` and
+  `r i ∈ [m, M]` with `0 ≤ m`,
   `(M - m) * ∑ c r ^ p + (m * M ^ p - M * m ^ p) * ∑ c ≤ (M ^ p - m ^ p) * ∑ c r` for `p ≥ 1`,
   and the reverse inequality for `0 ≤ p ≤ 1`.
 * `Real.converse_holder_of_one_lt`, `Real.converse_holder_of_lt_one`: if moreover `0 < m < M`,
@@ -49,9 +48,11 @@ when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
   `S ((u + v) / 2) ^ 2 ≤ S u * S v` for powers of one positive family `y`.
 * `Real.polya_szego_rpow`, `Real.shisha_mond_rpow`, `Real.ozeki_rpow`, `Real.diaz_metcalf_rpow`:
   converse Cauchy–Schwarz inequalities between `S u`, `S v` and `S ((u + v) / 2)` for powers of
-  one positive family `y`, from the bounds `y i ^ (u / 2) ∈ [m₁, M₁]`, `y i ^ (v / 2) ∈ [m₂, M₂]`.
+  one positive family `y`, from the bounds `y i ^ (u / 2) ∈ [m₁, M₁]`, `y i ^ (v / 2) ∈ [m₂, M₂]`
+  with `0 < m₁` and `0 < m₂` (for Shisha–Mond `0 ≤ m₁` suffices, for Diaz–Metcalf `0 ≤ m₂`).
   For **Ozeki**'s inequality `S u * S v - S ((u + v) / 2) ^ 2 ≤ W ^ 2 / 4 * (M₁ M₂ - m₁ m₂) ^ 2`
-  the bounds are the values at the endpoints of an interval `[lo, hi]` containing every `y i`.
+  the bounds are the values at the endpoints of an interval `[lo, hi]` with `0 < lo` containing
+  every `y i`.
 
 Dujella, Jakšetić and Pečarić apply these inequalities in the unweighted case `w = 1` (their
 Theorems 8 and 9). The Diaz–Metcalf and Cassels inequalities for ratio bounds and the
@@ -74,8 +75,6 @@ of `t ↦ A * exp (σ * t) + B * exp (τ * t)` for `A, B ≥ 0`
 
 ## References
 
-* [P. Lah and M. Ribarič, *Converse of Jensen's inequality for convex functions*]
-  [lah_ribaric_1973]
 * [A. Dujella, J. Jakšetić and J. Pečarić, *Fibonacci numbers and Hölder inequality*]
   [dujella_jaksetic_pecaric]
 * [O. Shisha and B. Mond, *Bounds on differences of means*][shisha_mond_1967]
@@ -92,47 +91,6 @@ of `t ↦ A * exp (σ * t) + B * exp (τ * t)` for `A, B ≥ 0`
 public section
 
 open Finset
-
-/-! ### The Lah–Ribarič inequality -/
-
-section LahRibaric
-
-variable {ι : Type*} (s : Finset ι) {f : ℝ → ℝ} {c r : ι → ℝ} {m M : ℝ}
-
-/-- **Lah–Ribarič inequality**: if `f` is convex on `[m, M]`, `c i ≥ 0` and `r i ∈ [m, M]`, then
-the weighted sum of the values `f (r i)` lies below the chord of `f` over `[m, M]`:
-`(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i ≤
-(f M - f m) * ∑ i ∈ s, c i * r i`. -/
-theorem ConvexOn.lah_ribaric (hf : ConvexOn ℝ (Set.Icc m M) f) (hc : ∀ i ∈ s, 0 ≤ c i)
-    (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
-    (M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i ≤
-      (f M - f m) * ∑ i ∈ s, c i * r i := by
-  simp only [mul_sum, ← sum_add_distrib]
-  refine sum_le_sum fun i hi ↦ ?_
-  obtain ⟨hmr, hrM⟩ := hr i hi
-  have hchord : (M - m) * f (r i) ≤ (M - r i) * f m + (r i - m) * f M := by
-    obtain hmr | hmr := hmr.eq_or_lt
-    · simp [← hmr]
-    obtain hrM | hrM := hrM.eq_or_lt
-    · simp [hrM]
-    have hmM := (hmr.trans hrM).le
-    exact hf.secant_mono_aux1 ⟨le_rfl, hmM⟩ ⟨hmM, le_rfl⟩ hmr hrM
-  have := mul_le_mul_of_nonneg_left hchord (hc i hi)
-  linarith
-
-/-- **Lah–Ribarič inequality** for concave functions: if `f` is concave on `[m, M]`, `c i ≥ 0`
-and `r i ∈ [m, M]`, then the weighted sum of the values `f (r i)` lies above the chord of `f` over
-`[m, M]`: `(f M - f m) * ∑ i ∈ s, c i * r i ≤
-(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i`. -/
-theorem ConcaveOn.lah_ribaric (hf : ConcaveOn ℝ (Set.Icc m M) f) (hc : ∀ i ∈ s, 0 ≤ c i)
-    (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
-    (f M - f m) * ∑ i ∈ s, c i * r i ≤
-      (M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i := by
-  have := hf.neg.lah_ribaric s hc hr
-  simp only [Pi.neg_apply, mul_neg, sum_neg_distrib] at this
-  linarith
-
-end LahRibaric
 
 namespace Real
 

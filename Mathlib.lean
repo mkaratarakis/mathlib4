@@ -2000,6 +2000,7 @@ public import Mathlib.Analysis.Convex.Cone.TensorProduct
 public import Mathlib.Analysis.Convex.Continuous
 public import Mathlib.Analysis.Convex.ContinuousLinearEquiv
 public import Mathlib.Analysis.Convex.Contractible
+public import Mathlib.Analysis.Convex.ConverseJensen
 public import Mathlib.Analysis.Convex.Deriv
 public import Mathlib.Analysis.Convex.DoublyStochasticMatrix
 public import Mathlib.Analysis.Convex.EGauge

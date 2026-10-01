@@ -42,9 +42,10 @@ layers.
   with its consequences `F i * L i = F (2 * i)`, `L m ^ 2 = L (2 * m) + 2 * (-t) ^ m` and
   `L i * L (i + 1) = L (2 * i + 1) + k * (-t) ^ i`.
 * Over a field: the closed forms of the sums for `F` and `L`, dividing by `k` or by `k + t - 1`.
-* Over a linearly ordered commutative ring: positivity of `F` and `L`, monotonicity of `L`
-  and of `i ↦ L i * L (i + 1)` on `Set.Ici 1`, and the bound
-  `L i ^ 2 ≤ ∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2` for `1 ≤ i ≤ n`.
+* Over a linearly ordered commutative ring: positivity of `F` and `L` for `0 < k` and `0 ≤ t`,
+  and, for `1 ≤ k` and `0 ≤ t`, monotonicity of `L` and of `i ↦ L i * L (i + 1)` on `Set.Ici 1`
+  (strict for `0 < t`) and the bound `L i ^ 2 ≤ ∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2` for
+  `1 ≤ i ≤ n`.
 
 The weight `t ^ (n - i)` is what makes the sums telescope when `t ≠ 1`; at `t = 1` it disappears
 and the closed forms reduce to those of Batte and Kaggwa for the `k`-Fibonacci and `k`-Lucas
@@ -54,17 +55,19 @@ numbers.
 
 * `KTFib.mul_sum_Icc_pow_mul_sq`:
   `k * ∑ i ∈ Icc 1 n, t ^ (n - i) * G i ^ 2 = G n * G (n + 1) - t ^ n * G 0 * G 1`.
-* `KTFib.mul_add_two_sub_sq` (Cassini's identity):
+* `KTFib.mul_add_two_sub_succ_sq` (Cassini's identity):
   `G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2)`.
 * `KTFib.mul_lucas`: `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`.
 * `KTFib.fib_add`: `F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n`.
 * `KTFib.sum_pow_mul_lucas_sq`, `KTFib.sum_pow_mul_fib_sq`,
   `KTFib.sum_pow_mul_lucas_mul_lucas_succ`, `KTFib.sum_fib`, `KTFib.sum_lucas`, ...: closed forms
-  over a field.
+  over a field. The sums of `L i ^ 2`, `F i ^ 2`, `F (2 * i - 1)` and `L (2 * i)` assume `k ≠ 0`,
+  the unweighted sums `KTFib.sum_fib` and `KTFib.sum_lucas` assume `k + t ≠ 1`, and the sums of
+  `F (2 * i)`, `L (2 * i - 1)` and `L i * L (i + 1)` hold for every `k`.
 * `KTFib.lucas_strictMonoOn`, `KTFib.lucas_monotoneOn`,
-  `KTFib.lucas_mul_lucas_succ_monotoneOn`: monotonicity from index `1` on, and
-  `KTFib.lucas_mem_Icc`, `KTFib.lucas_mul_lucas_succ_mem_Icc`: for `1 ≤ i ≤ n`, the values at `i`
-  lie between those at `1` and at `n`.
+  `KTFib.lucas_mul_lucas_succ_monotoneOn`: for `1 ≤ k` and `0 ≤ t`, monotonicity from index `1`
+  on (strict for `0 < t`), and `KTFib.lucas_mem_Icc`, `KTFib.lucas_mul_lucas_succ_mem_Icc`: for
+  `1 ≤ k`, `0 ≤ t` and `1 ≤ i ≤ n`, the values at `i` lie between those at `1` and at `n`.
 * `KTFib.lucas_sq_le_sum_pow_mul_lucas_sq`: for `1 ≤ k` and `0 ≤ t`, every `L i ^ 2` with
   `1 ≤ i ≤ n` is at most `∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2`.
 * `KFib.add_two_eq_mul_add_one_mul`: the recurrence `X (n + 2) = k * X (n + 1) + X n` of the
@@ -116,7 +119,7 @@ theorem mul_sum_Icc_pow_mul_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n)
 
 /-- **Cassini's identity** for a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n`:
 `G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2)`. -/
-theorem mul_add_two_sub_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n) (i : ℕ) :
+theorem mul_add_two_sub_succ_sq (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n) (i : ℕ) :
     G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2) := by
   induction i with
   | zero => simp
@@ -134,7 +137,7 @@ theorem two_mul_mul_sum_Icc_pow_mul_mul_succ (hG : ∀ n, G (n + 2) = k * G (n +
   induction n with
   | zero => simp
   | succ n ih =>
-    have hC := mul_add_two_sub_sq hG n
+    have hC := mul_add_two_sub_succ_sq hG n
     rw [neg_pow] at hC
     rw [sum_Icc_succ_top_pow_sub_mul t _ (by omega)]
     linear_combination t * ih - 2 * t * hC - 2 * G (n + 2) * hG n
@@ -181,8 +184,8 @@ theorem lucas_add_one_eq_fib_add_two_add_mul_fib (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     L (n + 1) = F (n + 2) + t * F n := by
   induction n using Nat.twoStepInduction with
-  | zero => simp [hL1, hF, hF0, hF1]
-  | one => simp [hL, hF, hL0, hL1, hF0, hF1, mul_two, add_assoc]
+  | zero => simp only [hL1, hF, hF0, hF1]; ring
+  | one => simp only [hL, hF, hL0, hL1, hF0, hF1]; ring
   | more n ih1 ih2 => linear_combination hL (n + 1) + k * ih2 + t * ih1 - hF (n + 2) - t * hF n
 
 /-- The addition formula for the `(k, t)`-Fibonacci sequence:
@@ -191,14 +194,15 @@ theorem fib_add (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (
     (m n : ℕ) : F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n := by
   induction n using Nat.twoStepInduction with
   | zero => simp [hF0, hF1]
-  | one => simp [hF, hF0, hF1, mul_comm]
+  | one => simp only [hF, hF0, hF1]; ring
   | more n ih1 ih2 =>
     linear_combination hF (m + n + 1) + k * ih2 + t * ih1 - F (m + 1) * hF (n + 1) - t * F m * hF n
 
-/-- For `k = 0`, the `(k, t)`-Fibonacci numbers of even index vanish: if `F 0 = 0` and
-`F (n + 2) = 0 * F (n + 1) + t * F n`, then `F (2 * m) = 0`. -/
-theorem fib_two_mul_eq_zero (hF0 : F 0 = 0) (hF : ∀ n, F (n + 2) = 0 * F (n + 1) + t * F n)
-    (m : ℕ) : F (2 * m) = 0 := by
+/-- For `k = 0`, a solution `F` of `F (n + 2) = k * F (n + 1) + t * F n` with `F 0 = 0`
+vanishes at every even index: `F (2 * m) = 0`. -/
+theorem fib_two_mul_eq_zero (hk : k = 0) (hF0 : F 0 = 0)
+    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (m : ℕ) : F (2 * m) = 0 := by
+  subst hk
   induction m with
   | zero => exact hF0
   | succ m ih => rw [Nat.mul_succ, hF, ih, zero_mul, mul_zero, add_zero]
@@ -255,12 +259,20 @@ theorem sum_pow_mul_fib_sq (hk : k ≠ 0) (hF0 : F 0 = 0)
   rw [eq_div_iff hk, mul_comm, mul_sum_Icc_pow_mul_sq hF, hF0]
   ring
 
-/-- For `k ≠ 0` and `2 ≠ 0`: `∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) =
-(L (n + 1) ^ 2 - t ^ n * k ^ 2 + t ^ n * (k ^ 2 + 4 * t) * ((-1) ^ n - 1) / 2) / k`. -/
-theorem sum_pow_mul_lucas_mul_lucas_succ [NeZero (2 : K)] (hk : k ≠ 0) (hL0 : L 0 = 2)
+/-- For `2 ≠ 0`: `∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) =
+(L (n + 1) ^ 2 - t ^ n * k ^ 2 + t ^ n * (k ^ 2 + 4 * t) * ((-1) ^ n - 1) / 2) / k`. For `k = 0`
+both sides vanish. -/
+theorem sum_pow_mul_lucas_mul_lucas_succ [NeZero (2 : K)] (hL0 : L 0 = 2)
     (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) =
       (L (n + 1) ^ 2 - t ^ n * k ^ 2 + t ^ n * (k ^ 2 + 4 * t) * ((-1) ^ n - 1) / 2) / k := by
+  obtain hk | hk := eq_or_ne k 0
+  · have h := fib_two_mul_eq_zero (F := fun n ↦ L (n + 1)) hk (hL1.trans hk) fun n ↦ hL (n + 1)
+    rw [hk, div_zero]
+    refine sum_eq_zero fun i _ ↦ ?_
+    obtain ⟨j, rfl | rfl⟩ := Nat.even_or_odd' i
+    · rw [h j, mul_zero, mul_zero]
+    · rw [h j, zero_mul, mul_zero]
   have h := two_mul_mul_sum_Icc_pow_mul_mul_succ hL n
   rw [hL 0, hL0, hL1] at h
   rw [eq_div_iff hk]
@@ -294,15 +306,22 @@ sides vanish. -/
 theorem sum_pow_mul_fib_two_mul (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k := by
-  obtain rfl | hk := eq_or_ne k 0
-  · simp [fib_two_mul_eq_zero hF0 hF]
+  obtain hk | hk := eq_or_ne k 0
+  · simp [fib_two_mul_eq_zero hk hF0 hF, hk]
   rw [eq_div_iff hk, mul_comm, mul_sum_Icc_pow_mul_two_mul hF, hF1]
   ring
 
-/-- For `k ≠ 0`: `∑ i ∈ Icc 1 n, t ^ (n - i) * L (2 * i - 1) = (L (2 * n) - 2 * t ^ n) / k`. -/
-theorem sum_pow_mul_lucas_two_mul_sub_one (hk : k ≠ 0) (hL0 : L 0 = 2)
+/-- `∑ i ∈ Icc 1 n, t ^ (n - i) * L (2 * i - 1) = (L (2 * n) - 2 * t ^ n) / k`. For `k = 0` both
+sides vanish. -/
+theorem sum_pow_mul_lucas_two_mul_sub_one (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * L (2 * i - 1) = (L (2 * n) - 2 * t ^ n) / k := by
+  obtain hk | hk := eq_or_ne k 0
+  · have h := fib_two_mul_eq_zero (F := fun n ↦ L (n + 1)) hk (hL1.trans hk) fun n ↦ hL (n + 1)
+    rw [hk, div_zero]
+    refine sum_eq_zero fun i hi ↦ ?_
+    obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_le' (mem_Icc.1 hi).1
+    rw [show 2 * (j + 1) - 1 = 2 * j + 1 by omega, h j, mul_zero]
   rw [eq_div_iff hk, mul_comm, mul_sum_Icc_pow_mul_two_mul_sub_one hL, hL0]
   ring
 

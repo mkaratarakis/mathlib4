@@ -21,6 +21,8 @@ nonnegative (`Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul`). This file proves uppe
 
 ## Main results
 
+In all the inequalities below the weights satisfy `w i ≥ 0` for `i ∈ s`.
+
 * `Finset.two_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq`: the weighted Lagrange identity
   `2 * (A * B - C ^ 2) = ∑ i ∈ s, ∑ j ∈ s, w i * w j * (a i * b j - a j * b i) ^ 2`, in any
   commutative ring.
@@ -36,12 +38,12 @@ nonnegative (`Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul`). This file proves uppe
 * `Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_monovaryOn`,
   `Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_mul_add_mul_le`: the **Ozeki**-type
   bound `4 * (A * B - C ^ 2) ≤ W ^ 2 * (M₁ * M₂ - m₁ * m₂) ^ 2` for `a i ∈ [m₁, M₁]`,
-  `b i ∈ [m₂, M₂]` when `a` and `b` monovary, or when the points `(a i, b i)` lie below the line
-  through `(m₁, M₂)` and `(M₁, m₂)`. For arbitrary families the bound fails, see
-  `Counterexamples/Ozeki.lean`.
-* `div_mul_le_of_le_of_le`, `le_div_mul_of_le_of_le`: box bounds `m₁ ≤ a ≤ M₁`, `m₂ ≤ b ≤ M₂`
-  give the ratio bounds `m₁ / M₂ * b ≤ a` and `a ≤ M₁ / m₂ * b` used in the Diaz–Metcalf and
-  Cassels inequalities.
+  `b i ∈ [m₂, M₂]`, when `0 ≤ m₁`, `0 ≤ m₂` and `a` and `b` monovary, or when `0 < m₁`, `0 < m₂`
+  and the points `(a i, b i)` lie on or below the line through `(m₁, M₂)` and `(M₁, m₂)`. For
+  arbitrary families the bound fails, see `Counterexamples/Ozeki.lean`.
+* `div_mul_le_of_le_of_le`, `le_div_mul_of_le_of_le`: the ratio bounds `m₁ / M₂ * b ≤ a` if
+  `0 ≤ m₁ ≤ a` and `b ≤ M₂` with `0 ≤ M₂`, and `a ≤ M₁ / m₂ * b` if `a ≤ M₁` with `0 ≤ M₁` and
+  `0 < m₂ ≤ b`, used to apply the Diaz–Metcalf and Cassels inequalities to box bounds.
 
 `Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_mul_add_mul_le`, `div_mul_le_of_le_of_le`
 and `le_div_mul_of_le_of_le` are stated over a linearly ordered field; all the other results hold

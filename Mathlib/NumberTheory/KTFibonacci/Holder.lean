@@ -23,29 +23,33 @@ weights the sum of squares telescopes: `S 2 = D` with `D = (L n * L (n + 1) - 2 
 At `t = 1` all weights are `1` and `W = n`.
 
 The comparisons of weighted `ℓ^γ` norms in `Mathlib.Analysis.MeanInequalities.PowerSum` need
-every `L i ^ 2` to be at most `S 2`. This holds for `1 ≤ k` because the term `i = n` of `S 2` has
-weight `1` and `L` is increasing (`KTFib.lucas_sq_le_sum_pow_mul_lucas_sq`), and it holds for
-`1 ≤ t` because then every weight is at least `1`.
+every `L i ^ 2` to be at most `S 2`. For `0 ≤ t` this holds when `1 ≤ k`, because the term `i = n`
+of `S 2` has weight `1` and `L` is increasing (`KTFib.lucas_sq_le_sum_pow_mul_lucas_sq`), and when
+`1 ≤ t`, because then every weight is at least `1`.
 
 ## Main results
 
 * `KTFib.holder_lucas_of_one_lt_of_two_le`, `KTFib.holder_lucas_of_one_lt_of_lt_two`,
   `KTFib.holder_lucas_of_lt_one_of_two_le`, `KTFib.holder_lucas_of_lt_one_of_lt_two`
-  (Batte–Kaggwa, Theorem 1.2, for `t = 1`): for `t ≥ 0`, chains of inequalities comparing
-  `S α`, `α = u / p + v / q`, with the Hölder bound `S u ^ (1 / p) * S v ^ (1 / q)` and with `D`,
+  (Batte–Kaggwa, Theorem 1.2, for `t = 1`): chains of inequalities comparing `S α`,
+  `α = u / p + v / q`, with the Hölder bound `S u ^ (1 / p) * S v ^ (1 / q)` and with `D`,
   `D ^ (α / 2)` and `W ^ (1 - α / 2) * D ^ (α / 2)`, according to whether `p > 1` or
-  `0 < p < 1`, and `α ≥ 2` or `α < 2`.
+  `0 < p < 1`, and `α ≥ 2` or `α < 2`. All four assume `0 ≤ t`; the cases `p > 1, α ≥ 2` and
+  `0 < p < 1, 0 < α < 2` assume `1 ≤ k`, the other two assume `0 < k` and `1 ≤ k ∨ 1 ≤ t`
+  (and the case `p > 1, α < 2` also `1 ≤ n`).
 * `KTFib.converse_holder_lucas_of_one_lt_of_mem_Icc`,
-  `KTFib.converse_holder_lucas_of_lt_one_of_mem_Icc` (Theorem 1.3): for `u / p + v / q = 2` and
-  bounds `L i ^ ((u - v) / p) ∈ [m, M]` with `0 < m < M`, the linear and the multiplicative
-  converse Hölder inequalities between `S u`, `S v` and `D`.
+  `KTFib.converse_holder_lucas_of_lt_one_of_mem_Icc` (Theorem 1.3): for `0 < k`, `0 ≤ t`,
+  `u / p + v / q = 2` and bounds `L i ^ ((u - v) / p) ∈ [m, M]` with `0 < m < M`, the linear and
+  the multiplicative converse Hölder inequalities between `S u`, `S v` and `D`.
 * `KTFib.converse_holder_lucas_of_one_lt`, `KTFib.converse_holder_lucas_of_lt_one`: the same with
   `m`, `M` the smaller and the larger of the endpoint values `L 1 ^ ((u - v) / p)` and
-  `L n ^ ((u - v) / p)`. These bound every `L i ^ ((u - v) / p)` (`KTFib.lucas_rpow_mem_uIcc`),
-  and `0 < m < M` holds when `0 < t`, `2 ≤ n` and `u ≠ v` (`KTFib.min_lucas_rpow_pos`,
+  `L n ^ ((u - v) / p)`, for `1 ≤ k`, `0 < t`, `2 ≤ n` and `u ≠ v`. For `1 ≤ k` and `0 ≤ t` these
+  bound every `L i ^ ((u - v) / p)` (`KTFib.lucas_rpow_mem_uIcc`), and `0 < m < M` holds when
+  `1 ≤ k`, `0 < t`, `2 ≤ n` and `u ≠ v` (`KTFib.min_lucas_rpow_pos`,
   `KTFib.min_lucas_rpow_lt_max`).
-* `KTFib.converse_cauchy_schwarz_lucas_mul_lucas_succ` (Theorem 1.4): the converse Cauchy–Schwarz
-  inequalities for the power sums of `x i = L i * L (i + 1)` with weights `t ^ (n - i)`; see
+* `KTFib.converse_cauchy_schwarz_lucas_mul_lucas_succ` (Theorem 1.4): for `1 ≤ k`, `0 ≤ t`,
+  `1 ≤ n` and `u + v = 2`, the converse Cauchy–Schwarz inequalities for the power sums of
+  `x i = L i * L (i + 1)` with weights `t ^ (n - i)`; see
   `KTFib.lucas_mul_lucas_succ_rpow_mem_uIcc` for the bounds.
 * `KFib.holder_lucas_of_one_lt_of_two_le`, ..., `KFib.converse_cauchy_schwarz_lucas_mul_lucas_succ`:
   the results of Batte and Kaggwa, i.e. the case `t = 1`, where `W = n`.
@@ -430,7 +434,7 @@ theorem converse_cauchy_schwarz_lucas_mul_lucas_succ (hk : 1 ≤ k) (ht : 0 ≤ 
     (Real.rpow_pos_of_pos (hx0 n) _)
   have hnI : n ∈ Icc 1 n := mem_Icc.2 ⟨hn, le_rfl⟩
   have hP' : P = ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ ((u + v) / 2) := by
-    rw [hP, ← sum_pow_mul_lucas_mul_lucas_succ hk0.ne' hL0 hL1 hL, huv, div_self two_ne_zero]
+    rw [hP, ← sum_pow_mul_lucas_mul_lucas_succ hL0 hL1 hL, huv, div_self two_ne_zero]
     simp only [Real.rpow_one]
   have hPpos : 0 < ∑ i ∈ Icc 1 n, t ^ (n - i) * (L i * L (i + 1)) ^ ((u + v) / 2) :=
     sum_pos' (fun i hi ↦ mul_nonneg (hw i hi) (Real.rpow_nonneg (hx0 i).le _))

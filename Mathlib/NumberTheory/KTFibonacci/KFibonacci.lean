@@ -26,9 +26,11 @@ once the recurrence is written as `X (n + 2) = k * X (n + 1) + 1 * X n`
 (Lemma 2.3) and `KTFib.lucas_lt_lucas_succ` (Lemma 2.4). The Hölder-type inequalities at
 `t = 1` (Theorems 1.2, 1.3 and 1.4) are at the end of `Mathlib.NumberTheory.KTFibonacci.Holder`.
 
-Batte and Kaggwa take `k` to be a positive integer. Here the identities hold over any field,
-with `k ≠ 0` except for the sum of the terms of even index (and `2 ≠ 0` for the sum of
-consecutive products), and the cross-family bounds hold over any linearly ordered field.
+Batte and Kaggwa take `k` to be a positive integer. Here the identities hold over any field.
+The closed forms for `∑ F (2 * i)`, `∑ L (2 * i - 1)` and `∑ L i * L (i + 1)` hold for every `k`
+(the last one needs `2 ≠ 0`); the other closed forms, such as `KFib.sum_lucas_two_mul`, assume
+`k ≠ 0`. The cross-family bounds hold over any linearly ordered field, for every `k`; the
+equality case `KFib.sq_sum_fib_two_mul_eq_iff` assumes `k ≠ 0`.
 
 At `k = 1` we also record their Corollary 5.1 for the Fibonacci numbers `Nat.fib` and the Lucas
 numbers, over `ℤ`.
@@ -68,14 +70,17 @@ theorem sum_fib_sq (hk : k ≠ 0) (hF0 : F 0 = 0) (hF : ∀ n, F (n + 2) = k * F
   simpa only [one_pow, one_mul] using
     KTFib.sum_pow_mul_fib_sq hk hF0 (add_two_eq_mul_add_one_mul hF) n
 
-/-- For `k ≠ 0` and `2 ≠ 0`, `∑ i ∈ Icc 1 n, L i * L (i + 1) =
-L (n + 1) ^ 2 / k - k + ((-1) ^ n - 1) * (2 / k + k / 2)` (Batte–Kaggwa, Theorem 1.1). -/
-theorem sum_lucas_mul_lucas_succ [NeZero (2 : K)] (hk : k ≠ 0) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+/-- For `2 ≠ 0`, `∑ i ∈ Icc 1 n, L i * L (i + 1) =
+L (n + 1) ^ 2 / k - k + ((-1) ^ n - 1) * (2 / k + k / 2)` (Batte–Kaggwa, Theorem 1.1). For
+`k = 0` both sides vanish. -/
+theorem sum_lucas_mul_lucas_succ [NeZero (2 : K)] (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, L i * L (i + 1) =
       L (n + 1) ^ 2 / k - k + ((-1) ^ n - 1) * (2 / k + k / 2) := by
-  have h := KTFib.sum_pow_mul_lucas_mul_lucas_succ hk hL0 hL1 (add_two_eq_mul_add_one_mul hL) n
+  have h := KTFib.sum_pow_mul_lucas_mul_lucas_succ hL0 hL1 (add_two_eq_mul_add_one_mul hL) n
   simp only [one_pow, one_mul] at h
+  obtain rfl | hk := eq_or_ne k 0
+  · simpa using h
   rw [h]
   field_simp
   ring
@@ -111,13 +116,13 @@ theorem sum_fib_two_mul (hF0 : F 0 = 0) (hF1 : F 1 = 1)
   simpa only [one_pow, one_mul] using
     KTFib.sum_pow_mul_fib_two_mul hF0 hF1 (add_two_eq_mul_add_one_mul hF) n
 
-/-- For `k ≠ 0`, `∑ i ∈ Icc 1 n, L (2 * i - 1) = (L (2 * n) - 2) / k`
-(Batte–Kaggwa, Theorem 4.1, (4.5)). -/
-theorem sum_lucas_two_mul_sub_one (hk : k ≠ 0) (hL0 : L 0 = 2)
+/-- `∑ i ∈ Icc 1 n, L (2 * i - 1) = (L (2 * n) - 2) / k` (Batte–Kaggwa, Theorem 4.1, (4.5)).
+For `k = 0` both sides vanish. -/
+theorem sum_lucas_two_mul_sub_one (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + L n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, L (2 * i - 1) = (L (2 * n) - 2) / k := by
   simpa only [one_pow, one_mul, mul_one] using
-    KTFib.sum_pow_mul_lucas_two_mul_sub_one hk hL0 (add_two_eq_mul_add_one_mul hL) n
+    KTFib.sum_pow_mul_lucas_two_mul_sub_one hL0 hL1 (add_two_eq_mul_add_one_mul hL) n
 
 /-- For `k ≠ 0`, `∑ i ∈ Icc 1 n, L (2 * i) = (L (2 * n + 1) - k) / k`
 (Batte–Kaggwa, Theorem 4.1, (4.6)). -/
