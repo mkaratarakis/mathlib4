@@ -30,15 +30,17 @@ sequence `L` is the Dickson polynomial `Polynomial.dickson 1 (-t)` evaluated at 
 `Polynomial.eval_dickson_two_eq_add_one`).
 
 No new definition is introduced: every statement takes the sequences as functions `ℕ → R`,
-together with the recurrence and the relevant initial values as hypotheses. The file has four
+together with the recurrence and the relevant initial values as hypotheses. The file has five
 layers.
 
+* Over a commutative semiring, the subtraction-free identities: `L` in terms of `F`, the addition
+  formula `G (m + n + 1) = G (m + 1) * F (n + 1) + t * G m * F n` for every solution `G`, and the
+  vanishing of `F` at even indices when `k = 0`.
 * Over a commutative ring, for **every** solution `G` of the recurrence: weighted sums with
   weight `t ^ (n - i)` over `i ∈ Finset.Icc 1 n`, Cassini's identity, and the linear sums. The
   statements are division-free, and the right-hand sides involve `G` only at the top indices and
   through the boundary values `G 0`, `G 1` and `G 2 = k * G 1 + t * G 0`.
-* Over a commutative ring, identities that fix initial values: `L` in terms of `F`, the addition
-  formula for `F`, and the product formula `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`
+* Over a commutative ring, the product formula `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`
   with its consequences `F i * L i = F (2 * i)`, `L m ^ 2 = L (2 * m) + 2 * (-t) ^ m` and
   `L i * L (i + 1) = L (2 * i + 1) + k * (-t) ^ i`.
 * Over a field: the closed forms of the sums for `F` and `L`, dividing by `k` or by `k + t - 1`.
@@ -58,12 +60,13 @@ numbers.
 * `KTFib.mul_add_two_sub_succ_sq` (Cassini's identity):
   `G i * G (i + 2) - G (i + 1) ^ 2 = (-t) ^ i * (G 0 * G 2 - G 1 ^ 2)`.
 * `KTFib.mul_lucas`: `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`.
-* `KTFib.fib_add`: `F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n`.
+* `KTFib.add_add_one_eq_mul_fib_add`: `G (m + n + 1) = G (m + 1) * F (n + 1) + t * G m * F n`.
 * `KTFib.sum_pow_mul_lucas_sq`, `KTFib.sum_pow_mul_fib_sq`,
   `KTFib.sum_pow_mul_lucas_mul_lucas_succ`, `KTFib.sum_fib`, `KTFib.sum_lucas`, ...: closed forms
   over a field. The sums of `L i ^ 2`, `F i ^ 2`, `F (2 * i - 1)` and `L (2 * i)` assume `k ≠ 0`,
   the unweighted sums `KTFib.sum_fib` and `KTFib.sum_lucas` assume `k + t ≠ 1`, and the sums of
-  `F (2 * i)`, `L (2 * i - 1)` and `L i * L (i + 1)` hold for every `k`.
+  `F (2 * i)`, `L (2 * i - 1)` and `L i * L (i + 1)` hold for every `k` (the last one needs
+  `2 ≠ 0`).
 * `KTFib.lucas_strictMonoOn`, `KTFib.lucas_monotoneOn`,
   `KTFib.lucas_mul_lucas_succ_monotoneOn`: for `1 ≤ k` and `0 ≤ t`, monotonicity from index `1`
   on (strict for `0 < t`), and `KTFib.lucas_mem_Icc`, `KTFib.lucas_mul_lucas_succ_mem_Icc`: for
@@ -90,17 +93,58 @@ open Finset
 /-- Peeling off the top term of a sum weighted by `t ^ (n - i)`: for `a ≤ n + 1`,
 `∑ i ∈ Icc a (n + 1), t ^ (n + 1 - i) * f i = t * ∑ i ∈ Icc a n, t ^ (n - i) * f i + f (n + 1)`.
 -/
-theorem Finset.sum_Icc_succ_top_pow_sub_mul {R : Type*} [CommSemiring R] (t : R) (f : ℕ → R)
+theorem Finset.sum_Icc_succ_top_pow_sub_mul {R : Type*} [Semiring R] (t : R) (f : ℕ → R)
     {a n : ℕ} (ha : a ≤ n + 1) :
     ∑ i ∈ Icc a (n + 1), t ^ (n + 1 - i) * f i =
       t * ∑ i ∈ Icc a n, t ^ (n - i) * f i + f (n + 1) := by
   rw [sum_Icc_succ_top ha, mul_sum, Nat.sub_self, pow_zero, one_mul]
   congr 1
   refine sum_congr rfl fun i hi ↦ ?_
-  rw [Nat.sub_add_comm (mem_Icc.1 hi).2, pow_succ]
-  ring
+  rw [Nat.sub_add_comm (mem_Icc.1 hi).2, pow_succ', mul_assoc]
 
 namespace KTFib
+
+/-! ### Subtraction-free identities -/
+
+/-- For `k = 0`, a solution `F` of `F (n + 2) = k * F (n + 1) + t * F n` with `F 0 = 0`
+vanishes at every even index: `F (2 * m) = 0`. -/
+theorem fib_two_mul_eq_zero {R : Type*} [NonAssocSemiring R] {k t : R} {F : ℕ → R} (hk : k = 0)
+    (hF0 : F 0 = 0) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (m : ℕ) : F (2 * m) = 0 := by
+  subst hk
+  induction m with
+  | zero => exact hF0
+  | succ m ih => rw [Nat.mul_succ, hF, ih, zero_mul, mul_zero, add_zero]
+
+section CommSemiring
+
+variable {R : Type*} [CommSemiring R] {k t : R} {G F L : ℕ → R}
+
+/-- The `(k, t)`-Lucas sequence in terms of the `(k, t)`-Fibonacci sequence:
+`L (n + 1) = F (n + 2) + t * F n`. -/
+theorem lucas_add_one_eq_fib_add_two_add_mul_fib (hF0 : F 0 = 0) (hF1 : F 1 = 1)
+    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
+    L (n + 1) = F (n + 2) + t * F n := by
+  induction n using Nat.twoStepInduction with
+  | zero => simp only [hL1, hF, hF0, hF1]; ring
+  | one => simp only [hL, hF, hL0, hL1, hF0, hF1]; ring
+  | more n ih1 ih2 => rw [hL (n + 1), ih2, ih1, hF (n + 2), hF (n + 1), hF n]; ring
+
+/-- The addition formula for a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n`, in terms of
+the `(k, t)`-Fibonacci sequence `F`: `G (m + n + 1) = G (m + 1) * F (n + 1) + t * G m * F n`.
+For `G = F` this is `F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n`. -/
+theorem add_add_one_eq_mul_fib_add (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n)
+    (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (m n : ℕ) :
+    G (m + n + 1) = G (m + 1) * F (n + 1) + t * G m * F n := by
+  induction n using Nat.twoStepInduction with
+  | zero => simp [hF0, hF1]
+  | one => simp only [hF, hF0, hF1, hG]; ring
+  | more n ih1 ih2 =>
+    rw [show m + (n + 2) + 1 = m + n + 1 + 2 by omega, hG,
+      show m + n + 1 + 1 = m + (n + 1) + 1 by omega, ih2, ih1, hF (n + 1), hF n]
+    ring
+
+end CommSemiring
 
 section CommRing
 
@@ -176,36 +220,6 @@ theorem mul_sum_Icc_pow_mul_two_mul (hG : ∀ n, G (n + 2) = k * G (n + 1) + t *
     linear_combination (norm := ring_nf) t * ih - hG (2 * n + 1)
 
 variable {F L : ℕ → R}
-
-/-- The `(k, t)`-Lucas sequence in terms of the `(k, t)`-Fibonacci sequence:
-`L (n + 1) = F (n + 2) + t * F n`. -/
-theorem lucas_add_one_eq_fib_add_two_add_mul_fib (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
-    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
-    L (n + 1) = F (n + 2) + t * F n := by
-  induction n using Nat.twoStepInduction with
-  | zero => simp only [hL1, hF, hF0, hF1]; ring
-  | one => simp only [hL, hF, hL0, hL1, hF0, hF1]; ring
-  | more n ih1 ih2 => linear_combination hL (n + 1) + k * ih2 + t * ih1 - hF (n + 2) - t * hF n
-
-/-- The addition formula for the `(k, t)`-Fibonacci sequence:
-`F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n`. -/
-theorem fib_add (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n)
-    (m n : ℕ) : F (m + n + 1) = F (m + 1) * F (n + 1) + t * F m * F n := by
-  induction n using Nat.twoStepInduction with
-  | zero => simp [hF0, hF1]
-  | one => simp only [hF, hF0, hF1]; ring
-  | more n ih1 ih2 =>
-    linear_combination hF (m + n + 1) + k * ih2 + t * ih1 - F (m + 1) * hF (n + 1) - t * F m * hF n
-
-/-- For `k = 0`, a solution `F` of `F (n + 2) = k * F (n + 1) + t * F n` with `F 0 = 0`
-vanishes at every even index: `F (2 * m) = 0`. -/
-theorem fib_two_mul_eq_zero (hk : k = 0) (hF0 : F 0 = 0)
-    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (m : ℕ) : F (2 * m) = 0 := by
-  subst hk
-  induction m with
-  | zero => exact hF0
-  | succ m ih => rw [Nat.mul_succ, hF, ih, zero_mul, mul_zero, add_zero]
 
 /-- Multiplying a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n` by the
 `(k, t)`-Lucas sequence: `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`. -/

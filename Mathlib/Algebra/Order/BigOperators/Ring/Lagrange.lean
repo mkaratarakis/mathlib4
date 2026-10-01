@@ -45,9 +45,10 @@ In all the inequalities below the weights satisfy `w i ≥ 0` for `i ∈ s`.
   `0 ≤ m₁ ≤ a` and `b ≤ M₂` with `0 ≤ M₂`, and `a ≤ M₁ / m₂ * b` if `a ≤ M₁` with `0 ≤ M₁` and
   `0 < m₂ ≤ b`, used to apply the Diaz–Metcalf and Cassels inequalities to box bounds.
 
-`Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_mul_add_mul_le`, `div_mul_le_of_le_of_le`
-and `le_div_mul_of_le_of_le` are stated over a linearly ordered field; all the other results hold
-in any linearly ordered commutative ring, and the Lagrange identity in any commutative ring.
+`Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_mul_add_mul_le` is stated over a linearly
+ordered field, and `div_mul_le_of_le_of_le` and `le_div_mul_of_le_of_le` over a linearly ordered
+semifield; all the other results hold in any linearly ordered commutative ring, and the Lagrange
+identity in any commutative ring.
 
 ## References
 
@@ -236,9 +237,9 @@ end OrderedField
 
 end Finset
 
-section OrderedField
+section OrderedSemifield
 
-variable [Field K] [LinearOrder K] [IsStrictOrderedRing K]
+variable [Semifield K] [LinearOrder K] [IsStrictOrderedRing K]
 
 /-- If `0 ≤ m₁ ≤ a` and `b ≤ M₂` with `0 ≤ M₂`, then `m₁ / M₂ * b ≤ a`. -/
 theorem div_mul_le_of_le_of_le {a b m₁ M₂ : K} (hm₁ : 0 ≤ m₁) (hM₂ : 0 ≤ M₂) (ha : m₁ ≤ a)
@@ -256,4 +257,4 @@ theorem le_div_mul_of_le_of_le {a b M₁ m₂ : K} (hM₁ : 0 ≤ M₁) (hm₂ :
     _ = M₁ / m₂ * m₂ := (div_mul_cancel₀ _ hm₂.ne').symm
     _ ≤ M₁ / m₂ * b := mul_le_mul_of_nonneg_left hb (div_nonneg hM₁ hm₂.le)
 
-end OrderedField
+end OrderedSemifield
