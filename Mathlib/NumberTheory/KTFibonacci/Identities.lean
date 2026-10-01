@@ -10,6 +10,8 @@ public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Algebra.Field.Defs
 public import Mathlib.Algebra.Order.BigOperators.Group.Finset
 public import Mathlib.Algebra.Order.Ring.Defs
+import Mathlib.Data.Set.Monotone
+import Mathlib.Order.Interval.Set.Image
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Linarith
@@ -60,11 +62,13 @@ numbers.
   `KTFib.sum_pow_mul_lucas_mul_lucas_succ`, `KTFib.sum_fib`, `KTFib.sum_lucas`, ...: closed forms
   over a field.
 * `KTFib.lucas_strictMonoOn`, `KTFib.lucas_monotoneOn`,
-  `KTFib.lucas_mul_lucas_succ_monotoneOn`: monotonicity from index `1` on.
+  `KTFib.lucas_mul_lucas_succ_monotoneOn`: monotonicity from index `1` on, and
+  `KTFib.lucas_mem_Icc`, `KTFib.lucas_mul_lucas_succ_mem_Icc`: for `1 ≤ i ≤ n`, the values at `i`
+  lie between those at `1` and at `n`.
 * `KTFib.lucas_sq_le_sum_pow_mul_lucas_sq`: for `1 ≤ k` and `0 ≤ t`, every `L i ^ 2` with
   `1 ≤ i ≤ n` is at most `∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2`.
-* `KFib.rec_one`: the recurrence `X (n + 2) = k * X (n + 1) + X n` of the `k`-Fibonacci and
-  `k`-Lucas numbers, written as the `(k, 1)`-recurrence.
+* `KFib.add_two_eq_mul_add_one_mul`: the recurrence `X (n + 2) = k * X (n + 1) + X n` of the
+  `k`-Fibonacci and `k`-Lucas numbers, written as the `(k, 1)`-recurrence.
 
 ## References
 
@@ -191,6 +195,14 @@ theorem fib_add (hF0 : F 0 = 0) (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (
   | more n ih1 ih2 =>
     linear_combination hF (m + n + 1) + k * ih2 + t * ih1 - F (m + 1) * hF (n + 1) - t * F m * hF n
 
+/-- For `k = 0`, the `(k, t)`-Fibonacci numbers of even index vanish: if `F 0 = 0` and
+`F (n + 2) = 0 * F (n + 1) + t * F n`, then `F (2 * m) = 0`. -/
+theorem fib_two_mul_eq_zero (hF0 : F 0 = 0) (hF : ∀ n, F (n + 2) = 0 * F (n + 1) + t * F n)
+    (m : ℕ) : F (2 * m) = 0 := by
+  induction m with
+  | zero => exact hF0
+  | succ m ih => rw [Nat.mul_succ, hF, ih, zero_mul, mul_zero, add_zero]
+
 /-- Multiplying a solution `G` of `G (n + 2) = k * G (n + 1) + t * G n` by the
 `(k, t)`-Lucas sequence: `G (n + m) * L m = G (n + 2 * m) + (-t) ^ m * G n`. -/
 theorem mul_lucas (hG : ∀ n, G (n + 2) = k * G (n + 1) + t * G n) (hL0 : L 0 = 2)
@@ -277,10 +289,13 @@ theorem sum_pow_mul_fib_two_mul_sub_one (hk : k ≠ 0) (hF0 : F 0 = 0)
   rw [eq_div_iff hk, mul_comm, mul_sum_Icc_pow_mul_two_mul_sub_one hF, hF0]
   ring
 
-/-- For `k ≠ 0`: `∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k`. -/
-theorem sum_pow_mul_fib_two_mul (hk : k ≠ 0) (hF1 : F 1 = 1)
+/-- `∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k`. For `k = 0` both
+sides vanish. -/
+theorem sum_pow_mul_fib_two_mul (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (n : ℕ) :
     ∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i) = (F (2 * n + 1) - t ^ n) / k := by
+  obtain rfl | hk := eq_or_ne k 0
+  · simp [fib_two_mul_eq_zero hF0 hF]
   rw [eq_div_iff hk, mul_comm, mul_sum_Icc_pow_mul_two_mul hF, hF1]
   ring
 
@@ -372,6 +387,22 @@ theorem lucas_mul_lucas_succ_monotoneOn (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0
   exact hL'.mul (fun i hi j hj hij ↦ hL' (Nat.le_succ_of_le hi) (Nat.le_succ_of_le hj) (by omega))
     (fun i _ ↦ hpos i) fun i _ ↦ hpos (i + 1)
 
+/-- For `1 ≤ k` and `0 ≤ t`, `L i` lies between `L 1` and `L n` for every `i ∈ Icc 1 n`. -/
+theorem lucas_mem_Icc (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {i n : ℕ} (hi : i ∈ Icc 1 n) :
+    L i ∈ Set.Icc (L 1) (L n) :=
+  (MonotoneOn.mono (lucas_monotoneOn hk ht hL0 hL1 hL) Set.Icc_subset_Ici_self).mapsTo_Icc
+    (Set.mem_Icc.2 (mem_Icc.1 hi))
+
+/-- For `1 ≤ k` and `0 ≤ t`, `L i * L (i + 1)` lies between `L 1 * L 2` and `L n * L (n + 1)` for
+every `i ∈ Icc 1 n`. -/
+theorem lucas_mul_lucas_succ_mem_Icc (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+    (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {i n : ℕ} (hi : i ∈ Icc 1 n) :
+    L i * L (i + 1) ∈ Set.Icc (L 1 * L 2) (L n * L (n + 1)) :=
+  (MonotoneOn.mono (lucas_mul_lucas_succ_monotoneOn hk ht hL0 hL1 hL)
+    Set.Icc_subset_Ici_self).mapsTo_Icc
+    (Set.mem_Icc.2 (mem_Icc.1 hi))
+
 /-- For `1 ≤ k` and `0 < t`, the products `L i * L (i + 1)` are strictly increasing from index
 `1` on. -/
 theorem lucas_mul_lucas_succ_strictMonoOn (hk : 1 ≤ k) (ht : 0 < t) (hL0 : L 0 = 2)
@@ -383,16 +414,15 @@ theorem lucas_mul_lucas_succ_strictMonoOn (hk : 1 ≤ k) (ht : 0 < t) (hL0 : L 0
     (lucas_pos hk0 ht.le hL0 hL1 hL _).le (lucas_pos hk0 ht.le hL0 hL1 hL _).le
 
 /-- For `1 ≤ k` and `0 ≤ t`, every `L i ^ 2` with `1 ≤ i ≤ n` is at most the weighted sum of
-squares `∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2`: the term `j = n` has weight `1`, and `L` is
-increasing on `Icc 1 n`. -/
+squares `∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2`. -/
 theorem lucas_sq_le_sum_pow_mul_lucas_sq (hk : 1 ≤ k) (ht : 0 ≤ t) (hL0 : L 0 = 2)
     (hL1 : L 1 = k) (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {i n : ℕ}
     (hi : i ∈ Icc 1 n) : L i ^ 2 ≤ ∑ j ∈ Icc 1 n, t ^ (n - j) * L j ^ 2 := by
   obtain ⟨h1, h2⟩ := mem_Icc.1 hi
-  have hin := lucas_monotoneOn hk ht hL0 hL1 hL h1 (h1.trans h2) h2
   calc L i ^ 2 ≤ t ^ (n - n) * L n ^ 2 := by
         rw [Nat.sub_self, pow_zero, one_mul]
-        exact pow_le_pow_left₀ (lucas_pos (zero_lt_one.trans_le hk) ht hL0 hL1 hL i).le hin 2
+        exact pow_le_pow_left₀ (lucas_pos (zero_lt_one.trans_le hk) ht hL0 hL1 hL i).le
+          (lucas_mem_Icc hk ht hL0 hL1 hL hi).2 2
     _ ≤ _ := single_le_sum (f := fun j ↦ t ^ (n - j) * L j ^ 2)
         (fun j _ ↦ mul_nonneg (pow_nonneg ht _) (sq_nonneg _)) (mem_Icc.2 ⟨h1.trans h2, le_rfl⟩)
 
@@ -403,7 +433,7 @@ end KTFib
 /-- The recurrence `G (n + 2) = k * G (n + 1) + G n` of the `k`-Fibonacci and `k`-Lucas numbers is
 the `(k, 1)`-recurrence `G (n + 2) = k * G (n + 1) + 1 * G n`, so that the `(k, t)` results apply
 at `t = 1`. -/
-theorem KFib.rec_one {R : Type*} [Semiring R] {k : R} {G : ℕ → R}
+theorem KFib.add_two_eq_mul_add_one_mul {R : Type*} [Semiring R] {k : R} {G : ℕ → R}
     (hG : ∀ n, G (n + 2) = k * G (n + 1) + G n) (n : ℕ) :
     G (n + 2) = k * G (n + 1) + 1 * G n := by
   rw [hG n, one_mul]

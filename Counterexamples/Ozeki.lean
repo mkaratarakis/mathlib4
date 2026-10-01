@@ -16,8 +16,9 @@ import Mathlib.Tactic.NormNum
 Ozeki's inequality is often quoted as follows: if `0 < m₁ ≤ a i ≤ M₁` and `0 < m₂ ≤ b i ≤ M₂` for
 `i = 1, …, n`, then
 `(∑ a i ^ 2) * (∑ b i ^ 2) - (∑ a i * b i) ^ 2 ≤ n ^ 2 / 4 * (M₁ * M₂ - m₁ * m₂) ^ 2`.
-Izumino and Seo, and Izumino, Mori and Seo, observed that this form is false, and showed that the
-sharp constant for arbitrary families is `n ^ 2 / 3` instead of `n ^ 2 / 4`. This file records a
+Izumino and Seo, and Izumino, Mori and Seo, observed that this form is false. Izumino, Mori and
+Seo determined the best constant for arbitrary families: it is `n ^ 2 / 3` when `3 ∣ n` and
+`(n ^ 2 - 1) / 3` otherwise, so `n ^ 2 / 4` is best only for `n = 2`. This file records a
 three-term example illustrating their observation: `a = (10, 10, 1)` and `b = (1, 10, 10)` give
 `(∑ a i ^ 2) * (∑ b i ^ 2) - (∑ a i * b i) ^ 2 = 26001`, while
 `3 ^ 2 / 4 * (10 * 10 - 1 * 1) ^ 2 = 22052.25`.
@@ -30,8 +31,7 @@ The bound with `n ^ 2 / 4` does hold when `a i` and `b i` are powers of one fami
 
 * [N. Ozeki, *On the estimation of the inequalities by the maximum, or minimum values*]
   [ozeki_1968]
-* [S. Izumino and Y. Seo, *On Ozeki's inequality and noncommutative covariance*]
-  [izumino_seo_1997]
+* [S. Izumino and Y. Seo, *Ozeki's inequality and noncommutative covariance*][izumino_seo_1997]
 * [S. Izumino, H. Mori and Y. Seo, *On Ozeki's inequality*][izumino_mori_seo_1998]
 -/
 
@@ -42,8 +42,9 @@ namespace Counterexample
 /-- **Ozeki**'s inequality with the constant `n ^ 2 / 4` fails for arbitrary families: there are
 `a b : Fin 3 → ℝ` with `1 ≤ a i ≤ 10` and `1 ≤ b i ≤ 10` such that
 `(∑ a i ^ 2) * (∑ b i ^ 2) - (∑ a i * b i) ^ 2 > 3 ^ 2 / 4 * (10 * 10 - 1 * 1) ^ 2`.
-This illustrates the observation of Izumino–Seo and Izumino–Mori–Seo that the sharp constant for
-arbitrary families is `n ^ 2 / 3`. -/
+This illustrates the observation of Izumino–Seo and Izumino–Mori–Seo; Izumino, Mori and Seo
+determined the best constant, `n ^ 2 / 3` when `3 ∣ n` and `(n ^ 2 - 1) / 3` otherwise (so
+`n ^ 2 / 4` is best only for `n = 2`). -/
 theorem not_forall_sum_sq_mul_sum_sq_sub_sq_le :
     ¬ ∀ (a b : Fin 3 → ℝ) (m₁ M₁ m₂ M₂ : ℝ), 0 < m₁ → 0 < m₂ →
       (∀ i, a i ∈ Set.Icc m₁ M₁) → (∀ i, b i ∈ Set.Icc m₂ M₂) →

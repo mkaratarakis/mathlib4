@@ -25,17 +25,18 @@ by the weighted sums of squares of `F` and of `L`, which telescope
 
 ## Main results
 
-* `KTFib.sq_sum_pow_mul_fib_two_mul_le`: over a linearly ordered field, for `k ≠ 0` and `0 ≤ t`,
+* `KTFib.sq_sum_pow_mul_fib_two_mul_le`: over a linearly ordered field, for `0 ≤ t`,
   `(∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
   F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k)`, and
   `KTFib.sq_sum_pow_mul_fib_two_mul_eq_iff`: for `k ≠ 0`, `0 < t` and `n ≥ 1`, equality holds
   if and only if `n = 1`.
-* `KTFib.sq_fib_sub_le`: the division-free form, over a linearly ordered commutative ring, for
-  every `k` and `0 ≤ t`:
+* `KTFib.sq_fib_two_mul_add_one_sub_pow_le`: the division-free form, over a linearly ordered
+  commutative ring, for every `k` and `0 ≤ t`:
   `(F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`, and
-  `KTFib.sq_fib_sub_eq_iff`: for `k ≠ 0`, `0 < t` and `n ≥ 1`, equality holds if and only if
-  `n = 1`.
-* `KTFib.sq_jacobsthal_sub_le`, `KTFib.sq_jacobsthal_sub_eq_iff`: the case `(k, t) = (1, 2)` of
+  `KTFib.sq_fib_two_mul_add_one_sub_pow_eq_iff`: for `k ≠ 0`, `0 < t` and `n ≥ 1`, equality
+  holds if and only if `n = 1`.
+* `KTFib.sq_jacobsthal_two_mul_add_one_sub_pow_le`,
+  `KTFib.sq_jacobsthal_two_mul_add_one_sub_pow_eq_iff`: the case `(k, t) = (1, 2)` of
   the Jacobsthal and Jacobsthal–Lucas numbers, over `ℤ`. The case `(k, t) = (1, 1)` of the
   Fibonacci numbers `Nat.fib` is `Nat.sq_fib_two_mul_add_one_sub_one_le` in
   `Mathlib.NumberTheory.KTFibonacci.KFibonacci`.
@@ -97,7 +98,7 @@ private lemma sq_sum_eq_sum_mul_sum_iff (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1 
 /-- The closed forms behind the division-free cross-family bound: multiplied by `k ^ 2`, the
 two sides of the weighted Cauchy–Schwarz bound are `(F (2 * n + 1) - t ^ n) ^ 2` and
 `F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`. -/
-private lemma sq_fib_sub_eq_and_mul_eq (hF0 : F 0 = 0) (hF1 : F 1 = 1)
+private lemma sq_fib_two_mul_add_one_sub_pow_eq_and_mul_eq (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (F (2 * n + 1) - t ^ n) ^ 2 = k ^ 2 * (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ∧
@@ -115,23 +116,23 @@ private lemma sq_fib_sub_eq_and_mul_eq (hF0 : F 0 = 0) (hF1 : F 1 = 1)
 
 /-- The cross-family bound in division-free form: for `0 ≤ t` and any `k`,
 `(F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)`. -/
-theorem sq_fib_sub_le (ht : 0 ≤ t) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
+theorem sq_fib_two_mul_add_one_sub_pow_le (ht : 0 ≤ t) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (F (2 * n + 1) - t ^ n) ^ 2 ≤ F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) := by
-  obtain ⟨h1, h2⟩ := sq_fib_sub_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
+  obtain ⟨h1, h2⟩ := sq_fib_two_mul_add_one_sub_pow_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
   rw [h1, h2]
   exact mul_le_mul_of_nonneg_left (sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n) (sq_nonneg k)
 
-/-- Equality in `KTFib.sq_fib_sub_le`: for `k ≠ 0`, `0 < t` and `n ≥ 1`,
+/-- Equality in `KTFib.sq_fib_two_mul_add_one_sub_pow_le`: for `k ≠ 0`, `0 < t` and `n ≥ 1`,
 `(F (2 * n + 1) - t ^ n) ^ 2 = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n)` if and only
 if `n = 1`. -/
-theorem sq_fib_sub_eq_iff (hk : k ≠ 0) (ht : 0 < t) (hF0 : F 0 = 0) (hF1 : F 1 = 1)
-    (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
+theorem sq_fib_two_mul_add_one_sub_pow_eq_iff (hk : k ≠ 0) (ht : 0 < t) (hF0 : F 0 = 0)
+    (hF1 : F 1 = 1) (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) {n : ℕ} (hn : 1 ≤ n) :
     (F (2 * n + 1) - t ^ n) ^ 2 = F n * F (n + 1) * (L n * L (n + 1) - 2 * k * t ^ n) ↔
       n = 1 := by
-  obtain ⟨h1, h2⟩ := sq_fib_sub_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
+  obtain ⟨h1, h2⟩ := sq_fib_two_mul_add_one_sub_pow_eq_and_mul_eq hF0 hF1 hF hL0 hL1 hL n
   rw [h1, h2, mul_right_inj' (pow_ne_zero 2 hk)]
   exact sq_sum_eq_sum_mul_sum_iff ht hF0 hF1 hF hL0 hL1 hL hn
 
@@ -141,15 +142,17 @@ section Field
 
 variable {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K] {k t : K} {F L : ℕ → K}
 
-/-- **Cross-family bound**: for `k ≠ 0` and `0 ≤ t`,
+/-- **Cross-family bound**: for `0 ≤ t`,
 `(∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
 F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k)`
-(Batte–Kaggwa, Theorem 1.5, for `t = 1`). -/
-theorem sq_sum_pow_mul_fib_two_mul_le (hk : k ≠ 0) (ht : 0 ≤ t) (hF0 : F 0 = 0)
+(Batte–Kaggwa, Theorem 1.5, for `t = 1`). For `k = 0` both sides vanish. -/
+theorem sq_sum_pow_mul_fib_two_mul_le (ht : 0 ≤ t) (hF0 : F 0 = 0)
     (hF : ∀ n, F (n + 2) = k * F (n + 1) + t * F n) (hL0 : L 0 = 2) (hL1 : L 1 = k)
     (hL : ∀ n, L (n + 2) = k * L (n + 1) + t * L n) (n : ℕ) :
     (∑ i ∈ Icc 1 n, t ^ (n - i) * F (2 * i)) ^ 2 ≤
       F n * F (n + 1) / k * ((L n * L (n + 1) - 2 * k * t ^ n) / k) := by
+  obtain rfl | hk := eq_or_ne k 0
+  · simp [fib_two_mul_eq_zero hF0 hF]
   rw [← sum_pow_mul_fib_sq hk hF0 hF, ← sum_pow_mul_lucas_sq hk hL0 hL1 hL]
   exact sq_sum_le_sum_mul_sum ht hF0 hF hL0 hL1 hL n
 
@@ -176,24 +179,24 @@ variable {J j : ℕ → ℤ}
 /-- The cross-family bound for the Jacobsthal numbers `J` and the Jacobsthal–Lucas numbers `j`
 (the case `(k, t) = (1, 2)`):
 `(J (2 * n + 1) - 2 ^ n) ^ 2 ≤ J n * J (n + 1) * (j n * j (n + 1) - 2 ^ (n + 1))`. -/
-theorem sq_jacobsthal_sub_le (hJ0 : J 0 = 0) (hJ1 : J 1 = 1)
+theorem sq_jacobsthal_two_mul_add_one_sub_pow_le (hJ0 : J 0 = 0) (hJ1 : J 1 = 1)
     (hJ : ∀ n, J (n + 2) = J (n + 1) + 2 * J n) (hj0 : j 0 = 2) (hj1 : j 1 = 1)
     (hj : ∀ n, j (n + 2) = j (n + 1) + 2 * j n) (n : ℕ) :
     (J (2 * n + 1) - 2 ^ n) ^ 2 ≤ J n * J (n + 1) * (j n * j (n + 1) - 2 ^ (n + 1)) := by
-  have h := sq_fib_sub_le zero_le_two hJ0 hJ1 (fun n ↦ by rw [hJ, one_mul]) hj0 hj1
-    (fun n ↦ by rw [hj, one_mul]) n
+  have h := sq_fib_two_mul_add_one_sub_pow_le zero_le_two hJ0 hJ1 (fun n ↦ by rw [hJ, one_mul])
+    hj0 hj1 (fun n ↦ by rw [hj, one_mul]) n
   rwa [mul_one, ← pow_succ'] at h
 
-/-- Equality in `KTFib.sq_jacobsthal_sub_le`: for `n ≥ 1`,
+/-- Equality in `KTFib.sq_jacobsthal_two_mul_add_one_sub_pow_le`: for `n ≥ 1`,
 `(J (2 * n + 1) - 2 ^ n) ^ 2 = J n * J (n + 1) * (j n * j (n + 1) - 2 ^ (n + 1))` if and only if
 `n = 1`. -/
-theorem sq_jacobsthal_sub_eq_iff (hJ0 : J 0 = 0) (hJ1 : J 1 = 1)
+theorem sq_jacobsthal_two_mul_add_one_sub_pow_eq_iff (hJ0 : J 0 = 0) (hJ1 : J 1 = 1)
     (hJ : ∀ n, J (n + 2) = J (n + 1) + 2 * J n) (hj0 : j 0 = 2) (hj1 : j 1 = 1)
     (hj : ∀ n, j (n + 2) = j (n + 1) + 2 * j n) {n : ℕ} (hn : 1 ≤ n) :
     (J (2 * n + 1) - 2 ^ n) ^ 2 = J n * J (n + 1) * (j n * j (n + 1) - 2 ^ (n + 1)) ↔
       n = 1 := by
-  have h := sq_fib_sub_eq_iff one_ne_zero two_pos hJ0 hJ1 (fun n ↦ by rw [hJ, one_mul]) hj0 hj1
-    (fun n ↦ by rw [hj, one_mul]) hn
+  have h := sq_fib_two_mul_add_one_sub_pow_eq_iff one_ne_zero two_pos hJ0 hJ1
+    (fun n ↦ by rw [hJ, one_mul]) hj0 hj1 (fun n ↦ by rw [hj, one_mul]) hn
   rwa [mul_one, ← pow_succ'] at h
 
 end Jacobsthal

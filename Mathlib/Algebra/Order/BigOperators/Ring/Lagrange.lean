@@ -26,7 +26,7 @@ nonnegative (`Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul`). This file proves uppe
   commutative ring.
 * `Finset.diaz_metcalf`: the **Diaz–Metcalf inequality**: if `r * b i ≤ a i ≤ R * b i`, then
   `A + r * R * B ≤ (r + R) * C`.
-* `Finset.polya_szego`: the **Pólya–Szegő inequality**: under the same hypotheses,
+* `Finset.cassels`: **Cassels' inequality**: under the same hypotheses,
   `4 * (r * R) * (A * B) ≤ (r + R) ^ 2 * C ^ 2`.
 * `Finset.four_mul_sum_mul_sum_mul_sq_sub_sq_le`: **Popoviciu's inequality** for weighted finite
   sums: if `c i ∈ [lo, hi]`, then `4 * (W * ∑ w c ^ 2 - (∑ w c) ^ 2) ≤ W ^ 2 * (hi - lo) ^ 2`.
@@ -39,11 +39,13 @@ nonnegative (`Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul`). This file proves uppe
   `b i ∈ [m₂, M₂]` when `a` and `b` monovary, or when the points `(a i, b i)` lie below the line
   through `(m₁, M₂)` and `(M₁, m₂)`. For arbitrary families the bound fails, see
   `Counterexamples/Ozeki.lean`.
-* `div_mul_le_and_le_div_mul`: box bounds `a ∈ [m₁, M₁]`, `b ∈ [m₂, M₂]` give the ratio bounds
-  `m₁ / M₂ * b ≤ a ≤ M₁ / m₂ * b` used in the Diaz–Metcalf and Pólya–Szegő inequalities.
+* `div_mul_le_of_le_of_le`, `le_div_mul_of_le_of_le`: box bounds `m₁ ≤ a ≤ M₁`, `m₂ ≤ b ≤ M₂`
+  give the ratio bounds `m₁ / M₂ * b ≤ a` and `a ≤ M₁ / m₂ * b` used in the Diaz–Metcalf and
+  Cassels inequalities.
 
-All inequalities except the last two hold in any linearly ordered commutative ring; the last two
-hold in any linearly ordered field.
+`Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_mul_add_mul_le`, `div_mul_le_of_le_of_le`
+and `le_div_mul_of_le_of_le` are stated over a linearly ordered field; all the other results hold
+in any linearly ordered commutative ring, and the Lagrange identity in any commutative ring.
 
 ## References
 
@@ -53,7 +55,7 @@ hold in any linearly ordered field.
   [ozeki_1968]
 * [J. B. Diaz and F. T. Metcalf, *Stronger forms of a class of inequalities of G. Pólya–G. Szegő,
   and L. V. Kantorovich*][diaz_metcalf_1963]
-* [G. Pólya and G. Szegő, *Aufgaben und Lehrsätze aus der Analysis. Band I*][polya_szego_1925]
+* [G. S. Watson, *Serial correlation in regression analysis. I*][watson_1955]
 -/
 
 public section
@@ -97,11 +99,12 @@ theorem diaz_metcalf (hw : ∀ i ∈ s, 0 ≤ w i) (hr : ∀ i ∈ s, r * b i �
   have := mul_nonneg (hw i hi) (mul_nonneg (sub_nonneg.2 (hr i hi)) (sub_nonneg.2 (hR i hi)))
   linarith
 
-/-- **Pólya–Szegő inequality**: if `w i ≥ 0` and `r * b i ≤ a i ≤ R * b i`, then
+/-- **Cassels' inequality**: if `w i ≥ 0` and `r * b i ≤ a i ≤ R * b i`, then
 `4 * (r * R) * ((∑ w a ^ 2) * (∑ w b ^ 2)) ≤ (r + R) ^ 2 * (∑ w a b) ^ 2`. No sign conditions on
 `r`, `R` are needed; for `0 < r * R` this is
-`(∑ w a ^ 2) * (∑ w b ^ 2) ≤ (r + R) ^ 2 / (4 * r * R) * (∑ w a b) ^ 2`. -/
-theorem polya_szego (hw : ∀ i ∈ s, 0 ≤ w i) (hr : ∀ i ∈ s, r * b i ≤ a i)
+`(∑ w a ^ 2) * (∑ w b ^ 2) ≤ (r + R) ^ 2 / (4 * r * R) * (∑ w a b) ^ 2`. Cassels proved it in an
+appendix to Watson's paper. -/
+theorem cassels (hw : ∀ i ∈ s, 0 ≤ w i) (hr : ∀ i ∈ s, r * b i ≤ a i)
     (hR : ∀ i ∈ s, a i ≤ R * b i) :
     4 * (r * R) * ((∑ i ∈ s, w i * a i ^ 2) * ∑ i ∈ s, w i * b i ^ 2) ≤
       (r + R) ^ 2 * (∑ i ∈ s, w i * (a i * b i)) ^ 2 := by
@@ -235,17 +238,20 @@ section OrderedField
 
 variable [Field K] [LinearOrder K] [IsStrictOrderedRing K]
 
-/-- If `0 ≤ m₁ ≤ a ≤ M₁` and `0 < m₂ ≤ b ≤ M₂`, then `m₁ / M₂ * b ≤ a ≤ M₁ / m₂ * b`. -/
-theorem div_mul_le_and_le_div_mul {a b m₁ M₁ m₂ M₂ : K} (hm₁ : 0 ≤ m₁) (hm₂ : 0 < m₂)
-    (ha : a ∈ Set.Icc m₁ M₁) (hb : b ∈ Set.Icc m₂ M₂) : m₁ / M₂ * b ≤ a ∧ a ≤ M₁ / m₂ * b := by
-  have hM₂ : 0 < M₂ := hm₂.trans_le (hb.1.trans hb.2)
-  have hM₁ : 0 ≤ M₁ := hm₁.trans (ha.1.trans ha.2)
-  constructor
-  · calc m₁ / M₂ * b ≤ m₁ / M₂ * M₂ := mul_le_mul_of_nonneg_left hb.2 (div_nonneg hm₁ hM₂.le)
-      _ = m₁ := div_mul_cancel₀ _ hM₂.ne'
-      _ ≤ a := ha.1
-  · calc a ≤ M₁ := ha.2
-      _ = M₁ / m₂ * m₂ := (div_mul_cancel₀ _ hm₂.ne').symm
-      _ ≤ M₁ / m₂ * b := mul_le_mul_of_nonneg_left hb.1 (div_nonneg hM₁ hm₂.le)
+/-- If `0 ≤ m₁ ≤ a` and `b ≤ M₂` with `0 ≤ M₂`, then `m₁ / M₂ * b ≤ a`. -/
+theorem div_mul_le_of_le_of_le {a b m₁ M₂ : K} (hm₁ : 0 ≤ m₁) (hM₂ : 0 ≤ M₂) (ha : m₁ ≤ a)
+    (hb : b ≤ M₂) : m₁ / M₂ * b ≤ a := by
+  obtain h | h := hM₂.eq_or_lt
+  · simpa [← h] using hm₁.trans ha
+  calc m₁ / M₂ * b ≤ m₁ / M₂ * M₂ := mul_le_mul_of_nonneg_left hb (div_nonneg hm₁ h.le)
+    _ = m₁ := div_mul_cancel₀ _ h.ne'
+    _ ≤ a := ha
+
+/-- If `a ≤ M₁` with `0 ≤ M₁` and `0 < m₂ ≤ b`, then `a ≤ M₁ / m₂ * b`. -/
+theorem le_div_mul_of_le_of_le {a b M₁ m₂ : K} (hM₁ : 0 ≤ M₁) (hm₂ : 0 < m₂) (ha : a ≤ M₁)
+    (hb : m₂ ≤ b) : a ≤ M₁ / m₂ * b :=
+  calc a ≤ M₁ := ha
+    _ = M₁ / m₂ * m₂ := (div_mul_cancel₀ _ hm₂.ne').symm
+    _ ≤ M₁ / m₂ * b := mul_le_mul_of_nonneg_left hb (div_nonneg hM₁ hm₂.le)
 
 end OrderedField

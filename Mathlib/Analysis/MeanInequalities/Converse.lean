@@ -17,12 +17,17 @@ For weights `w i ≥ 0` and positive reals `x i`, `i ∈ s`, write `S γ = ∑ i
 the weighted power sum of exponent `γ`, and `W = ∑ i ∈ s, w i`. Hölder's inequality bounds `S α`,
 `α = u / p + v / q`, by `S u ^ (1 / p) * S v ^ (1 / q)`; this file bounds it from the other side
 when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
-`S u * S v` from above in terms of `S ((u + v) / 2) ^ 2` (converse Cauchy–Schwarz).
+`S u * S v` from above in terms of `S ((u + v) / 2) ^ 2` (converse Cauchy–Schwarz). For families
+`c`, `r` we abbreviate `∑ i ∈ s, c i * r i ^ p` to `∑ c r ^ p`, and similarly for other sums.
 
 ## Main results
 
-* `Real.converse_holder_linear_of_one_le`, `Real.converse_holder_linear_of_le_one`: for
-  `c i ≥ 0` and `r i ∈ [m, M]` with `0 ≤ m`,
+* `ConvexOn.lah_ribaric`, `ConcaveOn.lah_ribaric`: the **Lah–Ribarič inequality**: if `f` is
+  convex on `[m, M]`, `c i ≥ 0` and `r i ∈ [m, M]`, then
+  `(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ c ≤ (f M - f m) * ∑ c r`, and the
+  reverse inequality holds if `f` is concave on `[m, M]`.
+* `Real.converse_holder_linear_of_one_le`, `Real.converse_holder_linear_of_le_one`: the case
+  `f r = r ^ p`: for `c i ≥ 0` and `r i ∈ [m, M]` with `0 ≤ m`,
   `(M - m) * ∑ c r ^ p + (m * M ^ p - M * m ^ p) * ∑ c ≤ (M ^ p - m ^ p) * ∑ c r` for `p ≥ 1`,
   and the reverse inequality for `0 ≤ p ≤ 1`.
 * `Real.converse_holder_of_one_lt`, `Real.converse_holder_of_lt_one`: if moreover `0 < m < M`,
@@ -34,12 +39,14 @@ when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
   `∑ c = S v` and `∑ c r = S α`.
 * `Real.shisha_mond`: the **Shisha–Mond inequality**: if `r * b i ≤ a i ≤ R * b i` with `0 ≤ r`,
   `0 ≤ R`, then `∑ w a ^ 2 / ∑ w a b - ∑ w a b / ∑ w b ^ 2 ≤ (√R - √r) ^ 2`.
-* `Real.polya_szego_of_mem_Icc`: the **Pólya–Szegő inequality** for `a i ∈ [m₁, M₁]`,
-  `b i ∈ [m₂, M₂]` with `0 < m₁`, `0 < m₂`:
+* `Real.polya_szego`: the **Pólya–Szegő inequality** for `a i ∈ [m₁, M₁]`, `b i ∈ [m₂, M₂]` with
+  `0 < m₁`, `0 < m₂`:
   `(∑ w a ^ 2) * (∑ w b ^ 2) ≤ (√(M₁ M₂ / (m₁ m₂)) + √(m₁ m₂ / (M₁ M₂))) ^ 2 / 4 * (∑ w a b) ^ 2`.
 * `Real.rpow_mem_uIcc`: if `z` lies between the positive reals `x` and `y`, then `z ^ e` lies
   between `x ^ e` and `y ^ e`.
 * `Real.monovaryOn_rpow_rpow`: `y ^ σ` and `y ^ τ` monovary when `σ` and `τ` have the same sign.
+* `Real.sq_sum_mul_rpow_add_div_two_le`: the Cauchy–Schwarz inequality
+  `S ((u + v) / 2) ^ 2 ≤ S u * S v` for powers of one positive family `y`.
 * `Real.polya_szego_rpow`, `Real.shisha_mond_rpow`, `Real.ozeki_rpow`, `Real.diaz_metcalf_rpow`:
   converse Cauchy–Schwarz inequalities between `S u`, `S v` and `S ((u + v) / 2)` for powers of
   one positive family `y`, from the bounds `y i ^ (u / 2) ∈ [m₁, M₁]`, `y i ^ (v / 2) ∈ [m₂, M₂]`.
@@ -47,16 +54,17 @@ when the ratios `x i ^ ((u - v) / p)` lie in an interval `[m, M]`, and bounds
   the bounds are the values at the endpoints of an interval `[lo, hi]` containing every `y i`.
 
 Dujella, Jakšetić and Pečarić apply these inequalities in the unweighted case `w = 1` (their
-Theorems 8 and 9). The Diaz–Metcalf and Pólya–Szegő inequalities for ratio bounds and the
+Theorems 8 and 9). The Diaz–Metcalf and Cassels inequalities for ratio bounds and the
 Lagrange–Popoviciu bound, which hold in any linearly ordered commutative ring, are in
 `Mathlib.Algebra.Order.BigOperators.Ring.Lagrange`.
 
 ## Implementation notes
 
 Ozeki's inequality is often quoted for arbitrary families `m₁ ≤ a i ≤ M₁`, `m₂ ≤ b i ≤ M₂` of `n`
-positive reals with the constant `n ^ 2 / 4`. In this form it is false: Izumino and Seo, and
-Izumino, Mori and Seo, observed this and showed that the sharp constant for arbitrary families is
-`n ^ 2 / 3` (see `Counterexamples/Ozeki.lean` for a three-term example). The constant `n ^ 2 / 4`
+positive reals with the constant `n ^ 2 / 4`. In this form it is false, as Izumino and Seo, and
+Izumino, Mori and Seo, observed (see `Counterexamples/Ozeki.lean` for a three-term example).
+Izumino, Mori and Seo determined the best constant: it is `n ^ 2 / 3` when `3 ∣ n` and
+`(n ^ 2 - 1) / 3` otherwise, so `n ^ 2 / 4` is best only for `n = 2`. The constant `n ^ 2 / 4`
 does hold when `a i = y i ^ σ` and `b i = y i ^ τ` are powers of one family (`Real.ozeki_rpow`).
 If `σ` and `τ` have the same sign, then `a` and `b` monovary
 (`Finset.four_mul_sum_mul_sq_mul_sum_mul_sq_sub_sq_le_of_monovaryOn`); if they have opposite
@@ -66,19 +74,65 @@ of `t ↦ A * exp (σ * t) + B * exp (τ * t)` for `A, B ≥ 0`
 
 ## References
 
+* [P. Lah and M. Ribarič, *Converse of Jensen's inequality for convex functions*]
+  [lah_ribaric_1973]
 * [A. Dujella, J. Jakšetić and J. Pečarić, *Fibonacci numbers and Hölder inequality*]
   [dujella_jaksetic_pecaric]
 * [O. Shisha and B. Mond, *Bounds on differences of means*][shisha_mond_1967]
+* [G. Pólya and G. Szegő, *Aufgaben und Lehrsätze aus der Analysis. Band I*][polya_szego_1925]
+* [J. B. Diaz and F. T. Metcalf, *Stronger forms of a class of inequalities of G. Pólya–G. Szegő,
+  and L. V. Kantorovich*][diaz_metcalf_1963]
+* [G. S. Watson, *Serial correlation in regression analysis. I*][watson_1955]
 * [N. Ozeki, *On the estimation of the inequalities by the maximum, or minimum values*]
   [ozeki_1968]
-* [S. Izumino and Y. Seo, *On Ozeki's inequality and noncommutative covariance*]
-  [izumino_seo_1997]
+* [S. Izumino and Y. Seo, *Ozeki's inequality and noncommutative covariance*][izumino_seo_1997]
 * [S. Izumino, H. Mori and Y. Seo, *On Ozeki's inequality*][izumino_mori_seo_1998]
 -/
 
 public section
 
 open Finset
+
+/-! ### The Lah–Ribarič inequality -/
+
+section LahRibaric
+
+variable {ι : Type*} (s : Finset ι) {f : ℝ → ℝ} {c r : ι → ℝ} {m M : ℝ}
+
+/-- **Lah–Ribarič inequality**: if `f` is convex on `[m, M]`, `c i ≥ 0` and `r i ∈ [m, M]`, then
+the weighted sum of the values `f (r i)` lies below the chord of `f` over `[m, M]`:
+`(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i ≤
+(f M - f m) * ∑ i ∈ s, c i * r i`. -/
+theorem ConvexOn.lah_ribaric (hf : ConvexOn ℝ (Set.Icc m M) f) (hc : ∀ i ∈ s, 0 ≤ c i)
+    (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
+    (M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i ≤
+      (f M - f m) * ∑ i ∈ s, c i * r i := by
+  simp only [mul_sum, ← sum_add_distrib]
+  refine sum_le_sum fun i hi ↦ ?_
+  obtain ⟨hmr, hrM⟩ := hr i hi
+  have hchord : (M - m) * f (r i) ≤ (M - r i) * f m + (r i - m) * f M := by
+    obtain hmr | hmr := hmr.eq_or_lt
+    · simp [← hmr]
+    obtain hrM | hrM := hrM.eq_or_lt
+    · simp [hrM]
+    have hmM := (hmr.trans hrM).le
+    exact hf.secant_mono_aux1 ⟨le_rfl, hmM⟩ ⟨hmM, le_rfl⟩ hmr hrM
+  have := mul_le_mul_of_nonneg_left hchord (hc i hi)
+  linarith
+
+/-- **Lah–Ribarič inequality** for concave functions: if `f` is concave on `[m, M]`, `c i ≥ 0`
+and `r i ∈ [m, M]`, then the weighted sum of the values `f (r i)` lies above the chord of `f` over
+`[m, M]`: `(f M - f m) * ∑ i ∈ s, c i * r i ≤
+(M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i`. -/
+theorem ConcaveOn.lah_ribaric (hf : ConcaveOn ℝ (Set.Icc m M) f) (hc : ∀ i ∈ s, 0 ≤ c i)
+    (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
+    (f M - f m) * ∑ i ∈ s, c i * r i ≤
+      (M - m) * ∑ i ∈ s, c i * f (r i) + (m * f M - M * f m) * ∑ i ∈ s, c i := by
+  have := hf.neg.lah_ribaric s hc hr
+  simp only [Pi.neg_apply, mul_neg, sum_neg_distrib] at this
+  linarith
+
+end LahRibaric
 
 namespace Real
 
@@ -95,41 +149,28 @@ variable {c r : ι → ℝ} {p q m M : ℝ}
 theorem converse_holder_linear_of_one_le (hp : 1 ≤ p) (hc : ∀ i ∈ s, 0 ≤ c i) (hm : 0 ≤ m)
     (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
     (M - m) * ∑ i ∈ s, c i * r i ^ p + (m * M ^ p - M * m ^ p) * ∑ i ∈ s, c i ≤
-      (M ^ p - m ^ p) * ∑ i ∈ s, c i * r i := by
-  simp only [mul_sum, ← sum_add_distrib]
-  refine sum_le_sum fun i hi ↦ ?_
-  obtain ⟨hmr, hrM⟩ := hr i hi
-  -- the chord of the convex function `r ↦ r ^ p` over `[m, M]` lies above its graph
-  have hchord : (M - m) * r i ^ p ≤ (M - r i) * m ^ p + (r i - m) * M ^ p := by
-    obtain hmr | hmr := hmr.eq_or_lt
-    · simp [← hmr]
-    obtain hrM | hrM := hrM.eq_or_lt
-    · simp [hrM]
-    exact (convexOn_rpow hp).secant_mono_aux1 hm (hm.trans (hmr.trans hrM).le) hmr hrM
-  have := mul_le_mul_of_nonneg_left hchord (hc i hi)
-  linarith
+      (M ^ p - m ^ p) * ∑ i ∈ s, c i * r i :=
+  ((convexOn_rpow hp).subset (fun _ hx ↦ hm.trans hx.1) (convex_Icc m M)).lah_ribaric s hc hr
 
 /-- **Linear converse Hölder inequality**, `0 ≤ p ≤ 1`: for `c i ≥ 0` and `r i ∈ [m, M]` with
 `0 ≤ m`, `(M ^ p - m ^ p) * ∑ c r ≤ (M - m) * ∑ c r ^ p + (m * M ^ p - M * m ^ p) * ∑ c`. -/
 theorem converse_holder_linear_of_le_one (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hc : ∀ i ∈ s, 0 ≤ c i)
     (hm : 0 ≤ m) (hr : ∀ i ∈ s, r i ∈ Set.Icc m M) :
     (M ^ p - m ^ p) * ∑ i ∈ s, c i * r i ≤
-      (M - m) * ∑ i ∈ s, c i * r i ^ p + (m * M ^ p - M * m ^ p) * ∑ i ∈ s, c i := by
-  simp only [mul_sum, ← sum_add_distrib]
-  refine sum_le_sum fun i hi ↦ ?_
-  obtain ⟨hmr, hrM⟩ := hr i hi
-  -- the chord of the concave function `r ↦ r ^ p` over `[m, M]` lies below its graph
-  have hchord : (M - r i) * m ^ p + (r i - m) * M ^ p ≤ (M - m) * r i ^ p := by
-    obtain hmr | hmr := hmr.eq_or_lt
-    · simp [← hmr]
-    obtain hrM | hrM := hrM.eq_or_lt
-    · simp [hrM]
-    have := (concaveOn_rpow hp0 hp1).neg.secant_mono_aux1 hm (hm.trans (hmr.trans hrM).le)
-      hmr hrM
-    simp only [Pi.neg_apply] at this
-    linarith
-  have := mul_le_mul_of_nonneg_left hchord (hc i hi)
-  linarith
+      (M - m) * ∑ i ∈ s, c i * r i ^ p + (m * M ^ p - M * m ^ p) * ∑ i ∈ s, c i :=
+  ((concaveOn_rpow hp0 hp1).subset (fun _ hx ↦ hm.trans hx.1) (convex_Icc m M)).lah_ribaric s hc
+    hr
+
+/-- Rescaling by `A, B > 0`: `X ^ (1 / p) * Y ^ (1 / q) =
+A ^ (-1 / p) * B ^ (-1 / q) * ((A * X) ^ (1 / p) * (B * Y) ^ (1 / q))`. -/
+private lemma rpow_one_div_mul_rpow_one_div_eq {A B X Y : ℝ} (hA : 0 < A) (hB : 0 < B)
+    (hX : 0 ≤ X) (hY : 0 ≤ Y) :
+    X ^ (1 / p) * Y ^ (1 / q) =
+      A ^ (-1 / p) * B ^ (-1 / q) * ((A * X) ^ (1 / p) * (B * Y) ^ (1 / q)) := by
+  rw [mul_rpow hA.le hX, mul_rpow hB.le hY, neg_div, neg_div, rpow_neg hA.le, rpow_neg hB.le]
+  have := rpow_pos_of_pos hA (1 / p)
+  have := rpow_pos_of_pos hB (1 / q)
+  field_simp
 
 /-- **Converse Hölder inequality**, `p > 1`: for conjugate exponents `p`, `q`, `c i ≥ 0` and
 `r i ∈ [m, M]` with `0 < m < M`, `(∑ c r ^ p) ^ (1 / p) * (∑ c) ^ (1 / q) ≤ λ * ∑ c r`, where
@@ -150,24 +191,15 @@ theorem converse_holder_of_one_lt (hpq : p.HolderConjugate q) (hc : ∀ i ∈ s,
   have hSu : 0 ≤ ∑ i ∈ s, c i * r i ^ p :=
     sum_nonneg fun i hi ↦ mul_nonneg (hc i hi) (rpow_nonneg (hm.le.trans (hr i hi).1) _)
   have hSv : 0 ≤ ∑ i ∈ s, c i := sum_nonneg hc
-  have hlin := converse_holder_linear_of_one_le s hpq.lt.le hc hm.le hr
   -- weighted AM-GM with weights `1 / p`, `1 / q`
   have hamgm := geom_mean_le_arith_mean2_weighted (by positivity : 0 ≤ 1 / p)
     (by positivity : 0 ≤ 1 / q) (mul_nonneg hA.le hSu) (mul_nonneg hB.le hSv)
     (by simpa only [one_div] using hpq.inv_add_inv_eq_one)
-  rw [mul_rpow hA.le hSu, mul_rpow hB.le hSv] at hamgm
-  have hK1 := rpow_pos_of_pos hA (1 / p)
-  have hK2 := rpow_pos_of_pos hB (1 / q)
-  rw [neg_div, neg_div, rpow_neg hA.le, rpow_neg hB.le]
-  calc (∑ i ∈ s, c i * r i ^ p) ^ (1 / p) * (∑ i ∈ s, c i) ^ (1 / q)
-      = (p * (M - m)) ^ (1 / p) * (∑ i ∈ s, c i * r i ^ p) ^ (1 / p) *
-          ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q) * (∑ i ∈ s, c i) ^ (1 / q)) *
-          ((p * (M - m)) ^ (1 / p))⁻¹ * ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q))⁻¹ := by
-        field_simp
-    _ ≤ (M ^ p - m ^ p) * (∑ i ∈ s, c i * r i) *
-          ((p * (M - m)) ^ (1 / p))⁻¹ * ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q))⁻¹ := by
-        refine mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right
-          (hamgm.trans (le_of_eq_of_le ?_ hlin)) (inv_nonneg.2 hK1.le)) (inv_nonneg.2 hK2.le)
+  rw [rpow_one_div_mul_rpow_one_div_eq hA hB hSu hSv]
+  calc _ ≤ (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) *
+        ((M ^ p - m ^ p) * ∑ i ∈ s, c i * r i) := by
+        refine mul_le_mul_of_nonneg_left (hamgm.trans ?_) (by positivity)
+        convert converse_holder_linear_of_one_le s hpq.lt.le hc hm.le hr using 1
         field_simp
     _ = _ := by ring
 
@@ -193,25 +225,16 @@ theorem converse_holder_of_lt_one (hp0 : 0 < p) (hp1 : p < 1) (hpq : p⁻¹ + q�
   · -- if `∑ c = 0`, then all `c i` vanish and the left-hand side is zero
     rw [sum_mul_eq_zero_of_sum_eq_zero hc hSv.symm r, mul_zero]
     exact mul_nonneg (rpow_nonneg hSu _) (rpow_nonneg hSv.le _)
-  have hlin := converse_holder_linear_of_le_one s hp0.le hp1.le hc hm.le hr
+  -- reverse Young inequality with exponents `p`, `q`
   have hy := div_add_div_le_rpow_mul_rpow_of_lt_one (mul_nonneg hA.le hSu) (mul_pos hB hSv) hp0
     hp1 hpq
-  rw [mul_rpow hA.le hSu, mul_rpow hB.le hSv.le] at hy
-  have hK1 := rpow_pos_of_pos hA (1 / p)
-  have hK2 := rpow_pos_of_pos hB (1 / q)
-  rw [neg_div, neg_div, rpow_neg hA.le, rpow_neg hB.le]
-  calc (M ^ p - m ^ p) * ((p * (M - m)) ^ (1 / p))⁻¹ *
-        ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q))⁻¹ * ∑ i ∈ s, c i * r i
-      = (M ^ p - m ^ p) * (∑ i ∈ s, c i * r i) *
-          ((p * (M - m)) ^ (1 / p))⁻¹ * ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q))⁻¹ := by ring
-    _ ≤ (p * (M - m)) ^ (1 / p) * (∑ i ∈ s, c i * r i ^ p) ^ (1 / p) *
-          ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q) * (∑ i ∈ s, c i) ^ (1 / q)) *
-          ((p * (M - m)) ^ (1 / p))⁻¹ * ((q * (m * M ^ p - M * m ^ p)) ^ (1 / q))⁻¹ := by
-        refine mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right
-          (hlin.trans (le_of_eq_of_le ?_ hy)) (inv_nonneg.2 hK1.le)) (inv_nonneg.2 hK2.le)
+  rw [rpow_one_div_mul_rpow_one_div_eq hA hB hSu hSv.le]
+  calc _ = (p * (M - m)) ^ (-1 / p) * (q * (m * M ^ p - M * m ^ p)) ^ (-1 / q) *
+        ((M ^ p - m ^ p) * ∑ i ∈ s, c i * r i) := by ring
+    _ ≤ _ := by
+        refine mul_le_mul_of_nonneg_left ((converse_holder_linear_of_le_one s hp0.le hp1.le hc
+          hm.le hr).trans (le_of_eq_of_le ?_ hy)) (by positivity)
         field_simp [hq.ne]
-    _ = (∑ i ∈ s, c i * r i ^ p) ^ (1 / p) * (∑ i ∈ s, c i) ^ (1 / q) := by
-        field_simp
 
 end ConverseHolder
 
@@ -302,24 +325,38 @@ section ConverseCauchySchwarz
 
 variable {a b : ι → ℝ} {r R m₁ M₁ m₂ M₂ : ℝ}
 
-/-- **Shisha–Mond inequality**: if `w i ≥ 0`, `0 ≤ r`, `0 ≤ R`, `r * b i ≤ a i ≤ R * b i` and the
-sums `∑ w a b`, `∑ w b ^ 2` are positive, then
+/-- **Shisha–Mond inequality**: if `w i ≥ 0`, `0 ≤ r`, `0 ≤ R` and `r * b i ≤ a i ≤ R * b i`, then
 `∑ w a ^ 2 / ∑ w a b - ∑ w a b / ∑ w b ^ 2 ≤ (√R - √r) ^ 2`. -/
 theorem shisha_mond (hw : ∀ i ∈ s, 0 ≤ w i) (hr0 : 0 ≤ r) (hR0 : 0 ≤ R)
-    (hr : ∀ i ∈ s, r * b i ≤ a i) (hR : ∀ i ∈ s, a i ≤ R * b i)
-    (hC : 0 < ∑ i ∈ s, w i * (a i * b i)) (hB : 0 < ∑ i ∈ s, w i * b i ^ 2) :
+    (hr : ∀ i ∈ s, r * b i ≤ a i) (hR : ∀ i ∈ s, a i ≤ R * b i) :
     (∑ i ∈ s, w i * a i ^ 2) / (∑ i ∈ s, w i * (a i * b i)) -
         (∑ i ∈ s, w i * (a i * b i)) / (∑ i ∈ s, w i * b i ^ 2) ≤
       (√R - √r) ^ 2 := by
+  -- every `a i * b i` is nonnegative, so `∑ w a b ≥ 0`
+  have hab : ∀ i ∈ s, 0 ≤ a i * b i := fun i hi ↦ by
+    have h1 := hr i hi
+    have h2 := hR i hi
+    rcases le_total 0 (b i) with hb | hb
+    · nlinarith [mul_nonneg hr0 (mul_self_nonneg (b i))]
+    · nlinarith [mul_nonneg hR0 (mul_self_nonneg (b i))]
+  obtain hC | hC := (sum_nonneg fun i hi ↦ mul_nonneg (hw i hi) (hab i hi)).eq_or_lt
+  · rw [← hC, div_zero, zero_div, sub_zero]
+    positivity
+  -- some `w i * a i * b i` is nonzero, so `∑ w b ^ 2 > 0`
+  have hB : 0 < ∑ i ∈ s, w i * b i ^ 2 := by
+    obtain ⟨i, hi, hwi⟩ := exists_ne_zero_of_sum_ne_zero hC.ne'
+    have hw' : 0 < w i := (hw i hi).lt_of_ne (left_ne_zero_of_mul hwi).symm
+    have hb : b i ≠ 0 := fun h ↦ hwi (by simp [h])
+    exact sum_pos' (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _)) ⟨i, hi, by positivity⟩
   have h1 := mul_le_mul_of_nonneg_right (diaz_metcalf hw hr hR) hB.le
   rw [← sq_sqrt hr0, ← sq_sqrt hR0] at h1
   rw [div_sub_div _ _ hC.ne' hB.ne', div_le_iff₀ (mul_pos hC hB)]
   nlinarith [sq_nonneg (√r * √R * ∑ i ∈ s, w i * b i ^ 2 - ∑ i ∈ s, w i * (a i * b i))]
 
-/-- **Pólya–Szegő inequality** for bounded families: if `w i ≥ 0`, `0 < m₁ ≤ a i ≤ M₁` and
-`0 < m₂ ≤ b i ≤ M₂`, then `(∑ w a ^ 2) * (∑ w b ^ 2) ≤
+/-- **Pólya–Szegő inequality**: if `w i ≥ 0`, `0 < m₁ ≤ a i ≤ M₁` and `0 < m₂ ≤ b i ≤ M₂`, then
+`(∑ w a ^ 2) * (∑ w b ^ 2) ≤
 (√(M₁ * M₂ / (m₁ * m₂)) + √(m₁ * m₂ / (M₁ * M₂))) ^ 2 / 4 * (∑ w a b) ^ 2`. -/
-theorem polya_szego_of_mem_Icc (hw : ∀ i ∈ s, 0 ≤ w i) (hm₁ : 0 < m₁) (hm₂ : 0 < m₂)
+theorem polya_szego (hw : ∀ i ∈ s, 0 ≤ w i) (hm₁ : 0 < m₁) (hm₂ : 0 < m₂)
     (ha : ∀ i ∈ s, a i ∈ Set.Icc m₁ M₁) (hb : ∀ i ∈ s, b i ∈ Set.Icc m₂ M₂) :
     (∑ i ∈ s, w i * a i ^ 2) * (∑ i ∈ s, w i * b i ^ 2) ≤
       (√(M₁ * M₂ / (m₁ * m₂)) + √(m₁ * m₂ / (M₁ * M₂))) ^ 2 / 4 *
@@ -328,8 +365,8 @@ theorem polya_szego_of_mem_Icc (hw : ∀ i ∈ s, 0 ≤ w i) (hm₁ : 0 < m₁) 
   · simp
   have hM₁ : 0 < M₁ := hm₁.trans_le ((ha i₀ hi₀).1.trans (ha i₀ hi₀).2)
   have hM₂ : 0 < M₂ := hm₂.trans_le ((hb i₀ hi₀).1.trans (hb i₀ hi₀).2)
-  have hr := fun i hi ↦ div_mul_le_and_le_div_mul hm₁.le hm₂ (ha i hi) (hb i hi)
-  have h := polya_szego hw (fun i hi ↦ (hr i hi).1) fun i hi ↦ (hr i hi).2
+  have h := cassels hw (fun i hi ↦ div_mul_le_of_le_of_le hm₁.le hM₂.le (ha i hi).1 (hb i hi).2)
+    fun i hi ↦ le_div_mul_of_le_of_le hM₁.le hm₂ (ha i hi).2 (hb i hi).1
   -- the constant is `(r + R) ^ 2 / (4 * r * R)` for the ratio bounds `r = m₁ / M₂`, `R = M₁ / m₂`
   have h1 : √(M₁ * M₂ / (m₁ * m₂)) * √(m₁ * m₂ / (M₁ * M₂)) = 1 := by
     rw [← sqrt_mul (by positivity),
@@ -455,6 +492,16 @@ private lemma four_mul_ozeki_rpow {σ τ : ℝ} (hw : ∀ i ∈ s, 0 ≤ w i) (h
     linear_combination this
   · exact hmono (mul_nonneg_of_nonpos_of_nonpos hσ hτ)
 
+/-- **Cauchy–Schwarz inequality for powers of one family**: if `w i ≥ 0` and `y i > 0`, then
+`S ((u + v) / 2) ^ 2 ≤ S u * S v`, where `S γ = ∑ i ∈ s, w i * y i ^ γ`. -/
+theorem sq_sum_mul_rpow_add_div_two_le (hw : ∀ i ∈ s, 0 ≤ w i) (hy : ∀ i ∈ s, 0 < y i) :
+    (∑ i ∈ s, w i * y i ^ ((u + v) / 2)) ^ 2 ≤
+      (∑ i ∈ s, w i * y i ^ u) * ∑ i ∈ s, w i * y i ^ v := by
+  rw [sum_mul_rpow_eq_sum_mul_sq s hy u, sum_mul_rpow_eq_sum_mul_sq s hy v,
+    sum_mul_rpow_add_div_two s hy]
+  exact sum_sq_le_sum_mul_sum_of_sq_le_mul _ (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _))
+    (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _)) fun i _ ↦ le_of_eq (by ring)
+
 /-- **Pólya–Szegő inequality for powers of one family**: if `w i ≥ 0`, `y i > 0`,
 `y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 < m₁`, `0 < m₂`, then
 `S u * S v ≤ (√(M₁ * M₂ / (m₁ * m₂)) + √(m₁ * m₂ / (M₁ * M₂))) ^ 2 / 4 * S ((u + v) / 2) ^ 2`,
@@ -467,35 +514,27 @@ theorem polya_szego_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hy : ∀ i ∈ s, 0 < y 
         (∑ i ∈ s, w i * y i ^ ((u + v) / 2)) ^ 2 := by
   rw [sum_mul_rpow_eq_sum_mul_sq s hy u, sum_mul_rpow_eq_sum_mul_sq s hy v,
     sum_mul_rpow_add_div_two s hy]
-  exact polya_szego_of_mem_Icc s hw hm₁ hm₂ ha hb
+  exact polya_szego s hw hm₁ hm₂ ha hb
 
 /-- **Shisha–Mond inequality for powers of one family**: if `w i ≥ 0`, `y i > 0`,
-`y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 < m₁`, `0 < m₂`, then
+`y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 ≤ m₁`, `0 < m₂`, then
 `S u / S ((u + v) / 2) - S ((u + v) / 2) / S v ≤ (√(M₁ / m₂) - √(m₁ / M₂)) ^ 2`, where
 `S γ = ∑ i ∈ s, w i * y i ^ γ`. -/
-theorem shisha_mond_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hy : ∀ i ∈ s, 0 < y i) (hm₁ : 0 < m₁)
+theorem shisha_mond_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hy : ∀ i ∈ s, 0 < y i) (hm₁ : 0 ≤ m₁)
     (hm₂ : 0 < m₂) (ha : ∀ i ∈ s, y i ^ (u / 2) ∈ Set.Icc m₁ M₁)
     (hb : ∀ i ∈ s, y i ^ (v / 2) ∈ Set.Icc m₂ M₂) :
     (∑ i ∈ s, w i * y i ^ u) / (∑ i ∈ s, w i * y i ^ ((u + v) / 2)) -
         (∑ i ∈ s, w i * y i ^ ((u + v) / 2)) / (∑ i ∈ s, w i * y i ^ v) ≤
       (√(M₁ / m₂) - √(m₁ / M₂)) ^ 2 := by
+  obtain rfl | ⟨i₀, hi₀⟩ := s.eq_empty_or_nonempty
+  · simpa using sq_nonneg (√(M₁ / m₂) - √(m₁ / M₂))
+  have hM₁ : 0 ≤ M₁ := hm₁.trans ((ha i₀ hi₀).1.trans (ha i₀ hi₀).2)
+  have hM₂ : 0 < M₂ := hm₂.trans_le ((hb i₀ hi₀).1.trans (hb i₀ hi₀).2)
   rw [sum_mul_rpow_eq_sum_mul_sq s hy u, sum_mul_rpow_eq_sum_mul_sq s hy v,
     sum_mul_rpow_add_div_two s hy]
-  obtain hC | hC := (sum_nonneg fun i hi ↦ mul_nonneg (hw i hi)
-    (mul_nonneg (rpow_nonneg (hy i hi).le (u / 2)) (rpow_nonneg (hy i hi).le (v / 2)))).eq_or_lt
-  · rw [← hC, div_zero, zero_div, sub_zero]
-    positivity
-  -- a positive weight exists, so `S v` is positive too
-  obtain ⟨i, hi, hwi⟩ := exists_ne_zero_of_sum_ne_zero hC.ne'
-  have hwi : 0 < w i := (hw i hi).lt_of_ne (left_ne_zero_of_mul hwi).symm
-  have hB : 0 < ∑ i ∈ s, w i * (y i ^ (v / 2)) ^ 2 :=
-    sum_pos' (fun i hi ↦ mul_nonneg (hw i hi) (sq_nonneg _))
-      ⟨i, hi, mul_pos hwi (pow_pos (rpow_pos_of_pos (hy i hi) _) 2)⟩
-  have hM₂ : 0 < M₂ := hm₂.trans_le ((hb i hi).1.trans (hb i hi).2)
-  have hM₁ : 0 < M₁ := hm₁.trans_le ((ha i hi).1.trans (ha i hi).2)
-  have hr := fun i hi ↦ div_mul_le_and_le_div_mul hm₁.le hm₂ (ha i hi) (hb i hi)
-  exact shisha_mond s hw (by positivity) (by positivity) (fun i hi ↦ (hr i hi).1)
-    (fun i hi ↦ (hr i hi).2) hC hB
+  exact shisha_mond s hw (div_nonneg hm₁ hM₂.le) (div_nonneg hM₁ hm₂.le)
+    (fun i hi ↦ div_mul_le_of_le_of_le hm₁ hM₂.le (ha i hi).1 (hb i hi).2)
+    fun i hi ↦ le_div_mul_of_le_of_le hM₁ hm₂ (ha i hi).2 (hb i hi).1
 
 /-- **Ozeki's inequality for powers of one family**: if `w i ≥ 0` and `0 < lo ≤ y i ≤ hi`, then
 `S u * S v - S ((u + v) / 2) ^ 2 ≤ W ^ 2 / 4 * (M₁ * M₂ - m₁ * m₂) ^ 2`, where
@@ -514,16 +553,19 @@ theorem ozeki_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hlo : 0 < lo) (hy : ∀ i ∈ 
   linarith [four_mul_ozeki_rpow s (σ := u / 2) (τ := v / 2) hw hlo hy]
 
 /-- **Diaz–Metcalf inequality for powers of one family**: if `w i ≥ 0`, `y i > 0`,
-`y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 < m₁`, `0 < m₂`, then
+`y i ^ (u / 2) ∈ [m₁, M₁]` and `y i ^ (v / 2) ∈ [m₂, M₂]` with `0 < m₁`, `0 ≤ m₂`, then
 `S v + m₂ * M₂ / (M₁ * m₁) * S u ≤ (M₂ / m₁ + m₂ / M₁) * S ((u + v) / 2)`, where
 `S γ = ∑ i ∈ s, w i * y i ^ γ`. -/
 theorem diaz_metcalf_rpow (hw : ∀ i ∈ s, 0 ≤ w i) (hy : ∀ i ∈ s, 0 < y i) (hm₁ : 0 < m₁)
-    (hm₂ : 0 < m₂) (ha : ∀ i ∈ s, y i ^ (u / 2) ∈ Set.Icc m₁ M₁)
+    (hm₂ : 0 ≤ m₂) (ha : ∀ i ∈ s, y i ^ (u / 2) ∈ Set.Icc m₁ M₁)
     (hb : ∀ i ∈ s, y i ^ (v / 2) ∈ Set.Icc m₂ M₂) :
     ∑ i ∈ s, w i * y i ^ v + m₂ * M₂ / (M₁ * m₁) * ∑ i ∈ s, w i * y i ^ u ≤
       (M₂ / m₁ + m₂ / M₁) * ∑ i ∈ s, w i * y i ^ ((u + v) / 2) := by
-  have hr := fun i hi ↦ div_mul_le_and_le_div_mul hm₂.le hm₁ (hb i hi) (ha i hi)
-  have h := diaz_metcalf hw (fun i hi ↦ (hr i hi).1) fun i hi ↦ (hr i hi).2
+  have h := diaz_metcalf hw
+    (fun i hi ↦ div_mul_le_of_le_of_le hm₂ (hm₁.le.trans ((ha i hi).1.trans (ha i hi).2))
+      (hb i hi).1 (ha i hi).2)
+    fun i hi ↦ le_div_mul_of_le_of_le (hm₂.trans ((hb i hi).1.trans (hb i hi).2)) hm₁
+      (hb i hi).2 (ha i hi).1
   rw [div_mul_div_comm, add_comm (m₂ / M₁)] at h
   rwa [sum_mul_rpow_eq_sum_mul_sq s hy u, sum_mul_rpow_eq_sum_mul_sq s hy v, add_comm u v,
     sum_mul_rpow_add_div_two s hy]
