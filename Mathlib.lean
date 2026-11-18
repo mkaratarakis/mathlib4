@@ -5874,6 +5874,8 @@ public import Mathlib.NumberTheory.NumberField.InfinitePlace.Ramification
 public import Mathlib.NumberTheory.NumberField.InfinitePlace.TotallyRealComplex
 public import Mathlib.NumberTheory.NumberField.Monogenic.Base
 public import Mathlib.NumberTheory.NumberField.Monogenic.CommonIndexDivisor
+public import Mathlib.NumberTheory.NumberField.Monogenic.CommonIndexDivisor.Split
+public import Mathlib.NumberTheory.NumberField.Monogenic.CommonIndexDivisor.Unramified
 public import Mathlib.NumberTheory.NumberField.Monogenic.Criterion
 public import Mathlib.NumberTheory.NumberField.Monogenic.Dedekind
 public import Mathlib.NumberTheory.NumberField.Monogenic.DedekindBase
