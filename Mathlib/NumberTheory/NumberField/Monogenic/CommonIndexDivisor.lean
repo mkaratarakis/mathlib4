@@ -52,8 +52,8 @@ above `p` (and not on the ramification indices or on any finer invariant).
 
 * R. Dedekind, *Über den Zusammenhang zwischen der Theorie der Ideale und der Theorie der höheren
   Kongruenzen*, Abh. Kgl. Ges. Wiss. Göttingen **23** (1878), 1–23.
-* H. T. Engstrom, *Prime ideal divisors of the discriminant of an algebraic number field*,
-  Trans. Amer. Math. Soc. **32** (1930), 223–237.
+* H. T. Engstrom, *On the common index divisor of an algebraic field*, Trans. Amer. Math. Soc.
+  **32** (1930), 223–237.
 * W. Narkiewicz, *Elementary and Analytic Theory of Algebraic Numbers*, 3rd ed., Springer, 2004.
 -/
 

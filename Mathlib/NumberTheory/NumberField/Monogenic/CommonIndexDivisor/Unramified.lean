@@ -15,7 +15,11 @@ when every `x` in this ring has `1, x, …, x ^ (n - 1)` of zero determinant ove
 unramified in `K`, then `𝓞 K / p ^ k 𝓞 K` is a product of rings `(ℤ / p ^ k)[X] / (G)`, one for each
 prime above `p`, where `G` lifts a monic irreducible polynomial over `𝔽_p` of degree the residue
 degree.  Hence at an unramified prime `p`, `ν_p(i(K))` depends only on the residue degrees of the
-primes above `p` (Ore).
+primes above `p`; this is a theorem of Sliwa.  The reduction to a finite ring is a finite-level form
+of Nart's observation that `ν_p(i(K))` is the index of the `ℚ_p`-algebra `K ⊗ ℚ_p`.
+
+At ramified primes the splitting type does not determine `ν_p(i(K))` in general (Ore's conjecture,
+proved by Engstrom); Del Corso and Dvornicich give tamely ramified examples.
 
 ## Main results
 
@@ -25,10 +29,15 @@ primes above `p` (Ore).
   `[K : ℚ] = [L : ℚ]`, then `q ∣ i(K) ↔ q ∣ i(L)`.
 * `NumberField.nonempty_quotient_pow_ringEquiv_adjoinRoot`: at an unramified prime `P` of residue
   degree `f`, `𝓞 K / P ^ k ≅ (ℤ / p ^ k)[X] / (G)` with `G` of degree `f`.
-* `NumberField.factorization_fieldIndex_eq_of_unramified`: Ore's theorem.
+* `NumberField.factorization_fieldIndex_eq_of_unramified`: Sliwa's theorem.
 
 ## References
 
+* J. Sliwa, *On the nonessential discriminant divisor of an algebraic number field*, Acta Arith.
+  **42** (1982), 57–72.
+* E. Nart, *On the index of a number field*, Trans. Amer. Math. Soc. **289** (1985), 171–183.
+* I. Del Corso, R. Dvornicich, *Number fields with the same index*, Acta Arith. **102** (2002),
+  323–337.
 * Ø. Ore, *Newtonsche Polygone in der Theorie der algebraischen Körper*, Math. Ann. **99** (1928),
   84–117.
 -/
@@ -426,7 +435,7 @@ theorem exists_equiv_primesOver_inertiaDeg {L : Type*} [Field L] [NumberField L]
   let e := fun c ↦ (hfib c).some
   exact ⟨Equiv.ofFiberEquiv e, fun P ↦ Equiv.ofFiberEquiv_map e P⟩
 
-/-- **Ore's theorem for unramified primes.**  If `p` is unramified in `K` and in `L`, and for every
+/-- **Sliwa's theorem.**  If `p` is unramified in `K` and in `L`, and for every
 `f` there are as many primes above `p` of residue degree `f` in `K` as in `L`, then for every `k`,
 `p ^ k ∣ i(K) ↔ p ^ k ∣ i(L)`. -/
 theorem pow_dvd_fieldIndex_iff_of_unramified {L : Type*} [Field L] [NumberField L]
@@ -482,7 +491,7 @@ theorem pow_dvd_fieldIndex_iff_of_unramified {L : Type*} [Field L] [NumberField 
     ((RingEquiv.piCongrLeft (fun Q : primesOver (span {(p : ℤ)}) (𝓞 L) ↦
       𝓞 L ⧸ (Q : Ideal (𝓞 L)) ^ k) τ).trans cL.symm)))
 
-/-- **Ore's theorem for unramified primes.**  If `p` is unramified in `K` and in `L`, and for every
+/-- **Sliwa's theorem.**  If `p` is unramified in `K` and in `L`, and for every
 `f` there are as many primes above `p` of residue degree `f` in `K` as in `L`, then
 `ν_p(i(K)) = ν_p(i(L))`: at an unramified prime, the index of a number field is determined by the
 residue degrees of the primes above `p`. -/

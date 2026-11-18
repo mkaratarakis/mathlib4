@@ -14,7 +14,8 @@ If `p` splits completely in the number field `K`, that is `p 𝓞 K` is a produc
 distinct primes, then `ν_p(i(K)) = ν_p(0! · 1! ⋯ (n - 1)!)`.  For every `θ ∈ 𝓞 K` the element
 `θ (θ - 1) ⋯ (θ - k + 1)` is divisible by `p ^ ν_p(k!)` in `𝓞 K`, which forces this power of `p`
 into `[𝓞 K : ℤ[θ]]`; an element congruent to `i` modulo a high power of the `i`-th prime above `p`
-attains the bound.
+attains the bound.  That the index at a completely split prime is determined by the splitting is
+due to Engstrom.
 
 Several lemmas only use that the primes above `p` are unramified and are stated in that generality;
 they are used again in `Mathlib.NumberTheory.NumberField.Monogenic.CommonIndexDivisor.Unramified`.
@@ -26,6 +27,11 @@ they are used again in `Mathlib.NumberTheory.NumberField.Monogenic.CommonIndexDi
 * `NumberField.pow_dvd_index_of_splitsCompletely`: the lower bound for every generator.
 * `NumberField.exists_index_eq_pow_mul_of_splitsCompletely`: the bound is attained.
 * `NumberField.factorization_fieldIndex_of_splitsCompletely`: `ν_p(i(K)) = ν_p(0! 1! ⋯ (n - 1)!)`.
+
+## References
+
+* H. T. Engstrom, *On the common index divisor of an algebraic field*, Trans. Amer. Math. Soc.
+  **32** (1930), 223–237.
 -/
 
 @[expose] public section
